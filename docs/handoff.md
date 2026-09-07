@@ -1,120 +1,86 @@
-# Handoff
-*Mode: Reference. Written from scratch by the agent that wrote plan v9; the next agent overwrites this file.*
+# Handoff: reference v9
+*Mode: Reference. What the reference agent did, the gate output, the citation check, what the next agent's files presume, and what is open.*
 
 ## Task
-Write `PLAN.md` at the repository root: version 9 of the Turnstile plan, a revision of `plan/v8/PLAN.md` that applies every decision in `docs/decisions.md` (D1 to D46; D47 to D49 are process and stay out of the plan). Keep v8's voice, section order, and every sentence still true. Cite `docs/reference.md §n` with v8's section numbers. Then write this file and commit.
+
+Write `docs/reference.md`, the v9 revision of `plan/v8/REFERENCE.md`, absorbing what is still true from `plan/v8/COMPANION.md` and `plan/v8/OPENFGA.md` and applying every decision in `docs/decisions.md`; keep v8's section numbering where `PLAN.md` cites it; drop what the decisions removed; then overwrite this file and commit both. `plan/`, `PLAN.md`, and `docs/decisions.md` untouched.
 
 ## Done
-- `PLAN.md`: 243 lines against v8's 216. Section order unchanged: intro, Who it is for, Words, The question, Decisions, Facts, The ledger, The seam, Audit, Adapters, The line, The example, Evidence, Adoption, Packages and conventions, Phases, Decisions list, Deferred. Every em dash in v8 was rewritten as a comma, colon, parenthesis, or new sentence, since the gate forbids the character. The three ⟨open n⟩ marks are gone; the one ⟨verify⟩ (the FedRAMP-assigned PS-4 value) stays. Forty-two of the forty-six decisions are cited inline as ⟨D<n>⟩; the four that are not are explained in the table below.
-- New paragraphs, all from the decisions: positions from the counter row (§The ledger); matching rules and exemptions (§The seam); object types and the fact mapping of the CUI domain (§The example); the formatter, the two statement files, and the skipped-scenario failure (§Evidence); the migration rule and the schema dump (§Packages); the stages as a list (§Phases); fourteen new bullets in the decisions list; the five deferred lines.
-- Removed: the adoption table and its tag paragraph, replaced by one paragraph under the same heading; the event-store mode bullet; the OSCAL, 20x, and `--diff` sentences; "visibility-safe reader"; "the adapter bound at compile time"; "type checker at the strictest setting"; `docs/adr/` and `docs/how-to/` from the tree; the `OPENFGA.md`, `REFERENCE.md`, `TESTING.md`, `CODE.md` file names, now `docs/reference.md §n`, `docs/testing.md`, `docs/code.md`.
-- Absorbed from files with no v9 counterpart (D43): `OPENFGA.md` §7's three amendments as a decisions-list bullet; `COMPANION.md` §14's roads not taken folded into the bullets they belong to (hosted engines, compile-time mediation, event-sourcing the application, the filter language, "provider").
-- `docs/handoff.md`: this file.
-- Nothing under `plan/` or in `docs/decisions.md` was modified.
+
+`docs/reference.md`, 725 lines, sections §1 to §15 (§3a and §15 new, the rest v8's numbers).
+
+- §1: the group table gains an id-prefix column (`enf`, `lp`, `sod`, `rev`, `aud`, `rvw`, `ia`, `ovr`, `cm`, `inv`); scenario ids are prefix, hyphen, two digits.
+- §2: the four controls; the Portion entity, `read` versus `read_redacted`, the redacted read as a Document decision plus a Portion `scope` applied through `preload`, and a per-adapter portion mechanism table ⟨D5⟩ ⟨D10⟩.
+- §3: C1 to C13 with C4 restored (write-time union in the domain, tested as a scenario) and C12 as a comparison never asserted; the rule-by-adapter mechanism table with levels and enforcing components ⟨D26⟩ ⟨D27⟩ ⟨D30⟩; capability records as function clauses with a fallback ⟨D35⟩.
+- §3a: sixty Tier 2 scenarios as a table (id, sentence, group, controls, what it tests, whether it needs a ledger), including the portion scenarios; the "write gates" note is not a scenario ⟨D30⟩ ⟨D33⟩.
+- §4: the comparison table without latency as a declaration; the declaration split between adapter package and thin app ⟨D7⟩; Postgres note with `around_query/3`, `set_config/3`, `check` for writes from `pg_policy`, the RLS scope record, `NOBYPASSRLS`, "not measured" without a replica; Cerbos attribute declaration shape and the `filter` fallback; code adapter's boot-time append under the counter row; OpenFGA projector summary; revocation latency as evidence with its components ⟨D14⟩ ⟨D15⟩ ⟨D24⟩ ⟨D25⟩ ⟨D32⟩ ⟨D37⟩.
+- §5: the `:policy_version` payload and the per-adapter table ⟨D12⟩ ⟨D32⟩.
+- §6: buckets with upserts named in the write bucket; the three matching rules, `object_type/1` and `carries/1`; the exemption struct and its two kinds with the library kind restricted to `Turnstile.*` callers; the owner-role repo; four extension points; the after-compile check asserting core's definitions; `Turnstile.Error.Unmediated` and audit mode returning the unscoped result; locked re-read; the cascade catalog check; static checks; what the statement prints ⟨D10⟩ ⟨D11⟩ ⟨D15⟩ ⟨D19⟩ ⟨D20⟩ ⟨D21⟩ ⟨D32⟩.
+- §7: shapes with the RLS variant and the denied-precondition `scope`; the head read as one query; the shape table per adapter and ledger mode; the single-row fact write count ⟨D18⟩ ⟨D26⟩ ⟨D32⟩.
+- §8: the `use Turnstile.Schema` mapping macro with per-column and per-row declarations, the CUI mapping, the event struct, upsert refusal, the bulk API ⟨D12⟩ ⟨D20⟩.
+- §9: `turnstile_ledger_counter(name, position)`, the five-step take, commit order is position order, the lock-cost and interleaved cases, the per-test row inside the sandbox ⟨D6⟩ ⟨D13⟩ ⟨D22⟩.
+- §10: Ecto and none; the event-store ledger mode as one deferred line; genesis, grant, catalog check ⟨D9⟩ ⟨D21⟩ ⟨D22⟩.
+- §11: Postgres and Generic; the reader row reads "counter row; a watermark reader is a later option"; counter-take and cascade-query rows.
+- §12: pinned sources; bump procedure with the how-to deferred to `turnstile_assess`; the toolchain table with each pin's "where" from `plan/review/toolchain-pins.md` ⟨D8⟩; generator inputs, the formatter, a `results.json` example, the skipped-scenario invariant, statement files and the CI order with the schema dump, the translation table, SSP vocabulary, the assessment glossary, and COMPANION Appendix A's terms with owners ⟨D16⟩ ⟨D33⟩ ⟨D38⟩ ⟨D39⟩ ⟨D43⟩ ⟨D44⟩.
+- §13: OPENFGA.md's §1 to §5 absorbed: the concept table, the full model with a `portion` type and `can_read_redacted`, the rule-by-rule paragraph, the tuple mapping with decontrol as read-diff-write, the client behaviour and the `Agent`-backed fake, the projector with checkpoint per acknowledged write, drain by diff, rebuild into a fresh store, the domain-free declaration summary, the three `@tag :committed` projection cases ⟨D7⟩ ⟨D23⟩ ⟨D24⟩ ⟨D25⟩ ⟨D34⟩ ⟨D37⟩.
+- §14: the environment summary, `priv/conformance/` and the neutral fixture, the four attempt-1 modules with their `git show attempt-1:<path>` sources and where each lands, the schema dump, the two tracks ⟨D29⟩ ⟨D38⟩ ⟨D40⟩.
+- §15: `%Turnstile.Config{}` fields with type, default, and the decision that adds each; `adapter_options` keys per adapter ⟨D45⟩.
+
+Dropped: adoption steps, tags, the transaction-id reader, compile-time binding, capability declarations in adapter packages, OSCAL and 20x output, the event-store ledger mode as a mode, `--diff`, the "if ordering defeats the wrap" sentence, the measured-latency column of the comparison table.
 
 ## Gate
-Run from the repo root. The first command is the banned-word grep from the task brief: a case-insensitive search of `PLAN.md` for the nine banned words, the exclamation mark, and the em dash, followed by `echo "exit=$?"`; it cannot be quoted here without failing D43's grep over `docs/`. The other three commands are:
 
 ```
-grep -n "⟨open" PLAN.md
-grep -niE "visibility-safe|compile-time binding|bound at compile time|provider\b" PLAN.md | grep -vi "cloud service provider\|identity provider\|the provider's\|declared by the provider\|provider-chosen\|provider imports"
-grep -n "v0-\|v10a\|adoption table\|tag by tag" PLAN.md
-```
-
-Output, in order, after the last edit:
-
-```
+$ grep -niE "\b(simply|just|obviously|easy|easily|of course|basically|note that|in order to)\b|!|—" docs/reference.md ; echo "exit=$?"
 exit=1
+$ grep -niE "visibility-safe|compile_env|bound at compile time|xmin|event-store mode|v10a|adoption step" docs/reference.md
+$ grep -nE "provider\b" docs/reference.md | grep -viE "cloud service provider|identity provider|the provider's|declared by the provider|provider-chosen|provider imports|provider who"
 ```
 
-The other three commands printed nothing.
+Two inequality operators, written with the exclamation character in the first draft, tripped the first grep and were reworded.
 
-## Decision coverage
+## Citation check
 
-| Decision | Where PLAN.md reflects it |
-|---|---|
-| D1 | Reflected by absence: no migration-from-the-old-tree paragraph. §Packages names the `attempt-1` branch as the source of ported files (with D40). Not cited inline, since no paragraph rests on it. |
-| D2 | Intro; §Adapters (one library app bound four times); §The example (last paragraph); §Evidence (Tier 2 once per thin application); §Packages tree; §Decisions list. |
-| D3 | §Adoption (one paragraph); §Phases (S5 gone); §Decisions list; §Deferred. |
-| D4 | §Words (adapter, never provider); §Evidence (`mix turnstile.assess`); §Packages (twelve apps, prefix rule); §Decisions list. |
-| D5 | §The example (schema block without ⟨open 1⟩, the portion paragraph); §Adapters (Postgres line, second policy); §Decisions list. |
-| D6 | §The ledger (counter-row paragraph, the named row for tests); §Decisions list. |
-| D7 | §Adapters (admission paragraph: domain-free declaration, capability per rule in the thin app); §Packages (engineering: bound at boot); §Decisions list. |
-| D8 | §Packages engineering sentence (versions, `nixos-unstable`, Cerbos from its archive); §Decisions list. |
-| D9 | §Who it is for (item 8); §Words (20x docs read by the lint); §The ledger (two modes); §The line (second altitude test deferred); §Evidence (one profile); §Decisions list; §Deferred. |
-| D10 | §The seam (refusal wording, the matching paragraph); §The example (which schemas declare object types); §Decisions list. |
-| D11 | §The seam (exemptions paragraph); §Decisions list. |
-| D12 | §Facts (the macro, old and new); §The example (the domain's mapping); §Decisions list. |
-| D13 | §The ledger (no xmin reader; watermark reader as a later dialect option). |
-| D14 | §Adapters (revocation latency as evidence, components, "not measured", compared never asserted); §Decisions list. |
-| D15 | §The seam (`around_query/3`, the owner-role repo); §The line (the second Repo); §Decisions list. |
-| D16 | §Evidence (formatter, `results.json`, `statement.md`, `evidence.json`); §Packages tree; §Decisions list. |
-| D17 | Closed by D7; §Packages engineering sentence. Not cited inline, D7 is. |
-| D18 | §Decisions (head read is one query, `nil` in mode none); §Adapters and §The line (reworded "database-free", the boundary rule's list); §Evidence (shape counts per adapter and mode); §Decisions list. |
-| D19 | §The seam (after-compile check, overrides asserted in force); §Decisions list. |
-| D20 | §The seam (locked re-read, upsert refusal); §Decisions list. |
-| D21 | §The ledger (Ecto ledger bullet, the catalog check); §Decisions list. |
-| D22 | §The ledger (the head is the committed counter value; replay exact to the head). |
-| D23 | §Adapters (OpenFGA line); §Evidence (projection cases on the committed repo). |
-| D24 | §The ledger (projector: checkpoint per acknowledged write, drain by diff); §Decisions list. |
-| D25 | §The ledger (rebuild into a fresh store, the swap printed); §Decisions list. |
-| D26 | §Decisions (RLS decision record: rule `true`, migration number, settings hash); §Adapters (Postgres line: `check` for writes, the per-rule table); §Decisions list. |
-| D27 | §Adapters (Cerbos line); §Decisions list. |
-| D28 | §Deferred (component definition, never a whole SSP). PLAN.md nowhere says "SSP validated against FedRAMP's templates". |
-| D29 | §Adapters (admission paragraph); §Packages tree (each adapter line); §Decisions list. |
-| D30 | §Adapters (Postgres write gates as a note; capability levels with the component named); §Evidence (the scenario table; POA&M rows only for unsupported); §Decisions list. |
-| D31 | §Packages engineering sentence ("every type warning an error"). |
-| D32 | §The question (subject kinds; `scope` under a denied precondition); §The seam (refusal raises, audit mode returns the unscoped result); §Decisions list. The process-dictionary, `NOBYPASSRLS`, and boot-time policy-version lines are companions only. |
-| D33 | §Evidence (the executed-count paragraph); §Decisions list. |
-| D34 | §Packages testing sentence. |
-| D35 | Companions only (`docs/code.md` §6). |
-| D36 | §The question (`explain` answered unsupported at runtime); §Decisions list. |
-| D37 | §Adapters (OpenFGA line: client behaviour and fake); §Decisions list (against the outbox). |
-| D38 | §Packages (schema dump per thin-app job). |
-| D39 | §Packages documentation sentence (`docs/glossary-index.md`, translation tables). |
-| D40 | §Packages (ported conformance mechanisms); §Phases S1; §Decisions list. |
-| D41 | §Packages documentation sentence; §Decisions list. |
-| D42 | §Deferred, not deleted. |
-| D43 | §Packages tree (root files, `docs/`, `plan/`) and the documentation sentence. |
-| D44 | §Packages tree, the twelve-app sentence, the migration rule, the second `example_code` job. |
-| D45 | §Packages engineering sentence (the struct, NimbleOptions, the only runtime configuration); its fields appear where they are used: the counter name (§The ledger), declared exemptions and the owner repo (§The seam). |
-| D46 | §Phases. |
+Every `docs/reference.md §n` in `PLAN.md`:
+
+| PLAN.md line | Citation | Section title | Claim | Satisfied |
+|---|---|---|---|---|
+| 25 | §12 | Pinned sources, toolchain, generator inputs, statement files, glossary | bumping a pin outputs the lint's diff of affected scenarios | yes (Bump procedure) |
+| 41 | §7 | Audit records: shapes, span, caps, sizes, shape tests | record shapes and caps | yes |
+| 47 | §5 | Policy-version events | only the rare policy event holds bytes | yes |
+| 62 | §9 to §10 | Ledger positions; Ledger modes | mode claims, positions, and the reader | yes |
+| 72 | §6 | The Repo seam | a Tier 1 sweep generated from the module re-proves the classification at runtime | yes (Proof at runtime) |
+| 72 | §8 | Bulk writes and fact fields | a million-row sync that changes nine facts records nine | yes (sentence added) |
+| 76 | §7 | Audit records | sizes, caps, and shape tests | yes |
+| 87 | §13 | The OpenFGA adapter | the graph adapter's design note | yes |
+| 89 | §4 | Adapters: comparison, declarations, notes, latency | comparison and notes | yes |
+| 118 | §2 to §3 | Dissemination controls and the portion; Rules and mechanisms | full tables | yes |
+| 124 | §1 | Requirement groups, controls, and scenario ids | ids | yes (id-prefix column) |
 
 ## For the next agent
-The companions writer. PLAN.md cites these `docs/reference.md` sections by v8 number and expects each to exist with the content named:
 
-- §1: scenario groups and ids (unchanged).
-- §2 to §3: dissemination controls and the rules; C4 reworded per D5; the "where the adapters differ" paragraph without the Cerbos "or" (D27) and pointing at the thin apps' per-rule tables (D26); the Tier 2 scenario table as a new section beside §3 (D30).
-- §4: the comparison table and the adapter notes, with the declaration paragraph split (D7), the Postgres note carrying `around_query`, `check` for writes, the portion policy, `NOBYPASSRLS`, and "not measured unless a replica is configured" (D14, D15, D26, D32), the Cerbos attribute declaration shape (D27), and the OpenFGA note rewritten for D24 and D25.
-- §5: the `:policy_version` kind's payload (D12).
-- §6: the seam, with the Matching paragraph and the `object_type/1` and `carries/1` declarations (D10), `%Turnstile.Exemption{}` (D11), four extension points (D15), the after-compile rewrite (D19), the write bucket naming upserts (D20), and the sentence "audit mode returns the unscoped result" in those words (D32).
-- §7: record shapes and caps, the RLS `scope` variant (D26), and the shape table with one row per adapter and ledger mode (D18); the single-row fact write count "the re-read, the write, one ledger insert" (D20).
-- §8: the bulk API, the fact-mapping macro (D12), the locked re-read and the upsert refusal (D20).
-- §9 to §10: the counter table and the head read (D6); the modes table without the event-store row, kept as a note (D9); the Ecto-ledger claim with declared cascades (D21) and "replay exact after reconcile" for out-of-band drift only (D22).
-- §11: the reader-strategy row as "counter row; a watermark reader is a later dialect option" and the cascade-query row (D6, D21).
-- §12: pinned sources, the `results.json` schema, and the statement file layout (D16); the assessment glossary, which also holds COMPANION Appendix A's terms until package glossaries exist (D43). The bump procedure is cited from PLAN §Words as "a procedure whose output is the lint's diff"; v8 §12 points at `docs/how-to/bump-sources.md`, which D43 drops, so §12 should say the how-to lives in `turnstile_assess` once S2c writes it.
-- §13: PLAN.md calls this "the graph adapter's design note", which v8's four-line §13 is not; OPENFGA.md §1 to §5 are absorbed here with D23 to D25 applied, plus the client behaviour and its fake (D37), the `@tag :committed` on the projection cases (D23), and the declaration summary reduced to the domain-free facts, the per-rule part moving to `example_fga` (D7).
-- `docs/testing.md` and `docs/code.md` are cited by name only, from §Packages.
+The writer of `docs/testing.md` and `docs/code.md`. The reference presumes these details and names them without designing them:
 
-Wording in PLAN.md that presumes a companion detail v8 does not have yet:
-- "The row is named in the configuration, so a test can take its own and async tests never contend" (§The ledger): the per-test counter row of D6's sandbox consequence, which needs a `docs/testing.md` §3 or §5 paragraph and the `ledger_counter` field in `docs/code.md` §2.
-- "The thin app's per-rule table names the mechanism for each of C1 to C13" (§Adapters): the table itself is `example_postgres`'s; `docs/reference.md` §3 only points at it.
-- "CI fails on a count of zero, or on a skip that names no declared capability, or, in a mode-none run, no need for a ledger" (§Evidence): `docs/testing.md` §6's D33 paragraph and the formatter's counts.
-- "`example_code` runs Tier 2 twice, once per ledger mode" (§Packages): `docs/testing.md` §7.
-- "Every fake returns a value of the real type rather than raising" (§Packages): `docs/code.md` §4's Fakes rule (D34) and the capability-record and list-literal rows in §6 (D35).
-- "The lint that reads test files without compiling them" (§Packages): `docs/testing.md` §6 names the ported macro and AST reader (D40).
-- The stage list in §Phases names decisions per stage in prose only; `docs/delivery.md` is where each gate becomes a command and its expected output (D46).
-- The `Decision` struct in v8 CODE §2 has one `position` field; PLAN §Decisions carries two (head and applied), as the previous handoff already noted.
-
-Calls I made, not the owner's:
-- The title is `Turnstile: plan, v9`. The brief spelled it with an em dash, which the gate's first command forbids anywhere in the file; a colon is the nearest reading.
-- §Adoption survives as a heading over one paragraph, as the brief asked, rather than being removed outright as D3's consequence line says; the paragraph says the guide is deferred and where its material comes from.
-- The mode line keeps v8's sentence about tables moving into package docs as the packages appear.
-- The decisions list gained fourteen bullets, one per new choice, and kept every v8 bullet whose choice survives; bullets whose choice changed were rewritten in place rather than deleted, so a v8 reader finds them where they were.
+- **Per-test counter row** (§9): the sandbox `setup` inserts a `turnstile_ledger_counter` row named `test-<id>` inside the sandbox transaction and passes `ledger_counter:` through `Turnstile.Test.with_config/2`; committed tests use `default`. Testing owns the setup; code owns `Turnstile.Test.with_config/2` (process dictionary, `self()` then `$callers`).
+- **Committed-repo cases** (`@tag :committed`, `async: false`, truncation through the owner-role repo): interleaved transactions and lock cost (§9), the append-only grant, reconcile against out-of-band writes, the three projection cases driving `drain_once/1` (§13), the revocation-latency case per adapter from a template in core (§4). The latency case uses `System.monotonic_time(:millisecond)` and `Turnstile.Test.poll/2`; its poll interval is written to `results.json` as the floor.
+- **The formatter**: `Turnstile.Assess.Formatter`, run beside the default formatter, writes `results.json` with the fields in §12; the skip reason comes from the `scenario` macro's tag (`{:capability, :c3}` or `:needs_ledger`). CI fails on `executed` zero or an undeclared skip ⟨D33⟩.
+- **The fake FGA client**: `Turnstile.Fga.Client.Fake`, an `Agent` per test started with `start_supervised` (the raising variant), holding stores, models, tuples; `write/3` rejects duplicates and missing deletes atomically; `check/3` and `list_objects/3` answer from present tuples without model evaluation; every return is the real type ⟨D34⟩. The behaviour's callbacks are listed in §13. Decision cases run against `openfga run --datastore-engine memory`, a store per test.
+- **The config override pattern**: `%Turnstile.Config{}` (§15) validated once at boot by NimbleOptions; the adapter, ledger, counter name, owner repo, seam mode, and `adapter_options` all flow through `with_config/2`, which is how `AdapterCase` runs four adapters in one `mix test`.
+- **Owner-role repo**: `Turnstile.TestRepos.Owner` is `use Turnstile.Repo, role: :owner` and is the `owner_repo` in test config; reconcile, genesis, the catalog check, and truncation go through it. The cluster's two roles are unchanged from v8 TESTING §3.
+- **The `Turnstile.Schema` macro** (§6, §8): `object_type/1`, `carries/1`, `fact/2` (per column: `kind:`, `subject:`, `object:`, `element:`), `relationship/1` (per row: `subject:`, `object:`, `attributes:`). Code decides its implementation; the reference fixes the declaration surface.
+- **Shape tests** count queries from `[:repo, :query]` telemetry with transaction-control statements filtered; the table in §7 is per adapter and per ledger mode; the `set_config` statement counts as one query for Postgres.
+- **Ported modules** (§14): `scenario.ex`, `language_lint.ex`, `case.ex`, `provider_case.ex` from `attempt-1:apps/turnstile_core/lib/turnstile/conformance/`; `provider_case` becomes `AdapterCase`, `axis` becomes `control:` plus group, and the `scenario` macro validates `control:` at expansion and writes the formatter's skip reason.
+- **Thin-app CI order** (§12): migrate, `pg_dump --schema-only` into `priv/schema/<adapter>.sql` and diff, Tier 2 with the formatter, `mix turnstile.assess`, `git diff --exit-code` on `statement/statement.md`; `example_code` runs the Tier 2 step twice, once per ledger mode ⟨D44⟩.
+- **Structs the reference names** that code must define: `%Turnstile.Decision{head_position, applied_position, ...}` (two positions, not v8 CODE's one), `%Turnstile.FactEvent{}`, `%Turnstile.PolicyVersion{}`, `%Turnstile.Exemption{}` (with `kind: :declared | :library`), `%Turnstile.Subject{kind:}`, `Turnstile.Error.Unmediated`, `Turnstile.Error.Engine`, the `Turnstile.Capabilities` behaviour (`capability/1`), `Turnstile.Projection` (`checkpoint/1`, `drain_once/1`, `rebuild/1`, `reconcile/1`), `Turnstile.Fga.Client`, `Turnstile.Fga.TupleMapping`, `Turnstile.Ledger.Dialect` with seven questions.
+- v8 TESTING §5's row "positions consumed in a rolled-back sandbox transaction are gaps" is no longer true: positions come from the counter row and roll back with the transaction (§9).
 
 ## Open
-- The title line: the brief's wording carries an em dash and the gate forbids it; I used a colon. If the owner wants the dash in the title, the first gate command needs an exception for line one.
-- §Adoption as one paragraph under the v8 heading versus D3's "remove §Adoption entirely": the brief asked for the paragraph, so the heading stays; either reading is a one-line change.
-- The ⟨verify⟩ on the FedRAMP-assigned PS-4 value stays, since no decision resolved it.
-- Inherited from the previous handoff and still open: whether the per-test named counter row (D6) is acceptable to the owner; whether mode none needs the second `example_code` Tier 2 job (D44); where COMPANION Appendix A's terms live before package glossaries exist; whether the Darwin arm64 Cerbos tarball runs unsigned on macOS.
-- `Example.Repo` and the web layer are placed in the library app `turnstile_example` (D44); PLAN §Packages says so. If the S1 agent cannot make that compile with per-thin-app `config_path`, the alternative (each thin app owns its Repo and the contexts take a repo parameter) changes the tree in §Packages and the last paragraph of §The example.
+
+1. **`Example.User`'s protection.** ⟨D10⟩ lists Document, Portion, Program, Assignment, OfficeRole, and Marking as protected and Category and Country as lookup tables; User is in neither list. The reference treats it as an unprotected fact schema (§8: facts recorded, no decision needed) because ⟨D10⟩ says protection is iff an object type is declared. If User should be protected, §8's example gains `object_type :user` and §3a gains a read scenario for it.
+2. **`read_redacted` as a second Document operation.** ⟨D5⟩ says "a Document decision plus a Portion `scope`" without naming the Document operation. A Document decision under C2 over the banner would deny every redacted read the banner blocks, so §2 defines `read_redacted` as C1 alone at document level with C2 tested per portion. Nearest faithful reading; the FGA model's `can_read_redacted` follows it.
+3. **The counter take on `Dialect.Postgres`.** ⟨D6⟩ says "take by `SELECT ... FOR UPDATE`, advance by the number of events". §9 and §11 let the Postgres dialect collapse the two into one `UPDATE ... RETURNING` and give `Dialect.Generic` the literal sequence. The single-row fact write count in §7 is therefore "the re-read, the write, one ledger insert, and the counter take", one statement more than the brief's phrase.
+4. **Names chosen here, not by a decision:** the macro module `Turnstile.Schema` and its `fact/2` and `relationship/1`; the component atoms in the capability record (`:adapter | :seam | :database | :engine | :application`); the `declared_cascades` config field (⟨D21⟩ needs the declaration to live somewhere and ⟨D45⟩'s list omits it); the `results.json` field names; the scenario id scheme; the `Turnstile.Fga.Client` callback list; `Turnstile.PolicyVersion`; `Turnstile.Error.Engine`.
+5. **The sixty scenarios in §3a are a draft for S1 to freeze** ⟨D30⟩ ⟨D46⟩. Enhancement membership carries §1's ⟨verify⟩; the PS-4 parameter compared in §4 is ⟨verify⟩; `aud-08` (rolled-back write leaves no fact event) and `rev-07` may belong to Tier 1 instead.
+6. **FGA model additions to verify at S10:** the `portion` type and `from portion` on the document's flags mean the banner is derived on FGA while the domain also writes `Document.marking` as the union; the tuple mapping writes both, harmlessly, and reconcile must expect the union. Whether a condition on a tuple-to-userset (`category with before_decontrol`) compiles as written, and whether FGA keys a tuple on its condition context (the decontrol read-diff-write), are both ⟨verify⟩ in §13.
+7. **Inherited from the previous handoff:** the Darwin Cerbos binary is unsigned and may need `xattr -d com.apple.quarantine` or an S0 note; `Example.Repo`'s placement (library app or thin app) is unstated in the reference, which says only that the thin app starts the projector and the reconcile scheduler.
+8. **§14 still points at `docs/testing.md` for the cluster's mechanics**, which does not exist yet; the summary there is v8 TESTING §2 to §7 with the counter row, the owner-role repo, and the fake client applied.
