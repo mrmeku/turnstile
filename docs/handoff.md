@@ -41,7 +41,6 @@ Things the plan writer must carry that are not decisions:
 - The prose rules ban the exclamation mark anywhere in `docs/`, so bang-named functions cannot be spelled in these files; write "the bang variant" or name the module.
 
 ## Open
-- `attempt-1` is a branch at `0f4888b`, not the tag Q1 asked for. D1 has the S0 agent create the tag and remove the branch; the owner has not said whether removing the branch is acceptable.
 - Whether the per-test named counter row (D6) is acceptable to the owner, or whether Tier 2 should accept serialization on the `default` row.
 - Whether mode none needs the second `example_code` Tier 2 job (D44) or Tier 1 alone is enough evidence for the statement's mode-none claims.
 - Where COMPANION Appendix A's terms live before any package glossary exists; D43 says docs/reference.md §12 for now, which stretches that section.

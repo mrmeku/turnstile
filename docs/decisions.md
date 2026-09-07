@@ -6,7 +6,7 @@
 ### D1. Repo reset on an orphan branch
 **Decision.** The v9 work lives on an orphan branch in this repository whose first commit is `plan/` (v8 plus the review). The previous tree is kept under the ref `attempt-1`.
 **Because.** owner-answers Q1. The old tree's vocabulary (provider, actor, vocabulary, atom reasons), package list, environment, and example domain all change; repo-lessons §E found nothing an in-place rewrite would preserve that `git show attempt-1:<path>` does not.
-**Consequences for v9.** PLAN.md: no migration-from-the-old-tree paragraph; holes #27 is moot. Reusable files are ported by `git show attempt-1:<path>` (D40, D43). `attempt-1` is currently a branch at `0f4888b`, not the tag Q1 names; the S0 agent creates the tag at that commit and removes the branch, so one ref carries the name.
+**Consequences for v9.** PLAN.md: no migration-from-the-old-tree paragraph; holes #27 is moot. Reusable files are ported by `git show attempt-1:<path>` (D40, D43). `attempt-1` is a branch at `0f4888b`; it stays a branch, and no tag is created, so `git show attempt-1:<path>` and `git log attempt-1` both work.
 
 ### D2. The example is a library app plus four thin apps
 **Decision.** `turnstile_example` holds the CUI domain, schemas, contexts, the web layer, and the scenario tests as shared test support. `example_code`, `example_postgres`, `example_cerbos`, `example_fga` each depend on it and add only the adapter binding, migrations, policies or model, per-rule capability declarations, and config. Each thin app has its own CI job.
