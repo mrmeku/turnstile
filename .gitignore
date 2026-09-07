@@ -1,0 +1,12 @@
+/_build/
+/deps/
+/cover/
+/doc/
+/tmp/
+/.direnv/
+/result
+erl_crash.dump
+*.beam
+*.ez
+.elixir_ls/
+.env
