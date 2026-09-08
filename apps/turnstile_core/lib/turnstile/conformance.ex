@@ -6,5 +6,5 @@ defmodule Turnstile.Conformance do
   repository or outside it, proves itself against the same contract.
   """
 
-  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Test]
+  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Test, Ecto]
 end
