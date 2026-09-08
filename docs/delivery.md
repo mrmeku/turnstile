@@ -101,7 +101,7 @@ $ mix test --only committed
 ### S3. RBAC in code: `turnstile_rbac`
 
 - **Entry.** S2b.
-- **Deliverables.** `apps/turnstile_rbac`: declared roles and permissions as data, attribute predicates, `explain` naming the clause, a policy-version event at boot when the ledger head names an older version, the adapter's domain-free declaration, `priv/conformance/` with the role table and predicates for the neutral fixture.
+- **Deliverables.** `apps/turnstile_rbac`: declared roles and permissions as data, attribute predicates, `explain` naming the clause, a policy-version event at boot when the ledger head names an older version, the adapter's domain-free declaration, `priv/conformance/` with the role table and predicates for the neutral fixture, and the declared-fact coverage case of `docs/reference.md` §14, walking the `dynamic` that `scope` returns and failing with the column's name on an undeclared one.
 - **Gate.** In `apps/turnstile_rbac`:
 
 ```
@@ -168,7 +168,7 @@ In the Ecto run no scenario is skipped for `needs_ledger`; a test replays a deci
 ### S7a. `turnstile_postgres`
 
 - **Entry.** S6.
-- **Deliverables.** `apps/turnstile_postgres`: session settings through `set_config(name, value, true)` inside `around_query/3`, `check` for writes, policy-version events read from `pg_policy` and appended by migrations, the replica-lag component reported "not measured", the declaration, `priv/conformance/` with the RLS migration for the neutral fixture.
+- **Deliverables.** `apps/turnstile_postgres`: session settings through `set_config(name, value, true)` inside `around_query/3`, `check` for writes, policy-version events read from `pg_policy` and appended by migrations, the replica-lag component reported "not measured", the declaration, `priv/conformance/` with the RLS migration for the neutral fixture, and the declared-fact coverage case of `docs/reference.md` §14, reading the policy predicates from `pg_policy` and failing with the column's name on an undeclared one.
 - **Gate.** In `apps/turnstile_postgres`:
 
 ```
@@ -244,7 +244,7 @@ $ ls priv/conformance
 ### S10b. `example_cerbos`
 
 - **Entry.** S10a.
-- **Deliverables.** `apps/example_cerbos`: the binding, `ExampleCerbos.Capabilities` with C3 as `limited` and its note, the policy files, an empty migration beyond the helpers with a comment saying why, `priv/schema/cerbos.sql`, the scenario test file with the review, drift, and replay scenarios counted, the README, and its job in the workflow file.
+- **Deliverables.** `apps/example_cerbos`: the binding, `ExampleCerbos.Capabilities` with C3 as `limited` and its note, the policy files, an empty migration beyond the helpers with a comment saying why, `priv/schema/cerbos.sql`, the scenario test file with the review, drift, and replay scenarios counted, the declared-fact coverage case of `docs/reference.md` §14 over the CUI policies, walking the `dynamic` that `scope` returns and failing with the column's name on an undeclared one, the README, and its job in the workflow file.
 - **Gate.** The same two commands as S7b in `apps/example_cerbos`, with `rev-06` measuring `policy_propagation` and printing it.
 
 ### S11a. The OpenFGA client and its fake
