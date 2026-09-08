@@ -56,24 +56,24 @@ A **projection** is how an adapter's working state relates to the ledger. For ru
 
 Two modes, chosen by the application and printed by the generator; a third, the application's own event store as the ledger, is deferred and listed at the end:
 
-- **Ecto ledger** (`turnstile_ledger`). The seam records one fact event per changed fact field in the same transaction as the write, into a library-owned table the database keeps append-only by grant. It begins at **genesis**, every current fact written as an event at position zero, stamped with the date and the migration, and replay before genesis is "not available" by construction. **Reconcile** folds the ledger against the tables on an interval and reports **drift**: facts changed outside the seam. A foreign key that cascades into a fact schema would change facts with no entry, so a catalog check at genesis and in Tier 1 refuses such keys unless each is declared, and declared ones print as drift sources with the reconcile interval as their window.
+- **Ecto ledger** (`turnstile_ledger`). The seam records one fact event per changed fact field in the same transaction as the write, into a library-owned table the database keeps append-only by grant. It begins at **genesis**, every current fact written as an event at position zero, stamped with the date and the migration, and replay before genesis is "not available" by construction. **Reconcile** folds the ledger against the tables on an interval and reports **drift**: facts changed outside the seam. A foreign key that cascades into a fact schema would change facts with no entry, so a catalog check at genesis and in Tier 1 refuses such keys.
 - **None.** The tables are the only truth. Revocation latency is still measured; history, drift, and automated account audit print as things the application must provide; an adapter that requires a ledger prints as unsupported, with a POA&M row.
 
 Every fact and decision event is emitted through telemetry to the organization's log pipeline and SIEM; that copy is the centralized audit record and lives under the SIEM's retention. The ledger is not: it is complete for the life of the system, or replay stops being exact. Mode claims, positions, and the reader: `docs/reference.md` §9 to §10.
 
 ## The seam
 
-The reference monitor of 1972 must be always invoked, tamperproof, and small enough to verify. The port is the small part. The **seam** is what makes "always invoked" a runtime fact rather than a code-review outcome: the application's own Repo module, extended by core, refuses any call on a protected schema that carries neither a decision for that schema's object type nor a named exemption, applies `scope`'s rule to every query, and records fact events for declared fields in the same transaction as the write. One seam, three guarantees: always invoked, scope fidelity, no fact without an entry. Refusal raises `Turnstile.Error.Unmediated`. An **audit mode** logs instead of refusing and returns the unscoped result, which is why its output, an adopting application's inventory of unchecked paths, is read before it is trusted.
+The reference monitor of 1972 must be always invoked, tamperproof, and small enough to verify. The port is the small part. The **seam** is what makes "always invoked" a runtime fact rather than a code-review outcome: the application's own Repo module, extended by core, refuses any call on a protected schema that carries neither a decision for that schema's object type nor a named exemption, applies `scope`'s rule to every query, and records fact events for declared fields in the same transaction as the write. One seam, three guarantees: always invoked, scope fidelity, no fact without an entry. Refusal raises `Turnstile.Error.Unmediated`.
 
 Which decision applies to which query is a rule, not a guess. A schema is protected iff it declares an object type. The seam judges a query by its root source: a decision naming a different object type is refused; a preload or association query needs its own decision unless the parent schema declares the association as a carried relation; in a multi-source query every other protected source must be carried by the root. Lookup tables declare no object type and pass without a decision, and the statement lists protected schemas, unprotected schemas, and carried relations.
 
-Exemptions come two ways: per call, with a reason, and declared in the configuration by schema or table and by caller module, for protected schemas written by code the application cannot edit. Both print in the statement with their reasons. A library-internal kind covers the writes the library makes itself (the ledger's tables, the projector's checkpoint, genesis), and only library callers may claim it. Reconcile, genesis, and test truncation run through a second Repo module the application declares with the owner role, which the seam treats as wholly library-exempt and the statement prints.
+Exemptions are per call, with a reason, and print in the statement with their reasons. A library-internal kind covers the writes the library makes itself (the ledger's tables, the projector's checkpoint, genesis), and only library callers may claim it. Reconcile, genesis, and test truncation run through a second Repo module the application declares with the owner role, which the seam treats as wholly library-exempt and the statement prints.
 
 The seam's shape is proven, not assumed. Core classifies every Repo function (mediated through the query hook, overridden, wrapped to demand an exemption, or plumbing that touches no rows) and fails compilation, once the module is compiled, on any function it has not classified, so an Ecto release cannot open a hole; its overrides are injected last, and the same after-compile check asserts they are the definitions in force, so an application's own query hook runs inside ours; a Tier 1 sweep generated from the module re-proves the classification at runtime (`docs/reference.md` §6). An adapter may wrap every mediated call and write through `around_query/3`, the seam's fourth extension point; the Postgres adapter uses it to open a transaction where none is open and to set the subject's session settings on every call, so two subjects in one transaction each set their own. What the seam cannot see (SQL that bypasses the Repo module, a second Repo without the extension) two shipped Credo checks flag, advisory only; the claim stays with the seam. Bulk writes to fact fields go through a declared API that skips rows whose value did not change, so a million-row sync that changes nine facts records nine (`docs/reference.md` §8). For a single-row update or delete the seam re-reads the row under the dialect's lock and takes the old value from the re-read, not from the changeset; an upsert on a fact schema is refused with a pointer to the bulk API.
 
 ## Audit
 
-Two streams, both in the shape AU-3 asks of an audit record: type, time, source, outcome, identity, and a request or session identifier. Every port call is a telemetry span: `:start` is the decision, `:stop` the outcome, `:exception` the failure, so an attempt is on record even when the query never completes, which is what AU-2's "successful and unsuccessful" means. Records are **per operation, never per row**: a bulk write that changes twenty thousand facts writes twenty thousand ledger rows, because replay needs each, and one audit record carrying the count and the operation id the rows are indexed by. The library ships a Logger handler and owns no store. The example ships a hash-chained store whose chain head rides in every emitted record, so the SIEM's copy anchors a chain that would otherwise be rewritable by anyone who can write the database. Emission is total; forwarding is a printed setting, and denials, writes, and privileged operations are never sampled. Sizes, caps, and shape tests: `docs/reference.md` §7.
+Two streams, both in the shape AU-3 asks of an audit record: type, time, source, outcome, identity, and a request or session identifier. Every port call is a telemetry span: `:start` is the decision, `:stop` the outcome, `:exception` the failure, so an attempt is on record even when the query never completes, which is what AU-2's "successful and unsuccessful" means. Records are **per operation, never per row**: a bulk write that changes twenty thousand facts writes twenty thousand ledger rows, because replay needs each, and one audit record carrying the count and the operation id the rows are indexed by. The library ships a Logger handler and owns no store. The example ships a hash-chained store whose chain head rides in every emitted record, so the SIEM's copy anchors a chain that would otherwise be rewritable by anyone who can write the database. Emission is total and nothing is sampled. Sizes, caps, and shape tests: `docs/reference.md` §7.
 
 ## Adapters
 
@@ -129,10 +129,6 @@ Two tiers. **Tier 1**, in core, proves the port's guarantees, the seam, and the 
 
 The library does not claim authorization status, own identity, own the audit store, decide origination, or promise portability it has not tested.
 
-## Adoption
-
-The adoption guide is deferred. The example is built with the seam enforcing from its first commit; there are no tags, no per-step statements, and no adoption job, because every encoding of the steps either rotted with each generator change or forced a rebase cascade. When the guide returns it is educational material written from the finished example: it starts from what a team has (Phoenix and Ecto, a token whose claim carries one role, a plug that checks it) and reads the four statements for what each change earns. An application without Ecto forgoes `scope` and the seam and prints mediation, drift, and point-in-time review as its own claims.
-
 ## Packages and conventions
 
 ```
@@ -141,7 +137,7 @@ turnstile/
   docs/        reference.md · testing.md · code.md · delivery.md · writing.md · glossary-index.md
   apps/
     turnstile_core/       port, structs, clock, ledger and projection behaviours, the seam (surface
-                          classification, audit mode, fact-recording hook, around_query), Credo checks,
+                          classification, fact-recording hook, around_query), Credo checks,
                           the top-layer boundary rule, AdapterCase, the fake adapter, the in-memory
                           ledger, test cluster support; depends on ecto, not ecto_sql
     turnstile_ledger/     the Ecto ledger: counter row, events table, migration and genesis helpers,
@@ -180,7 +176,7 @@ Documentation: every file declares one Diátaxis mode and stays in it, and the t
 
 ## Phases
 
-Thirteen stages, S0 to S12, each with a mechanical gate, run in sequence on one branch; S5, the adoption walk, is gone with the adoption steps. The detail, every gate as a command and its expected output, is `docs/delivery.md`. There is one pause, after this plan and its companions, for the owner to read and approve; after it the stages run to completion, each gated, reporting at the end or when blocked.
+Thirteen stages, S0 to S12, each with a mechanical gate, run in sequence on one branch. The detail, every gate as a command and its expected output, is `docs/delivery.md`. There is one pause, after this plan and its companions, for the owner to read and approve; after it the stages run to completion, each gated, reporting at the end or when blocked.
 
 - **S0. Toolchain.** The flake, the ephemeral cluster, CI; the gate prints the pinned Cerbos and OpenFGA versions from the packaged binaries.
 - **S1. Contracts.** The port, the structs, the ledger and projection behaviours, the matching rules, the fact payload and its macro, the exemption struct, `around_query/3`, the configuration schema, the scenario table, the conformance modules; the frozen interfaces.
@@ -203,7 +199,7 @@ Thirteen stages, S0 to S12, each with a mechanical gate, run in sequence on one 
 - Four admission rules; not hosted engines, which are another system needing their own authorization, not facts in tokens, and not allow-on-timeout.
 - Fact events in 800-162's terms, declared column by column through a macro, carrying old and new, the domain mapped at its boundary; not domain-shaped events in core and not table-level facts.
 - Ecto in core and `scope` as a `dynamic`; not a filter language of core's own, which guaranteed narrowing and a faithful record but could not express subqueries and cost a language and two compilers; the price is ORM independence, which the port never needed.
-- Mediation at the Repo seam, at runtime: a schema protected by declaring an object type and matched by its root source, exemptions per call and declared, the surface classified after compilation with the overrides asserted in force, a fourth extension point for the adapter; not a compile-time heuristic that could not see writes two calls down, and not hand-listed overrides.
+- Mediation at the Repo seam, at runtime: a schema protected by declaring an object type and matched by its root source, exemptions per call with a reason, the surface classified after compilation with the overrides asserted in force, a fourth extension point for the adapter; not a compile-time heuristic that could not see writes two calls down, and not hand-listed overrides.
 - Two Credo checks for the seam's two blind spots, and no more; not re-deriving statically what the seam proves.
 - Revocation latency measured end to end on the committed repo and reported, never asserted; not projection lag, and not a timing gate in CI.
 - The ledger optional with two modes, genesis as its origin, append-only by grant, cascades caught in the catalog, the library recording rather than owning; not a fold that writes the application's tables. Authorization facts are event-sourced; the application is not, which is its own choice.
@@ -223,7 +219,7 @@ Thirteen stages, S0 to S12, each with a mechanical gate, run in sequence on one 
 - The ledger projects into the engine: a checkpoint per acknowledged write, a drain by diff, rebuild into a fresh store, a client behaviour with a fake; not engine-owned facts with an outbox, because the ledger is the assessment's system of record.
 - Statements from a results file an ExUnit formatter writes, a deterministic body and a volatile evidence file; not a statement per tag.
 - A green suite of skipped scenarios is a failure; not trusting a green run.
-- Refusal raises; audit mode returns the unscoped result and says so; not an undefined return.
+- Refusal raises; not an undefined return.
 - Each adapter ships `priv/conformance/` for the neutral fixture; not the CUI domain in adapter packages.
 - Nix for the toolchain and every service, pinned to versions verified on a date, and an ephemeral Postgres cluster per test run; not Docker Compose and a shared development database.
 - Shape tests that count queries, records, and rows, per adapter and per ledger mode, plus one generously bounded tripwire, with benchmarks on demand; not timing budgets in CI, which measure the runner.

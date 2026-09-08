@@ -71,7 +71,7 @@ The freeze tests enumerate `Turnstile.Adapter.behaviour_info(:callbacks)`, `Turn
 ### S2a. The seam
 
 - **Entry.** S1.
-- **Deliverables.** `use Turnstile.Repo`: `Turnstile.Repo.Surface` classifying every `Ecto.Repo` function into query, write, raw, and plumbing; the `@after_compile` exhaustiveness check; the decision-to-query matching rules of `docs/reference.md` §6; exemptions per call and declared, with `Turnstile.Error.Unmediated` on refusal; audit mode returning the unscoped result and the inventory of unmediated calls; `around_query/3` as the fourth extension point; the fact-recording hook with the locked re-read for old values and the upsert refusal on fact schemas; the `turnstile:` option schema; `Turnstile.Credo.NoRawSQL` and `UnmediatedRepo`; the seam sweep generated from `Repo.__info__(:functions)` and the explicit cases of §6.
+- **Deliverables.** `use Turnstile.Repo`: `Turnstile.Repo.Surface` classifying every `Ecto.Repo` function into query, write, raw, and plumbing; the `@after_compile` exhaustiveness check; the decision-to-query matching rules of `docs/reference.md` §6; exemptions per call, with `Turnstile.Error.Unmediated` on refusal; `around_query/3` as the fourth extension point; the fact-recording hook with the locked re-read for old values and the upsert refusal on fact schemas; the `turnstile:` option schema; `Turnstile.Credo.NoRawSQL` and `UnmediatedRepo`; the seam sweep generated from `Repo.__info__(:functions)` and the explicit cases of §6.
 - **Gate.** In `apps/turnstile_core`:
 
 ```
@@ -81,7 +81,7 @@ $ mix test test/turnstile/repo
 <the seam sweep and cases>, 0 failures
 ```
 
-Among the cases: a Repo module compiled in the test with one extra public function raises a `CompileError` naming that function; an upsert on a fact schema raises with the schema's name; a query with no decision in enforce mode raises `Turnstile.Error.Unmediated` and in audit mode returns the rows and records the call.
+Among the cases: a Repo module compiled in the test with one extra public function raises a `CompileError` naming that function; an upsert on a fact schema raises with the schema's name; a query with no decision raises `Turnstile.Error.Unmediated`.
 
 ### S2b. The fake adapter, the in-memory ledger, and Tier 1
 
@@ -138,7 +138,7 @@ $ ls priv/conformance
 ### S3. The example: `turnstile_example` and `example_code`
 
 - **Entry.** S4.
-- **Deliverables.** `apps/turnstile_example`, a library app: the CUI schemas with Portion, `use Turnstile.Schema` declarations on every entity that carries a fact, the contexts, the redacted read (`read_redacted`), the hash-chained audit store, `Example.Repo` and `Example.OwnerRepo` under `use Turnstile.Repo`, the router, controllers, the identity-only plug, the role table with privileged and non-privileged roles on separate accounts, the audited override, re-authentication, fixtures, `Example.Migrations.Domain`, the example's glossary, and `Example.Scenarios` with every scenario of `docs/reference.md` §3a present. `apps/example_code`: its `config/` with `EXAMPLE_LEDGER` read by `config/test.exs` and set to `none` for this stage, `Application.start/2`, the binding to `Turnstile.Code`, `ExampleCode.Capabilities` as function clauses, `priv/repo/migrations` calling the domain helper and the counter helper, `priv/schema/code.sql`, the test file `use Example.Scenarios, capabilities: ExampleCode.Capabilities`, the README with the translation table, and `statement/` regenerated. The seam enforces from the first commit; there is no audit-mode walk.
+- **Deliverables.** `apps/turnstile_example`, a library app: the CUI schemas with Portion, `use Turnstile.Schema` declarations on every entity that carries a fact, the contexts, the redacted read (`read_redacted`), the hash-chained audit store, `Example.Repo` and `Example.OwnerRepo` under `use Turnstile.Repo`, the router, controllers, the identity-only plug, the role table with privileged and non-privileged roles on separate accounts, the audited override, re-authentication, fixtures, `Example.Migrations.Domain`, the example's glossary, and `Example.Scenarios` with every scenario of `docs/reference.md` §3a present. `apps/example_code`: its `config/` with `EXAMPLE_LEDGER` read by `config/test.exs` and set to `none` for this stage, `Application.start/2`, the binding to `Turnstile.Code`, `ExampleCode.Capabilities` as function clauses, `priv/repo/migrations` calling the domain helper and the counter helper, `priv/schema/code.sql`, the test file `use Example.Scenarios, capabilities: ExampleCode.Capabilities`, the README with the translation table, and `statement/` regenerated. The seam enforces from the first commit.
 - **Gate.** In `apps/example_code`, with `EXAMPLE_LEDGER=none`:
 
 ```
@@ -264,7 +264,7 @@ No test in this stage starts a server.
 ### S10b. `turnstile_fga`: the adapter
 
 - **Entry.** S10a.
-- **Deliverables.** `Check`, `BatchCheck`, `ListObjects` with the `batch_ids_cap` and the `filter` fallback, `Expand`, consistency per operation, model publication as a policy version, the `projector_drain` latency component, the declaration, `priv/conformance/` with the model and a tuple mapping for the neutral fixture, the three projection cases on the committed repo driving `drain_once/1` against `openfga run --datastore-engine memory`.
+- **Deliverables.** `Check`, `BatchCheck`, `ListObjects` with `caps[:batch_ids]` and the `filter` fallback, `Expand`, consistency per operation, model publication as a policy version, the `projector_drain` latency component, the declaration, `priv/conformance/` with the model and a tuple mapping for the neutral fixture, the three projection cases on the committed repo driving `drain_once/1` against `openfga run --datastore-engine memory`.
 - **Gate.** In `apps/turnstile_fga`:
 
 ```
