@@ -98,11 +98,11 @@ $ mix test --only committed
 
 `mix test` runs `AdapterCase` against `Turnstile.Adapter.Fake`, and the fake's latency case prints its measurement to the log without asserting it. Coverage is at or above 90.
 
-### S3. Rules in code: `turnstile_code`
+### S3. RBAC in code: `turnstile_rbac`
 
 - **Entry.** S2b.
-- **Deliverables.** `apps/turnstile_code`: declared roles and permissions as data, attribute predicates, `explain` naming the clause, a policy-version event at boot when the ledger head names an older version, the adapter's domain-free declaration, `priv/conformance/` with the role table and predicates for the neutral fixture.
-- **Gate.** In `apps/turnstile_code`:
+- **Deliverables.** `apps/turnstile_rbac`: declared roles and permissions as data, attribute predicates, `explain` naming the clause, a policy-version event at boot when the ledger head names an older version, the adapter's domain-free declaration, `priv/conformance/` with the role table and predicates for the neutral fixture.
+- **Gate.** In `apps/turnstile_rbac`:
 
 ```
 $ mix quality
@@ -113,11 +113,11 @@ $ ls priv/conformance
 
 `mix test` runs `use Turnstile.Conformance.AdapterCase, adapter: Turnstile.Code` and the latency case prints its measurement.
 
-### S4. The example: `turnstile_example` and `example_code`
+### S4. The example: `turnstile_example` and `example_rbac`
 
 - **Entry.** S3.
-- **Deliverables.** `apps/turnstile_example`, a library app: the CUI schemas with Portion, `use Turnstile.Schema` declarations on every entity that carries a fact, the contexts, the redacted read (`read_redacted`), the hash-chained audit store, `Example.Repo` and `Example.OwnerRepo` under `use Turnstile.Repo`, the router, controllers, the identity-only plug, the role table with privileged and non-privileged roles on separate accounts, the audited override, re-authentication, fixtures, `Example.Migrations.Domain`, the example's glossary, and `Example.Scenarios` with every scenario of `docs/reference.md` §3a present and the count test of `docs/testing.md` §6. `apps/example_code`: its `config/` with `EXAMPLE_LEDGER` read by `config/test.exs` and set to `none` for this stage, `Application.start/2`, the binding to `Turnstile.Code`, `ExampleCode.Capabilities` as function clauses, `priv/repo/migrations` calling the domain helper and the counter helper, `priv/schema/code.sql`, the test file `use Example.Scenarios, capabilities: ExampleCode.Capabilities`, and the README with the translation table. The seam enforces from the first commit.
-- **Gate.** In `apps/example_code`, with `EXAMPLE_LEDGER=none`:
+- **Deliverables.** `apps/turnstile_example`, a library app: the CUI schemas with Portion, `use Turnstile.Schema` declarations on every entity that carries a fact, the contexts, the redacted read (`read_redacted`), the hash-chained audit store, `Example.Repo` and `Example.OwnerRepo` under `use Turnstile.Repo`, the router, controllers, the identity-only plug, the role table with privileged and non-privileged roles on separate accounts, the audited override, re-authentication, fixtures, `Example.Migrations.Domain`, the example's glossary, and `Example.Scenarios` with every scenario of `docs/reference.md` §3a present and the count test of `docs/testing.md` §6. `apps/example_rbac`: its `config/` with `EXAMPLE_LEDGER` read by `config/test.exs` and set to `none` for this stage, `Application.start/2`, the binding to `Turnstile.Code`, `ExampleRbac.Capabilities` as function clauses, `priv/repo/migrations` calling the domain helper and the counter helper, `priv/schema/rbac.sql`, the test file `use Example.Scenarios, capabilities: ExampleRbac.Capabilities`, and the README with the translation table. The seam enforces from the first commit.
+- **Gate.** In `apps/example_rbac`, with `EXAMPLE_LEDGER=none`:
 
 ```
 $ mix quality
@@ -148,11 +148,11 @@ $ mix test --only tripwire
 
 The shape tests of `docs/reference.md` §7 pass with exact counts; the atomicity case forces a ledger append to fail and asserts the write rolled back; the catalog check fails a migration that adds a cascading foreign key into a fact schema and names the constraint; the fold-then-replay property holds over the bulk API. The lock-cost measurement is printed, never asserted.
 
-### S6. History: `example_code` in ledger mode Ecto
+### S6. History: `example_rbac` in ledger mode Ecto
 
 - **Entry.** S5.
-- **Deliverables.** `example_code` with `EXAMPLE_LEDGER=ecto` as its default: fact fields declared through the macro on Assignment, OfficeRole, Marking, list membership, employment, and nationality, the genesis migration, the events migration, the history scenarios executed, `priv/schema/code.sql` regenerated. Mode none stays as the second run.
-- **Gate.** In `apps/example_code`, the whole CI job of `docs/testing.md` §7:
+- **Deliverables.** `example_rbac` with `EXAMPLE_LEDGER=ecto` as its default: fact fields declared through the macro on Assignment, OfficeRole, Marking, list membership, employment, and nationality, the genesis migration, the events migration, the history scenarios executed, `priv/schema/rbac.sql` regenerated. Mode none stays as the second run.
+- **Gate.** In `apps/example_rbac`, the whole CI job of `docs/testing.md` §7:
 
 ```
 $ mix turnstile.schema_dump && git diff --exit-code priv/schema/
@@ -195,11 +195,11 @@ $ mix test
 
 One scenario issues a C7-violating write through the owner-role SQL path, not the port, and asserts the database refuses it.
 
-### S8. Point-in-time review, drift, and replay for code and Postgres
+### S8. Point-in-time review, drift, and replay for RBAC and Postgres
 
 - **Entry.** S7b.
-- **Deliverables.** `mix turnstile.review --at <date>` in `turnstile_ledger`, with the semantics of `docs/reference.md` §10; drift scenarios for both adapters; replay for both: code by commit, Postgres in a scratch schema; `rvw-04` on the owner-role repo's connection.
-- **Gate.** In `apps/example_code` and `apps/example_postgres`, the two commands of S7b pass, and the count test's expected number has grown by the review, drift, and replay scenarios. Then, in `apps/example_code`:
+- **Deliverables.** `mix turnstile.review --at <date>` in `turnstile_ledger`, with the semantics of `docs/reference.md` §10; drift scenarios for both adapters; replay for both: RBAC by commit, Postgres in a scratch schema; `rvw-04` on the owner-role repo's connection.
+- **Gate.** In `apps/example_rbac` and `apps/example_postgres`, the two commands of S7b pass, and the count test's expected number has grown by the review, drift, and replay scenarios. Then, in `apps/example_rbac`:
 
 ```
 $ mix turnstile.review --at <a date after a revocation in the fixture>
@@ -213,7 +213,7 @@ For both adapters a replay test reproduces a stored decision's verdict and polic
 ### S9. The README and the workflow
 
 - **Entry.** S8.
-- **Deliverables.** `README.md`: purpose in one paragraph, the comparison table of `docs/reference.md` §4 with a link to each thin app, a quickstart that runs, links. `docs/glossary-index.md` complete. `.github/workflows/ci.yml` with the `quality` job and the `example_code` and `example_postgres` jobs of `docs/testing.md` §7; S10b and S11c add theirs. Every document passes the prose gate.
+- **Deliverables.** `README.md`: purpose in one paragraph, the comparison table of `docs/reference.md` §4 with a link to each thin app, a quickstart that runs, links. `docs/glossary-index.md` complete. `.github/workflows/ci.yml` with the `quality` job and the `example_rbac` and `example_postgres` jobs of `docs/testing.md` §7; S10b and S11c add theirs. Every document passes the prose gate.
 - **Gate.** At the root, every step of every job in the workflow file run by hand in the order the file gives, each green; then:
 
 ```
