@@ -71,7 +71,7 @@ The freeze tests enumerate `Turnstile.Adapter.behaviour_info(:callbacks)`, `Turn
 ### S2a. The seam
 
 - **Entry.** S1.
-- **Deliverables.** `use Turnstile.Repo`: `Turnstile.Repo.Surface` classifying every `Ecto.Repo` function into query, write, raw, and plumbing; the `@after_compile` exhaustiveness check; the decision-to-query matching rules of `docs/reference.md` §6; exemptions per call, with `Turnstile.Error.Unmediated` on refusal; `around_query/3` as the fourth extension point; the fact-recording hook with the locked re-read for old values and the upsert refusal on fact schemas; the `turnstile:` option schema; `Turnstile.Credo.NoRawSQL` and `UnmediatedRepo`; the seam sweep generated from `Repo.__info__(:functions)` and the explicit cases of §6.
+- **Deliverables.** `use Turnstile.Repo`: `Turnstile.Repo.Surface`, a plain list classifying every `Ecto.Repo` function into query, write, raw, and plumbing; the `use` order check; the overrides in `@before_compile` with `defoverridable` and `super`; the decision-to-query matching rules of `docs/reference.md` §6; exemptions per call, with `Turnstile.Error.Unmediated` on refusal; `around_query/3` as the fourth extension point; the fact-recording hook with the locked re-read for old values and the upsert refusal on fact schemas; the `turnstile:` option schema; `Turnstile.Credo.NoRawSQL` and `UnmediatedRepo`; `Turnstile.Conformance.RepoCase`, the Tier 1 test that diffs the list against a Repo's exported functions and calls each non-plumbing function without a decision, run in core against the test repos, and the explicit cases of §6.
 - **Gate.** In `apps/turnstile_core`:
 
 ```
@@ -81,7 +81,7 @@ $ mix test test/turnstile/repo
 <the seam sweep and cases>, 0 failures
 ```
 
-Among the cases: a Repo module compiled in the test with one extra public function raises a `CompileError` naming that function; an upsert on a fact schema raises with the schema's name; a query with no decision raises `Turnstile.Error.Unmediated`.
+Among the cases: `RepoCase` against a Repo module compiled in the test with one extra public function fails naming that function; `RepoCase` against a `read_only` Repo passes; `use Turnstile.Repo` before `use Ecto.Repo` raises at compile time; an upsert on a fact schema raises with the schema's name; a query with no decision raises `Turnstile.Error.Unmediated`.
 
 ### S2b. The fake adapter, the in-memory ledger, and Tier 1
 
