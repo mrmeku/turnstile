@@ -1,6 +1,19 @@
 defmodule Turnstile.Reason do
   @moduledoc "Why the verdict is what it is, in a form a record can carry without attribute values."
 
+  alias Turnstile.Edge
+  alias Turnstile.Error
+
+  @codes [
+    :allowed,
+    :deny_by_default,
+    :rule_denied,
+    :engine_unreachable,
+    :missing_fact,
+    :unknown_operation,
+    :unknown_subject_kind
+  ]
+
   @enforce_keys [:code, :message]
   defstruct [:code, :message, rule: nil]
 
@@ -15,6 +28,10 @@ defmodule Turnstile.Reason do
           | :unknown_subject_kind
 
   @type t :: %__MODULE__{code: code(), message: String.t(), rule: String.t() | nil}
+
+  @doc "The codes, in the order the type lists them."
+  @spec codes() :: [code()]
+  def codes, do: @codes
 
   @doc "A rule allowed the operation."
   @spec allowed(String.t() | nil) :: t()
@@ -38,5 +55,33 @@ defmodule Turnstile.Reason do
   @spec missing_fact(atom()) :: t()
   def missing_fact(name) when is_atom(name) do
     %__MODULE__{code: :missing_fact, message: "missing fact " <> Atom.to_string(name)}
+  end
+
+  @doc "No rule knows the operation."
+  @spec unknown_operation(atom()) :: t()
+  def unknown_operation(operation) when is_atom(operation) do
+    %__MODULE__{code: :unknown_operation, message: "unknown operation " <> Atom.to_string(operation)}
+  end
+
+  @doc "The subject's kind is none of the three the port dispatches on."
+  @spec unknown_subject_kind(term()) :: t()
+  def unknown_subject_kind(kind) do
+    %__MODULE__{code: :unknown_subject_kind, message: "unknown subject kind " <> inspect(kind)}
+  end
+
+  @doc "The reason as a map of plain values."
+  @spec to_map(t()) :: map()
+  def to_map(%__MODULE__{code: code, message: message, rule: rule}) do
+    %{code: Atom.to_string(code), message: message, rule: rule}
+  end
+
+  @doc "A map back to the reason."
+  @spec from_map(map()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  def from_map(map) when is_map(map) do
+    spec = [code: {:in, @codes}, message: :string, rule: {:string, :nil_ok}]
+
+    with {:ok, fields} <- Edge.convert(map, spec, :reason, [:rule]) do
+      {:ok, struct!(__MODULE__, fields)}
+    end
   end
 end
