@@ -15,7 +15,13 @@ The words `turnstile_core` owns. A word with a second meaning elsewhere is liste
 | `scope` / `dynamic` | Narrow a query to what the subject may see / the Ecto where-clause fragment it returns, which can only narrow |
 | Scope fidelity | `scope` returns exactly the rows `check` would allow |
 | Mediated Repo, the seam | A Repo that refuses calls carrying no decision and no exemption |
-| Exemption | A named, logged opt-out from mediation, per call, with a reason |
+| Surface / bucket | Every function `use Ecto.Repo` defines, by name and arity / the one of query, write, raw, or plumbing each sits in |
+| Mediation | The `turnstile:` option resolved for one call: the decision or exemption, the caller, and the schemas the decision carries |
+| Ambient mediation | The parent write's mediation, held in the process for the nested association writes Ecto makes without the option |
+| Caller | The module that called the Repo, read from the stack past the Repo, the seam, Ecto, and the standard library |
+| Exemption (declared / library) | A named, logged opt-out from mediation, per call, with a reason / the same from a `Turnstile.*` caller, or every call on an owner-role repo |
+| Owner-role repo | `use Turnstile.Repo, role: :owner`: the library's own channel, library-exempt on every call, recording nothing |
+| RepoCase | The conformance test that holds a Repo to the surface and refuses each non-plumbing function without a decision |
 | Protected schema / carried relation | A schema that declares an object type / an association the parent's decision covers |
 | Fact event (four kinds) | Subject attribute; object attribute; relationship; policy version, each with old and new |
 | Fact mapping | The declaration, column by column, from an application's schemas to the four kinds |

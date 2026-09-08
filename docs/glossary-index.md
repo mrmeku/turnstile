@@ -22,3 +22,5 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Owner | The project's owner, who answers questions | `CLAUDE.md` |
 | Sandbox | The Ecto SQL sandbox that wraps a test in a transaction | `docs/testing.md` §3 |
 | Sandbox | The sandboxed database, `turnstile_test`, as against the committed one | `docs/testing.md` §3 |
+| Caller | The module that called the Repo, as the seam reads it from the stack | `apps/turnstile_core/glossary.md` |
+| Caller | The process that called `Turnstile.Test.with_config/1,2`, followed through `$callers` | `apps/turnstile_core/glossary.md` |
