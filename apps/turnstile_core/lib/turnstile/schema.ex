@@ -128,6 +128,42 @@ defmodule Turnstile.Schema do
     end
   end
 
+  @doc "The object type a module declares, or `nil` for a module that declares none or is not a schema."
+  @spec object_type_of(term()) :: atom() | nil
+  def object_type_of(module) do
+    if declares?(module), do: module.__turnstile__(:object_type)
+  end
+
+  @doc "The associations a module's decision covers; `[]` where it declares none."
+  @spec carries_of(term()) :: [atom()]
+  def carries_of(module) do
+    if declares?(module), do: module.__turnstile__(:carries), else: []
+  end
+
+  @doc "The fact columns a module declares, in declaration order; `[]` where it declares none."
+  @spec facts_of(term()) :: [Fact.t()]
+  def facts_of(module) do
+    if declares?(module), do: module.__turnstile__(:facts), else: []
+  end
+
+  @doc "The relationship a module's rows are, or `nil`."
+  @spec relationship_of(term()) :: Relationship.t() | nil
+  def relationship_of(module) do
+    if declares?(module), do: module.__turnstile__(:relationship)
+  end
+
+  @doc "Whether a module carries fact declarations: a fact column or a relationship."
+  @spec fact_schema?(term()) :: boolean()
+  def fact_schema?(module), do: facts_of(module) != [] or relationship_of(module) != nil
+
+  @doc "Whether a module used `Turnstile.Schema`."
+  @spec declares?(term()) :: boolean()
+  def declares?(module) when is_atom(module) and not is_nil(module) do
+    Code.ensure_loaded?(module) and function_exported?(module, :__turnstile__, 1)
+  end
+
+  def declares?(_other), do: false
+
   @doc false
   @spec __declare_object_type__(module(), atom()) :: :ok
   def __declare_object_type__(module, type) when is_atom(module) and is_atom(type) and not is_nil(type) do

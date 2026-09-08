@@ -10,7 +10,13 @@ defmodule Turnstile.Exemption do
 
   @type kind :: :declared | :library
 
-  @type t :: %__MODULE__{on: atom(), caller: module(), reason: String.t(), kind: kind()}
+  @typedoc "`on` is the root source: a schema module, a table name, or `nil` for raw SQL."
+  @type t :: %__MODULE__{
+          on: module() | String.t() | nil,
+          caller: module() | :any,
+          reason: String.t(),
+          kind: kind()
+        }
 
   @doc "The two kinds."
   @spec kinds() :: [kind()]

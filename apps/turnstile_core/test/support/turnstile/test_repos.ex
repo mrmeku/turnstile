@@ -6,20 +6,23 @@ defmodule Turnstile.TestRepos do
   application runs its own repos.
   """
 
-  use Boundary, top_level?: true, deps: [Ecto, Ecto.Adapters.Postgres, Ecto.Adapters.SQL]
+  use Boundary, top_level?: true, deps: [Ecto, Ecto.Adapters.Postgres, Ecto.Adapters.SQL, Turnstile]
 end
 
 defmodule Turnstile.TestRepos.Sandboxed do
   @moduledoc "The application-role repo on the sandboxed database, one transaction per test."
   use Ecto.Repo, otp_app: :turnstile_core, adapter: Ecto.Adapters.Postgres
+  use Turnstile.Repo
 end
 
 defmodule Turnstile.TestRepos.Committed do
   @moduledoc "The application-role repo on the committed database, for tests that need real commits."
   use Ecto.Repo, otp_app: :turnstile_core, adapter: Ecto.Adapters.Postgres
+  use Turnstile.Repo
 end
 
 defmodule Turnstile.TestRepos.Owner do
   @moduledoc "The owner-role repo on the committed database, for the library's own writes and truncation."
   use Ecto.Repo, otp_app: :turnstile_core, adapter: Ecto.Adapters.Postgres
+  use Turnstile.Repo, role: :owner
 end

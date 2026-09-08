@@ -4,6 +4,8 @@ defmodule Turnstile.Subject do
   the system; the kind travels with every decision record.
   """
 
+  @library_id "00000000-0000-0000-0000-000000000000"
+
   @enforce_keys [:id, :kind]
   defstruct [:id, :kind, session_id: nil]
 
@@ -19,6 +21,13 @@ defmodule Turnstile.Subject do
   @doc "The three kinds, in the order the reference lists them."
   @spec kinds() :: [kind()]
   def kinds, do: [:user, :non_person_entity, :privileged]
+
+  @doc """
+  The subject of a write made under an exemption, where no decision names
+  one: the library itself, a non-person entity with the nil identifier.
+  """
+  @spec library() :: t()
+  def library, do: %__MODULE__{id: @library_id, kind: :non_person_entity}
 
   @doc "The subject's reference as facts name it: `{:user, id}` for every kind."
   @spec ref(t()) :: {:user, Turnstile.Id.t()}

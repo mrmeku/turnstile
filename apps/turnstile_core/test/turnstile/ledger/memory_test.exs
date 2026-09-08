@@ -42,8 +42,10 @@ defmodule Turnstile.Ledger.MemoryTest do
     assert {:ok, []} = Memory.read(options, 3, 10)
   end
 
-  test "the options schema requires the agent", %{options: options} do
-    assert {:ok, ^options} = NimbleOptions.validate(options, Memory.options_schema())
+  test "the options schema requires the agent and defaults the lock clause", %{options: options} do
+    assert {:ok, validated} = NimbleOptions.validate(options, Memory.options_schema())
+    assert validated[:agent] == options[:agent]
+    assert validated[:lock] == "FOR UPDATE"
     assert {:error, %NimbleOptions.ValidationError{}} = NimbleOptions.validate([], Memory.options_schema())
   end
 

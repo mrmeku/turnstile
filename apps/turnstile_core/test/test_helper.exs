@@ -8,7 +8,10 @@ Turnstile.Test.Cluster.start(
     {Turnstile.TestRepos.Committed, role: :app, database: :committed, pool_size: 2},
     {Turnstile.TestRepos.Owner, role: :owner, database: :committed, pool_size: 2}
   ],
-  migrate: &Turnstile.Test.CounterTable.create!/1
+  migrate: fn repo ->
+    Turnstile.Test.CounterTable.create!(repo)
+    Turnstile.Fixture.Tables.create!(repo)
+  end
 )
 
 Sandbox.mode(Sandboxed, :manual)

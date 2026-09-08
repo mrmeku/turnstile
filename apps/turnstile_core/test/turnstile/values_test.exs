@@ -13,6 +13,7 @@ defmodule Turnstile.ValuesTest do
     id = Id.new()
     assert Id.valid?(id)
     refute Id.valid?("not an id")
+    refute Id.valid?(:not_a_string)
   end
 
   test "subjects and objects have refs and kinds" do

@@ -43,12 +43,13 @@ defmodule Turnstile.Adapter do
               {:ok, Explanation.t()} | {:error, Error.Unsupported.t() | Error.Engine.t()}
 
   @doc """
-  Wrap the query a decision admits. The adapter that needs session state at
-  execution, such as row-level security settings, sets it here and calls the
-  function; every other adapter leaves this undefined and the seam calls the
-  function directly.
+  Wrap a mediated call: the query or changeset, the decision in force, and
+  the zero-arity function that runs the call. The adapter that needs session
+  state at execution, such as row-level security settings, sets it here and
+  calls the function; every other adapter leaves this undefined and the seam
+  calls the function directly.
   """
-  @callback around_query(Decision.t(), Ecto.Query.t(), (-> term())) :: term()
+  @callback around_query(Ecto.Query.t() | Ecto.Changeset.t(), Decision.t(), (-> term())) :: term()
 
   @doc "The schema for the adapter's entry in `Turnstile.Config`. Absent, the entry must be the bare module."
   @callback options_schema() :: NimbleOptions.t()

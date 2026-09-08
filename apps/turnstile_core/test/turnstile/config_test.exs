@@ -41,6 +41,7 @@ defmodule Turnstile.ConfigTest do
   test "new/1 accepts a bare adapter module and fills its option defaults" do
     assert {:ok, %Config{adapter: {Fake, verdict: :deny}} = config} = Config.new(adapter: Fake, ledger: :none)
     assert Config.adapter(config) == {Fake, verdict: :deny}
+    assert Config.adapter(%{config | adapter: Fake}) == {Fake, []}
   end
 
   test "new/1 rejects a missing field, a wrong option, and a module that is not an adapter" do
@@ -65,8 +66,8 @@ defmodule Turnstile.ConfigTest do
   end
 
   test "new/1 validates the ledger tuple through the ledger's schema" do
-    assert {:ok, %Config{ledger: {Memory, agent: pid}}} = Config.new(adapter: Fake, ledger: {Memory, agent: self()})
-    assert pid == self()
+    assert {:ok, %Config{ledger: {Memory, options}}} = Config.new(adapter: Fake, ledger: {Memory, agent: self()})
+    assert options[:agent] == self()
     assert {:error, %Error.Invalid{what: :ledger}} = Config.new(adapter: Fake, ledger: {Memory, []})
     assert {:error, %Error.Invalid{what: :ledger}} = Config.new(adapter: Fake, ledger: {Enum, []})
     assert {:error, %Error.Invalid{what: :config}} = Config.new(adapter: Fake, ledger: :maybe)

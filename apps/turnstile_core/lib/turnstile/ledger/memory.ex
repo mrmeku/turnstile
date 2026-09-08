@@ -3,13 +3,24 @@ defmodule Turnstile.Ledger.Memory do
   A ledger in an `Agent`, for tests that need positions without a database.
   It returns what the Ecto ledger returns. Configure it as
   `{Turnstile.Ledger.Memory, agent: pid}` with a pid from `start_link/0`.
+
+  `lock` is the clause the seam appends to its re-read of a row before a
+  fact write (`Turnstile.Repo`); the default is Postgres's, which the suite
+  runs against, and `nil` turns the lock off.
   """
 
   @behaviour Turnstile.Ledger
 
   alias Turnstile.FactEvent
 
-  @schema NimbleOptions.new!(agent: [type: :pid, required: true, doc: "The agent from `start_link/0`."])
+  @schema NimbleOptions.new!(
+            agent: [type: :pid, required: true, doc: "The agent from `start_link/0`."],
+            lock: [
+              type: {:or, [:string, nil]},
+              default: "FOR UPDATE",
+              doc: "The lock clause of the seam's re-read, or `nil` for none."
+            ]
+          )
 
   @typep state :: %{head: non_neg_integer(), events: [FactEvent.t()]}
 
