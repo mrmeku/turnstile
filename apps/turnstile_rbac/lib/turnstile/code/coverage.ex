@@ -8,7 +8,8 @@ defmodule Turnstile.Code.Coverage do
   `fact` names it as the column, the subject, or the object, when its
   `relationship` names it as the subject, the object, or an attribute, when
   it is the primary key, or when it is the foreign key of a relation some
-  protected schema carries. A fragment cannot be walked, so it fails as the
+  protected schema carries, through the closure of what the carried
+  schemas carry in turn. A fragment cannot be walked, so it fails as the
   finding `{:fragment, text}`.
   """
 
@@ -80,13 +81,34 @@ defmodule Turnstile.Code.Coverage do
   defp declared?({nil, _column}, _carried), do: true
   defp declared?({schema, column}, carried), do: column in own_declarations(schema) or {schema, column} in carried
 
-  # The foreign key of every relation a protected schema carries, on the schema that holds it.
+  # The foreign key of every relation a protected schema carries, on the
+  # schema that holds it, through the closure of what the carried schemas
+  # carry in turn.
   defp carried(policy) do
-    for %Object{schema: schema} <- Policy.objects(policy),
+    for %Object{schema: root} <- Policy.objects(policy),
+        schema <- closure([root], []),
         name <- Schema.carries_of(schema),
         {held_by, key} = foreign_key(schema.__schema__(:association, name)),
         held_by != nil,
         do: {held_by, key}
+  end
+
+  defp closure([], seen), do: Enum.reverse(seen)
+
+  defp closure([schema | rest], seen) do
+    if schema in seen do
+      closure(rest, seen)
+    else
+      next = for name <- Schema.carries_of(schema), related = related(schema, name), related != nil, do: related
+      closure(rest ++ next, [schema | seen])
+    end
+  end
+
+  defp related(schema, name) do
+    case schema.__schema__(:association, name) do
+      %{related: related} -> related
+      _through -> nil
+    end
   end
 
   # The primary key, the columns the facts name, and the columns the relationship names.

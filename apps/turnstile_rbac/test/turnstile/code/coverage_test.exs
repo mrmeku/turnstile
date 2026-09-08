@@ -30,6 +30,12 @@ defmodule Turnstile.Code.CoverageTest do
 
     @spec parent(Turnstile.Subject.t(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
     def parent(_subject, _environment), do: dynamic([row], not is_nil(row.folder_id))
+
+    @spec grandparent(Turnstile.Subject.t(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
+    def grandparent(_subject, _environment) do
+      notes = from(n in Turnstile.Code.CoverageTest.Note, where: not is_nil(n.folder_id), select: n.id)
+      dynamic([row], row.note_id in subquery(notes))
+    end
   end
 
   defmodule Note do
@@ -78,6 +84,30 @@ defmodule Turnstile.Code.CoverageTest do
     object Folder do
       grant :membership, Membership
       predicate :mapped, &Reads.mapped/2
+    end
+  end
+
+  defmodule Remark do
+    @moduledoc false
+    use Ecto.Schema
+    use Turnstile.Schema
+
+    object_type(:remark)
+    carries([:note])
+
+    schema "turnstile_coverage_test_remarks" do
+      belongs_to(:note, Note)
+    end
+  end
+
+  defmodule ClosurePolicy do
+    @moduledoc false
+    use Policy
+
+    role :reader, [:read]
+
+    object Remark do
+      predicate :grandparent, &Reads.grandparent/2
     end
   end
 
@@ -133,5 +163,10 @@ defmodule Turnstile.Code.CoverageTest do
 
   test "the foreign key of a carried belongs_to is declared on the schema that holds it" do
     assert Coverage.check(CarriedPolicy) == :ok
+  end
+
+  test "the closure of carried relations counts: a carried schema's own carried key is declared" do
+    assert Coverage.check(ClosurePolicy) == :ok
+    assert {Note, :folder_id} in Coverage.reads(ClosurePolicy)
   end
 end
