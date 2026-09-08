@@ -6,5 +6,18 @@ defmodule Turnstile.Conformance do
   repository or outside it, proves itself against the same contract.
   """
 
-  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Test, Ecto]
+  use Boundary,
+    top_level?: true,
+    deps: [
+      Turnstile,
+      Turnstile.Test,
+      Turnstile.Test.Sandbox,
+      Turnstile.Fixture,
+      Ecto,
+      ExUnit,
+      ExUnitProperties,
+      StreamData,
+      Mox
+    ],
+    exports: [AdapterCase, AdapterCase.Laws, Case, Gen, Projected, RepoCase, Scenario, Scenarios, Seed]
 end
