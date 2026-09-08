@@ -1,11 +1,10 @@
 # Writing
-*Mode: Reference. How prose and code are written in this repository. Nothing here is original: each rule names the guide it is taken from, so a reviewer can go to the source when this page is not enough.*
+*How prose and code are written in this repository. Nothing here is original: each rule names the guide it is taken from, so a reviewer can go to the source when this page is not enough.*
 
 ## Sources
 
 | Guide | What it governs here |
 |---|---|
-| Diátaxis, https://diataxis.fr | Which of four modes a document is in, and what that mode may contain. |
 | Google developer documentation style guide, https://developers.google.com/style | Tone and mechanics of all prose: voice, tense, headings, word choice. |
 | Microsoft Writing Style Guide, https://learn.microsoft.com/style-guide | The register for explanatory prose: warm, direct, "bigger ideas, fewer words". |
 | Elixir, *Writing documentation*, https://hexdocs.pm/elixir/writing-documentation.html | `@moduledoc`, `@doc`, doctests; documentation is for users, comments are for maintainers. |
@@ -22,19 +21,6 @@ The repository has two registers, and the difference is deliberate.
 **Code and reference**, which is modules, functions, glossaries, the scenario tables, callback specs, and the companions under `docs/`, is *terse*: it states what a thing is and when to use it, and stops. No narrative, no motivation, no history. If a reader needs the why, the doc links to the prose that has it. This register follows Elixir's documentation guide: the first sentence of a `@moduledoc` or `@doc` is a summary that stands alone, and everything else is example or constraint.
 
 A reader should be able to tell which register they are in from the first line.
-
-## Modes (Diátaxis)
-
-Every document declares its mode on the line under its title, in italics, and stays in it.
-
-| Mode | Job | Voice | Shape | Files |
-|---|---|---|---|---|
-| Tutorial | learning by doing | "you", sequenced | steps | the README quickstart only |
-| How-to | doing a task | "you"; assumes competence | task, then steps; code before prose | `docs/delivery.md`, each thin app's README, the adapter package READMEs |
-| Reference | looking something up | impersonal | tables, signatures; complete; no argument | `docs/reference.md`, `docs/testing.md`, `docs/code.md`, glossaries, this file |
-| Explanation | understanding why | "we" | claim first, then support (Minto) | `PLAN.md` |
-
-A file that needs two modes is two files. A reference table that argues, or an explanation that becomes a procedure, gets split.
 
 ## Prose rules (Google, Microsoft)
 
@@ -71,10 +57,9 @@ A file that needs two modes is two files. A reference table that argues, or an e
 
 ## Review checklist
 
-1. Mode declared on line two and honored.
-2. Register matches: teaching prose is informative; code and reference are terse.
-3. No banned words; no exclamation marks; no em-dashes; headings in sentence case.
-4. Every term used is in the context's glossary or defined on first use; one word per concept.
-5. Foreign concepts get two sentences and a link, not a section.
-6. Idioms are shown before they are named.
-7. Every external version is pinned and says where it was verified.
+1. Register matches: teaching prose is informative; code and reference are terse.
+2. No banned words; no exclamation marks; no em-dashes; headings in sentence case.
+3. Every term used is in the context's glossary or defined on first use; one word per concept.
+4. Foreign concepts get two sentences and a link, not a section.
+5. Idioms are shown before they are named.
+6. Every external version is pinned and says where it was verified.

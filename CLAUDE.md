@@ -6,7 +6,7 @@
 
 ## Prose
 
-One Diátaxis mode per file, declared on line two in italics. Sentence-case headings. None of these words: *simply, just, obviously, easy, easily, of course, basically, note that, in order to*. No exclamation marks. No em-dashes. `docs/writing.md` has the rest.
+Sentence-case headings. None of these words: *simply, just, obviously, easy, easily, of course, basically, note that, in order to*. No exclamation marks. No em-dashes. `docs/writing.md` has the rest.
 
 ## Placement
 

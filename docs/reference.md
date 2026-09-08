@@ -1,5 +1,5 @@
 # Turnstile: reference notes for plan v9
-*Mode: Reference. Tables, numbers, and mechanics the plan cites by section. Nothing here is a decision the plan does not already make; this is where the plan's decisions are spelled out at implementation grain, Section numbers are the plan's; §3a and §15 are the newest. Each section moves into the docs of the package that owns it as that package appears. ⟨verify⟩ marks a claim to check against the pinned sources or the pinned Ecto before relying on it.*
+*Tables, numbers, and mechanics the plan cites by section. Nothing here is a decision the plan does not already make; this is where the plan's decisions are spelled out at implementation grain, Section numbers are the plan's; §3a and §15 are the newest. Each section moves into the docs of the package that owns it as that package appears. ⟨verify⟩ marks a claim to check against the pinned sources or the pinned Ecto before relying on it.*
 
 ## §1 Requirement groups, controls, and scenario ids
 
@@ -713,11 +713,10 @@ Two tracks, for orientation. **Rev 5**: an SSP with a control implementation sta
 
 | Field | Type | Default |
 |---|---|---|
-| `adapter` | module implementing `Turnstile.Adapter` | required |
+| `adapter` | `module \| {module, keyword}`, the module implementing `Turnstile.Adapter` and its options, validated by the adapter's own schema; a bare module means `[]` | required |
 | `ledger` | `{Turnstile.Ledger.Ecto, repo: module, owner_repo: module} \| :none`; `owner_repo` is `use Turnstile.Repo, role: :owner` | required |
 | `ledger_counter` | `String.t()`, the counter row's name; a test override that the sandbox sets per test, left at the default by applications | `"default"` |
 | `clock` | module implementing `Turnstile.Clock` | `Turnstile.Clock.System` |
 | `caps` | keyword: `batch_ids` (ids listed in a record), `rule_bytes` (rule text kept in a record), `policy_content_bytes` (policy text kept by value) | `[batch_ids: 1_000, rule_bytes: 4_096, policy_content_bytes: 65_536]` |
-| `adapter_options` | keyword, validated by the adapter's own schema | `[]` |
 
-`adapter_options` keys by adapter: `turnstile_cerbos` `address`; `turnstile_fga` `endpoint`, `store_id`, `model_id`, `drain_interval`, `client` (the behaviour's implementation, the fake in tests); `turnstile_code` and `turnstile_postgres` none. Consistency per operation and the `ListObjects` cap are constants of `turnstile_fga`, printed as parameters. The statement prints every field except secrets.
+Adapter options by adapter: `turnstile_cerbos` `address`; `turnstile_fga` `endpoint`, `store_id`, `model_id`, `drain_interval`, `client` (the behaviour's implementation, the fake in tests); `turnstile_code` and `turnstile_postgres` none, so their entry is the bare module. Consistency per operation and the `ListObjects` cap are constants of `turnstile_fga`, printed as parameters. The statement prints every field except secrets.

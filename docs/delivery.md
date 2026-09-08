@@ -1,5 +1,5 @@
 # Turnstile: delivery
-*Mode: How-to. The stages that build v9, one at a time, and the gate that ends each one as a command and its expected output. You are the agent running a stage.*
+*The stages that build v9, one at a time, and the gate that ends each one as a command and its expected output. You are the agent running a stage.*
 
 ## 1. The checkpoint
 
