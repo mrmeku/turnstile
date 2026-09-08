@@ -30,8 +30,8 @@ Every document declares its mode on the line under its title, in italics, and st
 | Mode | Job | Voice | Shape | Files |
 |---|---|---|---|---|
 | Tutorial | learning by doing | "you", sequenced | steps | the README quickstart only |
-| How-to | doing a task | "you"; assumes competence | task, then steps; code before prose | each thin app's README, the adapter package READMEs |
-| Reference | looking something up | impersonal | tables, signatures; complete; no argument | `docs/reference.md`, `docs/testing.md`, `docs/code.md`, `docs/decisions.md`, `docs/delivery.md`, `docs/handoff.md`, glossaries, this file |
+| How-to | doing a task | "you"; assumes competence | task, then steps; code before prose | `docs/delivery.md`, each thin app's README, the adapter package READMEs |
+| Reference | looking something up | impersonal | tables, signatures; complete; no argument | `docs/reference.md`, `docs/testing.md`, `docs/code.md`, `docs/decisions.md`, `docs/handoff.md`, glossaries, this file |
 | Explanation | understanding why | "we" | claim first, then support (Minto) | `PLAN.md` |
 
 A file that needs two modes is two files. A reference table that argues, or an explanation that becomes a procedure, gets split.

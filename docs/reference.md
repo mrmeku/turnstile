@@ -105,7 +105,7 @@ Tier 2 runs once per thin app ⟨D2⟩; the lint compares every skip against thi
 
 ## §3a Tier 2 scenarios
 
-Frozen at S1 with the contracts ⟨D30⟩ ⟨D46⟩. Every row is a test in `Example.Scenarios` whose name is the sentence, declared with the ported `scenario/4` macro (`scenario "enf-01", "<sentence>", control: [...], rule: :c1 do ... end`, §14), run by each thin app. "Tests" names the C-rule, or the guarantee where the scenario tests the port or seam in the domain's words. "Needs" is `ledger` where a mode-none run skips the scenario with `:needs_ledger` ⟨D33⟩; a blank means it runs in both modes. Beyond-baseline citations are marked with an asterisk.
+Frozen at S1 with the contracts ⟨D30⟩ ⟨D46⟩. Every row is a test in `Example.Scenarios` whose name is the sentence, declared with the `scenario/4` macro (`scenario "enf-01", "<sentence>", control: [...], rule: :c1 do ... end`, §14), run by each thin app. "Tests" names the C-rule, or the guarantee where the scenario tests the port or seam in the domain's words. "Needs" is `ledger` where a mode-none run skips the scenario with `:needs_ledger` ⟨D33⟩; a blank means it runs in both modes. Beyond-baseline citations are marked with an asterisk.
 
 | Id | Sentence | Group | Controls cited | Tests | Needs |
 |---|---|---|---|---|---|
@@ -690,7 +690,7 @@ The adapter therefore requires a ledger and declares so; in ledger mode none the
 
 **Projection cases in Tier 1**, each `@tag :committed`, driving `drain_once/1` ⟨D23⟩: measured lag, from a fact's commit to the checkpoint advance that covers it; drift from a tuple deleted through the client directly, caught by reconcile; a re-drain after a simulated crash (a `Write` acknowledged, the checkpoint advance interrupted) converges. They activate only for an adapter that declares a projection.
 
-## §14 Test environment, conformance artifacts, ported mechanisms
+## §14 Test environment, conformance artifacts, conformance mechanisms
 
 See `docs/testing.md`: a Nix flake pins the toolchain (§12) and provides Postgres, Cerbos, and OpenFGA binaries; `mix test` starts an ephemeral cluster per run, two roles (`turnstile_owner` owns the tables and runs migrations; `turnstile_app` does not own them and carries `NOBYPASSRLS`, §4), a sandboxed and a committed database, and three test repos, of which `Turnstile.TestRepos.Owner` is an owner-role repo in §6's sense ⟨D15⟩; every test owns its state so `async: true` is the default; `:committed` and `:tripwire` are the tagged exceptions; shape tests run on every pull request and benchmarks on demand. The committed-repo list: the interleaved-transactions and lock-cost cases (§9), the append-only grant, reconcile against out-of-band writes, truncation through the owner-role repo, the three projection cases (§13), and the revocation-latency case per adapter (§4).
 

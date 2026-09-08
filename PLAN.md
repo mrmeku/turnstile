@@ -185,7 +185,7 @@ Documentation: every file declares one Diátaxis mode and stays in it, and the t
 Thirteen stages, S0 to S12, each one agent session with a mechanical gate, run in sequence on one branch; S5, the adoption walk, is gone with the adoption steps. The detail, every gate as a command and its expected output and every stage naming the decisions it implements, is `docs/delivery.md` ⟨D46⟩ ⟨D47⟩. There is one pause, after this plan and its companions, for the owner to read and approve; after it the stages run to completion, each gated, reporting at the end or when blocked ⟨D48⟩.
 
 - **S0. Toolchain.** The flake, the ephemeral cluster, CI; the gate prints the pinned Cerbos and OpenFGA versions from the packaged binaries.
-- **S1. Contracts.** The port, the structs, the ledger and projection behaviours, the matching rules, the fact payload and its macro, the exemption struct, `around_query/3`, the configuration schema, the scenario table, the ported conformance modules; the frozen interfaces.
+- **S1. Contracts.** The port, the structs, the ledger and projection behaviours, the matching rules, the fact payload and its macro, the exemption struct, `around_query/3`, the configuration schema, the scenario table, the conformance modules; the frozen interfaces.
 - **S2. Core mechanisms.** The seam with its after-compile check and the upsert refusal; the fake adapter, the in-memory ledger, Tier 1 with the latency case template; the generator skeleton with the formatter and the skip check.
 - **S3. The example.** `turnstile_example` and `example_code`, the seam enforcing from the first commit; the role table, the override, re-authentication, and `review` land here and in S4. First real statement, ledger mode none.
 - **S4. Rules in code.** `turnstile_code`.

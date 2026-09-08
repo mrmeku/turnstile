@@ -274,7 +274,7 @@ Migrations: the working rule "migrations exist only in the example" becomes "lib
 ### D46. Delivery stages revised
 **Decision.** The stage list of delivery-plan §1 is kept with these changes.
 - S0: as D8; the gate adds `cerbos --version` printing 0.55.0 and `openfga version` printing 1.19.0 from the fetched and packaged binaries.
-- S1: adds D10's matching rules, D12's payload and macro, D11's exemption struct, D15's callback, D30's scenario table, D40's ported modules, D45's schema. Frozen interfaces gain `around_query/3`, `%Turnstile.Exemption{}`, `%Turnstile.FactEvent{}`, the counter table shape, the `results.json` schema, and the scenario table.
+- S1: adds D10's matching rules, D12's payload and macro, D11's exemption struct, D15's callback, D30's scenario table, D40's modules, D45's schema. Frozen interfaces gain `around_query/3`, `%Turnstile.Exemption{}`, `%Turnstile.FactEvent{}`, the counter table shape, the `results.json` schema, and the scenario table.
 - S2a: adds D19 (after-compile check) and D20's upsert refusal. S2b: adds D34 and the latency case template (D14). S2c: adds the formatter (D16) and D33's skip check.
 - S3: `turnstile_example` plus `example_code`, built with the seam enforcing from the first commit and depending on S1; no v0, no audit-mode walk. Domain work formerly in S5 (role table, override, re-authentication, `review`) lands here and in S4.
 - S4: `turnstile_code`, unchanged.
