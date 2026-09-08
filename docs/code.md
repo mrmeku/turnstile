@@ -3,11 +3,11 @@
 
 ## 1. The type system: what it checks, and how we write so it can check more
 
-**What Elixir 1.20 does.** It infers the type of every construct (whole functions, guards, anonymous functions, protocol dispatch, `case`, `cond`, and `with` with occurrence typing, maps with atom and non-atom keys, most of `Map` and tuple operations) without annotations, across applications, and reports two things: dead code (a clause that can never match) and *verified bugs* (a typing violation guaranteed to fail at runtime if reached). It is gradual: anything it cannot see is `dynamic()`, and `dynamic()` narrows as evidence accumulates. It is tuned for near-zero false positives, so **every type warning is a bug, and the build treats it as one** (§3).
+**What Elixir 1.20 does.** It infers the type of whole function bodies, guards, and clauses (`case`, `cond`, and `with` with occurrence typing, maps with atom and domain keys, most of `Map` and tuple operations) without annotations, across applications, and reports two things: dead code (a clause that can never match) and *verified bugs* (a typing violation guaranteed to fail at runtime if reached). It is gradual: anything it cannot see is `dynamic()`, and `dynamic()` narrows as evidence accumulates. Calls between applications in the same project are typed as `dynamic()` when the callee has not compiled. The reference says it "generally avoids emitting false positive type violations", so **every type warning is a bug, and the build treats it as one** (§3).
 
-**What it does not do yet.** No type annotations or signatures; those come after 1.21 or 1.22, and `@spec` and `@type` are documentation and Credo material, not checker input. No recursive or parametric types. No exhaustiveness checking beyond what inference proves. Values arriving from outside (JSON, YAML, Ecto params, `apply/3`, `Access`) are `dynamic()` until narrowed.
+**What it does not do yet.** No type annotations or signatures; user-provided signatures are the roadmap's next milestone, "planned for future releases" with no version named, and `@spec` and `@type` are documentation and Credo material, not checker input. No recursive or parametric types. No exhaustiveness checking beyond what inference proves. Values arriving from outside (JSON, YAML, Ecto params, `apply/3`, `Access`) are `dynamic()` until narrowed.
 
-**Source.** The two paragraphs above are checked against the Elixir 1.20 changelog at S1, whose URL is then added here; a claim the changelog does not support is corrected here.
+**Source.** The two paragraphs above were checked at S1 against the 1.20.4 changelog, <https://raw.githubusercontent.com/elixir-lang/elixir/v1.20.4/CHANGELOG.md>, and the gradual set-theoretic types reference, <https://raw.githubusercontent.com/elixir-lang/elixir/v1.20.4/lib/elixir/pages/references/gradual-set-theoretic-types.md>. The changelog supports whole-body inference, guards, inference across clauses, occurrence typing on `case`, `cond`, and `with`, atom and domain map keys, inference across applications, and the dead-code and verified-bug reports. It does not claim anonymous functions or protocol dispatch, so those were removed above. The reference is the source for the false-positive claim, for signatures as the next milestone with no release named, and for `dynamic()` on same-project calls.
 
 **The consequence: write inferable code.** The checker proves what it can infer, so our job is to leave it evidence.
 
@@ -23,7 +23,7 @@
 | Use `nil` only where "absent" is domain meaning, typed `t \| nil`, and handle it at every consumer | The checker will catch `nil.field`; it cannot tell you `nil` was a placeholder for "not computed yet" |
 | Write a capability declaration as one function clause per record plus a fallback, never a map lookup | The checker read an empty-map lookup as returning only the default; clauses give it one atom set per rule |
 | Type a role definition's actions as `[atom()]`, and every list literal as the checker allows | The checker cannot narrow a list literal from params; the declared type is the evidence |
-| Set `infer_signatures: true` in every app's `elixirc_options` | Compiler options do not propagate from dependencies; each app must ask for its own signatures ⟨verify the 1.20 default at S1⟩ |
+| Set `infer_signatures: true` in every app's `elixirc_options` | Compiler options do not propagate from dependencies; each app must ask for its own signatures. On 1.20.4 the default is already `true`, so the setting documents the intent and protects against a future change of default |
 | Recompile dependencies after an Elixir upgrade (`mix deps.compile --force`) | Signatures live in the compiled beams; stale deps mean stale inference |
 | Still write `@spec` on every public function and `@type t` on every struct | Docs, Credo's `Specs` check, ex_doc, and the signature milestone when it lands; keep them true |
 
@@ -85,7 +85,7 @@ Elixir has no `strict: true`; it has a dozen switches. All of them are on.
 | Credo | `.credo.exs`, CI | `mix credo --strict --all`; every check enabled, each disabled check carries a comment saying why | See the list below |
 | Module dependencies | each app's root module | `use Boundary` with explicit `deps:` and `exports:`; the top-layer rule keeps `authorize`, `check`, `batch`, `explain`, and `review` off `ecto_sql` | Architecture is compile-checked, not reviewed |
 | Compile-time cycles | CI | `mix xref graph --label compile-connected --fail-above 0` and `--format cycles --fail-above 0` | No compile-time dependency cycles; keeps incremental builds and the type checker fast |
-| Dependency hygiene | CI | `mix deps.unlock --check-unused`, `mix hex.audit`, `mix deps.audit` (`mix_audit`) | No orphaned locks, no retired packages, no known CVEs |
+| Dependency hygiene | CI | `mix deps.unlock --check-unused`, `mix hex.audit`, `mix deps.audit` (`mix_audit`) | No orphaned locks, no retired packages, no known CVEs except one acknowledged by id in `mix.exs` with the reason it does not apply and the check that no patched release exists |
 | Docs | CI | `mix docs --warnings-as-errors` | A broken reference in `@doc` fails; `@moduledoc` and `@doc` on every public module and function (Credo enforces) |
 | Callbacks | code | `@impl true` on every callback implementation (Credo `ImplTrue`) | The compiler then warns on a callback that is not one and a function that should be |
 | Phoenix security | CI, `turnstile_example` and the thin apps | `mix sobelow --config --exit` | The example is the thing an assessor reads first |
@@ -109,7 +109,7 @@ Credo checks that are off by default and are on here: `Readability.Specs` (every
 
 ## 4. Idioms
 
-**Module layout**, enforced by `StrictModuleLayout`: `@moduledoc`; `use`; `import`; `alias`; `require`; `@behaviour`; module attributes; `@type`s; `@enforce_keys` and `defstruct`; `@callback`s; public functions; private functions. One module, one concept; no `Helpers` or `Utils` modules; a function belongs to the struct or behaviour it serves.
+**Module layout**, enforced by `StrictModuleLayout` in the order Styler writes: `@moduledoc`; `@behaviour`; `use`; `import`; `alias`; `require`; module attributes; `@enforce_keys` and `defstruct`; `@type`s, after the struct because `@type t` names `%__MODULE__{}` and the compiler refuses that before `defstruct`; `@callback`s; public functions; private functions. A function with `@doc false` counts as private. One module, one concept; no `Helpers` or `Utils` modules; a function belongs to the struct or behaviour it serves.
 
 **Behaviours, not duck typing.** Every pluggable thing is a `@behaviour` with `@callback`s and `@optional_callbacks`; implementations mark `@impl true`; surfaces are enumerated with `Module.behaviour_info/1`, never hand-listed. Protocols only for dispatch on data type (`Turnstile.Explainable`), never as a substitute for a behaviour. **Optional callbacks are answered at runtime**: `explain` is optional, core checks `function_exported?/3` and returns `{:error, %Turnstile.Error.Unsupported{}}` when it is absent; no function is generated or omitted according to the adapter, so one build serves every adapter.
 
@@ -147,8 +147,9 @@ def project do
   [
     elixir: "~> 1.20.4",
     elixirc_options: [warnings_as_errors: true, infer_signatures: true, no_warn_undefined: []],
-    test_coverage: [summary: [threshold: 90], ignore_modules: [~r/\.Generated\./]],
+    test_coverage: [summary: [threshold: 90], ignore_modules: [~r/\.Generated\./, ~r/TestRepos\./]],
     aliases: aliases(),
+    hex: [ignore_advisories: ["CVE-2026-32686"]], # decimal, no patched release; the reason sits beside it in the real file
     ...
   ]
 end
@@ -156,14 +157,14 @@ end
 defp aliases do
   [
     quality: [
+      "hex.audit", # first: Hex requires it before any task that loads the application
       "format --check-formatted",
       "compile --force --warnings-as-errors --all-warnings",
       "credo --strict --all",
       "xref graph --label compile-connected --fail-above 0",
       "xref graph --format cycles --fail-above 0",
       "deps.unlock --check-unused",
-      "hex.audit",
-      "deps.audit",
+      "deps.audit --ignore-advisory-ids GHSA-rhv4-8758-jx7v", # the same advisory, by its GitHub id
       "docs --warnings-as-errors",
       "test --warnings-as-errors --cover" # test_helper starts the ephemeral Postgres, Cerbos, and OpenFGA (docs/testing.md §3 to §4)
     ]
