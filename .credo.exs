@@ -1,6 +1,7 @@
 # Credo 1.7.19. Every check the release ships is enabled unless a comment
 # beside it says why not. docs/code.md §5 names the checks that are off by
-# default and on here. Core's own checks join the list at S2a.
+# default and on here. Core's own two checks, compiled into turnstile_core,
+# close the list.
 %{
   configs: [
     %{
@@ -127,7 +128,15 @@
           {Credo.Check.Warning.UnusedRegexOperation, []},
           {Credo.Check.Warning.UnusedStringOperation, []},
           {Credo.Check.Warning.UnusedTupleOperation, []},
-          {Credo.Check.Warning.WrongTestFilename, []}
+          {Credo.Check.Warning.WrongTestFilename, []},
+          # Raw SQL bypasses the seam. The ledger writes its own tables, and
+          # the test cluster bootstraps roles and databases, through it.
+          {Turnstile.Credo.NoRawSQL,
+           [
+             files: %{included: ["lib/", "apps/*/lib/"]},
+             allow: ["Turnstile.Ledger", "Turnstile.Test.Cluster"]
+           ]},
+          {Turnstile.Credo.UnmediatedRepo, []}
         ],
         disabled: [
           # Fires on every `if` that has an `else`; a two-way branch is an
