@@ -43,6 +43,8 @@ defmodule Turnstile.Core.MixProject do
       {:telemetry, "1.4.2"},
       {:ecto_sql, "3.14.0", only: :test},
       {:postgrex, "0.22.4", only: :test},
+      {:stream_data, "1.4.0", only: :test},
+      {:mox, "1.3.1", only: :test},
       {:boundary, "0.10.4", runtime: false},
       {:credo, "1.7.19", only: [:dev, :test], runtime: false},
       {:styler, "1.12.2", only: [:dev, :test], runtime: false},
