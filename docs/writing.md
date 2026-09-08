@@ -31,7 +31,7 @@ Every document declares its mode on the line under its title, in italics, and st
 |---|---|---|---|---|
 | Tutorial | learning by doing | "you", sequenced | steps | the README quickstart only |
 | How-to | doing a task | "you"; assumes competence | task, then steps; code before prose | `docs/delivery.md`, each thin app's README, the adapter package READMEs |
-| Reference | looking something up | impersonal | tables, signatures; complete; no argument | `docs/reference.md`, `docs/testing.md`, `docs/code.md`, `docs/decisions.md`, `docs/handoff.md`, glossaries, this file |
+| Reference | looking something up | impersonal | tables, signatures; complete; no argument | `docs/reference.md`, `docs/testing.md`, `docs/code.md`, glossaries, this file |
 | Explanation | understanding why | "we" | claim first, then support (Minto) | `PLAN.md` |
 
 A file that needs two modes is two files. A reference table that argues, or an explanation that becomes a procedure, gets split.
@@ -48,7 +48,7 @@ A file that needs two modes is two files. A reference table that argues, or an e
 - **No em-dashes.** A comma, a colon, or a new sentence does the work. Linted with the banned words, because the character is the same in every file.
 - **A concept that belongs to someone else gets two sentences in our words and a link.** Never a section.
 - **Introducing an idiom: show it in use, name it, contrast it with what it replaces, link its source.** Never name first.
-- **One word per concept.** "Adapter", never "provider", for the pluggable mechanism; "subject", "object", "operation", "environment" from NIST SP 800-162 for the port's vocabulary; a second word for the same thing is a lint failure once the glossary exists ⟨D39⟩.
+- **One word per concept.** "Adapter", never "provider", for the pluggable mechanism; "subject", "object", "operation", "environment" from NIST SP 800-162 for the port's vocabulary; a second word for the same thing is a lint failure once the glossary exists.
 - **The repository informs; it does not assign.** No exercises, quizzes, or homework.
 
 ## Code rules (Elixir documentation guide, Elixir Style Guide)
@@ -57,7 +57,7 @@ A file that needs two modes is two files. A reference table that argues, or an e
 - **`@doc`**: first sentence states what the function returns or does, in the third person ("Returns…", "Derives…"). Then arguments that need explanation, then an example as a doctest where one is meaningful. Options are documented as a list under `## Options`.
 - **Doctests over prose examples.** An example that cannot run is a claim, not an example.
 - **Comments explain why, never what.** A comment that restates the next line is deleted. A comment that says why the next line is surprising is kept.
-- **Names come from the glossary of the package's context.** A function in `turnstile_fga` says *tuple*; one in `turnstile_example` says *Document*. An adapter package never names a thing from the example's domain; the thin app's translation table is where the two vocabularies meet ⟨D39⟩.
+- **Names come from the glossary of the package's context.** A function in `turnstile_fga` says *tuple*; one in `turnstile_example` says *Document*. An adapter package never names a thing from the example's domain; the thin app's translation table is where the two vocabularies meet.
 - **Specs on every public function; `@typedoc` on every public type.** The spec is part of the documentation, not a substitute for it.
 - **Layout and naming per the Elixir Style Guide; Credo enforces it.** Nothing here restates that guide; `docs/code.md` §4 lists what this repository adds.
 - **Test names are scenario ids and sentences.** In Tier 2, `scenario "enf-01", "<sentence>"` with the id and sentence from `docs/reference.md` §3a. In Tier 1, the property's law in one sentence. A test name a 3PAO could not read is renamed.
@@ -67,9 +67,7 @@ A file that needs two modes is two files. A reference table that argues, or an e
 - **README** (Art of README): purpose in one paragraph, the four statements side by side, a quickstart that runs, links. It summarizes; it is never the source of anything.
 - **Thin-app README** (how-to): what this adapter costs, as the directory's contents explained in order: the binding, the migrations, the policies or model, the capability declaration; then the translation table between the example's words and the adapter's; then where the statement is and how it is regenerated.
 - **Adapter notes** (`docs/reference.md` §4, and later each adapter package's README): mechanism per rule shape, what the adapter declares, its inventory item, its measured latency and components. No sentence tells the application what it may do.
-- **Glossaries** (reference): term, meaning, nothing else. A term's history belongs in `docs/decisions.md`.
-- **`docs/handoff.md`** (reference): written from scratch by every agent, never revised; the sections in `CLAUDE.md`. Its "Gate" section quotes commands and output verbatim even where they contain characters the lint bans, so the lint excludes that file.
-- **`docs/decisions.md`** (reference): one entry per decision, in the entry shape the file's first entries set; a decision is never edited in place, a later entry supersedes it and says so.
+- **Glossaries** (reference): term, meaning, nothing else. A term's history belongs in `PLAN.md`, if anywhere.
 
 ## Review checklist
 

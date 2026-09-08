@@ -2,7 +2,7 @@
 
 ## Read first
 
-`PLAN.md`, then `docs/writing.md`, `docs/reference.md`, `docs/testing.md`, `docs/code.md`, `docs/decisions.md`, and `docs/handoff.md`, in that order, before starting any task. `docs/delivery.md` names the stages and their gates.
+`PLAN.md`, then `docs/writing.md`, `docs/reference.md`, `docs/testing.md`, and `docs/code.md`, in that order, before starting any stage. `docs/delivery.md` names the stages and their gates.
 
 ## Prose
 
@@ -20,10 +20,9 @@ One Diátaxis mode per file, declared on line two in italics. Sentence-case head
 
 ## Process
 
-- Tasks run one at a time, on `main`, no worktrees. Each task goes to a fresh context that reads the files above and nothing it does not need.
-- Each task ends with its stage gate from `docs/delivery.md` run and passing, then one or more commits by the agent that did the work, unsigned: `git -c commit.gpgsign=false commit`. One idea per commit.
-- Every task writes `docs/handoff.md` from scratch in its last commit, never revising the previous one. Sections: **Task**, **Done**, **Gate** (the commands and their output, verbatim), **For the next agent**, **Open**. The orchestrator reads that file and the gate output to choose the next task.
-- The prose gate, run on every changed document except `docs/handoff.md`, must print `exit=1`:
+- Stages run one at a time, on `main`, no worktrees, in the order `docs/delivery.md` §4 gives.
+- Each stage ends with its gate from `docs/delivery.md` run and passing, then one or more commits, unsigned: `git -c commit.gpgsign=false commit`. One idea per commit. The last commit message quotes the gate's output and records what `docs/delivery.md` asks the stage to record.
+- The prose gate, run on every changed document, must print `exit=1`:
 
 ```
 grep -rniE "\b(simply|just|obviously|easy|easily|of course|basically|note that|in order to)\b|!|—" <files> ; echo "exit=$?"
