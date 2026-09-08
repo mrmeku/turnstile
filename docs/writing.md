@@ -34,7 +34,7 @@ A reader should be able to tell which register they are in from the first line.
 - **No em-dashes.** A comma, a colon, or a new sentence does the work. Linted with the banned words, because the character is the same in every file.
 - **A concept that belongs to someone else gets two sentences in our words and a link.** Never a section.
 - **Introducing an idiom: show it in use, name it, contrast it with what it replaces, link its source.** Never name first.
-- **One word per concept.** "Adapter", never "provider", for the pluggable mechanism; "subject", "object", "operation", "environment" from NIST SP 800-162 for the port's vocabulary; a second word for the same thing is a lint failure once the glossary exists.
+- **One word per concept.** "Adapter", never "provider", for the pluggable mechanism; "subject", "object", "operation", "environment" from NIST SP 800-162 for the port's vocabulary; a second word for the same thing is a review failure.
 - **The repository informs; it does not assign.** No exercises, quizzes, or homework.
 
 ## Code rules (Elixir documentation guide, Elixir Style Guide)
@@ -50,9 +50,9 @@ A reader should be able to tell which register they are in from the first line.
 
 ## Document-specific rules
 
-- **README** (Art of README): purpose in one paragraph, the four statements side by side, a quickstart that runs, links. It summarizes; it is never the source of anything.
-- **Thin-app README** (how-to): what this adapter costs, as the directory's contents explained in order: the binding, the migrations, the policies or model, the capability declaration; then the translation table between the example's words and the adapter's; then where the statement is and how it is regenerated.
-- **Adapter notes** (`docs/reference.md` §4, and later each adapter package's README): mechanism per rule shape, what the adapter declares, its inventory item, its measured latency and components. No sentence tells the application what it may do.
+- **README** (Art of README): purpose in one paragraph, the comparison table with a link to each thin app, a quickstart that runs, links. It summarizes; it is never the source of anything.
+- **Thin-app README** (how-to): what this adapter costs, as the directory's contents explained in order: the binding, the migrations, the policies or model, the capability declaration; then the translation table between the example's words and the adapter's.
+- **Adapter notes** (`docs/reference.md` §4, and later each adapter package's README): mechanism per rule shape, what the adapter declares, its measured latency and components. No sentence tells the application what it may do.
 - **Glossaries** (reference): term, meaning, nothing else. A term's history belongs in `PLAN.md`, if anywhere.
 
 ## Review checklist
