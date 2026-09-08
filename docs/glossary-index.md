@@ -28,3 +28,11 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Table | A Postgres table, protected by the seam or truncated between committed tests | `docs/reference.md` §6, `docs/testing.md` §3 |
 | Fold | `Turnstile.Ledger.Fold`: the facts a list of events leaves | `apps/turnstile_core/glossary.md` |
 | Fold | The fold-then-replay property of Tier 1 | `docs/testing.md` §6 |
+| Rule | A protected schema's clauses built for one subject and operation, as one `dynamic` | `apps/turnstile_rbac/glossary.md` |
+| Rule | A rule of the example, C1 to C13, with its capability level | `docs/reference.md` §3 |
+| Grant | A clause of a policy module that holds a role on a row through a relationship schema | `apps/turnstile_rbac/glossary.md` |
+| Grant | The fixture's write of a membership, and the grant steps the properties generate | `apps/turnstile_core/test/support`, `docs/testing.md` §6 |
+| Predicate | A clause of a policy module: a named function returning a `dynamic` or a boolean | `apps/turnstile_rbac/glossary.md` |
+| Predicate | A Postgres row-level security policy's `USING` expression | `turnstile_postgres` glossary, from S6 |
+| Binding | The policy module and repo `Turnstile.Code` reads through | `apps/turnstile_rbac/glossary.md` |
+| Binding | An Ecto query binding, the `[row]` of a `dynamic` | Ecto's own documentation |
