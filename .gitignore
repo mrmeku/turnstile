@@ -10,3 +10,5 @@ erl_crash.dump
 *.ez
 .elixir_ls/
 .env
+.nix-mix/
+.nix-hex/
