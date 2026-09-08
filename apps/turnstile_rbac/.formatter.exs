@@ -1,4 +1,4 @@
-locals_without_parens = [role: 2, object: 2, object: 3, grant: 2, grant: 3, predicate: 2]
+locals_without_parens = [role: 2, object: 2, object: 3, grant: 2, grant: 3, predicate: 2, predicate: 3]
 
 [
   plugins: [Styler],

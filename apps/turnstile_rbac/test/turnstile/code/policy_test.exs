@@ -11,6 +11,14 @@ defmodule Turnstile.Code.PolicyTest do
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
 
+  defmodule Filters do
+    @moduledoc false
+    import Ecto.Query, only: [dynamic: 2]
+
+    @spec open() :: Ecto.Query.dynamic_expr()
+    def open, do: dynamic([folder], not is_nil(folder.name))
+  end
+
   test "the role table is declared data" do
     assert Policy.roles(Roles) == [
              %Role{name: :reader, permissions: [:read]},
@@ -45,7 +53,27 @@ defmodule Turnstile.Code.PolicyTest do
 
   test "a predicate must be a capture of a named function" do
     assert_raise ArgumentError, ~r/capture of a named function/, fn ->
-      Policy.__predicate__(:anonymous, fn _subject, _environment -> true end)
+      Policy.__predicate__(:anonymous, fn _subject, _environment -> true end, [])
+    end
+
+    assert %Clause{only: [:edit]} = Policy.__predicate__(:cleared, &Predicates.cleared/2, only: [:edit])
+  end
+
+  test "a hop is a schema and a column, with a named filter when it has one" do
+    assert %Clause{through: [{Folder, :id, []}]} =
+             Policy.__grant__(:hopped, Membership, on: :folder_id, through: [{Folder, :id}])
+
+    assert %Clause{through: [{Folder, :id, where: filter}]} =
+             Policy.__grant__(:hopped, Membership, on: :folder_id, through: [{Folder, :id, where: &Filters.open/0}])
+
+    assert filter == (&Filters.open/0)
+
+    assert_raise NimbleOptions.ValidationError, ~r/named function of no arguments/, fn ->
+      Policy.__grant__(:hopped, Membership, through: [{Folder, :id, where: fn -> true end}])
+    end
+
+    assert_raise NimbleOptions.ValidationError, ~r/expected \{schema, column\}/, fn ->
+      Policy.__grant__(:hopped, Membership, through: [Folder])
     end
   end
 

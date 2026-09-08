@@ -13,19 +13,26 @@ defmodule Turnstile.Code.Policy.Clause do
   schema whose rows hold a role for the subject on the object: `on` is the
   column of the protected schema the relationship's object column names,
   `role` the relationship column that holds the role, and `as` a role every
-  row holds when the relationship has no role column. A predicate is a
-  function of the subject and the environment returning a `dynamic` over the
-  protected row, or a boolean.
+  row holds when the relationship has no role column. `through` is the
+  chain of hops a grant crosses when the relationship names a row that is
+  not the protected one: each hop is a schema, the column of it the inner
+  set matches, and an optional `where:` capture of a named function of no
+  arguments returning a `dynamic` over the hop's row; the hop's primary key
+  is what the next hop, or the protected row's `on` column, is matched
+  against. A predicate is a function of the subject and the environment
+  returning a `dynamic` over the protected row, or a boolean; `only` names
+  the operations it applies to, every operation when nil.
   """
 
   alias Turnstile.Environment
   alias Turnstile.Subject
 
   @enforce_keys [:name, :kind]
-  defstruct [:name, :kind, source: nil, on: nil, role: nil, as: nil, predicate: nil]
+  defstruct [:name, :kind, source: nil, on: nil, role: nil, as: nil, through: [], predicate: nil, only: nil]
 
   @type kind :: :grant | :predicate
   @type predicate :: (Subject.t(), Environment.t() -> Ecto.Query.dynamic_expr() | boolean())
+  @type hop :: {module(), atom(), [where: (-> Ecto.Query.dynamic_expr())]}
 
   @type t :: %__MODULE__{
           name: atom(),
@@ -34,7 +41,9 @@ defmodule Turnstile.Code.Policy.Clause do
           on: atom() | nil,
           role: atom() | nil,
           as: atom() | nil,
-          predicate: predicate() | nil
+          through: [hop()],
+          predicate: predicate() | nil,
+          only: [atom()] | nil
         }
 end
 
@@ -67,13 +76,23 @@ defmodule Turnstile.Code.Policy do
       end
 
   An operation is allowed on a row when any grant holds a role that permits
-  it and every predicate holds. A grant's relationship schema declares its
-  subject, object, and role columns with `Turnstile.Schema.relationship/1`;
-  the grant reads them, and takes `on:`, `role:`, or `as:` when the schema's
-  declaration is not enough. A predicate is a capture of a named function,
-  so the policy stays data a hash can name. `version:` defaults to the
-  content hash of the policy's modules, `author:` and `approval:` to
-  `"unrecorded"`.
+  it and every predicate that applies to the operation holds. A grant's
+  relationship schema declares its subject, object, and role columns with
+  `Turnstile.Schema.relationship/1`; the grant reads them, and takes `on:`,
+  `role:`, or `as:` when the schema's declaration is not enough. When the
+  relationship names a row the protected row points at rather than the
+  protected row itself, `through:` lists the hops from the protected row
+  outward, each a schema and the column of it the inner set matches, with
+  an optional `where:` capture that narrows the hop's rows:
+
+      object MyApp.Page do
+        grant :membership, MyApp.Membership, on: :folder_id, through: [{MyApp.Folder, :id, where: &MyApp.Rules.open/0}]
+      end
+
+  A predicate is a capture of a named function, so the policy stays data a
+  hash can name; `only:` names the operations it applies to. `version:`
+  defaults to the content hash of the policy's modules, `author:` and
+  `approval:` to `"unrecorded"`.
   """
 
   alias Turnstile.Code.Policy.Clause
@@ -91,8 +110,18 @@ defmodule Turnstile.Code.Policy do
   @grant_schema NimbleOptions.new!(
                   on: [type: :atom, doc: "The protected column the relationship's object column names."],
                   role: [type: :atom, doc: "The relationship column that holds the role."],
-                  as: [type: :atom, doc: "The role every row holds, when there is no role column."]
+                  as: [type: :atom, doc: "The role every row holds, when there is no role column."],
+                  through: [
+                    type: {:list, {:custom, __MODULE__, :__hop__, []}},
+                    default: [],
+                    doc:
+                      "The hops from the protected row outward, each `{schema, column}` or `{schema, column, where: fun}`."
+                  ]
                 )
+
+  @predicate_schema NimbleOptions.new!(
+                      only: [type: {:list, :atom}, doc: "The operations the predicate applies to; all when absent."]
+                    )
 
   @type t :: module()
 
@@ -104,9 +133,13 @@ defmodule Turnstile.Code.Policy do
   @spec grant_schema() :: NimbleOptions.t()
   def grant_schema, do: @grant_schema
 
+  @doc "The options `predicate` accepts."
+  @spec predicate_schema() :: NimbleOptions.t()
+  def predicate_schema, do: @predicate_schema
+
   defmacro __using__(options) do
     quote bind_quoted: [options: options] do
-      import Turnstile.Code.Policy, only: [role: 2, object: 2, grant: 2, grant: 3, predicate: 2]
+      import Turnstile.Code.Policy, only: [role: 2, object: 2, grant: 2, grant: 3, predicate: 2, predicate: 3]
 
       alias Turnstile.Code.Policy
 
@@ -141,9 +174,9 @@ defmodule Turnstile.Code.Policy do
   end
 
   @doc "A predicate clause: a capture of a named function of the subject and the environment."
-  defmacro predicate(name, fun) do
-    quote bind_quoted: [name: name, fun: fun] do
-      @turnstile_code_clauses [Turnstile.Code.Policy.__predicate__(name, fun) | @turnstile_code_clauses]
+  defmacro predicate(name, fun, options \\ []) do
+    quote bind_quoted: [name: name, fun: fun, options: options] do
+      @turnstile_code_clauses [Turnstile.Code.Policy.__predicate__(name, fun, options) | @turnstile_code_clauses]
     end
   end
 
@@ -194,15 +227,14 @@ defmodule Turnstile.Code.Policy do
     for %Role{name: name, permissions: permissions} <- roles(policy), do: {name, permissions}
   end
 
-  @doc "The modules the rules live in: the policy and every predicate's module, sorted."
+  @doc "The modules the rules live in: the policy and the module of every predicate and hop filter, sorted."
   @spec modules(t()) :: [module()]
   def modules(policy) when is_atom(policy) do
-    predicates =
-      for %Object{clauses: clauses} <- objects(policy),
-          %Clause{kind: :predicate, predicate: fun} <- clauses,
-          do: elem(Function.info(fun, :module), 1)
+    clauses = for %Object{clauses: clauses} <- objects(policy), clause <- clauses, do: clause
+    predicates = for %Clause{kind: :predicate, predicate: fun} <- clauses, do: module_of(fun)
+    filters = for %Clause{through: hops} <- clauses, {_schema, _column, where: fun} <- hops, do: module_of(fun)
 
-    Enum.sort(Enum.uniq([policy | predicates]))
+    Enum.sort(Enum.uniq([policy | predicates ++ filters]))
   end
 
   @doc "The `use` options: version, author, approval."
@@ -245,17 +277,46 @@ defmodule Turnstile.Code.Policy do
 
     role_column!(name, Schema.relationship_of(source), validated)
 
-    %Clause{name: name, kind: :grant, source: source, on: validated[:on], role: validated[:role], as: validated[:as]}
+    %Clause{
+      name: name,
+      kind: :grant,
+      source: source,
+      on: validated[:on],
+      role: validated[:role],
+      as: validated[:as],
+      through: validated[:through]
+    }
   end
 
   @doc false
-  @spec __predicate__(atom(), Clause.predicate()) :: Clause.t()
-  def __predicate__(name, fun) when is_atom(name) and is_function(fun, 2) do
-    case Function.info(fun, :type) do
-      {:type, :external} -> %Clause{name: name, kind: :predicate, predicate: fun}
-      _local -> raise ArgumentError, "predicate #{inspect(name)}: must be a capture of a named function"
+  @spec __predicate__(atom(), Clause.predicate(), keyword()) :: Clause.t()
+  def __predicate__(name, fun, options) when is_atom(name) and is_function(fun, 2) and is_list(options) do
+    validated = NimbleOptions.validate!(options, @predicate_schema)
+
+    if named?(fun) do
+      %Clause{name: name, kind: :predicate, predicate: fun, only: validated[:only]}
+    else
+      raise ArgumentError, "predicate #{inspect(name)}: must be a capture of a named function"
     end
   end
+
+  @doc false
+  @spec __hop__(term()) :: {:ok, Clause.hop()} | {:error, String.t()}
+  def __hop__({schema, column}) when is_atom(schema) and is_atom(column), do: {:ok, {schema, column, []}}
+
+  def __hop__({schema, column, where: fun}) when is_atom(schema) and is_atom(column) and is_function(fun, 0) do
+    if named?(fun) do
+      {:ok, {schema, column, where: fun}}
+    else
+      {:error, "hop #{inspect(schema)}: where: must be a capture of a named function of no arguments"}
+    end
+  end
+
+  def __hop__(other), do: {:error, "expected {schema, column} or {schema, column, where: fun}, got #{inspect(other)}"}
+
+  defp named?(fun), do: match?({:type, :external}, Function.info(fun, :type))
+
+  defp module_of(fun), do: elem(Function.info(fun, :module), 1)
 
   defp role_column!(name, nil, _validated) do
     raise ArgumentError, "grant #{inspect(name)}: the source declares no relationship"

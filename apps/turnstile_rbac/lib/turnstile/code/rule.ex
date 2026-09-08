@@ -3,9 +3,11 @@ defmodule Turnstile.Code.Rule do
   A protected schema's rule for one subject and operation, built from the
   policy's clauses as `dynamic` expressions over the protected row: each
   grant is a membership test against a subquery of its relationship schema,
-  each predicate is the function's result, and the whole is any grant and
-  every predicate. Building runs no query; `dynamic/1` is the rule `scope`
-  returns and the clause map is what `Turnstile.Code.Decide` selects.
+  wrapped in one subquery per hop when the grant runs `through` other
+  schemas, each predicate that applies to the operation is the function's
+  result, and the whole is any grant and every predicate. Building runs no
+  query; `dynamic/1` is the rule `scope` returns and the clause map is what
+  `Turnstile.Code.Decide` selects.
   """
 
   import Ecto.Query, only: [dynamic: 2, from: 2]
@@ -50,7 +52,7 @@ defmodule Turnstile.Code.Rule do
 
     with {:ok, %Object{} = object} <- object(policy, type, version),
          {:ok, roles} <- roles(policy, operation, version),
-         {:ok, predicates} <- predicates(object, subject, environment) do
+         {:ok, predicates} <- predicates(object, operation, subject, environment) do
       {:ok, new(policy, object, operation, roles, grants(object, subject, roles), predicates, version)}
     end
   end
@@ -118,13 +120,18 @@ defmodule Turnstile.Code.Rule do
     end
   end
 
-  defp predicates(%Object{clauses: clauses}, subject, environment) do
+  defp predicates(%Object{clauses: clauses}, operation, subject, environment) do
     step = fn clause, {:ok, acc} -> collect(predicate(clause, subject, environment), clause.name, acc) end
+    applicable = Enum.filter(clauses, &applies?(&1, operation))
 
-    with {:ok, reversed} <- Enum.reduce_while(Enum.filter(clauses, &(&1.kind == :predicate)), {:ok, []}, step) do
+    with {:ok, reversed} <- Enum.reduce_while(applicable, {:ok, []}, step) do
       {:ok, Enum.reverse(reversed)}
     end
   end
+
+  defp applies?(%Clause{kind: :predicate, only: nil}, _operation), do: true
+  defp applies?(%Clause{kind: :predicate, only: only}, operation), do: operation in only
+  defp applies?(%Clause{}, _operation), do: false
 
   defp collect({:ok, expression}, name, acc), do: {:cont, {:ok, [{name, expression} | acc]}}
   defp collect({:error, detail}, _name, _acc), do: {:halt, {:error, detail}}
@@ -140,7 +147,8 @@ defmodule Turnstile.Code.Rule do
 
   # The grant holds when the protected row's `on` column is among the object
   # columns of the relationship rows that name the subject with a role that
-  # permits the operation.
+  # permits the operation, or among the keys of the hop rows that reach
+  # them, innermost hop first.
   defp grant(%Clause{source: source} = clause, schema, %Subject{id: subject_id}, roles) do
     %Relationship{subject: subject_column, object: object_column} = relationship = Schema.relationship_of(source)
     on = clause.on || primary_key(schema)
@@ -151,7 +159,8 @@ defmodule Turnstile.Code.Rule do
 
       :all ->
         members = from(r in source, where: field(r, ^subject_column) == ^subject_id, select: field(r, ^object_column))
-        dynamic([row], field(row, ^on) in subquery(members))
+        set = through(members, clause.through)
+        dynamic([row], field(row, ^on) in subquery(set))
 
       {:column, role_column} ->
         members =
@@ -160,8 +169,21 @@ defmodule Turnstile.Code.Rule do
             select: field(r, ^object_column)
           )
 
-        dynamic([row], field(row, ^on) in subquery(members))
+        set = through(members, clause.through)
+        dynamic([row], field(row, ^on) in subquery(set))
     end
+  end
+
+  defp through(inner, hops) do
+    Enum.reduce(Enum.reverse(hops), inner, fn {hop, column, options}, set ->
+      key = primary_key(hop)
+      query = from(h in hop, where: field(h, ^column) in subquery(set), select: field(h, ^key))
+
+      case options[:where] do
+        nil -> query
+        filter -> from(h in query, where: ^filter.())
+      end
+    end)
   end
 
   defp role_filter(%Clause{as: as}, _relationship, roles) when is_atom(as) and not is_nil(as) do
