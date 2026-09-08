@@ -339,6 +339,7 @@ A set-valued column emits one event per element added (`old: nil, new: element`)
 
 **The event.** `%Turnstile.FactEvent{kind, subject_ref, object_ref, attribute, old, new, position, operation_id, at, by}`; `kind` is `:subject_attribute | :object_attribute | :relationship | :policy_version`; a ref is `{object_type, id}`; `position` is `nil` in mode none; `by` is the subject of the operation that wrote it.
 
+- The events table is a transactional outbox: the fact event commits with the write it records, and the projector, replay, and reconcile read it afterwards from the same database, which is why every event carries `old` and `new` and why positions are gapless (§9).
 - A single-row write emits one fact event per changed fact field. The seam takes `old` from a re-read of the row under the dialect's lock clause, inside the write's transaction, not from the changeset's `data`, which is whatever the caller loaded earlier. A bulk write whose `set` or `inc` touches no fact field emits none: one decision record, outcome count, no `RETURNING` requested.
 - `insert`, `insert_all`, and `insert_or_update` with `on_conflict:` on a fact schema are refused with a pointer to the bulk API, because an upsert updates fact fields of existing rows with no changeset and no old value, and `RETURNING` cannot say which rows were inserted and which updated.
 - Plain `update_all`, `delete_all`, `insert_all` against fact fields are refused by the seam when the configured ledger asks for it (the Ecto ledger does; mode none does not) with a pointer to `turnstile_ledger`'s `Turnstile.Facts.bulk_update/3`, `bulk_delete/2`, `bulk_insert/3`.
@@ -435,6 +436,7 @@ Each thin app's README carries the translation table from the domain's words to 
 | Exemption | A named, logged opt-out from mediation, per call, with a reason | core |
 | Protected schema / carried relation | A schema that declares an object type / an association the parent's decision covers | core |
 | Event / ledger / fold / replay | An immutable record of a change / an append-only list of them / reducing them to state / folding up to a date | `turnstile_ledger` |
+| Transactional outbox | A record committed in the same transaction as the write it describes and read afterwards by consumers from the same database; the ledger's shape, never emptied | `turnstile_ledger` |
 | Fact event (four kinds) | Subject attribute; object attribute; relationship; policy version, each with old and new | core |
 | Fact mapping | The declaration, column by column, from an application's schemas to the four kinds | core |
 | Ledger position / head / applied position | The index in the ledger / the counter row's committed value / the position an adapter's state has applied | `turnstile_ledger` |
