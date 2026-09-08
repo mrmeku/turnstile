@@ -11,6 +11,7 @@ defmodule Turnstile.Test do
 
   @default_timeout 5_000
   @interval 10
+  @control ~r/^\s*(begin|commit|rollback|savepoint|release)\b/i
 
   @doc """
   Override configuration fields for the rest of the calling process.
@@ -38,6 +39,26 @@ defmodule Turnstile.Test do
   end
 
   @doc """
+  The SQL statements the calling process ran on `repo` while `fun` ran,
+  read from the repo's `[..., :query]` telemetry, transaction control
+  filtered out, in order. Only this process's queries count, so async
+  tests never see one another's.
+  """
+  @spec queries(module(), (-> term())) :: {term(), [String.t()]}
+  def queries(repo, fun) when is_atom(repo) and is_function(fun, 0) do
+    event = List.insert_at(repo.config()[:telemetry_prefix], -1, :query)
+    id = {__MODULE__, make_ref()}
+    :ok = :telemetry.attach(id, event, &__MODULE__.__query__/4, %{pid: self(), id: id})
+
+    try do
+      result = fun.()
+      {result, collect(id, [])}
+    after
+      :telemetry.detach(id)
+    end
+  end
+
+  @doc """
   Calls `fun` until it returns a truthy value or `timeout` milliseconds pass.
   Returns the truthy value. Raises with the last value on timeout. This is
   the one place the suite sleeps.
@@ -46,6 +67,25 @@ defmodule Turnstile.Test do
   def poll(fun, timeout \\ @default_timeout) when is_function(fun, 0) do
     deadline = System.monotonic_time(:millisecond) + timeout
     poll_until(fun, deadline, nil)
+  end
+
+  @doc "The poll interval, the floor of any measurement `poll/2` takes, in milliseconds."
+  @spec poll_interval() :: pos_integer()
+  def poll_interval, do: @interval
+
+  @doc false
+  @spec __query__([atom()], map(), map(), map()) :: :ok
+  def __query__(_event, _measurements, %{query: query}, %{pid: pid, id: id}) do
+    if self() == pid and not Regex.match?(@control, query), do: send(pid, {id, query})
+    :ok
+  end
+
+  defp collect(id, queries) do
+    receive do
+      {^id, query} -> collect(id, [query | queries])
+    after
+      0 -> Enum.reverse(queries)
+    end
   end
 
   defp poll_until(fun, deadline, last) do

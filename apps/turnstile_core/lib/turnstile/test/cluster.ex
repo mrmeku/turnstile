@@ -8,6 +8,8 @@ defmodule Turnstile.Test.Cluster do
   the caller's migrations on each database as the owner role through the
   function the caller passes, then configures and starts the caller's repos.
   The cluster stops and its directory is removed when the VM exits.
+  `start/1` also defines `Turnstile.Test.Clock.Mock`, the `Mox` mock of
+  `Turnstile.Clock` that the conformance template sets per test.
 
   Roles: `turnstile_owner` (owns every table, runs migrations) and
   `turnstile_app` (`NOBYPASSRLS`, what the application connects as).
@@ -84,6 +86,7 @@ defmodule Turnstile.Test.Cluster do
     configure_repos!(cluster, opts)
     cluster = %{cluster | supervisor: start_repos!(opts)}
     :persistent_term.put(__MODULE__, [cluster | registered()])
+    Mox.defmock(Turnstile.Test.Clock.Mock, for: Turnstile.Clock)
     cluster
   end
 
