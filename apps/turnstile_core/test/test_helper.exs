@@ -1,13 +1,15 @@
-# The ephemeral cluster starts before ExUnit; it stops when the VM exits.
-# Migrations arrive with the packages that own them: at S0 there are none.
+alias Ecto.Adapters.SQL.Sandbox
+alias Turnstile.TestRepos.Sandboxed
+
 Turnstile.Test.Cluster.start(
   otp_app: :turnstile_core,
   repos: [
-    {Turnstile.TestRepos.Sandboxed, role: :app, database: :sandboxed},
+    {Sandboxed, role: :app, database: :sandboxed, pool: Sandbox},
     {Turnstile.TestRepos.Committed, role: :app, database: :committed, pool_size: 2},
     {Turnstile.TestRepos.Owner, role: :owner, database: :committed, pool_size: 2}
   ],
-  migrate: fn _owner_repo -> :ok end
+  migrate: &Turnstile.Test.CounterTable.create!/1
 )
 
-ExUnit.start(exclude: [:committed, :tripwire])
+Sandbox.mode(Sandboxed, :manual)
+ExUnit.start()

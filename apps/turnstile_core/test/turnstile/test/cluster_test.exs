@@ -3,12 +3,13 @@ defmodule Turnstile.Test.ClusterTest do
 
   alias Ecto.Adapters.SQL
   alias Turnstile.Test.Cluster
+  alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Committed
   alias Turnstile.TestRepos.Owner
   alias Turnstile.TestRepos.Sandboxed
 
   setup tags do
-    Turnstile.Test.Sandbox.setup(Sandboxed, tags)
+    Sandbox.setup(Sandboxed, tags)
   end
 
   test "the sandboxed repo answers a query as the application role" do
