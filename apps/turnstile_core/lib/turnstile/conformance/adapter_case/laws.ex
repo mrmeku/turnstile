@@ -87,7 +87,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     known = hd(World.operations())
     denied_everywhere(subject, operation, object)
     denied_everywhere(stranger, known, object)
-    denied_everywhere(nobody, known, object)
+    denied_or_scoped_to_nothing(context, nobody, known, object)
 
     assert {:error, %Error.NotAuthorized{reason: %{code: :unknown_subject_kind}}} =
              Turnstile.authorize(stranger, known, object)
@@ -357,12 +357,26 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   end
 
   defp denied_everywhere(subject, operation, object) do
+    denied(subject, operation, object)
+    {_rule, %Decision{verdict: verdict}} = Turnstile.scope(subject, operation, object.type)
+    assert verdict == :deny
+  end
+
+  # A subject the world does not know is denied per object; its scope is
+  # denied, or narrows to no row, since an adapter whose rule is a query
+  # learns who the subject is when the query runs.
+  defp denied_or_scoped_to_nothing(%{repo: repo}, subject, operation, object) do
+    denied(subject, operation, object)
+    schema = Enum.find(@schemas, &(Schema.object_type_of(&1) == object.type))
+    {rule, %Decision{} = decision} = Turnstile.scope(subject, operation, object.type)
+    assert_scope(repo, where(schema, ^rule), decision, [])
+  end
+
+  defp denied(subject, operation, object) do
     assert Turnstile.check(subject, operation, object) == false
     assert {:error, %Error.NotAuthorized{}} = Turnstile.authorize(subject, operation, object)
     assert Turnstile.batch(subject, operation, [object]) == %{Object.ref(object) => :deny}
     assert Turnstile.filter(subject, operation, [object]) == []
-    {_rule, %Decision{verdict: verdict}} = Turnstile.scope(subject, operation, object.type)
-    assert verdict == :deny
   end
 
   defp verdict(true), do: :allow
