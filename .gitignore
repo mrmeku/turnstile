@@ -1,8 +1,8 @@
 /_build/
 /deps/
-/cover/
-/doc/
-/tmp/
+cover/
+doc/
+tmp/
 /.direnv/
 /result
 erl_crash.dump
