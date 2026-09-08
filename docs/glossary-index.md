@@ -24,3 +24,7 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Sandbox | The sandboxed database, `turnstile_test`, as against the committed one | `docs/testing.md` §3 |
 | Caller | The module that called the Repo, as the seam reads it from the stack | `apps/turnstile_core/glossary.md` |
 | Caller | The process that called `Turnstile.Test.with_config/1,2`, followed through `$callers` | `apps/turnstile_core/glossary.md` |
+| Table | The fake adapter's rule table, an `Agent` per test | `apps/turnstile_core/glossary.md` |
+| Table | A Postgres table, protected by the seam or truncated between committed tests | `docs/reference.md` §6, `docs/testing.md` §3 |
+| Fold | `Turnstile.Ledger.Fold`: the facts a list of events leaves | `apps/turnstile_core/glossary.md` |
+| Fold | The fold-then-replay property of Tier 1 | `docs/testing.md` §6 |

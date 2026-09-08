@@ -42,3 +42,11 @@ The words `turnstile_core` owns. A word with a second meaning elsewhere is liste
 | `review` | Who can do what, today or on a date |
 | Configuration override | The keyword list `Turnstile.Test.with_config/1,2` puts in a process's dictionary, read by the resolver from the caller and its `$callers` chain over the boot struct |
 | Counter name | The `ledger_counter` field of the configuration: which row of `turnstile_ledger_counter` a transaction takes positions from; `default` in production, a per-test row in the sandbox |
+| Edge | A struct's map form: `to_map/1` and `from_map/1`, atoms as strings, modules by name, references as maps, times in ISO 8601 |
+| Span | One port call as telemetry: `[:turnstile, kind]` with `:start`, `:stop` carrying the decision, and `:exception`, where `kind` is the subject's or `:unknown` |
+| Rule table | The fake adapter's `Agent`: entries allowing one subject, or any, one operation, on one object, or any of a type |
+| Fold | The facts a list of events leaves: the whole ledger, the events up to a position, or those at a time |
+| World | A population of the neutral fixture: accounts with clearances, folders, items, and memberships; the generators draw one, the template writes it through the seam |
+| Seed / outage hook | The `Turnstile.Conformance.Seed` module a template option names: `seed/1` loads a world into an adapter's own state, `outage/0` makes its engine unreachable |
+| Projected | What a projection under conformance exposes beyond `Turnstile.Projection`: `disturb/1` and `interrupt/1` |
+| Shape test | A test of what a call does, not what it answers: the queries it runs, the records it emits, the ledger rows it leaves |
