@@ -1,12 +1,12 @@
 # Decisions for plan v9
-*Mode: Reference. The decision log the v9 plan and its companions are written from. Sources: `plan/review/owner-answers.md` (owner decisions, final), `plan/review/holes.md` (28 ranked holes in v8), `plan/review/repo-lessons.md` (what the first attempt learned), `plan/review/toolchain-pins.md` (verified versions), `plan/review/delivery-plan.md` (stages and frozen interfaces). Section names cited as PLAN §, REFERENCE §, TESTING §, CODE § refer to the v8 files under `plan/v8/`; the v9 files that replace them are named in D43. Written 2026-09-07.*
+*Mode: Reference. The decision log the v9 plan and its companions are written from. Sources: `plan/review/owner-answers.md` (owner decisions, final), `plan/review/holes.md` (28 ranked holes in v8), `plan/review/repo-lessons.md` (lessons adopted as rules), `plan/review/toolchain-pins.md` (verified versions), `plan/review/delivery-plan.md` (stages and frozen interfaces). Section names cited as PLAN §, REFERENCE §, TESTING §, CODE § refer to the v8 files under `plan/v8/`; the v9 files that replace them are named in D43. Written 2026-09-07.*
 
 ## Owner decisions
 
 ### D1. Repo reset on an orphan branch
-**Decision.** The v9 work lives on an orphan branch in this repository whose first commit is `plan/` (v8 plus the review). The previous tree is kept under the ref `attempt-1`.
-**Because.** owner-answers Q1. The old tree's vocabulary (provider, actor, vocabulary, atom reasons), package list, environment, and example domain all change; repo-lessons §E found nothing an in-place rewrite would preserve that `git show attempt-1:<path>` does not.
-**Consequences for v9.** PLAN.md: no migration-from-the-old-tree paragraph; holes #27 is moot. Reusable files are ported by `git show attempt-1:<path>` (D40, D43). `attempt-1` is a branch at `0f4888b`; it stays a branch, and no tag is created, so `git show attempt-1:<path>` and `git log attempt-1` both work.
+**Decision.** The v9 work lives on an orphan branch in this repository whose first commit is `plan/` (v8 plus the review). Nothing from the earlier history is carried forward, and no document refers to it.
+**Because.** owner-answers Q1. The vocabulary (provider, actor, vocabulary, atom reasons), package list, environment, and example domain all change; repo-lessons §E found nothing an in-place rewrite would preserve.
+**Consequences for v9.** PLAN.md: no migration paragraph; holes #27 is moot. Every mechanism v9 keeps is described on its own terms in the companions (D40, D43).
 
 ### D2. The example is a library app plus four thin apps
 **Decision.** `turnstile_example` holds the CUI domain, schemas, contexts, the web layer, and the scenario tests as shared test support. `example_code`, `example_postgres`, `example_cerbos`, `example_fga` each depend on it and add only the adapter binding, migrations, policies or model, per-rule capability declarations, and config. Each thin app has its own CI job.
@@ -36,7 +36,7 @@ Sandbox consequence, an orchestrator call not an owner decision: a sandboxed tes
 
 ### D7. The adapter is bound at boot; capability declarations live in the thin apps
 **Decision.** Core reads the adapter from `%Turnstile.Config{}` at boot; Tier 1 binds per test module and all four adapters run in one `mix test`. Each thin app fixes its adapter in config. `Application.compile_env/3` is reserved for the example's generated per-operation functions. Per-rule capability declarations (native, limited, unsupported per C-rule) live in `example_<adapter>`; adapter packages declare only domain-free facts: requires a ledger, scope cap, inventory item, origination defaults, parameters.
-**Because.** owner-answers Q6; closes holes #7 and restores ADR-0031's placement (repo-lessons A7).
+**Because.** owner-answers Q6; closes holes #7 and restores the placement repo-lessons A7 describes.
 **Consequences for v9.** CODE §2 Configuration: "the adapter is a field of `%Turnstile.Config{}`"; delete "bound with `Application.compile_env/3`". PLAN §Packages: delete "the adapter bound at compile time". REFERENCE §4 declaration paragraph splits into the adapter's declaration (domain-free) and the thin app's capability declaration (per C-rule); REFERENCE §13's "C3, C4, C9 native; C8 adapter-side" moves to `example_fga`'s declaration. TESTING §6 unchanged in intent; `AdapterCase` passes the adapter through the config override. Optional callbacks are answered at runtime (D36).
 
 ### D8. Toolchain pins
@@ -175,16 +175,16 @@ Sandbox consequence, an orchestrator call not an owner decision: a sandboxed tes
 **Because.** holes §A, §F, §G, §I, §J.
 **Consequences for v9.** As listed. Affects `turnstile_core`, `turnstile_code`.
 
-## Lessons from attempt 1 adopted as rules
+## Lessons adopted as rules
 
 ### D33. A green suite of skipped scenarios is a failure
 **Decision.** Every Tier 2 run reports the count of executed scenarios per thin app. CI fails if the count is zero, or if any scenario is skipped without a declared `unsupported` or `limited` capability naming it, or with a reason other than a declared capability or `:needs_ledger` in a mode-none run.
-**Because.** repo-lessons A4: after the first attempt's Phase 1, 64 scenarios existed and none had run.
+**Because.** repo-lessons A4: a suite of 64 scenarios existed and none had run.
 **Consequences for v9.** TESTING §6 gains the invariant as its own paragraph; the formatter (D16) writes the counts; `turnstile_assess`'s lint compares skips against the thin app's capability declaration. Affects `turnstile_assess`, all four thin apps.
 
 ### D34. A fake returns a value of the real type
 **Decision.** No fake, stub, or in-memory implementation raises where the real implementation returns; `Turnstile.Adapter.Fake`'s `scope` returns a real `dynamic`, its `explain` returns `{:error, %Turnstile.Error.Unsupported{}}` when it does not explain.
-**Because.** repo-lessons A2: a stub that raised typed every call site as a certain crash under warnings-as-errors (ADR-0034).
+**Because.** repo-lessons A2: a stub that raised typed every call site as a certain crash under warnings-as-errors.
 **Consequences for v9.** CODE §4 gains a "Fakes" rule. TESTING §5 fake-adapter row cites it. Affects `turnstile_core`.
 
 ### D35. Capability records are function clauses; list literals are typed as the checker allows
@@ -197,10 +197,10 @@ Sandbox consequence, an orchestrator call not an owner decision: a sandboxed tes
 **Because.** repo-lessons A3; D7 removes compile-time binding and this closes the consequence A3 says v8 left unstated.
 **Consequences for v9.** CODE §4 Behaviours gains the sentence. PLAN §The question: "`explain`, optional per adapter, answered unsupported at runtime where absent". Affects `turnstile_core`.
 
-### D37. A fake FGA client, and the answer to ADR-0029
-**Decision.** `turnstile_fga` talks to the server through a `Turnstile.Fga.Client` behaviour; an `Agent`-backed fake client in test support is built first and runs the projector's convergence and drift cases without a server. The ledger-as-outbox shape is accepted against ADR-0029 because the ledger is the assessment's system of record; D24 gives the duplicate-write answer and reconcile gives the 3PAO the ledger-versus-engine comparison.
+### D37. A fake FGA client, and the ledger as outbox
+**Decision.** `turnstile_fga` talks to the server through a `Turnstile.Fga.Client` behaviour; an `Agent`-backed fake client in test support is built first and runs the projector's convergence and drift cases without a server. The ledger-as-outbox shape is accepted because the ledger is the assessment's system of record; D24 gives the duplicate-write answer and reconcile gives the 3PAO the ledger-versus-engine comparison.
 **Because.** repo-lessons A5; delivery-plan S10a already says "against an in-memory fake client first".
-**Consequences for v9.** REFERENCE §13 names the behaviour and the fake; PLAN §Decisions gains "the ledger projects into the engine; over engine-owned facts with an outbox (attempt 1's ADR-0029)". Frozen interface at S10 (D46). Affects `turnstile_fga`.
+**Consequences for v9.** REFERENCE §13 names the behaviour and the fake; PLAN §Decisions gains "the ledger projects into the engine; over engine-owned facts with an outbox". Frozen interface at S10 (D46). Affects `turnstile_fga`.
 
 ### D38. A schema dump per thin app
 **Decision.** Each thin-app CI job dumps `pg_dump --schema-only` after migrations into `priv/schema/<adapter>.sql` and fails on diff against the committed file.
@@ -212,13 +212,13 @@ Sandbox consequence, an orchestrator call not an owner decision: a sandboxed tes
 **Because.** repo-lessons A1 and A7 (`term/2`).
 **Consequences for v9.** PLAN §Packages documentation sentence names the index; D43 places the file. Affects docs, the thin apps.
 
-### D40. Conformance mechanisms are ported from attempt 1
-**Decision.** Port `apps/turnstile_core/lib/turnstile/conformance/{scenario,language_lint,case,provider_case}.ex` from `attempt-1`: the scenario macro that validates `control:` at expansion and skips with the thin app's own note; the AST reader that lints without compiling; `unknown_scenarios/2`; the property-suite seed for `AdapterCase`.
+### D40. Conformance mechanisms live in core and the generator
+**Decision.** Core ships `Turnstile.Conformance.Case` (the `scenario` macro that validates `control:` at expansion and skips with the thin app's own note) and `Turnstile.Conformance.AdapterCase` (the property suite every adapter runs). `turnstile_assess` ships `Turnstile.Conformance.Scenario` (the AST reader that lints without compiling) and `Turnstile.Conformance.LanguageLint` (`unknown_terms/2`, `unknown_rules/2`, `unknown_scenarios/2`).
 **Because.** repo-lessons A8 and §C.
-**Consequences for v9.** TESTING §6 names the macro; `docs/delivery.md` S1 and S2b list the ports. Affects `turnstile_core`, `turnstile_assess`.
+**Consequences for v9.** TESTING §6 names the macro; REFERENCE §14 lists the four modules; `docs/delivery.md` S1 and S2b build them. Affects `turnstile_core`, `turnstile_assess`.
 
-### D41. The old decision records are cited, not restored as files
-**Decision.** No `docs/adr/`. This file is the log. Where v9 reverses an attempt-1 record (0003 runtime config, 0021 Nix, 0029 outbox, 0030 migrations, 0031 capability placement, 0034 stub build) the entry above says so; the records are readable with `git show fac7683:docs/adr/<file>`.
+### D41. This file is the decision log
+**Decision.** No `docs/adr/`. This file is the log. A decision is never edited in place; a later entry supersedes it and says so.
 **Because.** repo-lessons §E; owner-answers Q8 makes one file per decision class the channel.
 **Consequences for v9.** PLAN §Packages documentation sentence: "decision records live in `docs/decisions.md`". Delete `docs/adr/` from the layout.
 
@@ -241,7 +241,7 @@ Sandbox consequence, an orchestrator call not an owner decision: a sandboxed tes
 - `PLAN.md` at the repo root, Explanation.
 - `docs/reference.md`, `docs/testing.md`, `docs/code.md`: revised from v8's REFERENCE, TESTING, CODE, keeping their section numbers where the content survives so this file's citations still resolve.
 - `docs/delivery.md`: How-to, stages and gates, written from D46 and delivery-plan §1.
-- `docs/writing.md`: ported from `git show attempt-1:docs/writing.md`; its Modes table's Files column is updated to the v9 files.
+- `docs/writing.md`: the prose rules; its Modes table's Files column names the v9 files.
 - `docs/decisions.md`: this file.
 - `docs/handoff.md`: overwritten by every agent (D47).
 - `docs/glossary-index.md`: D39.
@@ -263,7 +263,7 @@ Absorption of the two v8 files that have no v9 counterpart:
 - `turnstile_example`: a library app with no application callback: the CUI schemas (Portion included), object-type and fact-mapping declarations, contexts, the redacted read, the hash-chained audit store, `Example.Repo` and `Example.OwnerRepo` (`use Turnstile.Repo`), the router, controllers, the identity-only plug, fixtures, and the scenario tests as test support (`Example.Scenarios`, every scenario present, run by each thin app).
 - `example_code`, `example_postgres`, `example_cerbos`, `example_fga`: thin apps, each with its own `config/` (its own `config_path`), its `Application.start/2` that starts `Example.Repo`, the endpoint, Turnstile, and for `example_fga` the projector; the adapter binding in config (D7); the per-rule capability declaration (D7, D35); policies (`example_cerbos`), model and tuple mapping (`example_fga`), RLS policies and write gates (`example_postgres`); `priv/repo/migrations`; `priv/schema/<adapter>.sql` (D38); `statement/` (D16); a test file that runs `Example.Scenarios` under this adapter; a README with the translation table (D39).
 Migrations: the working rule "migrations exist only in the example" becomes "library packages ship migration helpers; migrations exist only in the thin apps, one set each". `turnstile_example` ships `Example.Migrations.Domain` (the CUI tables) as a helper the thin app's first migration calls; `turnstile_ledger` ships the counter, events, and genesis helpers; `turnstile_fga` ships the checkpoint helper; `example_postgres` writes its RLS migrations by hand, since they are the teaching artifact.
-**Because.** owner-answers Q2a, Q3, Q6; repo-lessons §D (ADR-0030 row).
+**Because.** owner-answers Q2a, Q3, Q6; repo-lessons §D (migrations row).
 **Consequences for v9.** PLAN §Packages and conventions replaces its tree. `docs/delivery.md` shard rows follow these directories. `example_code`'s job runs Tier 2 twice, once per ledger mode, so mode none is exercised (D9); the other thin apps run mode Ecto.
 
 ### D45. The configuration struct

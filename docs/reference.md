@@ -543,7 +543,7 @@ The design note for `turnstile_fga`. It began as an exercise (does the plan's al
 | the adapter's working state | the FGA store, a projection of the ledger, fed by the projector |
 | revocation latency | commit, projector drain, engine write, check-cache TTL |
 
-The one structural difference from the other three adapters: their working state is the application's tables. FGA's is a copy, in another store, kept current by the projector. That is what `Turnstile.Projection` is for. The ledger is the assessment's system of record and the projector reads it; the ledger-as-outbox shape is accepted against attempt 1's ADR-0029, since the drain by diff answers the duplicate-write question and reconcile gives the 3PAO the ledger-versus-engine comparison ⟨D37⟩.
+The one structural difference from the other three adapters: their working state is the application's tables. FGA's is a copy, in another store, kept current by the projector. That is what `Turnstile.Projection` is for. The ledger is the assessment's system of record and the projector reads it; the ledger-as-outbox shape is accepted, since the drain by diff answers the duplicate-write question and reconcile gives the 3PAO the ledger-versus-engine comparison ⟨D37⟩.
 
 **The CUI domain as a model** (`apps/example_fga/priv/fga/model.fga`). A control on a marking is a wildcard flag, a tuple `user:* fedonly_applies document:1` meaning "this applies to everyone", and the block is the flag minus the users who clear it. Implication (C3) and portions (C4) are tuple-to-userset, so nothing is copied. Decontrol (C5) is a condition on the flag and category tuples. Separation of duties (C9) is `but not proposer`.
 
@@ -696,14 +696,14 @@ See `docs/testing.md`: a Nix flake pins the toolchain (§12) and provides Postgr
 
 **The neutral fixture and `priv/conformance/`** ⟨D29⟩. Tier 1's fixture is core's: two object types, two roles, one attribute, one relationship, as Ecto schemas against the same Postgres the rest of the suite uses. Each adapter package ships what that fixture needs on its mechanism under `priv/conformance/`: `turnstile_postgres` the RLS migration for the fixture tables; `turnstile_cerbos` the policies; `turnstile_fga` the model and a tuple mapping module; `turnstile_code` the role table and predicates. `AdapterCase` (`use Turnstile.Conformance.AdapterCase, adapter: Turnstile.Code`) passes the adapter through the config override, so all four run in one `mix test` as async modules ⟨D7⟩.
 
-**Ported from attempt 1** ⟨D40⟩, read with `git show attempt-1:<path>`; the words `provider_case` and `vocabulary` in the sources are attempt 1's and are renamed on the way in (`adapter`, `declaration`).
+**Conformance mechanisms** ⟨D40⟩, four modules that the scenarios, the lint, and Tier 1 rest on.
 
-| Path under `apps/turnstile_core/lib/turnstile/conformance/` | What it is | Where it lands |
+| Module | What it is | Package |
 |---|---|---|
-| `scenario.ex` | A scenario read from source without compiling it: name, rule, axis, file, line; `read/1` over globs and `parse/2` over one file by walking the AST | `turnstile_assess`'s lint reads `Example.Scenarios` this way; `axis` becomes `control:` and `group` |
-| `language_lint.ex` | `unknown_terms/2`, `unknown_rules/2`, `unknown_scenarios/2`: the three lists that are empty when the suite's words match the glossary and the declaration | `turnstile_assess`; `unknown_scenarios/2` compares the capability declaration with the scenarios present |
-| `case.ex` | The `scenario` macro as a `test` tagged with its rule and the capability the declaration records, skipping an `unsupported` scenario with the note; the assertions as macros so a failure points at the scenario | `Turnstile.Conformance.Case`, with `control:` validated at expansion against the pinned sources and the skip reason written for the formatter |
-| `provider_case.ex` | The adapter case template: the port's invariants as `stream_data` properties over generators the adapter's test module supplies; scope fidelity, deny by default, record-then-erase, batch agreement | `Turnstile.Conformance.AdapterCase`, the property-suite seed |
+| `Turnstile.Conformance.Scenario` | A scenario read from source without compiling it: id, sentence, rule, controls, group, file, line; `read/1` over globs and `parse/2` over one file by walking the AST | `turnstile_assess`; the lint reads `Example.Scenarios` this way |
+| `Turnstile.Conformance.LanguageLint` | `unknown_terms/2`, `unknown_rules/2`, `unknown_scenarios/2`: the three lists that are empty when the suite's words match the glossary and the declaration | `turnstile_assess`; `unknown_scenarios/2` compares the capability declaration with the scenarios present |
+| `Turnstile.Conformance.Case` | The `scenario` macro as a `test` tagged with its rule and the capability the declaration records, `control:` validated at expansion against the pinned sources, an `unsupported` scenario skipped with the declaration's note as the reason the formatter reads; the assertions as macros so a failure points at the scenario | `turnstile_core` |
+| `Turnstile.Conformance.AdapterCase` | The adapter case template: the port's invariants as `stream_data` properties over generators the adapter's test module supplies; scope fidelity, deny by default, record-then-erase, batch agreement, fold-then-replay | `turnstile_core` |
 
 **Schema dump** ⟨D38⟩. Each thin-app CI job dumps `pg_dump --schema-only` after migrations into `priv/schema/<adapter>.sql` and fails on a diff against the committed file; the Postgres one is the teaching artifact.
 
