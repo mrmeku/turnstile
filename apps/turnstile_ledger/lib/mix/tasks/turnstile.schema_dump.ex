@@ -17,7 +17,10 @@ defmodule Mix.Tasks.Turnstile.SchemaDump do
         ]
       ]
 
-  `migrations` defaults to `priv/repo/migrations`. Takes no arguments.
+  `migrations` defaults to `priv/repo/migrations`. The repo's configuration
+  is put in the env of the repo's own `otp_app`, which may be another
+  application's when a thin application dumps the schema of a library
+  application's repo. Takes no arguments.
   """
 
   use Boundary, top_level?: true, deps: [Mix, Turnstile.Ledger.SchemaDump]
@@ -32,7 +35,7 @@ defmodule Mix.Tasks.Turnstile.SchemaDump do
     {:ok, _started} = Application.ensure_all_started(:ecto_sql)
     config = Mix.Project.config()
     options = Keyword.get(config[:turnstile] || [], :schema_dump, [])
-    path = SchemaDump.dump([otp_app: config[:app]] ++ options)
+    path = SchemaDump.dump(options)
     Mix.shell().info("wrote #{path}")
   end
 

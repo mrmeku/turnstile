@@ -17,7 +17,10 @@ defmodule Turnstile.Ledger.SchemaDump do
   alias Turnstile.Test.Cluster
 
   @schema NimbleOptions.new!(
-            otp_app: [type: :atom, required: true, doc: "The application whose env receives the repo's config."],
+            otp_app: [
+              type: :atom,
+              doc: "The application whose env receives the repo's config; the repo's own `otp_app` when absent."
+            ],
             repo: [type: :atom, required: true, doc: "An owner-role repo module of the calling application."],
             output: [type: :string, required: true, doc: "The file to write, such as `priv/schema/rbac.sql`."],
             migrations: [
@@ -34,7 +37,7 @@ defmodule Turnstile.Ledger.SchemaDump do
 
     cluster =
       Cluster.start(
-        otp_app: options[:otp_app],
+        otp_app: options[:otp_app] || options[:repo].config()[:otp_app],
         repos: [{options[:repo], role: :owner, database: :sandboxed, pool_size: 2}],
         migrate: &migrate!(&1, options[:migrations])
       )
