@@ -19,6 +19,8 @@ defmodule Example.Scenarios.Audit do
     document = Fixture.document!(world)
     operation_id = Id.new()
     :ok = watch_decisions()
+
+    settle()
     assert_read(subject("ann"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
     assert decision.subject == %{id: "ann", kind: "user", session_id: nil}
@@ -35,6 +37,8 @@ defmodule Example.Scenarios.Audit do
     document = Fixture.document!(world)
     operation_id = Id.new()
     :ok = watch_decisions()
+
+    settle()
     assert_denied(subject("frank"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
     assert decision.verdict == "deny"
@@ -48,6 +52,8 @@ defmodule Example.Scenarios.Audit do
     document = Fixture.document!(world, controls: [:federal_only, :no_foreign], releasable_to: ["GB"], list: ["ann"])
     operation_id = Id.new()
     :ok = watch_decisions()
+
+    settle()
     assert_read(subject("ann"), document, operation_id: operation_id)
     assert_denied(subject("bob"), document, operation_id: operation_id)
     assert_denied(subject("carl"), document, operation_id: operation_id)
@@ -84,6 +90,8 @@ defmodule Example.Scenarios.Audit do
     open = Fixture.document!(world)
     federal = Fixture.document!(world, controls: [:federal_only])
     foreign = Fixture.document!(world, program: world.foreign_program, office: world.foreign_office)
+
+    settle()
     report = Example.Review.report(subject("eve"), fresh())
     [_head, domestic, foreign_section] = String.split(report, ~r/^agency /m)
     assert_section(domestic, "Domestic", ann: [open, federal], bob: [open], frank: [], ivan: [])
@@ -98,6 +106,8 @@ defmodule Example.Scenarios.Audit do
     world = Fixture.world!()
     document = Fixture.document!(world)
     assert {:ok, %PolicyVersion{} = version} = rules.publish_tightened()
+
+    settle()
 
     try do
       assert_version_fields(version)

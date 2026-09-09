@@ -55,8 +55,12 @@ defmodule Example.Scenarios.Ledger do
   def rev_07 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert_read(subject("ann"), document)
     assert 1 = Accounts.unassign("ann", world.program.id)
+
+    settle()
     assert_denied(subject("ann"), document)
 
     assert %Document{} = Repo.get(Document, document.id, turnstile: Fixture.exemption())
@@ -75,6 +79,7 @@ defmodule Example.Scenarios.Ledger do
     marking = %{categories: ["PRVCY"], controls: [:federal_only]}
     options = [operation_id: operation_id] ++ fresh()
 
+    settle()
     assert {:ok, _marking} = Documents.change_marking(subject("dana"), document.id, marking, options)
     assert [decision] = decisions(operation_id)
     assert decision.operation == "change_marking"
@@ -87,6 +92,7 @@ defmodule Example.Scenarios.Ledger do
     documents = for title <- ~w[one two three], do: Fixture.document!(world, title: title)
     _ref = :telemetry_test.attach_event_handlers(self(), Facts.events())
 
+    settle()
     assert {:ok, record} = Documents.decontrol_all(subject("dana"), DateTime.utc_now(), fresh())
     assert {record.operation, record.schema, record.count} == {:update, Document, 3}
     assert_receive {@bulk_stop, _ref, _measurements, %{record: ^record}}
@@ -129,11 +135,15 @@ defmodule Example.Scenarios.Ledger do
   def rvw_02 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert document.id in reads_of("ann", world.agency)
     assignments = Reconcile.facts(options(), [Assignment])
     at = DateTime.utc_now()
 
     assert 1 = Accounts.unassign("ann", world.program.id)
+
+    settle()
     refute document.id in reads_of("ann", world.agency)
     refute Map.has_key?(Reconcile.facts(options(), [Assignment]), membership("ann", world.program))
     assert_folds_to(at, assignments)
@@ -146,6 +156,8 @@ defmodule Example.Scenarios.Ledger do
     document = Fixture.document!(world)
     operation_id = Id.new()
     :ok = watch_decisions()
+
+    settle()
     assert_read(subject("ann"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
     grant = membership("ann", world.program)
@@ -154,6 +166,8 @@ defmodule Example.Scenarios.Ledger do
     assert 1 = Accounts.unassign("ann", world.program.id)
     again = assert_replays(decision, grant)
     assert again.fold.facts == replay.fold.facts
+
+    settle()
     assert_reproduces(rules, again, decision, document)
   end
 
@@ -196,6 +210,8 @@ defmodule Example.Scenarios.Ledger do
     document = Fixture.document!(world)
     under_n = Id.new()
     :ok = watch_decisions()
+
+    settle()
     assert_read(subject("ann"), document, operation_id: under_n)
     assert [made_under_n] = decisions(under_n)
 

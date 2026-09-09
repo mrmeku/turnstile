@@ -30,6 +30,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_01 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert_read(subject("ann"), document)
   end
 
@@ -37,6 +39,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_02 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert_denied(subject("frank"), document)
   end
 
@@ -44,6 +48,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_03 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert_read(subject("dana"), document)
   end
 
@@ -51,6 +57,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_04 do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:federal_only])
+
+    settle()
     assert_read(subject("ann"), document)
     assert_denied(subject("bob"), document)
   end
@@ -59,6 +67,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_05 do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:no_foreign])
+
+    settle()
     assert_read(subject("ann"), document)
     assert_denied(subject("carl"), document)
   end
@@ -67,6 +77,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_06 do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:releasable_to], releasable_to: ["FR", "GB"])
+
+    settle()
     assert_read(subject("carl"), document)
     assert_denied(subject("ann"), document)
   end
@@ -75,6 +87,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_07 do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:named_list], list: ["ann"])
+
+    settle()
     assert_read(subject("ann"), document)
     assert_denied(subject("bob"), document)
   end
@@ -83,6 +97,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_08 do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:federal_only, :no_foreign])
+
+    settle()
     assert_read(subject("ann"), document)
     assert_denied(subject("carl"), document)
     assert_denied(subject("bob"), document)
@@ -93,9 +109,13 @@ defmodule Example.Scenarios.Enforcement do
     world = Fixture.world!()
     document = Fixture.document!(world, categories: ["PRVCY"])
     assert document.marking.controls == []
+
+    settle()
     assert_read(subject("ann"), document)
     assert_denied(subject("bob"), document)
     unspecified = Fixture.document!(world, categories: ["PROPIN"])
+
+    settle()
     assert_read(subject("bob"), unspecified)
   end
 
@@ -103,6 +123,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_10 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     for id <- ["ann", "bob", "carl"], do: assert_read(subject(id), document)
   end
 
@@ -114,6 +136,8 @@ defmodule Example.Scenarios.Enforcement do
       Fixture.document!(world, portions: [%{body: "open"}, %{body: "domestic", controls: [:no_foreign]}])
 
     [open, domestic] = document.portions
+
+    settle()
     assert_denied(subject("carl"), document)
     assert {:ok, %Document{portions: portions}} = Documents.read_redacted(subject("carl"), document.id)
     assert Enum.map(portions, & &1.id) == [open.id]
@@ -127,6 +151,8 @@ defmodule Example.Scenarios.Enforcement do
     world = Fixture.world!()
     document = Fixture.document!(world, portions: [%{body: "domestic", controls: [:no_foreign]}])
     dropped = %{controls: []}
+
+    settle()
 
     assert {:error, %Documents.BannerViolation{portions: %{controls: [:no_foreign]}}} =
              Documents.change_marking(subject("dana"), document.id, dropped, fresh())
@@ -145,6 +171,8 @@ defmodule Example.Scenarios.Enforcement do
     world = Fixture.world!()
     past = DateTime.shift(DateTime.utc_now(), hour: -1)
     document = Fixture.document!(world, controls: [:federal_only], decontrol: past)
+
+    settle()
     assert_read(subject("bob"), document)
   end
 
@@ -155,6 +183,8 @@ defmodule Example.Scenarios.Enforcement do
     document = Fixture.document!(world, controls: [:federal_only], decontrol: decontrol)
     :ok = Turnstile.Test.with_config(clock: Clock)
     :ok = Clock.set(DateTime.shift(decontrol, second: -1))
+
+    settle()
     assert_denied(subject("bob"), document)
     :ok = Clock.set(DateTime.shift(decontrol, second: 1))
     assert_read(subject("bob"), document)
@@ -165,6 +195,8 @@ defmodule Example.Scenarios.Enforcement do
     world = Fixture.world!()
     past = DateTime.shift(DateTime.utc_now(), hour: -1)
     document = Fixture.document!(world, controls: [:federal_only], decontrol: past)
+
+    settle()
     assert_denied(subject("frank"), document)
   end
 
@@ -172,6 +204,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_16 do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:named_list], list: ["frank"])
+
+    settle()
     assert_denied(subject("frank"), document)
   end
 
@@ -179,6 +213,8 @@ defmodule Example.Scenarios.Enforcement do
   def enf_17 do
     world = Fixture.world!()
     documents = varied_documents(world)
+
+    settle()
 
     for subject <- Enum.shuffle(Fixture.subjects()) do
       scoped = listed(subject)
@@ -203,6 +239,8 @@ defmodule Example.Scenarios.Enforcement do
 
     _marking = Fixture.set_list!(document, ["carl"])
 
+    settle()
+
     for subject <- Enum.shuffle(Fixture.subjects()) do
       {rule, decision} = Turnstile.scope(subject, :read, :portion)
       query = from(p in Portion, where: ^rule, order_by: p.id, select: p.id)
@@ -217,6 +255,8 @@ defmodule Example.Scenarios.Enforcement do
     world = Fixture.world!()
     domestic = Fixture.document!(world)
     foreign = Fixture.document!(world, program: world.foreign_program, office: world.foreign_office)
+
+    settle()
     assert listed(subject("ann")) == [domestic.id]
     refute reads?(subject("ann"), foreign)
     assert listed(subject("ivan")) == [foreign.id]

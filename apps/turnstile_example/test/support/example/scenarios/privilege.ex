@@ -21,6 +21,8 @@ defmodule Example.Scenarios.Privilege do
   def lp_01 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert_read(subject("ann"), document)
     assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("ann"), document.id, @noforn, fresh())
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("ann"), document.id)
@@ -30,8 +32,12 @@ defmodule Example.Scenarios.Privilege do
   def lp_02 do
     world = Fixture.world!()
     foreign = Fixture.document!(world, program: world.foreign_program, office: world.foreign_office)
+
+    settle()
     assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("dana"), foreign.id, @noforn, fresh())
     domestic = Fixture.document!(world)
+
+    settle()
     assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("hana"), domestic.id, @noforn, fresh())
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), domestic.id)
   end
@@ -41,9 +47,12 @@ defmodule Example.Scenarios.Privilege do
     world = Fixture.world!()
     document = Fixture.document!(world)
 
+    settle()
+
     assert {:ok, %Example.Marking{controls: [:no_foreign]}} =
              Documents.change_marking(subject("dana"), document.id, @noforn, fresh())
 
+    settle()
     assert {:ok, %Document{marking: %{controls: [:no_foreign]}}} = Documents.read(subject("dana"), document.id)
   end
 
@@ -52,10 +61,14 @@ defmodule Example.Scenarios.Privilege do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:federal_only])
     at = DateTime.shift(DateTime.utc_now(), minute: -1)
+
+    settle()
     assert {:error, %Error.NotAuthorized{}} = Documents.set_decontrol(subject("ann"), document.id, at, fresh())
     assert {:error, %Error.NotAuthorized{}} = Documents.decontrol(subject("eve"), document.id, fresh())
     assert_denied(subject("bob"), document)
     assert {:ok, %Document{decontrol: %DateTime{}}} = Documents.set_decontrol(subject("dana"), document.id, at, fresh())
+
+    settle()
     assert_read(subject("bob"), document)
   end
 
@@ -66,6 +79,8 @@ defmodule Example.Scenarios.Privilege do
     [portion] = document.portions
     tightened = %{controls: [:no_foreign]}
 
+    settle()
+
     for id <- ["ann", "eve", "hana"] do
       assert {:error, %Error.NotAuthorized{}} =
                Documents.change_portion_marking(subject(id), portion.id, tightened, fresh())
@@ -74,6 +89,7 @@ defmodule Example.Scenarios.Privilege do
     assert {:ok, %Example.Portion{controls: [:no_foreign]}} =
              Documents.change_portion_marking(subject("dana"), portion.id, tightened, fresh())
 
+    settle()
     assert {:ok, %Document{marking: %{controls: [:no_foreign]}}} = Documents.read(subject("dana"), document.id)
   end
 
@@ -81,6 +97,8 @@ defmodule Example.Scenarios.Privilege do
   def lp_06 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert_denied(subject("frank"), document)
 
     assert {:error, %Documents.OverrideRefused{reason: :not_privileged}} =
@@ -95,6 +113,8 @@ defmodule Example.Scenarios.Privilege do
     document = Fixture.document!(world, controls: [:named_list], list: ["frank"])
     ordinary = subject("gil-user")
     assert ordinary.kind == :user
+
+    settle()
     assert_denied(ordinary, document)
 
     assert {:error, %Documents.OverrideRefused{reason: :not_privileged}} =
@@ -108,6 +128,8 @@ defmodule Example.Scenarios.Privilege do
   def lp_08 do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:federal_only])
+
+    settle()
     report = Example.Review.report(subject("eve"), fresh())
     assert report =~ "agency Domestic"
     assert report =~ "ann reads [#{document.id}]"
@@ -124,11 +146,16 @@ defmodule Example.Scenarios.Privilege do
   def sod_01 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert {:ok, proposal} = Proposals.propose(subject("dana"), document.id, @noforn, fresh())
+
+    settle()
 
     assert {:ok, %Example.Proposal{status: :approved, approver_id: "eve"}} =
              Proposals.approve(subject("eve"), proposal.id, fresh())
 
+    settle()
     assert {:ok, %Document{marking: %{controls: [:no_foreign]}}} = Documents.read(subject("dana"), document.id)
     assert {:error, :not_found} = Proposals.approve(subject("eve"), proposal.id, fresh())
   end
@@ -138,22 +165,46 @@ defmodule Example.Scenarios.Privilege do
     world = Fixture.world!()
     document = Fixture.document!(world)
     _role = Accounts.office_role("dana", world.office.id, :approver)
-    assert {:ok, proposal} = Proposals.propose(subject("dana"), document.id, @noforn, fresh())
-    assert {:error, %Error.NotAuthorized{}} = Proposals.approve(subject("dana"), proposal.id, fresh())
-    assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id)
-    _role = Accounts.office_role("eve", world.office.id, :designator)
-    assert {:ok, other} = Proposals.propose(subject("eve"), document.id, %{controls: [:federal_only]}, fresh())
 
-    assert {:ok, %Example.Proposal{status: :approved, approver_id: "dana"}} =
-             Proposals.approve(subject("dana"), other.id, fresh())
+    refute_own_approval(document)
+    assert_approval_of_another(world, document)
   end
 
   @spec sod_03() :: term()
   def sod_03 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert {:ok, %Example.Proposal{status: :pending}} = Proposals.propose(subject("dana"), document.id, @noforn, fresh())
+
+    settle()
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id)
     assert_read(subject("carl"), document)
+  end
+
+  # Holding both roles does not let an account approve what it proposed: the
+  # approval is refused and the marking stays where it was.
+  defp refute_own_approval(document) do
+    settle()
+    assert {:ok, proposal} = Proposals.propose(subject("dana"), document.id, @noforn, fresh())
+
+    settle()
+    assert {:error, %Error.NotAuthorized{}} = Proposals.approve(subject("dana"), proposal.id, fresh())
+    assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id)
+  end
+
+  # The same account approves what another proposed, so what it holds is the
+  # role and what it lacks is the standing to approve its own proposal.
+  defp assert_approval_of_another(world, document) do
+    _role = Accounts.office_role("eve", world.office.id, :designator)
+
+    settle()
+    assert {:ok, other} = Proposals.propose(subject("eve"), document.id, %{controls: [:federal_only]}, fresh())
+
+    settle()
+
+    assert {:ok, %Example.Proposal{status: :approved, approver_id: "dana"}} =
+             Proposals.approve(subject("dana"), other.id, fresh())
   end
 end

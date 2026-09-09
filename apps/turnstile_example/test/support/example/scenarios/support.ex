@@ -45,17 +45,30 @@ defmodule Example.Scenarios.Support do
   @spec stale() :: keyword()
   def stale, do: [facts: %{reauthenticated_at: DateTime.shift(DateTime.utc_now(), second: -(Sessions.window() + 60))}]
 
+  @doc """
+  Wait until every fact the tests have written has reached the engine, where
+  the bound adapter keeps state of its own. Answers `:none` where there is
+  nothing to wait for, so a scenario body calls it whatever is bound.
+  """
+  @spec settle() :: :ok | :none
+  defdelegate settle(), to: Turnstile.Test
+
   @doc "The object reference of a portion."
   @spec portion(Example.Portion.t()) :: Object.t()
   def portion(%Example.Portion{id: id}), do: Documents.object(:portion, id)
 
-  @doc "The revocation-latency report, written to the log and never asserted: total, commit, poll, and the floor."
+  @doc """
+  The revocation-latency report, written to the log and never asserted: total,
+  commit, drain, poll, and the floor. The `drain` part is the milliseconds the
+  projection took to catch up, or `nil` where the bound adapter has no
+  projection to drain.
+  """
   @spec latency_report(keyword()) :: :ok
   def latency_report(parts) when is_list(parts) do
     report("""
     revocation latency, #{adapter_name()}: total #{parts[:total]} ms
       commit #{parts[:commit]} ms
-      projector_drain not needed
+      #{drained(parts[:drain])}
       poll #{parts[:poll]} ms, floor #{Turnstile.Test.poll_interval()} ms
       replica_lag not measured
       cache not measured
@@ -109,6 +122,12 @@ defmodule Example.Scenarios.Support do
       0 -> []
     end
   end
+
+  # An adapter that answers from the tables it is bound to has no projection,
+  # and `Turnstile.Test.settle/0` answers `:none` there, so the line says so
+  # rather than reporting a zero that reads like a measurement.
+  defp drained(nil), do: "projector_drain not needed"
+  defp drained(milliseconds) when is_integer(milliseconds), do: "projector_drain #{milliseconds} ms"
 
   # credo:disable-for-next-line Credo.Check.Refactor.IoPuts
   defp report(text), do: IO.puts("\n" <> text)

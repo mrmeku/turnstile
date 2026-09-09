@@ -21,6 +21,8 @@ defmodule Example.Scenarios.Identity do
     world = Fixture.world!()
     document = Fixture.document!(world)
 
+    settle()
+
     assert {:ok, %Example.Marking{controls: [:no_foreign]}} =
              Documents.change_marking(subject("dana"), document.id, @noforn, fresh())
   end
@@ -29,6 +31,8 @@ defmodule Example.Scenarios.Identity do
   def ia_02 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("dana"), document.id, @noforn, stale())
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id, stale())
 
@@ -40,6 +44,8 @@ defmodule Example.Scenarios.Identity do
   def ia_03 do
     world = Fixture.world!()
     document = Fixture.document!(world)
+
+    settle()
     assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("dana"), document.id, @noforn)
     assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("dana"), document.id, @noforn, facts: %{})
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id)
@@ -50,6 +56,8 @@ defmodule Example.Scenarios.Identity do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:named_list], list: ["frank"])
     gil = subject("gil")
+
+    settle()
     assert_denied(gil, document)
     operation_id = Id.new()
     _ref = :telemetry_test.attach_event_handlers(self(), [Documents.override_event()])
@@ -71,6 +79,8 @@ defmodule Example.Scenarios.Identity do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:named_list], list: ["frank"])
     gil = subject("gil")
+
+    settle()
     assert {:error, %Documents.OverrideRefused{reason: :no_justification}} = Documents.override_read(gil, document.id, "")
 
     assert {:error, %Documents.OverrideRefused{reason: :no_justification}} =
@@ -84,6 +94,8 @@ defmodule Example.Scenarios.Identity do
     world = Fixture.world!()
     document = Fixture.document!(world)
     gil = subject("gil")
+
+    settle()
     assert {:ok, %Document{}} = Documents.override_read(gil, document.id, "incident 12")
     assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(gil, document.id, @noforn, fresh())
     assert {:error, %Error.NotAuthorized{}} = Documents.decontrol(gil, document.id, fresh())
