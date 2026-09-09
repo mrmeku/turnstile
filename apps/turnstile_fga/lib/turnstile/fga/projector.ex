@@ -32,7 +32,9 @@ defmodule Turnstile.Fga.Projector do
 
   @behaviour Turnstile.Projection
 
+  alias Turnstile.Config
   alias Turnstile.Error
+  alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Checkpoint
   alias Turnstile.Fga.Client
   alias Turnstile.Fga.Client.Page
@@ -113,6 +115,32 @@ defmodule Turnstile.Fga.Projector do
     end
   end
 
+  @doc """
+  The projector the configuration and the binding together describe: the
+  adapter entry's endpoint, store, and client, the binding's repo, mapping,
+  and compiled model, and the ledger the configuration names. This is what
+  the process a thin application starts drains with, and what a test that
+  drains by hand resolves for itself.
+  """
+  @spec resolve() :: {:ok, t()} | {:error, Error.Invalid.t() | Error.Unsupported.t()}
+  def resolve do
+    with {:ok, %Binding{} = binding} <- Binding.resolve(),
+         {:ok, %Config{} = config} <- Config.resolve(),
+         {:ok, ledger} <- ledger(config),
+         {:ok, options} <- entry(config),
+         {:ok, model} <- Binding.compiled(binding) do
+      new(
+        client: Keyword.get(options, :client, Client.Http),
+        endpoint: Keyword.fetch!(options, :endpoint),
+        store: Keyword.fetch!(options, :store_id),
+        model: model,
+        mapping: binding.mapping,
+        ledger: ledger,
+        repo: binding.repo
+      )
+    end
+  end
+
   @impl Turnstile.Projection
   def checkpoint(%__MODULE__{} = projector), do: {:ok, Checkpoint.position(projector.repo, projector.store)}
 
@@ -142,6 +170,26 @@ defmodule Turnstile.Fga.Projector do
       {:ok, drift(required(projector, fold, events), present, fold.position)}
     end
   end
+
+  defp entry(%Config{} = config) do
+    case Config.adapter(config) do
+      {Turnstile.Fga, options} -> {:ok, options}
+      {other, _options} -> {:error, invalid("#{inspect(other)} is the configured adapter, so it drains nothing here")}
+    end
+  end
+
+  defp ledger(%Config{ledger: :none}) do
+    {:error,
+     %Error.Unsupported{
+       adapter: Turnstile.Fga,
+       feature: :ledger_mode_none,
+       note: "a projection has nothing to drain without a ledger"
+     }}
+  end
+
+  defp ledger(%Config{ledger: {module, options}}), do: {:ok, {module, options}}
+
+  defp invalid(detail), do: %Error.Invalid{what: :projector, detail: detail}
 
   # Genesis sits at position zero and a ledger read is exclusive of the
   # position it starts from, so a checkpoint of zero reads everything.
