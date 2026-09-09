@@ -11,8 +11,9 @@ defmodule ExampleRbac.PolicyTest do
     assert Coverage.check(ExampleRbac.Tightened) == :ok
   end
 
-  test "the boot names the adapter, the policy, and the repo" do
-    assert {:ok, %Config{ledger: :none} = config} = Config.resolve()
+  test "the boot names the adapter, the ledger mode, the policy, and the repo" do
+    assert {:ok, %Config{} = config} = Config.resolve()
+    assert mode(config.ledger) == mode(Application.fetch_env!(:example_rbac, :ledger))
     assert Config.adapter(config) == {Turnstile.Code, []}
     assert {:ok, %Binding{policy: Policy, repo: Example.Repo}} = Binding.resolve()
     assert Turnstile.Code.Version.ref(Policy) == "2026.09.1"
@@ -32,4 +33,9 @@ defmodule ExampleRbac.PolicyTest do
       assert is_binary(note)
     end
   end
+
+  # The boot fills the ledger's options in, so the configured mode is
+  # compared by what it names rather than by the whole keyword list.
+  defp mode(:none), do: :none
+  defp mode({module, options}), do: {module, options[:repo], options[:owner_repo]}
 end
