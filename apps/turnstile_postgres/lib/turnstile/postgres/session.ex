@@ -7,8 +7,19 @@ defmodule Turnstile.Postgres.Session do
   that transaction sets its own over them, so two subjects in one
   transaction never read each other's.
 
-  The statement runs through the bound repo's raw channel under the library
-  exemption, which is one query in the shape counts.
+  Every call puts back what it set: each name it wrote goes to the empty
+  string as the function returns, whether the function returned or raised.
+  A transaction the adapter did not open outlives the call, and so does one
+  the adapter opens inside another, which the database keeps as a savepoint
+  whose settings survive its release. Without the clearing, a statement the
+  seam admits outside a decision, later in the same transaction, would run
+  under the settings of the decision before it, and a policy written for
+  "no operation in force" would not hold. The clearing statement runs
+  through the repo's non-raising channel, so a transaction the function
+  already aborted keeps the error the function raised.
+
+  Each statement runs through the bound repo's raw channel under the
+  library exemption, and each is one query in the shape counts.
   """
 
   alias Turnstile.Postgres.Settings
@@ -56,6 +67,17 @@ defmodule Turnstile.Postgres.Session do
   defp set(repo, settings, fun) do
     {statement, params} = Settings.statement(settings)
     _result = repo.query!(statement, params, turnstile: @exemption)
-    fun.()
+
+    try do
+      fun.()
+    after
+      clear(repo, settings)
+    end
+  end
+
+  defp clear(repo, settings) do
+    {statement, params} = Settings.statement(Settings.cleared(settings))
+    _result = repo.query(statement, params, turnstile: @exemption)
+    :ok
   end
 end

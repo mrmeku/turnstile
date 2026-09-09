@@ -3,7 +3,7 @@ defmodule Turnstile.Postgres.ConformanceTest do
     adapter: Turnstile.Postgres,
     repo: Turnstile.TestRepos.Sandboxed,
     async: false,
-    setup_queries: 1,
+    setup_queries: 2,
     outage: Turnstile.Postgres.ConformanceTest.Unreachable,
     committed: [
       repo: Turnstile.TestRepos.Committed,

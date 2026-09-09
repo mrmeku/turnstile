@@ -51,6 +51,17 @@ defmodule Turnstile.Postgres.Settings do
     of(subject, operation, %Environment{now: at})
   end
 
+  @doc """
+  The same names with no values, which is what a call puts back when it
+  did not open the transaction it set them in. A name at the empty string
+  is what a policy reads for "no operation in force"; unsetting a name is
+  not available to a statement.
+  """
+  @spec cleared(t()) :: t()
+  def cleared(%__MODULE__{pairs: pairs}) do
+    %__MODULE__{pairs: Enum.map(pairs, fn {name, _value} -> {name, ""} end)}
+  end
+
   @doc "The one statement that sets them all, with its parameters."
   @spec statement(t()) :: {String.t(), [String.t()]}
   def statement(%__MODULE__{pairs: pairs}) do
