@@ -25,6 +25,7 @@ defmodule ExampleCerbos.Rules do
       Example,
       Example.Fixture,
       Example.Scenarios,
+      Example.Scenarios.Support,
       ExampleCerbos.Tightened,
       Turnstile,
       Turnstile.Cerbos,
@@ -35,6 +36,7 @@ defmodule ExampleCerbos.Rules do
   alias Example.Fixture
   alias Example.Repo
   alias Example.Scenarios.Rules
+  alias Example.Scenarios.Support
   alias ExampleCerbos.Tightened
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Client
@@ -141,7 +143,7 @@ defmodule ExampleCerbos.Rules do
     {:ok, config} = Config.resolve()
     {Turnstile.Cerbos, options} = Config.adapter(config)
     body = Request.logged(principal(config), resource(), ["read"])
-    true = Test.poll(fn -> allowed?(options[:address], body) end)
+    true = Test.poll(fn -> allowed?(options[:address], body) end, Support.propagation_deadline())
     :ok
   end
 

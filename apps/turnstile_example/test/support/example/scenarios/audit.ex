@@ -144,7 +144,7 @@ defmodule Example.Scenarios.Audit do
   defp assert_denied_under(%PolicyVersion{version: expected}, document) do
     operation_id = Id.new()
     :ok = watch_decisions()
-    assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end)
+    assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end, propagation_deadline())
     assert_denied(subject("ann"), document, operation_id: operation_id)
     assert [%{policy_version: recorded}] = decisions(operation_id)
     assert recorded == expected

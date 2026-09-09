@@ -58,6 +58,17 @@ defmodule Example.Scenarios.Support do
   def portion(%Example.Portion{id: id}), do: Documents.object(:portion, id)
 
   @doc """
+  The deadline a wait on a rule change carries, in milliseconds. A fact reaches
+  an engine in milliseconds, and a rule change reaches one that reads its rules
+  from a directory it watches in seconds, so the deadline is sized to the
+  slowest of them with room over a loaded machine: what a scenario asserts is
+  that the change is in force, and the number it took is reported rather than
+  asserted.
+  """
+  @spec propagation_deadline() :: pos_integer()
+  def propagation_deadline, do: 30_000
+
+  @doc """
   The revocation-latency report, written to the log and never asserted: total,
   commit, drain, poll, and the floor. The `drain` part is the milliseconds the
   projection took to catch up, or `nil` where the bound adapter has no

@@ -295,7 +295,7 @@ defmodule Example.Scenarios.Ledger do
   # The version the port records once the tightened policy has reached it.
   defp denied_under(document) do
     operation_id = Id.new()
-    assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end)
+    assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end, propagation_deadline())
     assert_denied(subject("ann"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
     decision.policy_version

@@ -108,7 +108,7 @@ defmodule Example.Scenarios.Revocation do
 
     try do
       polled = System.monotonic_time(:millisecond)
-      assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end)
+      assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end, propagation_deadline())
       finished = System.monotonic_time(:millisecond)
       propagation_report(version, total: finished - started, publish: published - started, poll: finished - polled)
       assert_denied(subject("ann"), document)
