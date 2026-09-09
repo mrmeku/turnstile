@@ -11,6 +11,8 @@ defmodule Turnstile.Postgres.Catalog do
   counts of a mediated call stay what the shape tests expect. An
   application loads it at boot through `Turnstile.Postgres.load!/0`, after
   the binding; `current!/1` loads on first use for a caller that did not.
+  A migration that runs while the VM is up leaves the kept catalog behind
+  the database, so `reload!/1` reads it again and replaces it.
 
   Every statement runs through the bound repo's raw channel under the
   library exemption, so a catalog read is mediated like any other call.
@@ -82,6 +84,18 @@ defmodule Turnstile.Postgres.Catalog do
         :persistent_term.put({__MODULE__, binding}, catalog)
         catalog
     end
+  end
+
+  @doc """
+  Read the catalog again and keep what it says now. A migration that runs
+  after boot changes the policies and the version under a loaded catalog,
+  and every call after it reads the ones the database now holds.
+  """
+  @spec reload!(Binding.t()) :: t()
+  def reload!(%Binding{} = binding) do
+    catalog = read!(binding)
+    :persistent_term.put({__MODULE__, binding}, catalog)
+    catalog
   end
 
   @doc "The loaded catalog, loading it on first use."

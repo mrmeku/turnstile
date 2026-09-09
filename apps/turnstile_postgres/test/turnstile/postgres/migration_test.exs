@@ -3,12 +3,15 @@ defmodule Turnstile.Postgres.MigrationTest do
 
   alias Turnstile.Error
   alias Turnstile.PolicyVersion
+  alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Migration
+  alias Turnstile.Postgres.Probe
   alias Turnstile.TestRepos.Owner
 
   @moduletag :committed
 
+  @probe "turnstile_probe_rows"
   @table "turnstile_migration_test_rows"
   @using "current_setting('turnstile.probe', true) = label"
 
@@ -55,6 +58,28 @@ defmodule Turnstile.Postgres.MigrationTest do
     assert {update.command, update.using, update.with_check} == {:update, "true", "true"}
   end
 
+  test "exempt! admits the role's statements while no operation is in force" do
+    assert Migration.exempt!(Owner, table: @table, to: "turnstile_app") == :ok
+
+    assert [delete, insert, select, update] = policies()
+    assert {select.name, select.command} == {"turnstile_exempt_turnstile_app_select", :select}
+    assert Enum.all?([delete, insert, select, update], &(expression(&1) =~ "turnstile_app"))
+    assert Enum.all?([delete, insert, select, update], &(expression(&1) =~ "turnstile.operation"))
+    assert {insert.name, insert.using} == {"turnstile_exempt_turnstile_app_insert", nil}
+    assert {delete.name, delete.with_check} == {"turnstile_exempt_turnstile_app_delete", nil}
+    assert update.with_check == update.using
+  end
+
+  test "a role whose reads are unfiltered takes the policy without the operation clause" do
+    assert Migration.exempt!(Owner, table: @table, to: "turnstile_owner", commands: [:select], outside_decision: false) ==
+             :ok
+
+    assert [policy] = policies()
+    assert policy.name == "turnstile_exempt_turnstile_owner_select"
+    assert policy.using =~ "turnstile_owner"
+    refute policy.using =~ "turnstile.operation"
+  end
+
   test "grant! is what lets the role reach the table at all" do
     refute privilege("SELECT")
 
@@ -81,12 +106,34 @@ defmodule Turnstile.Postgres.MigrationTest do
     assert %DateTime{} = version.at
   end
 
+  test "reload! reads the policies a migration wrote after the catalog was loaded" do
+    binding = probe_binding()
+    loaded = Catalog.load!(binding)
+    refute Enum.any?(loaded.policies, &(&1.name == "turnstile_scope_reloaded"))
+
+    on_exit(fn -> Owner.query!("DROP POLICY IF EXISTS turnstile_scope_reloaded ON #{@probe}") end)
+    :ok = Migration.policy!(Owner, table: @probe, operation: :reloaded, using: "true")
+
+    assert Catalog.load!(binding) == loaded
+    assert Enum.any?(Catalog.reload!(binding).policies, &(&1.name == "turnstile_scope_reloaded"))
+
+    Owner.query!("DROP POLICY turnstile_scope_reloaded ON #{@probe}")
+    assert Catalog.reload!(binding) == loaded
+  end
+
   test "a name that is not a plain identifier never reaches a statement" do
     assert %Error.Invalid{what: :table} = catch_error(Migration.protect!(Owner, "rows; DROP TABLE #{@table}"))
     assert %Error.Invalid{what: :role} = catch_error(Migration.grant!(Owner, table: @table, to: "a b", commands: []))
   end
 
   defp policies, do: Catalog.policies!(Owner, [@table])
+
+  defp expression(policy), do: policy.using || policy.with_check
+
+  defp probe_binding do
+    {:ok, binding} = Binding.new(repo: Owner, schemas: [Probe.Row])
+    binding
+  end
 
   defp security do
     %{rows: [row]} =

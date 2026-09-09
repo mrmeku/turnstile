@@ -52,6 +52,15 @@ defmodule Turnstile.PostgresTest do
     assert Postgres.load!() == Postgres.load!()
   end
 
+  test "reload! reads the catalog again, for an application that ran a migration after boot" do
+    assert_raise Error.Invalid, fn -> Postgres.reload!() end
+
+    bind()
+
+    assert %Catalog{policies: [_policy | _rest]} = reloaded = Postgres.reload!()
+    assert Postgres.load!() == reloaded
+  end
+
   test "a catalog the engine cannot read is an engine error naming the callback" do
     bind(migrations_table: "turnstile_no_such_table")
 

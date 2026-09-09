@@ -72,6 +72,19 @@ defmodule Turnstile.Postgres do
     end
   end
 
+  @doc """
+  Read the policies and the version again, for an application that ran a
+  migration after boot. Every call after this one reads what the database
+  now holds.
+  """
+  @spec reload!() :: Catalog.t()
+  def reload! do
+    case Binding.resolve() do
+      {:ok, %Binding{} = binding} -> Catalog.reload!(binding)
+      {:error, error} -> raise error
+    end
+  end
+
   @doc "The component of revocation latency this adapter cannot measure."
   @spec replica_lag() :: String.t()
   def replica_lag, do: "not measured"

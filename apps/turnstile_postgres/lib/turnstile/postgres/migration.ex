@@ -20,6 +20,10 @@ defmodule Turnstile.Postgres.Migration do
   - `admit!/2` adds a permissive `true` policy for one command. Forcing
     row-level security refuses every statement no policy admits, so a table
     whose rows are inserted or deleted outside a decision needs one.
+  - `exempt!/2` adds the policy that admits one role's statements while no
+    operation is in force, which is what the seam leaves behind when it
+    admits a call outside a decision. A role whose reads are unfiltered
+    whatever the settings say takes the same policy without that clause.
   - `grant!/2` grants a role the table privileges it needs. Row-level
     security narrows what a role may reach; the grant is what lets it reach
     the table at all, and the two are set together.
@@ -39,6 +43,7 @@ defmodule Turnstile.Postgres.Migration do
 
   @exemption {:exempt, :library}
   @content_bytes 65_536
+  @commands ~w(select insert update delete)a
   @guard "current_setting('turnstile.operation', true)"
 
   @doc "Enable row-level security on the table and force it on the table's owner too."
@@ -80,9 +85,28 @@ defmodule Turnstile.Postgres.Migration do
   def admit!(repo, options) when is_atom(repo) and is_list(options) do
     table = Name.check!(Keyword.fetch!(options, :table), :table)
     command = Keyword.fetch!(options, :command)
-    {clause, predicate} = admitted(command)
+    {clause, shape} = shape(command, "true")
     name = Name.check!("turnstile_admit_#{command}", :policy)
-    run!(repo, "CREATE POLICY #{name} ON #{table} FOR #{clause} #{predicate}")
+    run!(repo, "CREATE POLICY #{name} ON #{table} FOR #{clause} #{shape}")
+  end
+
+  @doc """
+  Add the policy that admits a role's statements outside a decision.
+  Requires `table:` and `to:`; takes `commands:`, every command by
+  default, and `outside_decision:`, `false` where the role holds the
+  policy whatever operation is in force.
+  """
+  @spec exempt!(module(), keyword()) :: :ok
+  def exempt!(repo, options) when is_atom(repo) and is_list(options) do
+    table = Name.check!(Keyword.fetch!(options, :table), :table)
+    role = Name.check!(Keyword.fetch!(options, :to), :role)
+    predicate = exemption(role, Keyword.get(options, :outside_decision, true))
+
+    Enum.each(Keyword.get(options, :commands, @commands), fn command ->
+      {clause, shape} = shape(command, predicate)
+      name = Name.check!("turnstile_exempt_#{role}_#{command}", :policy)
+      run!(repo, "CREATE POLICY #{name} ON #{table} FOR #{clause} #{shape}")
+    end)
   end
 
   @doc "Grant a role privileges on a table. Requires `table:`, `to:`, and `commands:`."
@@ -120,15 +144,18 @@ defmodule Turnstile.Postgres.Migration do
     ]
   end
 
+  defp exemption(role, true), do: "current_user = '#{role}' AND coalesce(#{@guard}, '') = ''"
+  defp exemption(role, false), do: "current_user = '#{role}'"
+
   defp granted(:select), do: "SELECT"
   defp granted(:insert), do: "INSERT"
   defp granted(:update), do: "UPDATE"
   defp granted(:delete), do: "DELETE"
 
-  defp admitted(:insert), do: {"INSERT", "WITH CHECK (true)"}
-  defp admitted(:delete), do: {"DELETE", "USING (true)"}
-  defp admitted(:select), do: {"SELECT", "USING (true)"}
-  defp admitted(:update), do: {"UPDATE", "USING (true) WITH CHECK (true)"}
+  defp shape(:insert, predicate), do: {"INSERT", "WITH CHECK (#{predicate})"}
+  defp shape(:delete, predicate), do: {"DELETE", "USING (#{predicate})"}
+  defp shape(:select, predicate), do: {"SELECT", "USING (#{predicate})"}
+  defp shape(:update, predicate), do: {"UPDATE", "USING (#{predicate}) WITH CHECK (#{predicate})"}
 
   defp run!(repo, statement) do
     _result = repo.query!(statement, [], turnstile: @exemption)
