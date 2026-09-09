@@ -24,7 +24,8 @@ defmodule Turnstile.Fga do
   - `Turnstile.Fga.Projector`, `Turnstile.Projection` over that mapping:
     a drain by difference, a checkpoint in the application's own database, a
     rebuild into a store of its own, and a reconcile against what the store
-    reports.
+    reports. `Turnstile.Fga.Projector.Scheduler` is the process that drains
+    on the interval, which a thin application starts and a test does not.
   - `Turnstile.Fga.Binding`, what the configuration entry does not carry:
     the repo the checkpoint is read through, the model file the store is
     published from, the mapping, and the guard.
@@ -65,6 +66,7 @@ defmodule Turnstile.Fga do
       Guard,
       Model,
       Projector,
+      Projector.Scheduler,
       Replay,
       TupleKey,
       TupleMapping,
