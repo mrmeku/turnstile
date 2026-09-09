@@ -455,6 +455,48 @@ CREATE TABLE public.turnstile_ledger_counter (
 ALTER TABLE public.turnstile_ledger_counter OWNER TO turnstile_owner;
 
 --
+-- Name: turnstile_ledger_events; Type: TABLE; Schema: public; Owner: turnstile_owner
+--
+
+CREATE TABLE public.turnstile_ledger_events (
+    id bigint NOT NULL,
+    "position" bigint NOT NULL,
+    kind text NOT NULL,
+    subject_ref jsonb,
+    object_ref jsonb,
+    attribute text,
+    old jsonb,
+    new jsonb,
+    operation_id text NOT NULL,
+    at timestamp with time zone NOT NULL,
+    by jsonb NOT NULL
+);
+
+
+ALTER TABLE public.turnstile_ledger_events OWNER TO turnstile_owner;
+
+--
+-- Name: turnstile_ledger_events_id_seq; Type: SEQUENCE; Schema: public; Owner: turnstile_owner
+--
+
+CREATE SEQUENCE public.turnstile_ledger_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.turnstile_ledger_events_id_seq OWNER TO turnstile_owner;
+
+--
+-- Name: turnstile_ledger_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: turnstile_owner
+--
+
+ALTER SEQUENCE public.turnstile_ledger_events_id_seq OWNED BY public.turnstile_ledger_events.id;
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: turnstile_owner
 --
 
@@ -545,6 +587,13 @@ ALTER TABLE ONLY public.portions ALTER COLUMN id SET DEFAULT nextval('public.por
 --
 
 ALTER TABLE ONLY public.programs ALTER COLUMN id SET DEFAULT nextval('public.programs_id_seq'::regclass);
+
+
+--
+-- Name: turnstile_ledger_events id; Type: DEFAULT; Schema: public; Owner: turnstile_owner
+--
+
+ALTER TABLE ONLY public.turnstile_ledger_events ALTER COLUMN id SET DEFAULT nextval('public.turnstile_ledger_events_id_seq'::regclass);
 
 
 --
@@ -660,6 +709,14 @@ ALTER TABLE ONLY public.turnstile_ledger_counter
 
 
 --
+-- Name: turnstile_ledger_events turnstile_ledger_events_pkey; Type: CONSTRAINT; Schema: public; Owner: turnstile_owner
+--
+
+ALTER TABLE ONLY public.turnstile_ledger_events
+    ADD CONSTRAINT turnstile_ledger_events_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: turnstile_owner
 --
 
@@ -693,6 +750,20 @@ CREATE UNIQUE INDEX markings_document_id_index ON public.markings USING btree (d
 --
 
 CREATE UNIQUE INDEX office_roles_user_id_office_id_role_index ON public.office_roles USING btree (user_id, office_id, role);
+
+
+--
+-- Name: turnstile_ledger_events_operation_id_index; Type: INDEX; Schema: public; Owner: turnstile_owner
+--
+
+CREATE INDEX turnstile_ledger_events_operation_id_index ON public.turnstile_ledger_events USING btree (operation_id);
+
+
+--
+-- Name: turnstile_ledger_events_position_index; Type: INDEX; Schema: public; Owner: turnstile_owner
+--
+
+CREATE INDEX turnstile_ledger_events_position_index ON public.turnstile_ledger_events USING btree ("position");
 
 
 --
@@ -997,6 +1068,20 @@ GRANT SELECT,USAGE ON SEQUENCE public.programs_id_seq TO turnstile_app;
 --
 
 GRANT SELECT,INSERT,UPDATE ON TABLE public.turnstile_ledger_counter TO turnstile_app;
+
+
+--
+-- Name: TABLE turnstile_ledger_events; Type: ACL; Schema: public; Owner: turnstile_owner
+--
+
+GRANT SELECT,INSERT ON TABLE public.turnstile_ledger_events TO turnstile_app;
+
+
+--
+-- Name: SEQUENCE turnstile_ledger_events_id_seq; Type: ACL; Schema: public; Owner: turnstile_owner
+--
+
+GRANT SELECT,USAGE ON SEQUENCE public.turnstile_ledger_events_id_seq TO turnstile_app;
 
 
 --
