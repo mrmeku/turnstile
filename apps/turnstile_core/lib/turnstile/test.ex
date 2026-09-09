@@ -5,7 +5,7 @@ defmodule Turnstile.Test do
   Shipped in core so Tier 1 can run outside this repository.
   """
 
-  use Boundary, top_level?: true, deps: [Turnstile, Ecto], exports: [Cerbos, Cluster]
+  use Boundary, top_level?: true, deps: [Turnstile, Ecto], exports: [Cerbos, Cluster, Fga]
 
   alias Turnstile.Config
 
