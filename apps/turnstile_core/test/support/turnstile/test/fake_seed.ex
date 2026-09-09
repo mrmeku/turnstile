@@ -3,7 +3,8 @@ defmodule Turnstile.Test.FakeSeed do
   The fake adapter's conformance hooks: `seed/1` rewrites the fake's rule
   table from a world, one entry per grant the world's rule allows, and
   `outage/0` makes every call to the fake fail for the rest of the test.
-  Both find the table through the configuration in force.
+  Both find the table through the configuration in force, whether the
+  adapter bound is the fake or a module of its own that answers from it.
   """
 
   @behaviour Turnstile.Conformance.Seed
@@ -27,7 +28,7 @@ defmodule Turnstile.Test.FakeSeed do
 
   defp rules! do
     {:ok, %Config{} = config} = Config.resolve()
-    {Fake, options} = Config.adapter(config)
+    {_adapter, options} = Config.adapter(config)
     Keyword.fetch!(options, :rules)
   end
 end

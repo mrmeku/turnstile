@@ -63,3 +63,26 @@ defmodule Turnstile.Conformance.AdapterCaseNoLedgerTest do
     assert {:ok, %Config{ledger: :none}} = Config.resolve()
   end
 end
+
+defmodule Turnstile.Conformance.AdapterCaseLedgerTest do
+  # Not async: the worlds of this module and of the mode-none one are the
+  # same rows of the same tables, and two of them written at once deadlock.
+  use Turnstile.Conformance.AdapterCase,
+    async: false,
+    adapter: Turnstile.Test.LedgerAdapter,
+    repo: Turnstile.TestRepos.Sandboxed,
+    seed: Turnstile.Test.FakeSeed
+
+  alias Turnstile.Adapter.Fake
+  alias Turnstile.Test.LedgerAdapter
+
+  setup do
+    rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})
+    :ok = Turnstile.Test.with_config(adapter: {LedgerAdapter, rules: rules})
+    :ok
+  end
+
+  test "the adapter this module runs requires a ledger, which is what the shape cases branch on" do
+    assert LedgerAdapter.requires_ledger()
+  end
+end

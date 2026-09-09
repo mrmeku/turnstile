@@ -175,6 +175,28 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert head(context) == before
   end
 
+  @doc "A scoped `all` over 1,000 rows under the ledger: the query and the adapter's own, one decision record, no ledger row."
+  @spec scoped_all_ledger_shape(context()) :: true
+  def scoped_all_ledger_shape(%{repo: repo, case: %{setup_queries: setup_queries}} = context) do
+    populate(context, %{world_of_one() | folders: [1, 2, 3]})
+    :ok = insert_folders(repo, 4..1_000)
+    before = head(context)
+    {folders, queries, decisions} = scoped_all(repo, %Subject{id: "acct-a", kind: :user})
+
+    assert Enum.map(folders, & &1.id) == [1]
+    assert length(queries) == 1 + setup_queries, "expected #{1 + setup_queries} queries, got #{inspect(queries)}"
+    assert decisions == 1
+    assert head(context) == before
+  end
+
+  @doc "An adapter that requires a ledger refuses mode none, rather than answer from a projection nothing drains."
+  @spec mode_none_refused(context()) :: true
+  def mode_none_refused(%{case: %{adapter: adapter}}) do
+    Turnstile.Test.with_config([ledger: :none], fn ->
+      assert {:error, %Error.Unsupported{adapter: ^adapter, feature: :ledger_mode_none}} = Turnstile.Config.resolve()
+    end)
+  end
+
   @doc "With the engine unreachable, every call denies with `engine_unreachable` and no policy version."
   @spec fail_closed(context()) :: true
   def fail_closed(%{case: %{outage: outage}} = context) do

@@ -10,9 +10,10 @@ defmodule Turnstile.Conformance.AdapterCase do
   The tests are the port's invariants as properties over
   `Turnstile.Conformance.Gen`, each iteration writing a world of the
   neutral fixture through the seam and, when the adapter keeps state of its
-  own, seeding it through the `seed:` module; the shape tests of ledger
-  mode none; the fail-closed case; the revocation-latency template; and the
-  three projection cases.
+  own, seeding it through the `seed:` module; the shape tests, of ledger
+  mode none for an adapter that admits it and of the ledger for one that
+  requires it; the fail-closed case; the revocation-latency template; and
+  the three projection cases.
 
   Options:
 
@@ -67,7 +68,7 @@ defmodule Turnstile.Conformance.AdapterCase do
       properties(),
       ledger_properties(config.ledger),
       round_trips(),
-      shapes(),
+      shapes(config),
       fail_closed(config.outage),
       latency(config.committed),
       projection(config.committed, config.projection)
@@ -224,7 +225,17 @@ defmodule Turnstile.Conformance.AdapterCase do
     end
   end
 
-  defp shapes do
+  # An adapter that requires a ledger has no mode none to count a shape in,
+  # so its shape is counted under the ledger the template started, and the
+  # refusal of mode none is the case in place of the two mode-none ones
+  # (`docs/reference.md` §7).
+  defp shapes(config) do
+    {:module, adapter} = Code.ensure_compiled(config.adapter)
+
+    if adapter.requires_ledger(), do: ledger_shapes(), else: mode_none_shapes()
+  end
+
+  defp mode_none_shapes do
     quote do
       test "shape: a scoped all over 1,000 rows in mode none is one query, one record, no ledger row", context do
         Laws.scoped_all_shape(context)
@@ -232,6 +243,18 @@ defmodule Turnstile.Conformance.AdapterCase do
 
       test "shape: a single-row fact write in mode none is the write alone, no re-read, no ledger row", context do
         Laws.fact_write_shape(context)
+      end
+    end
+  end
+
+  defp ledger_shapes do
+    quote do
+      test "shape: a scoped all over 1,000 rows is the query and the adapter's own, one record, no ledger row", context do
+        Laws.scoped_all_ledger_shape(context)
+      end
+
+      test "mode none: an adapter that requires a ledger refuses the configuration", context do
+        Laws.mode_none_refused(context)
       end
     end
   end
