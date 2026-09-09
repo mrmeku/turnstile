@@ -22,7 +22,8 @@ defmodule Example.Scenarios do
   and, without a ledger, less the ones that need a ledger.
 
   A thin application supplies through `Example.Scenarios.Rules` the policy
-  operations a test cannot write without naming the adapter.
+  operations a test cannot write without naming the adapter, and, where its
+  engine keeps state of its own, what each test needs in place before it runs.
   """
 
   use Boundary,
@@ -101,17 +102,24 @@ defmodule Example.Scenarios do
   ends, and the boot policy published into the ledger the truncation
   emptied, so a scenario that reads the record of a rule change starts
   where boot left it.
+
+  A thin application whose `Example.Scenarios.Rules` defines `setup/1` has it
+  called between the two: after the connection is there and the tables are
+  empty, before anything is published, since what it prepares is where a
+  publish goes.
   """
   @spec setup(map(), module()) :: :ok
   def setup(tags, rules) when is_map(tags) and is_atom(rules) do
     if tags[:committed] do
       :ok = Sandbox.checkout(Example.Repo, sandbox: false)
       :ok = Example.Fixture.truncate!(Example.OwnerRepo)
+      :ok = prepared(rules, tags)
       :ok = rules.publish_boot()
       ExUnit.Callbacks.on_exit(fn -> Example.Fixture.truncate!(Example.OwnerRepo) end)
       :ok
     else
-      Turnstile.Test.Sandbox.setup(Example.Repo, tags)
+      :ok = Turnstile.Test.Sandbox.setup(Example.Repo, tags)
+      prepared(rules, tags)
     end
   end
 
@@ -122,6 +130,12 @@ defmodule Example.Scenarios do
     assert Enum.sort(Enum.map(declared, &elem(&1, 0))) == Enum.sort(Scenarios.ids())
     Enum.each(declared, fn {id, tags} -> assert_tags(id, tags, capabilities) end)
     assert_count(declared, capabilities, ledger_mode())
+  end
+
+  # An application whose adapter needs nothing per test defines no `setup/1`,
+  # so the callback is optional and this is where its absence is answered.
+  defp prepared(rules, tags) do
+    if Code.ensure_loaded?(rules) and function_exported?(rules, :setup, 1), do: rules.setup(tags), else: :ok
   end
 
   defp declare(%Scenario{id: id, sentence: sentence, controls: controls, tests: [rule | _rest]}, rules, tags \\ []) do
@@ -183,8 +197,19 @@ defmodule Example.Scenarios.Rules do
   reads, published as a policy version for the calling process, its
   restoration, the boot policy published again for a tier that empties the
   ledger between tests, and a question asked again under a version and a
-  state the ledger names.
+  state the ledger names. Where the engine keeps state of its own, the
+  per-test setup as well.
   """
+
+  @doc """
+  Anything this application's own tier needs per test, before a version is
+  published or a fact is written: for an engine that keeps a store of its
+  own, the store, the model in it, and the binding and the configuration that
+  name them for the calling process. The tags are the test's, so a case on
+  the committed database is told from one in a sandbox. Optional: an
+  application whose adapter needs nothing per test defines it not at all.
+  """
+  @callback setup(tags :: map()) :: :ok
 
   @doc "Publish a policy under which `member` no longer holds `read`, returning the version."
   @callback publish_tightened() :: {:ok, Turnstile.PolicyVersion.t()}
@@ -204,4 +229,6 @@ defmodule Example.Scenarios.Rules do
   policies of that version.
   """
   @callback replay(Turnstile.Ledger.Replay.t(), (-> result)) :: result when result: var
+
+  @optional_callbacks setup: 1
 end
