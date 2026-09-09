@@ -1,0 +1,25 @@
+model
+  schema 1.1
+
+type user
+
+type clearance
+  relations
+    define member: [user]
+
+type folder
+  relations
+    define reader: [user with while_cleared]
+    define editor: [user with while_cleared]
+    define can_read: reader or editor
+    define can_edit: editor
+
+type item
+  relations
+    define folder: [folder]
+    define can_read: can_read from folder
+    define can_edit: can_edit from folder
+
+condition while_cleared(clearance: string) {
+  clearance == "cleared"
+}
