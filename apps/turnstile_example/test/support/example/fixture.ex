@@ -172,11 +172,16 @@ defmodule Example.Fixture do
     )
   end
 
-  @doc "Empty every domain table and reset the counter, through the owner-role repo, after a committed test."
+  @doc """
+  Empty every domain table and the ledger's events, and reset the counter,
+  through the owner-role repo, after a committed test. The events go with
+  the rows they describe: a ledger kept beside emptied tables would report
+  every one of them as drift.
+  """
   @spec truncate!(module()) :: :ok
   def truncate!(owner_repo) when is_atom(owner_repo) do
     tables = ~w(override_reports marking_proposals portions markings documents office_roles assignments
-      account_roles users programs offices agencies categories)
+      account_roles users programs offices agencies categories turnstile_ledger_events)
 
     _result = owner_repo.query!("TRUNCATE #{Enum.join(tables, ", ")} RESTART IDENTITY CASCADE")
     _result = owner_repo.query!("UPDATE turnstile_ledger_counter SET position = 0 WHERE name = 'default'")
