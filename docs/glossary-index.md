@@ -5,7 +5,7 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Word | Meaning | Where it lives |
 |---|---|---|
 | Scope | The port operation that narrows a query, and the `%Turnstile.Scope{}` it returns | `apps/turnstile_core/glossary.md` |
-| Scope | A Postgres row-level security policy's reach over a table | `turnstile_postgres` glossary, from S6 |
+| Scope | A Postgres row-level security policy's reach over a table | `apps/turnstile_postgres/glossary.md` |
 | Version | A policy version: an artifact an adapter decides under, named in every decision | `apps/turnstile_core/glossary.md` |
 | Version | A pinned dependency release in `docs/reference.md` §12 | `docs/reference.md` |
 | Check | The port operation `check/4`: a yes or no without a decision record | `apps/turnstile_core/glossary.md` |
@@ -33,8 +33,13 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Grant | A clause of a policy module that holds a role on a row through a relationship schema | `apps/turnstile_rbac/glossary.md` |
 | Grant | The fixture's write of a membership, and the grant steps the properties generate | `apps/turnstile_core/test/support`, `docs/testing.md` §6 |
 | Predicate | A clause of a policy module: a named function returning a `dynamic` or a boolean | `apps/turnstile_rbac/glossary.md` |
-| Predicate | A Postgres row-level security policy's `USING` expression | `turnstile_postgres` glossary, from S6 |
+| Predicate | A Postgres row-level security policy's `USING` expression | `apps/turnstile_postgres/glossary.md` |
+| Coverage | The walk of every rule's `dynamic`, subqueries included, that fails on a column no declaration names | `apps/turnstile_rbac/glossary.md` |
+| Coverage | The read of the policy expressions and their column references that fails on a column no declaration names | `apps/turnstile_postgres/glossary.md` |
+| Finding | One undeclared read: a schema and a column, or a fragment's text | `apps/turnstile_rbac/glossary.md` |
+| Finding | One undeclared read: a schema and a column, or a table no bound schema names | `apps/turnstile_postgres/glossary.md` |
 | Binding | The policy module and repo `Turnstile.Code` reads through | `apps/turnstile_rbac/glossary.md` |
+| Binding | The repo, the protected schemas, and the migrations table `Turnstile.Postgres` reads through | `apps/turnstile_postgres/glossary.md` |
 | Binding | An Ecto query binding, the `[row]` of a `dynamic` | Ecto's own documentation |
 | Marking | A portion's or a document's categories, controls, and releasable-to list | `apps/turnstile_example/glossary.md` |
 | Marking | The CUI marking of 32 CFR Part 2002, the banner and portion marks on a page | `docs/reference.md` §2 |
