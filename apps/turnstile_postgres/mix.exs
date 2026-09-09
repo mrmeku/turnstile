@@ -36,8 +36,10 @@ defmodule Turnstile.Postgres.MixProject do
   defp elixirc_paths(_env), do: ["lib"]
 
   # lib depends on core, ecto, and telemetry alone: every statement it runs
-  # goes through the mediated repo's raw bucket, so ecto_sql, postgrex, and
-  # stream_data serve the test run. Every pin is exact. Versions verified
+  # goes through the mediated repo's raw bucket, so ecto_sql and postgrex
+  # serve the test run. stream_data is unrestricted because core's
+  # conformance templates ship in lib, so core carries it in every
+  # environment. Every pin is exact. Versions verified
   # against https://hex.pm/api/packages/<name> on 2026-09-08.
   defp deps do
     [
@@ -47,7 +49,7 @@ defmodule Turnstile.Postgres.MixProject do
       {:telemetry, "1.4.2"},
       {:ecto_sql, "3.14.0", only: :test},
       {:postgrex, "0.22.4", only: :test},
-      {:stream_data, "1.4.0", only: :test},
+      {:stream_data, "1.4.0"},
       {:boundary, "0.10.4", runtime: false},
       {:credo, "1.7.19", only: [:dev, :test], runtime: false},
       {:styler, "1.12.2", only: [:dev, :test], runtime: false},

@@ -45,7 +45,10 @@ defmodule Turnstile.Example.MixProject do
 
   # lib depends on core, on the ledger's bulk API for the writes that change
   # many facts at once, on ecto, ecto_sql (the migration helper and preload),
-  # phoenix and plug (the web layer), and telemetry. Every pin is exact.
+  # phoenix and plug (the web layer), and telemetry. stream_data is
+  # unrestricted because core's conformance templates ship in lib, so core
+  # carries it in every environment and a dependent that narrowed it would
+  # disagree with core. Every pin is exact.
   # Versions verified against https://hex.pm/api/packages/<name> on
   # 2026-09-08.
   defp deps do
@@ -59,7 +62,7 @@ defmodule Turnstile.Example.MixProject do
       {:plug, "1.20.3"},
       {:nimble_options, "1.1.1"},
       {:telemetry, "1.4.2"},
-      {:stream_data, "1.4.0", only: :test},
+      {:stream_data, "1.4.0"},
       {:boundary, "0.10.4", runtime: false},
       {:sobelow, "0.15.0", only: [:dev, :test], runtime: false},
       {:credo, "1.7.19", only: [:dev, :test], runtime: false},

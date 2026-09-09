@@ -53,6 +53,9 @@ defmodule Turnstile.Ledger.MixProject do
 
   defp turnstile(_env), do: []
 
+  # stream_data and mox are unrestricted because core's conformance templates
+  # and its clock mock ship in lib, so core carries both in every
+  # environment and a dependent that narrowed them would disagree with core.
   # Every pin is exact. Versions verified against https://hex.pm/api/packages/<name>
   # on 2026-09-08.
   defp deps do
@@ -63,8 +66,8 @@ defmodule Turnstile.Ledger.MixProject do
       {:postgrex, "0.22.4"},
       {:nimble_options, "1.1.1"},
       {:telemetry, "1.4.2"},
-      {:stream_data, "1.4.0", only: :test},
-      {:mox, "1.3.1", only: :test},
+      {:stream_data, "1.4.0"},
+      {:mox, "1.3.1"},
       {:boundary, "0.10.4", runtime: false},
       {:credo, "1.7.19", only: [:dev, :test], runtime: false},
       {:styler, "1.12.2", only: [:dev, :test], runtime: false},
