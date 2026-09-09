@@ -142,8 +142,9 @@ defmodule Turnstile.Fga.ProjectorTest do
 
   test "a difference larger than one call is split, and the checkpoint waits for the last of them", context do
     {:ok, projector} = projector(context.agent, context.store, context.ledger, batch: 2)
+    cleared = for account <- ["ann", "bob", "cid"], do: Probe.clearance(account, nil, World.cleared())
     grants = for account <- ["ann", "bob", "cid"], do: Probe.granted(account, 1, :reader)
-    _events = Probe.append(context.ledger, grants)
+    _events = Probe.append(context.ledger, cleared ++ grants)
     :ok = Fake.fail_after(context.agent, 1)
 
     assert {:error, %Error.Engine{operation: :write}} = Projector.drain_once(projector)
@@ -155,9 +156,9 @@ defmodule Turnstile.Fga.ProjectorTest do
     assert Projector.checkpoint(projector) == {:ok, 0}
 
     :ok = Fake.fail_after(context.agent, nil)
-    assert {:ok, %Drain{from: 0, to: 3, applied: 3}} = Projector.drain_once(projector)
-    assert length(Fake.tuples(context.agent, context.store)) == 3
-    assert Projector.checkpoint(projector) == {:ok, 3}
+    assert {:ok, %Drain{from: 0, to: 6, applied: 6}} = Projector.drain_once(projector)
+    assert length(Fake.tuples(context.agent, context.store)) == 6
+    assert Projector.checkpoint(projector) == {:ok, 6}
   end
 
   test "a published version applies and advances the checkpoint with no write", context do

@@ -21,7 +21,9 @@ defmodule Turnstile.Fga.Conformance.Mapping do
   `while_cleared`, so a clearance that changes is the same tuple key with
   another value on it: the drain deletes that tuple and writes it again, in
   two calls. That is the shape a control with a parameter has, in the
-  fixture's own terms.
+  fixture's own terms. A membership whose account has no clearance yet states
+  no tuple at all, because the model admits a role on a folder under that
+  condition alone and a tuple carrying none of it is refused.
 
   The objects a clearance event touches are read from the fold: the
   clearances it moved between, which the event names, and every folder the
@@ -60,15 +62,19 @@ defmodule Turnstile.Fga.Conformance.Mapping do
     end
   end
 
+  # A role on a folder is restricted to a cleared account, so the tuple has a
+  # condition to carry only once the account's clearance is a fact: an account
+  # no clearance event names holds nothing on the folder yet.
   defp folder_tuples(%Fold{} = fold, id) do
     for {{{:user, account}, {:folder, folder}, nil}, value} <- fold.facts,
         to_string(folder) == id,
-        role = role(value) do
+        role = role(value),
+        clearance = clearance(fold, account) do
       %TupleKey{
         user: "user:#{account}",
         relation: Atom.to_string(role),
         object: "folder:#{id}",
-        condition: condition(clearance(fold, account))
+        condition: condition(clearance)
       }
     end
   end
@@ -87,7 +93,6 @@ defmodule Turnstile.Fga.Conformance.Mapping do
 
   defp clearance(%Fold{facts: facts}, account), do: Map.get(facts, {{:user, account}, nil, :clearance})
 
-  defp condition(nil), do: nil
   defp condition(clearance), do: %Condition{name: @condition, context: %{"clearance" => clearance}}
 
   defp folders(%Fold{facts: facts}, account) do

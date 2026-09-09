@@ -15,9 +15,20 @@ defmodule Turnstile.Fga.Conformance.MappingTest do
   end
 
   test "a membership becomes the account holding its role on the folder" do
-    fold = fold([Probe.granted("ann", 1, :reader)])
+    fold = fold([Probe.granted("ann", 1, :reader), Probe.clearance("ann", nil, World.cleared())])
 
-    assert Mapping.tuples(fold, "folder:1") == [%TupleKey{user: "user:ann", relation: "reader", object: "folder:1"}]
+    assert Mapping.tuples(fold, "folder:1") == [
+             %TupleKey{
+               user: "user:ann",
+               relation: "reader",
+               object: "folder:1",
+               condition: %Condition{name: "while_cleared", context: %{"clearance" => World.cleared()}}
+             }
+           ]
+  end
+
+  test "a membership of an account no clearance names yet states no tuple" do
+    assert Mapping.tuples(fold([Probe.granted("ann", 1, :reader)]), "folder:1") == []
   end
 
   test "a folder tuple carries the account's clearance as its condition" do
@@ -40,13 +51,21 @@ defmodule Turnstile.Fga.Conformance.MappingTest do
   end
 
   test "a role that changed states the new relation and nothing of the old" do
-    events = [Probe.granted("ann", 1, :reader), Probe.changed("ann", 1, :reader, :editor)]
+    events = [
+      Probe.granted("ann", 1, :reader),
+      Probe.clearance("ann", nil, World.cleared()),
+      Probe.changed("ann", 1, :reader, :editor)
+    ]
 
     assert [%TupleKey{relation: "editor"}] = Mapping.tuples(fold(events), "folder:1")
   end
 
   test "a membership that went states no tuple" do
-    events = [Probe.granted("ann", 1, :reader), Probe.revoked("ann", 1, :reader)]
+    events = [
+      Probe.granted("ann", 1, :reader),
+      Probe.clearance("ann", nil, World.cleared()),
+      Probe.revoked("ann", 1, :reader)
+    ]
 
     assert Mapping.tuples(fold(events), "folder:1") == []
   end
