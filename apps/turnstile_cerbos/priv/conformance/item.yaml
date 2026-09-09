@@ -1,0 +1,29 @@
+# The neutral fixture's rule for an item, which answers as its folder does:
+# the attribute declaration carries the folder's memberships to the item, so
+# the policy reads the same attribute name the folder's does.
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: item
+  rules:
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["user", "non_person_entity", "privileged"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.attr.clearance == "cleared"
+              - any:
+                  of:
+                    - expr: '"reader" in request.resource.attr.member_roles'
+                    - expr: '"editor" in request.resource.attr.member_roles'
+    - actions: ["edit"]
+      effect: EFFECT_ALLOW
+      roles: ["user", "non_person_entity", "privileged"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.attr.clearance == "cleared"
+              - expr: '"editor" in request.resource.attr.member_roles'
