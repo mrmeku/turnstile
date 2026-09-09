@@ -122,14 +122,28 @@ defmodule Turnstile.PostgresTest do
     assert Postgres.around_query(Folder, decision(), fn -> :ran end) == :ran
   end
 
+  test "a mediated call inside another leaves behind the settings of the call around it" do
+    bind()
+    inner = %Subject{id: "account-2", kind: :user}
+
+    read =
+      Postgres.around_query(Folder, decision(), fn ->
+        nested = Postgres.around_query(Folder, decision(inner), fn -> setting("turnstile.subject_id") end)
+        {nested, setting("turnstile.subject_id")}
+      end)
+
+    assert read == {"account-2", "account-1"}
+    assert setting("turnstile.subject_id") == ""
+  end
+
   defp environment(facts \\ %{}) do
     %Environment{now: ~U[2026-09-08 12:00:00Z], facts: facts}
   end
 
-  defp decision do
+  defp decision(subject \\ @subject) do
     %Decision{
       id: Id.new(),
-      subject: @subject,
+      subject: subject,
       object: {:folder, 1},
       operation: :read,
       verdict: :allow,

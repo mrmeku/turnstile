@@ -61,6 +61,19 @@ defmodule Turnstile.Postgres.SettingsTest do
     assert Settings.hash(read) =~ ~r/\A[0-9a-f]{64}\z/
   end
 
+  test "what a call puts back holds the outer call's values and empties the names only it set" do
+    outer = Settings.of(subject(), :read, environment(%{}))
+    inner = Settings.of(%Subject{id: "acct-b", kind: :user}, :edit, environment(%{nationality: "fr"}))
+
+    assert Settings.restored(inner, outer).pairs == [
+             {"turnstile.nationality", ""},
+             {"turnstile.subject_id", "acct-a"},
+             {"turnstile.subject_kind", "user"},
+             {"turnstile.operation", "read"},
+             {"turnstile.now", "2026-09-08T12:00:00Z"}
+           ]
+  end
+
   defp subject, do: %Subject{id: "acct-a", kind: :user}
 
   defp environment(facts), do: %Environment{now: @at, facts: facts}

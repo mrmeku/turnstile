@@ -52,14 +52,27 @@ defmodule Turnstile.Postgres.Settings do
   end
 
   @doc """
-  The same names with no values, which is what a call puts back when it
-  did not open the transaction it set them in. A name at the empty string
-  is what a policy reads for "no operation in force"; unsetting a name is
-  not available to a statement.
+  The same names with no values, which is what a call puts back when no
+  call around it holds the connection. A name at the empty string is what a
+  policy reads for "no operation in force"; unsetting a name is not
+  available to a statement.
   """
   @spec cleared(t()) :: t()
   def cleared(%__MODULE__{pairs: pairs}) do
     %__MODULE__{pairs: Enum.map(pairs, fn {name, _value} -> {name, ""} end)}
+  end
+
+  @doc """
+  The names a call set, put back to what the call around it holds: a name
+  the outer call set takes its value again, and a name only the inner call
+  set goes to the empty string. Each name appears once, so the order the
+  database evaluates the calls in does not matter.
+  """
+  @spec restored(t(), t()) :: t()
+  def restored(%__MODULE__{} = settings, %__MODULE__{pairs: outer}) do
+    held = MapSet.new(outer, fn {name, _value} -> name end)
+    %__MODULE__{pairs: pairs} = cleared(settings)
+    %__MODULE__{pairs: Enum.reject(pairs, fn {name, _value} -> name in held end) ++ outer}
   end
 
   @doc "The one statement that sets them all, with its parameters."
