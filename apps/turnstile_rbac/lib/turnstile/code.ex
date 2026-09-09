@@ -24,7 +24,18 @@ defmodule Turnstile.Code do
   use Boundary,
     deps: [Turnstile, Ecto, NimbleOptions],
     check: [apps: [:ecto_sql, :postgrex]],
-    exports: [Binding, Coverage, Decide, Policy, Policy.Clause, Policy.Object, Policy.Role, Rule, Version]
+    exports: [
+      Binding,
+      Coverage,
+      Decide,
+      Policy,
+      Policy.Clause,
+      Policy.Clauses,
+      Policy.Object,
+      Policy.Role,
+      Rule,
+      Version
+    ]
 
   import Ecto.Query, only: [dynamic: 2]
 

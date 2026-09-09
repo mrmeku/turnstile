@@ -15,6 +15,7 @@ defmodule Turnstile.Code.Rule do
   alias Turnstile.Answer
   alias Turnstile.Code.Policy
   alias Turnstile.Code.Policy.Clause
+  alias Turnstile.Code.Policy.Clauses
   alias Turnstile.Code.Policy.Object
   alias Turnstile.Code.Version
   alias Turnstile.Environment
@@ -107,7 +108,7 @@ defmodule Turnstile.Code.Rule do
   end
 
   defp object(policy, type, version) do
-    case Policy.object_of(policy, type) do
+    case Clauses.object_of(policy, type) do
       %Object{} = object -> {:ok, object}
       nil -> {:error, deny(Reason.deny_by_default(), version)}
     end

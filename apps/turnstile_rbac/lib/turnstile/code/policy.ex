@@ -93,13 +93,21 @@ defmodule Turnstile.Code.Policy do
   hash can name; `only:` names the operations it applies to. `version:`
   defaults to the content hash of the policy's modules, `author:` and
   `approval:` to `"unrecorded"`.
+
+  The role table is data at compile time. The clauses are built when the
+  policy is read, by `Turnstile.Code.Policy.Clauses`, which checks each
+  against the schemas it names; a policy that names a schema without an
+  object type, a relationship the grant cannot read, or a predicate that is
+  not a named capture raises there, so a bad policy fails at boot, when
+  `Turnstile.Code.publish/0` reads it, and not on a request. Building at
+  read time keeps the policy module free of compile-time dependencies on
+  the schemas and predicates it names: a change to any of them recompiles
+  nothing but itself.
   """
 
-  alias Turnstile.Code.Policy.Clause
+  alias Turnstile.Code.Policy.Clauses
   alias Turnstile.Code.Policy.Object
   alias Turnstile.Code.Policy.Role
-  alias Turnstile.Schema
-  alias Turnstile.Schema.Relationship
 
   @use_schema NimbleOptions.new!(
                 version: [type: {:or, [:string, nil]}, default: nil, doc: "The version identifier a decision names."],
@@ -107,35 +115,11 @@ defmodule Turnstile.Code.Policy do
                 approval: [type: :string, default: "unrecorded", doc: "Who approved it, or where."]
               )
 
-  @grant_schema NimbleOptions.new!(
-                  on: [type: :atom, doc: "The protected column the relationship's object column names."],
-                  role: [type: :atom, doc: "The relationship column that holds the role."],
-                  as: [type: :atom, doc: "The role every row holds, when there is no role column."],
-                  through: [
-                    type: {:list, {:custom, __MODULE__, :__hop__, []}},
-                    default: [],
-                    doc:
-                      "The hops from the protected row outward, each `{schema, column}` or `{schema, column, where: fun}`."
-                  ]
-                )
-
-  @predicate_schema NimbleOptions.new!(
-                      only: [type: {:list, :atom}, doc: "The operations the predicate applies to; all when absent."]
-                    )
-
   @type t :: module()
 
   @doc "The options `use` accepts."
   @spec use_schema() :: NimbleOptions.t()
   def use_schema, do: @use_schema
-
-  @doc "The options `grant` accepts."
-  @spec grant_schema() :: NimbleOptions.t()
-  def grant_schema, do: @grant_schema
-
-  @doc "The options `predicate` accepts."
-  @spec predicate_schema() :: NimbleOptions.t()
-  def predicate_schema, do: @predicate_schema
 
   defmacro __using__(options) do
     quote bind_quoted: [options: options] do
@@ -162,21 +146,39 @@ defmodule Turnstile.Code.Policy do
     quote do
       @turnstile_code_clauses []
       unquote(block)
-      @turnstile_code_objects Turnstile.Code.Policy.__object__(unquote(schema), @turnstile_code_clauses)
+      @turnstile_code_objects {unquote(expanded(schema, __CALLER__)), Enum.reverse(@turnstile_code_clauses)}
     end
   end
 
   @doc "A grant clause: the relationship schema whose rows hold a role on the protected row."
   defmacro grant(name, source, options \\ []) do
-    quote bind_quoted: [name: name, source: source, options: options] do
-      @turnstile_code_clauses [Turnstile.Code.Policy.__grant__(name, source, options) | @turnstile_code_clauses]
+    clause =
+      quote do
+        Clauses.grant(
+          unquote(name),
+          unquote(expanded(source, __CALLER__)),
+          unquote(expanded(options, __CALLER__))
+        )
+      end
+
+    quote do
+      @turnstile_code_clauses [unquote(Macro.escape(clause)) | @turnstile_code_clauses]
     end
   end
 
   @doc "A predicate clause: a capture of a named function of the subject and the environment."
   defmacro predicate(name, fun, options \\ []) do
-    quote bind_quoted: [name: name, fun: fun, options: options] do
-      @turnstile_code_clauses [Turnstile.Code.Policy.__predicate__(name, fun, options) | @turnstile_code_clauses]
+    clause =
+      quote do
+        Clauses.predicate(
+          unquote(name),
+          unquote(expanded(fun, __CALLER__)),
+          unquote(expanded(options, __CALLER__))
+        )
+      end
+
+    quote do
+      @turnstile_code_clauses [unquote(Macro.escape(clause)) | @turnstile_code_clauses]
     end
   end
 
@@ -196,15 +198,9 @@ defmodule Turnstile.Code.Policy do
   @spec roles(t()) :: [Role.t()]
   def roles(policy) when is_atom(policy), do: policy.__turnstile_code__(:roles)
 
-  @doc "The protected schemas and their clauses."
+  @doc "The protected schemas and their clauses, built and checked against the schemas they name."
   @spec objects(t()) :: [Object.t()]
   def objects(policy) when is_atom(policy), do: policy.__turnstile_code__(:objects)
-
-  @doc "The protected schema of an object type, or nil."
-  @spec object_of(t(), atom()) :: Object.t() | nil
-  def object_of(policy, type) when is_atom(policy) and is_atom(type) do
-    Enum.find(objects(policy), &(Schema.object_type_of(&1.schema) == type))
-  end
 
   @doc "Every operation some role permits."
   @spec operations(t()) :: [atom()]
@@ -231,8 +227,8 @@ defmodule Turnstile.Code.Policy do
   @spec modules(t()) :: [module()]
   def modules(policy) when is_atom(policy) do
     clauses = for %Object{clauses: clauses} <- objects(policy), clause <- clauses, do: clause
-    predicates = for %Clause{kind: :predicate, predicate: fun} <- clauses, do: module_of(fun)
-    filters = for %Clause{through: hops} <- clauses, {_schema, _column, where: fun} <- hops, do: module_of(fun)
+    predicates = for %{kind: :predicate, predicate: fun} <- clauses, do: module_of(fun)
+    filters = for %{through: hops} <- clauses, {_schema, _column, where: fun} <- hops, do: module_of(fun)
 
     Enum.sort(Enum.uniq([policy | predicates ++ filters]))
   end
@@ -244,10 +240,13 @@ defmodule Turnstile.Code.Policy do
   @doc false
   @spec __objects__(module()) :: Macro.t()
   def __objects__(module) when is_atom(module) do
-    module
-    |> Module.get_attribute(:turnstile_code_objects)
-    |> Enum.reverse()
-    |> Macro.escape()
+    objects = Enum.reverse(Module.get_attribute(module, :turnstile_code_objects))
+
+    for {schema, clauses} <- objects do
+      quote do
+        Clauses.object(unquote(schema), unquote(clauses))
+      end
+    end
   end
 
   @doc false
@@ -260,77 +259,19 @@ defmodule Turnstile.Code.Policy do
     %Role{name: name, permissions: permissions}
   end
 
-  @doc false
-  @spec __object__(module(), [Clause.t()]) :: Object.t()
-  def __object__(schema, clauses) when is_atom(schema) and is_list(clauses) do
-    if !Schema.object_type_of(schema) do
-      raise ArgumentError, "object #{inspect(schema)}: the schema declares no object type"
-    end
-
-    %Object{schema: schema, clauses: Enum.reverse(clauses)}
-  end
-
-  @doc false
-  @spec __grant__(atom(), module(), keyword()) :: Clause.t()
-  def __grant__(name, source, options) when is_atom(name) and is_atom(source) and is_list(options) do
-    validated = NimbleOptions.validate!(options, @grant_schema)
-
-    role_column!(name, Schema.relationship_of(source), validated)
-
-    %Clause{
-      name: name,
-      kind: :grant,
-      source: source,
-      on: validated[:on],
-      role: validated[:role],
-      as: validated[:as],
-      through: validated[:through]
-    }
-  end
-
-  @doc false
-  @spec __predicate__(atom(), Clause.predicate(), keyword()) :: Clause.t()
-  def __predicate__(name, fun, options) when is_atom(name) and is_function(fun, 2) and is_list(options) do
-    validated = NimbleOptions.validate!(options, @predicate_schema)
-
-    if named?(fun) do
-      %Clause{name: name, kind: :predicate, predicate: fun, only: validated[:only]}
-    else
-      raise ArgumentError, "predicate #{inspect(name)}: must be a capture of a named function"
-    end
-  end
-
-  @doc false
-  @spec __hop__(term()) :: {:ok, Clause.hop()} | {:error, String.t()}
-  def __hop__({schema, column}) when is_atom(schema) and is_atom(column), do: {:ok, {schema, column, []}}
-
-  def __hop__({schema, column, where: fun}) when is_atom(schema) and is_atom(column) and is_function(fun, 0) do
-    if named?(fun) do
-      {:ok, {schema, column, where: fun}}
-    else
-      {:error, "hop #{inspect(schema)}: where: must be a capture of a named function of no arguments"}
-    end
-  end
-
-  def __hop__(other), do: {:error, "expected {schema, column} or {schema, column, where: fun}, got #{inspect(other)}"}
-
-  defp named?(fun), do: match?({:type, :external}, Function.info(fun, :type))
-
   defp module_of(fun), do: elem(Function.info(fun, :module), 1)
 
-  defp role_column!(name, nil, _validated) do
-    raise ArgumentError, "grant #{inspect(name)}: the source declares no relationship"
-  end
+  # The caller's aliases resolved where the policy names a module, so the
+  # clause reads the same when the generated function is compiled. The
+  # expansion runs under a function environment: an alias expanded in a
+  # module body is a compile-time dependency, and the policy must not
+  # recompile when a schema or a predicate module changes.
+  defp expanded(ast, env) do
+    inside = %{env | function: {:__turnstile_code__, 1}}
 
-  defp role_column!(_name, %Relationship{attributes: [_role]}, _validated), do: :ok
-
-  defp role_column!(name, %Relationship{attributes: attributes}, validated) do
-    if validated[:role] || validated[:as] do
-      :ok
-    else
-      raise ArgumentError,
-            "grant #{inspect(name)}: the relationship declares #{length(attributes)} attributes; " <>
-              "name the role column with role:, or a fixed role with as:"
-    end
+    Macro.prewalk(ast, fn
+      {:__aliases__, _meta, _parts} = alias -> Macro.expand(alias, inside)
+      other -> other
+    end)
   end
 end
