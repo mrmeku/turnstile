@@ -6,8 +6,12 @@ Every word that carries more than one meaning in this repository, and the one pl
 |---|---|---|
 | Scope | The port operation that narrows a query, and the `%Turnstile.Scope{}` it returns | `apps/turnstile_core/glossary.md` |
 | Scope | A Postgres row-level security policy's reach over a table | `apps/turnstile_postgres/glossary.md` |
+| Plan | A query plan from a Cerbos sidecar compiled into a `dynamic` over an object type's rows | `apps/turnstile_cerbos/glossary.md` |
+| Plan | The project's plan of record | `PLAN.md` |
 | Version | A policy version: an artifact an adapter decides under, named in every decision | `apps/turnstile_core/glossary.md` |
 | Version | A pinned dependency release in `docs/reference.md` §12 | `docs/reference.md` |
+| Commit | The commit of the policy repository a Cerbos sidecar's directory is at, which is its policy version | `apps/turnstile_cerbos/glossary.md` |
+| Commit | The `commit` component of revocation latency, the time the revoking write itself takes | `docs/reference.md` §4 |
 | Check | The port operation `check/4`: a yes or no without a decision record | `apps/turnstile_core/glossary.md` |
 | Check | A Credo check, or OpenFGA's `Check` request | `docs/code.md` §5; `turnstile_fga` glossary, from S11a |
 | Position | A ledger position: the index of a fact event, taken from the counter row | `apps/turnstile_ledger/glossary.md` |
@@ -18,6 +22,9 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Record | A capability record: a rule's level with the enforcing component and a note | `apps/turnstile_core/glossary.md` |
 | Declaration | A capability declaration in a thin app | `apps/turnstile_core/glossary.md` |
 | Declaration | A fact-mapping declaration, `use Turnstile.Schema` | `apps/turnstile_core/glossary.md` |
+| Declaration | An attribute declaration, `use Turnstile.Cerbos.Attributes` | `apps/turnstile_cerbos/glossary.md` |
+| Attribute | A fact about a subject or object that a rule can test | `apps/turnstile_core/glossary.md` |
+| Attribute | A name the Cerbos policies read, declared against a column or a subquery | `apps/turnstile_cerbos/glossary.md` |
 | Scenario | A cited test: the case a capability declaration names as its evidence | `apps/turnstile_core/glossary.md` |
 | Scenario | One row of the reference's scenario table, defined in a thin application by `use Example.Scenarios` | `apps/turnstile_example/glossary.md` |
 | Owner | The owner role, `turnstile_owner`, and an owner-role repo | `docs/testing.md` §3, `docs/reference.md` §6 |
@@ -32,6 +39,7 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Fold | The fold-then-replay property of Tier 1 | `docs/testing.md` §6 |
 | Replay | Folding a ledger to a date or a position, and the state, policy version, and position a recorded decision is asked again under | `apps/turnstile_ledger/glossary.md` |
 | Replay | The scratch database that state and those policies are put back in | `apps/turnstile_postgres/glossary.md` |
+| Replay | A policy version written into a throwaway sidecar's directory, and the decision asked again there | `apps/turnstile_cerbos/glossary.md` |
 | Catalog | The bound tables' policies, the columns they reference, and the policy version, as the database reports them | `apps/turnstile_postgres/glossary.md` |
 | Catalog | The database's own catalog, read for a foreign key that would delete or blank a fact with no event to say so | `apps/turnstile_ledger/glossary.md` |
 | Rule | A protected schema's clauses built for one subject and operation, as one `dynamic` | `apps/turnstile_rbac/glossary.md` |
@@ -42,10 +50,13 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Predicate | A Postgres row-level security policy's `USING` expression | `apps/turnstile_postgres/glossary.md` |
 | Coverage | The walk of every rule's `dynamic`, subqueries included, that fails on a column no declaration names | `apps/turnstile_rbac/glossary.md` |
 | Coverage | The read of the policy expressions and their column references that fails on a column no declaration names | `apps/turnstile_postgres/glossary.md` |
+| Coverage | The walk of a compiled query plan that fails on a column no declaration names | `apps/turnstile_cerbos/glossary.md` |
 | Finding | One undeclared read: a schema and a column, or a fragment's text | `apps/turnstile_rbac/glossary.md` |
 | Finding | One undeclared read: a schema and a column, or a table no bound schema names | `apps/turnstile_postgres/glossary.md` |
+| Finding | One difference between a Cerbos sidecar's decision log and the port's records | `apps/turnstile_cerbos/glossary.md` |
 | Binding | The policy module and repo `Turnstile.Code` reads through | `apps/turnstile_rbac/glossary.md` |
 | Binding | The repo, the protected schemas, and the migrations table `Turnstile.Postgres` reads through | `apps/turnstile_postgres/glossary.md` |
+| Binding | The repo, the declarations, the policy directory, and the commit `Turnstile.Cerbos` reads through | `apps/turnstile_cerbos/glossary.md` |
 | Binding | An Ecto query binding, the `[row]` of a `dynamic` | Ecto's own documentation |
 | Marking | A portion's or a document's categories, controls, and releasable-to list | `apps/turnstile_example/glossary.md` |
 | Marking | The CUI marking of 32 CFR Part 2002, the banner and portion marks on a page | `docs/reference.md` §2 |
