@@ -1,5 +1,7 @@
 name: ci
 
+# Versions verified at https://api.github.com/repos/<owner>/<repo>/releases/latest on 2026-09-08.
+
 on:
   push:
     branches: [main]
@@ -17,8 +19,43 @@ jobs:
       MIX_TEST_PARTITION: ${{ matrix.partition }}
       MIX_TEST_PARTITIONS: "4"
     steps:
-      # Versions verified at https://api.github.com/repos/<owner>/<repo>/releases/latest on 2026-09-08.
       - uses: actions/checkout@v7.0.1
       - uses: DeterminateSystems/nix-installer-action@v22
       - run: nix develop --command mix deps.get
       - run: nix develop --command mix quality
+
+  # One job per thin application, each in its own directory. `nix develop`
+  # reads the flake at the root, so a step enters the directory inside the
+  # shell the flake gives rather than through working-directory.
+  example_rbac:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: DeterminateSystems/nix-installer-action@v22
+      - run: nix develop --command mix deps.get
+      # The migrations of this application, run on a cluster of its own, and
+      # the schema they produce written to the file the next step holds them to.
+      - run: nix develop --command bash -c 'cd apps/example_rbac && mix turnstile.schema_dump'
+      - run: git diff --exit-code priv/schema/
+        working-directory: apps/example_rbac
+      # Ledger mode ecto is the whole scenario file, and the run the coverage
+      # threshold is measured on.
+      - run: nix develop --command bash -c 'cd apps/example_rbac && EXAMPLE_LEDGER=ecto mix test --warnings-as-errors --cover'
+      # Ledger mode none excludes the scenarios a ledger answers, so what it
+      # proves is that the rest of them pass with no ledger configured; a
+      # coverage number over a run that leaves scenarios out would measure the
+      # exclusion rather than the application.
+      - run: nix develop --command bash -c 'cd apps/example_rbac && EXAMPLE_LEDGER=none mix test --warnings-as-errors'
+
+  example_postgres:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: DeterminateSystems/nix-installer-action@v22
+      - run: nix develop --command mix deps.get
+      # The dump is the teaching artifact for this adapter: the policies of
+      # every protected table as the database reports them.
+      - run: nix develop --command bash -c 'cd apps/example_postgres && mix turnstile.schema_dump'
+      - run: git diff --exit-code priv/schema/
+        working-directory: apps/example_postgres
+      - run: nix develop --command bash -c 'cd apps/example_postgres && mix test --warnings-as-errors --cover'

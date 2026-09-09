@@ -117,7 +117,7 @@ One workflow, `nix develop` everywhere:
   2. `mix test`, Tier 2 with the count test.
   For `example_rbac`, step 2 runs twice: with `EXAMPLE_LEDGER=ecto` and with `EXAMPLE_LEDGER=none`.
 
-Coverage threshold and warnings-as-errors apply to every job. No job uses Docker.
+Coverage threshold and warnings-as-errors apply to every job, and where a job runs its suite twice the threshold is measured on the mode-ecto run: a run that excludes the scenarios a ledger answers would measure the exclusion rather than the application. No job uses Docker.
 
 ## 8. Not done, on purpose
 
