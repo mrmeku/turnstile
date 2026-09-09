@@ -56,8 +56,9 @@ defmodule Turnstile.Ledger.Genesis do
             ],
             clock: [
               type: :atom,
-              default: Turnstile.Clock.System,
-              doc: "The `Turnstile.Clock` the stamp's date and every event's time come from."
+              doc:
+                "The `Turnstile.Clock` the stamp's date and every event's time come from; " <>
+                  "`Turnstile.Clock.System` when absent, named when this runs rather than when it compiles."
             ]
           )
 
@@ -70,7 +71,7 @@ defmodule Turnstile.Ledger.Genesis do
   @spec run(keyword(), [module()], keyword()) ::
           {:ok, non_neg_integer()} | {:error, Error.Invalid.t() | Error.Engine.t()}
   def run(ledger_options, schemas, options \\ []) when is_list(ledger_options) and is_list(schemas) do
-    options = NimbleOptions.validate!(options, @schema)
+    options = NimbleOptions.validate!(Keyword.put_new(options, :clock, Turnstile.Clock.System), @schema)
     repo = owner_repo!(ledger_options)
     dialect = Ledger.Ecto.dialect(ledger_options)
     at = options[:clock].now()

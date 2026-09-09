@@ -40,7 +40,7 @@ defmodule Turnstile.Facts do
 
   @schema NimbleOptions.new!(
             turnstile: [
-              type: {:custom, Turnstile.Repo.Mediation, :validate_option, []},
+              type: {:custom, __MODULE__, :validate_turnstile, []},
               required: true,
               doc: "The decision the write runs under, or a declared exemption."
             ],
@@ -57,6 +57,15 @@ defmodule Turnstile.Facts do
   @doc "The schema of the options the three calls take. Options: #{NimbleOptions.docs(@schema)}"
   @spec schema() :: NimbleOptions.t()
   def schema, do: @schema
+
+  @doc """
+  Answer whether the `:turnstile` option is a decision or a declared
+  exemption. `Turnstile.Repo.Mediation` holds that answer, and this call
+  reaches it when an option is validated rather than when this module is
+  compiled.
+  """
+  @spec validate_turnstile(term()) :: {:ok, term()} | {:error, String.t()}
+  def validate_turnstile(value), do: Repo.Mediation.validate_option(value)
 
   @doc "The three telemetry events of a bulk write, in the order they happen."
   @spec events() :: [[atom()]]
