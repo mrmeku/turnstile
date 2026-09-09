@@ -44,7 +44,10 @@ defmodule Example.Review do
     |> Map.new(fn {subject, entries} -> {subject, Map.new(entries)} end)
   end
 
-  @doc "The report: readers per agency, then permissions per account, then privileged accounts."
+  @doc """
+  The report: readers per agency, then every operation of each account
+  that holds any permission, then privileged accounts.
+  """
   @spec report(Subject.t(), keyword()) :: String.t()
   def report(%Subject{} = reviewer, opts \\ []) when is_list(opts) do
     agencies = Repo.all(agencies(), turnstile: @review)
@@ -67,10 +70,11 @@ defmodule Example.Review do
   defp permission_lines(reviewer, agency, opts) do
     reviewer
     |> permissions(agency, opts)
+    |> Enum.reject(fn {_subject, by_op} -> Enum.all?(by_op, fn {_operation, ids} -> ids == [] end) end)
     |> Enum.sort_by(fn {subject, _by_op} -> subject.id end)
     |> Enum.flat_map(fn {subject, by_op} ->
-      for operation <- Documents.operations(), ids = by_op[operation], ids != [] do
-        "  #{subject.id} may #{operation} #{listed(ids)}"
+      for operation <- Documents.operations() do
+        "  #{subject.id} may #{operation} #{listed(by_op[operation] || [])}"
       end
     end)
   end

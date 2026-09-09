@@ -1,6 +1,7 @@
 defmodule Example.ReviewTest do
   use Example.FakeCase, async: true
 
+  alias Example.Documents
   alias Example.Fixture
   alias Example.Review
 
@@ -35,7 +36,15 @@ defmodule Example.ReviewTest do
                    id <- Fixture.account_ids(),
                    do: "  #{id} reads #{if id == "ann", do: "[#{document.id}]", else: "[]"}"
                  ) ++
-                 ["  ann may read [#{document.id}]", "  dana may change_marking [#{document.id}]", "agency Foreign"] ++
+                 for(
+                   op <- Documents.operations(),
+                   do: "  ann may #{op} #{if op == :read, do: "[#{document.id}]", else: "[]"}"
+                 ) ++
+                 for(
+                   op <- Documents.operations(),
+                   do: "  dana may #{op} #{if op == :change_marking, do: "[#{document.id}]", else: "[]"}"
+                 ) ++
+                 ["agency Foreign"] ++
                  for(id <- Fixture.account_ids(), do: "  #{id} reads []") ++
                  ["privileged accounts", "  gil (person gil) holds [override]"],
                "\n"
