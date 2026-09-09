@@ -17,7 +17,9 @@ defmodule Turnstile.Test.Cluster do
   Roles: `turnstile_owner` (owns every table, runs migrations) and
   `turnstile_app` (`NOBYPASSRLS`, what the application connects as).
   Databases: `turnstile_test` (sandboxed tier) and `turnstile_committed`
-  (committed tier). Everything here goes through `psql`, `initdb`, and
+  (committed tier), and one more per call to `scratch!/3`, which raises a
+  database of its own and drops it after. Everything here goes through
+  `psql`, `initdb`, and
   `pg_ctl`, so this module needs `ecto` and nothing from `ecto_sql`; the
   sandbox mode is the caller's to set.
   """
@@ -126,6 +128,26 @@ defmodule Turnstile.Test.Cluster do
     [socket_dir: cluster.socket_dir, username: role(role), database: database(tier)]
   end
 
+  @doc """
+  A database of its own, for a caller that needs a point in the past put
+  back rather than either tier. Creates it owned by the owner role, starts
+  a dynamic instance of each `{repo, role}` on it as that role, puts every
+  one in force on the calling process, calls the function with the
+  instances by repo, then stops them and drops the database. The name
+  carries random bytes, so two callers never meet.
+  """
+  @spec scratch!(t(), [{module(), role()}], (%{module() => pid()} -> result)) :: result when result: term()
+  def scratch!(%__MODULE__{} = cluster, repos, fun) when is_list(repos) and is_function(fun, 1) do
+    database = "turnstile_scratch_" <> Base.encode16(:crypto.strong_rand_bytes(6), case: :lower)
+    _created = psql!(cluster, "postgres", "CREATE DATABASE #{database} OWNER #{@owner}")
+
+    try do
+      started(cluster, repos, database, %{}, fun)
+    after
+      _dropped = psql!(cluster, "postgres", "DROP DATABASE #{database} WITH (FORCE)")
+    end
+  end
+
   @doc "Runs a SQL statement through `psql` as the superuser. Raises on failure."
   @spec psql!(t(), String.t(), String.t()) :: String.t()
   def psql!(%__MODULE__{} = cluster, database, statement) when is_binary(database) and is_binary(statement) do
@@ -201,21 +223,33 @@ defmodule Turnstile.Test.Cluster do
   # in turn with a dynamic instance. The repo's static instance starts later.
   defp migrate!(cluster, opts, database) do
     case Enum.find(opts[:repos], fn {_repo, config} -> config[:role] == :owner end) do
-      nil ->
-        :ok
+      nil -> :ok
+      {repo, _config} -> on(cluster, repo, :owner, database, fn _pid -> :ok = opts[:migrate].(repo) end)
+    end
+  end
 
-      {repo, _config} ->
-        {:ok, pid} =
-          repo.start_link(name: nil, socket_dir: cluster.socket_dir, username: @owner, database: database, pool_size: 2)
+  # One instance per repo, each in force for the length of the function, so
+  # the function sees every one of them pointed at the same database.
+  defp started(_cluster, [], _database, instances, fun), do: fun.(instances)
 
-        previous = repo.put_dynamic_repo(pid)
+  defp started(cluster, [{repo, role} | rest], database, instances, fun) do
+    on(cluster, repo, role, database, fn pid ->
+      started(cluster, rest, database, Map.put(instances, repo, pid), fun)
+    end)
+  end
 
-        try do
-          :ok = opts[:migrate].(repo)
-        after
-          repo.put_dynamic_repo(previous)
-          Supervisor.stop(pid)
-        end
+  # A dynamic instance of the repo on one database, in force on this process
+  # for the length of the function and stopped after it.
+  defp on(cluster, repo, role, database, fun) do
+    connection = [socket_dir: cluster.socket_dir, username: role(role), database: database]
+    {:ok, pid} = repo.start_link([name: nil, pool_size: 2] ++ connection)
+    previous = repo.put_dynamic_repo(pid)
+
+    try do
+      fun.(pid)
+    after
+      repo.put_dynamic_repo(previous)
+      Supervisor.stop(pid)
     end
   end
 
