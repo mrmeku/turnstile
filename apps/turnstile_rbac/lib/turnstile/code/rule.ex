@@ -149,29 +149,39 @@ defmodule Turnstile.Code.Rule do
   # columns of the relationship rows that name the subject with a role that
   # permits the operation, or among the keys of the hop rows that reach
   # them, innermost hop first.
-  defp grant(%Clause{source: source} = clause, schema, %Subject{id: subject_id}, roles) do
-    %Relationship{subject: subject_column, object: object_column} = relationship = Schema.relationship_of(source)
+  defp grant(%Clause{} = clause, schema, %Subject{id: subject_id}, roles) do
     on = clause.on || primary_key(schema)
 
-    case role_filter(clause, relationship, roles) do
-      :none ->
-        dynamic([_row], false)
-
-      :all ->
-        members = from(r in source, where: field(r, ^subject_column) == ^subject_id, select: field(r, ^object_column))
-        set = through(members, clause.through)
-        dynamic([row], field(row, ^on) in subquery(set))
-
-      {:column, role_column} ->
-        members =
-          from(r in source,
-            where: field(r, ^subject_column) == ^subject_id and field(r, ^role_column) in ^roles,
-            select: field(r, ^object_column)
-          )
-
-        set = through(members, clause.through)
-        dynamic([row], field(row, ^on) in subquery(set))
+    case members(clause, subject_id, roles) do
+      nil -> dynamic([_row], false)
+      members -> dynamic([row], field(row, ^on) in subquery(through(members, clause.through)))
     end
+  end
+
+  # The object column of the relationship rows that name the subject with a
+  # role that permits the operation, or nil when no role does.
+  defp members(%Clause{source: source} = clause, subject_id, roles) do
+    relationship = Schema.relationship_of(source)
+
+    case role_filter(clause, relationship, roles) do
+      :none -> nil
+      :all -> named(source, relationship, subject_id)
+      {:column, role_column} -> held(named(source, relationship, subject_id), role_column, roles)
+    end
+  end
+
+  defp named(source, %Relationship{subject: subject_column, object: object_column}, subject_id) do
+    from(r in source, where: field(r, ^subject_column) == ^subject_id, select: field(r, ^object_column))
+  end
+
+  # The rows holding one of the roles the column can hold. A role it cannot
+  # hold never matches; without this, a role table spanning relationship
+  # schemas with different role columns would fail to cast the roles another
+  # schema's column holds.
+  defp held(%Ecto.Query{from: %{source: {_table, source}}} = members, column, roles) do
+    type = source.__schema__(:type, column)
+    held = Enum.filter(roles, &match?({:ok, _value}, Ecto.Type.cast(type, &1)))
+    from(r in members, where: field(r, ^column) in ^held)
   end
 
   defp through(inner, hops) do

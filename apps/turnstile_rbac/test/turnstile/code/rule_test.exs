@@ -71,6 +71,18 @@ defmodule Turnstile.Code.RuleTest do
     end
   end
 
+  defmodule Foreign do
+    @moduledoc false
+    use Policy, version: "foreign"
+
+    role :editor, [:read]
+    role :owner, [:read, :edit]
+
+    object Folder do
+      grant :membership, Membership
+    end
+  end
+
   defmodule Composite do
     @moduledoc false
     use Ecto.Schema
@@ -105,6 +117,15 @@ defmodule Turnstile.Code.RuleTest do
              Turnstile.Code.check(ctx.ann, :read, folder, ctx.environment, [])
 
     assert reason == Reason.allowed("any_membership")
+
+    assert {:ok, %Answer{verdict: :deny, reason: %Reason{code: :deny_by_default}}} =
+             Turnstile.Code.check(ctx.ann, :edit, folder, ctx.environment, [])
+  end
+
+  test "a role the relationship's column cannot hold never matches and raises nothing", ctx do
+    :ok = Binding.override(policy: Foreign, repo: Sandboxed)
+    folder = %Object{type: :folder, id: 1}
+    assert {:ok, %Answer{verdict: :allow}} = Turnstile.Code.check(ctx.ann, :read, folder, ctx.environment, [])
 
     assert {:ok, %Answer{verdict: :deny, reason: %Reason{code: :deny_by_default}}} =
              Turnstile.Code.check(ctx.ann, :edit, folder, ctx.environment, [])
