@@ -7,9 +7,12 @@ defmodule Turnstile.Test.Cluster do
   listener, creates the two roles and two databases the test tiers use, runs
   the caller's migrations on each database as the owner role through the
   function the caller passes, then configures and starts the caller's repos.
-  The cluster stops and its directory is removed when the VM exits.
-  `start/1` also defines `Turnstile.Test.Clock.Mock`, the `Mox` mock of
-  `Turnstile.Clock` that the conformance template sets per test.
+  The cluster stops and its directory is removed when the suite ends, so a
+  VM that runs several suites in turn, the umbrella root's `mix test`,
+  starts each app's cluster afresh; a run that is no suite, a schema dump's,
+  stops it at VM exit. `start/1` also defines `Turnstile.Test.Clock.Mock`,
+  the `Mox` mock of `Turnstile.Clock` that the conformance template sets per
+  test, once per VM.
 
   Roles: `turnstile_owner` (owns every table, runs migrations) and
   `turnstile_app` (`NOBYPASSRLS`, what the application connects as).
@@ -18,6 +21,8 @@ defmodule Turnstile.Test.Cluster do
   `pg_ctl`, so this module needs `ecto` and nothing from `ecto_sql`; the
   sandbox mode is the caller's to set.
   """
+
+  alias Turnstile.Test.Clock.Mock
 
   @owner "turnstile_owner"
   @app "turnstile_app"
@@ -76,9 +81,7 @@ defmodule Turnstile.Test.Cluster do
     opts = NimbleOptions.validate!(opts, @schema)
     cluster = new(opts)
     File.mkdir_p!(cluster.dir)
-    # A remote capture, not a closure: coverage recompiles this module and
-    # a closure from the old code would be invalid by the time the VM exits.
-    System.at_exit(&__MODULE__.stop_all/1)
+    stop_with_suite()
     initdb!(cluster)
     pg_ctl!(cluster, ["start"])
     create_roles_and_databases!(cluster)
@@ -86,7 +89,7 @@ defmodule Turnstile.Test.Cluster do
     configure_repos!(cluster, opts)
     cluster = %{cluster | supervisor: start_repos!(opts)}
     :persistent_term.put(__MODULE__, [cluster | registered()])
-    Mox.defmock(Turnstile.Test.Clock.Mock, for: Turnstile.Clock)
+    define_mock()
     cluster
   end
 
@@ -243,6 +246,24 @@ defmodule Turnstile.Test.Cluster do
   end
 
   defp registered, do: :persistent_term.get(__MODULE__, [])
+
+  # Registered once per VM. Remote captures, not closures: coverage
+  # recompiles this module and a closure from the old code would be invalid
+  # by the time the callbacks run.
+  defp stop_with_suite do
+    if !:persistent_term.get({__MODULE__, :callbacks}, false) do
+      _loaded = Application.load(:ex_unit)
+      ExUnit.after_suite(&__MODULE__.stop_all/1)
+      System.at_exit(&__MODULE__.stop_all/1)
+      :persistent_term.put({__MODULE__, :callbacks}, true)
+    end
+  end
+
+  defp define_mock do
+    if !Code.ensure_loaded?(Mock) do
+      Mox.defmock(Mock, for: Turnstile.Clock)
+    end
+  end
 
   # Unnamed, so a schema dump can start its own cluster inside a test run.
   defp start_repos!(opts) do
