@@ -114,11 +114,4 @@ defmodule Turnstile.Code.DecideTest do
 
     assert detail =~ "predicate garbage returned :not_a_dynamic"
   end
-
-  test "without a binding every call is an engine error, so the port fails closed", ctx do
-    Process.delete(Binding)
-
-    assert {:error, %Engine{operation: :scope}} =
-             Turnstile.Code.scope(ctx.ann, :read, :folder, ctx.environment, [])
-  end
 end

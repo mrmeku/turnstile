@@ -24,8 +24,12 @@ defmodule Turnstile.ConfigTest do
     defdelegate scope(subject, operation, object_type, environment, options), to: Fake
   end
 
+  # The umbrella root starts every application before any suite runs, so a
+  # boot config may exist; these tests assume none and put it back after.
   setup do
-    on_exit(fn -> :persistent_term.erase(Config) end)
+    booted = :persistent_term.get(Config, nil)
+    :persistent_term.erase(Config)
+    on_exit(fn -> if booted, do: :persistent_term.put(Config, booted), else: :persistent_term.erase(Config) end)
   end
 
   test "new/1 validates the adapter tuple, its options, and the defaults" do

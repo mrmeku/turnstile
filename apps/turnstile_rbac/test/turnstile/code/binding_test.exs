@@ -3,12 +3,25 @@ defmodule Turnstile.Code.BindingTest do
 
   alias Turnstile.Code.Binding
   alias Turnstile.Code.Conformance.Roles
+  alias Turnstile.Environment
   alias Turnstile.Error
+  alias Turnstile.Error.Engine
+  alias Turnstile.Subject
   alias Turnstile.TestRepos.Committed
   alias Turnstile.TestRepos.Sandboxed
 
+  # The umbrella root starts every application before any suite runs, so a
+  # boot binding may exist; these tests assume none and put it back after.
   setup do
-    on_exit(fn -> :persistent_term.erase(Binding) end)
+    bound = :persistent_term.get(Binding, nil)
+    :persistent_term.erase(Binding)
+    on_exit(fn -> if bound, do: :persistent_term.put(Binding, bound), else: :persistent_term.erase(Binding) end)
+  end
+
+  test "without a binding every call is an engine error, so the port fails closed" do
+    ann = %Subject{id: "ann", kind: :user}
+    environment = %Environment{now: DateTime.utc_now()}
+    assert {:error, %Engine{operation: :scope}} = Turnstile.Code.scope(ann, :read, :folder, environment, [])
   end
 
   test "an override in the calling process resolves without a boot binding" do
