@@ -75,7 +75,11 @@ defmodule Example.Marking do
 end
 
 defmodule Example.Portion do
-  @moduledoc "A portion of a document with a marking of its own; the document's banner is the union of them."
+  @moduledoc """
+  A portion of a document with a marking of its own; the document's banner
+  is the union of them. It carries its document, which the rules reach it
+  through.
+  """
 
   use Ecto.Schema
   use Turnstile.Schema
@@ -100,6 +104,7 @@ defmodule Example.Portion do
   end
 
   object_type(:portion)
+  carries([:document])
   fact(:categories, kind: :object_attribute, object: :id, element: :category)
   fact(:controls, kind: :object_attribute, object: :id, element: :control)
   fact(:releasable_to, kind: :object_attribute, object: :id, element: :country)
