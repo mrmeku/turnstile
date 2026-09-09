@@ -138,7 +138,7 @@ defmodule Turnstile.Code.Coverage do
 
   defp exprs(%Ecto.Query{} = query) do
     clauses = query.wheres ++ query.havings ++ query.order_bys ++ query.group_bys
-    joins = Enum.map(query.joins, &%{expr: &1.on.expr, subqueries: &1.on.subqueries})
+    joins = Enum.map(query.joins, &%{expr: &1.on.expr, subqueries: Map.get(&1.on, :subqueries)})
     List.wrap(query.select) ++ clauses ++ joins
   end
 
