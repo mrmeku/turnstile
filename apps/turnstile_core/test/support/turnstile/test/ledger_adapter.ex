@@ -5,13 +5,18 @@ defmodule Turnstile.Test.LedgerAdapter do
   fake's: the point of this module is the declaration, so the template's
   shape cases for such an adapter have one to run against. Test support
   only.
+
+  The projection it declares is whatever `bind/1` put in the calling
+  process, the way a real adapter resolves its projector from its binding,
+  and `:none` until something does.
   """
 
   @behaviour Turnstile.Adapter
 
-  use Boundary, top_level?: true, deps: [Turnstile]
+  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Test.Projection]
 
   alias Turnstile.Adapter.Fake
+  alias Turnstile.Test.Projection
 
   @impl Turnstile.Adapter
   defdelegate options_schema, to: Fake
@@ -36,4 +41,19 @@ defmodule Turnstile.Test.LedgerAdapter do
 
   @impl Turnstile.Adapter
   defdelegate explain(subject, operation, object, environment, options), to: Fake
+
+  @impl Turnstile.Adapter
+  def projection do
+    case Process.get(__MODULE__) do
+      nil -> :none
+      %Projection{} = projection -> {:ok, {Projection, projection}}
+    end
+  end
+
+  @doc "The projection this adapter declares for the rest of the calling process."
+  @spec bind(Projection.t()) :: :ok
+  def bind(%Projection{} = projection) do
+    Process.put(__MODULE__, projection)
+    :ok
+  end
 end

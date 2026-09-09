@@ -26,11 +26,12 @@ defmodule Turnstile.FreezeTest do
                around_query: 3,
                options_schema: 0,
                requires_ledger: 0,
-               scope_cap: 0
+               scope_cap: 0,
+               projection: 0
              )
 
     assert Enum.sort(Turnstile.Adapter.behaviour_info(:optional_callbacks)) ==
-             Enum.sort(explain: 5, around_query: 3, options_schema: 0)
+             Enum.sort(explain: 5, around_query: 3, options_schema: 0, projection: 0)
   end
 
   test "Turnstile.Ledger has the frozen callbacks" do

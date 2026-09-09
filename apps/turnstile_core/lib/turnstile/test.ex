@@ -1,13 +1,15 @@
 defmodule Turnstile.Test do
   @moduledoc """
   Helpers every test tier and a third party's adapter suite share: the
-  configuration override, and polling with a deadline in place of sleeping.
-  Shipped in core so Tier 1 can run outside this repository.
+  configuration override, settling the configured adapter's projection, and
+  polling with a deadline in place of sleeping. Shipped in core so Tier 1 can
+  run outside this repository.
   """
 
   use Boundary, top_level?: true, deps: [Turnstile, Ecto], exports: [Cerbos, Cluster, Fga]
 
   alias Turnstile.Config
+  alias Turnstile.Projection.Drain
 
   @default_timeout 5_000
   @interval 10
@@ -35,6 +37,26 @@ defmodule Turnstile.Test do
       fun.()
     after
       Process.put(Config.override_key(), previous)
+    end
+  end
+
+  @doc """
+  Drain the configured adapter's projection until it has applied the ledger's
+  head, and answer `:ok`. An adapter that projects nothing has nothing to
+  drain, and the answer is `:none`, so a shared scenario can settle after
+  writing facts without naming an adapter. Raises what the projection or the
+  ledger failed with, since a scenario that cannot settle cannot ask its
+  question.
+  """
+  @spec settle() :: :ok | :none
+  def settle do
+    {:ok, config} = Config.resolve()
+    {adapter, _options} = Config.adapter(config)
+
+    case projection(adapter) do
+      :none -> :none
+      {:ok, {module, state}} -> drained(module, state, head(config))
+      {:error, error} -> raise error
     end
   end
 
@@ -78,6 +100,32 @@ defmodule Turnstile.Test do
   def __query__(_event, _measurements, %{query: query}, %{pid: pid, id: id}) do
     if self() == pid and not Regex.match?(@control, query), do: send(pid, {id, query})
     :ok
+  end
+
+  defp projection(adapter) do
+    if Code.ensure_loaded?(adapter) and function_exported?(adapter, :projection, 0) do
+      adapter.projection()
+    else
+      :none
+    end
+  end
+
+  defp head(%Config{ledger: :none}), do: 0
+
+  defp head(%Config{ledger: {module, options}}) do
+    {:ok, head} = module.head(options)
+    head
+  end
+
+  # One drain covers every event the reader answers with, so the loop is for
+  # events appended while it ran; a drain that applied nothing has caught up
+  # even where the head is ahead of the last event the reader can see.
+  defp drained(module, state, head) do
+    case module.drain_once(state) do
+      {:ok, %Drain{to: to, applied: applied}} when to >= head or applied == 0 -> :ok
+      {:ok, %Drain{}} -> drained(module, state, head)
+      {:error, error} -> raise error
+    end
   end
 
   defp collect(id, queries) do

@@ -8,9 +8,10 @@ defmodule Turnstile.Adapter do
   `Turnstile.Error.Unsupported` when it does not, so one build serves every
   adapter.
 
-  Two declarations are true of an adapter in any domain: whether it requires
-  a ledger, and the cap on the number of objects `scope` can return, `:none`
-  where the rule is a query the database runs.
+  Three declarations are true of an adapter in any domain: whether it
+  requires a ledger, the cap on the number of objects `scope` can return,
+  `:none` where the rule is a query the database runs, and the projection it
+  keeps, `:none` where the working state is the application's own tables.
   """
 
   alias Turnstile.Answer
@@ -60,5 +61,15 @@ defmodule Turnstile.Adapter do
   @doc "The cap on objects `scope` can return, or `:none`."
   @callback scope_cap() :: pos_integer() | :none
 
-  @optional_callbacks explain: 5, around_query: 3, options_schema: 0
+  @doc """
+  The projection the adapter keeps: the module implementing
+  `Turnstile.Projection` and the configuration that module's callbacks take,
+  resolved the way the adapter resolves the rest of its state. `:none` for an
+  adapter that projects nothing, which is what an adapter leaving this
+  callback undefined says. A caller with facts to settle drains this to the
+  ledger's head; `Turnstile.Test.settle/0` is that caller in the suite.
+  """
+  @callback projection() :: {:ok, {module(), struct()}} | :none | {:error, Error.Invalid.t() | Error.Unsupported.t()}
+
+  @optional_callbacks explain: 5, around_query: 3, options_schema: 0, projection: 0
 end
