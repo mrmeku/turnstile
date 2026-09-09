@@ -1,0 +1,18 @@
+# Separation of duties on a marking change (C9): the approval belongs to an
+# approver of the document's designating office who is not the account that
+# proposed it, which is a comparison between the resource's own column and
+# the asking principal.
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: proposal
+  rules:
+    - actions: ["approve_marking"]
+      effect: EFFECT_ALLOW
+      roles: ["user", "non_person_entity", "privileged"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: '"approver" in request.resource.attr.office_roles'
+              - expr: request.resource.attr.proposer_id != request.principal.id

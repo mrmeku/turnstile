@@ -1,0 +1,78 @@
+# A portion under its own rules. Lawful purpose reaches it through its
+# document's program and designating office (C1), and the controls are the
+# ones effective on the portion's own marking (C2, C3). The decontrol date
+# is the document's, so the attribute declaration carries that test inside
+# the subquery rather than the policy naming a column the portion has not
+# got (C4, C5).
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: portion
+  rules:
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["user", "non_person_entity", "privileged"]
+      condition:
+        match:
+          any:
+            of:
+              - expr: '"lead" in request.resource.attr.program_roles'
+              - expr: '"member" in request.resource.attr.program_roles'
+              - expr: '"designator" in request.resource.attr.office_roles'
+              - expr: '"approver" in request.resource.attr.office_roles'
+
+    - actions: ["read"]
+      effect: EFFECT_DENY
+      roles: ["user", "non_person_entity", "privileged"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: '"federal_only" in request.resource.attr.effective_controls'
+              - expr: 'request.principal.attr.employment != "federal"'
+
+    - actions: ["read"]
+      effect: EFFECT_DENY
+      roles: ["user", "non_person_entity", "privileged"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: '"no_foreign" in request.resource.attr.effective_controls'
+              - expr: '!(request.principal.attr.nationality in request.resource.attr.agency_nationalities)'
+
+    - actions: ["read"]
+      effect: EFFECT_DENY
+      roles: ["user", "non_person_entity", "privileged"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: '"releasable_to" in request.resource.attr.effective_controls'
+              - expr: '!(request.principal.attr.nationality in request.resource.attr.releasable_to)'
+
+    - actions: ["read"]
+      effect: EFFECT_DENY
+      roles: ["user", "non_person_entity", "privileged"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: '"named_list" in request.resource.attr.effective_controls'
+              - expr: '!(request.principal.id in request.resource.attr.listed)'
+
+    - actions: ["change_marking"]
+      effect: EFFECT_ALLOW
+      roles: ["user", "non_person_entity", "privileged"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: '"designator" in request.resource.attr.office_roles'
+              - expr: request.principal.attr.environment.reauthenticated_at != null
+              - expr: >-
+                  timestamp(request.principal.attr.environment.reauthenticated_at)
+                  <= timestamp(request.principal.attr.environment.now)
+              - expr: >-
+                  timestamp(request.principal.attr.environment.reauthenticated_at)
+                  >= timestamp(request.principal.attr.environment.now) - duration("900s")

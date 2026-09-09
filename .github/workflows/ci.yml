@@ -59,3 +59,19 @@ jobs:
       - run: git diff --exit-code priv/schema/
         working-directory: apps/example_postgres
       - run: nix develop --command bash -c 'cd apps/example_postgres && mix test --warnings-as-errors --cover'
+
+  example_cerbos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: DeterminateSystems/nix-installer-action@v22
+      - run: nix develop --command mix deps.get
+      # The fifth migration of this application creates nothing, so the dump
+      # is the example and the ledger alone, which is what holds the rules to
+      # the policy files rather than the database.
+      - run: nix develop --command bash -c 'cd apps/example_cerbos && mix turnstile.schema_dump'
+      - run: git diff --exit-code priv/schema/
+        working-directory: apps/example_cerbos
+      # The sidecar the suite starts is the `cerbos` binary the flake pins, on
+      # a copy of the policy files under `tmp/`, so the run needs no container.
+      - run: nix develop --command bash -c 'cd apps/example_cerbos && mix test --warnings-as-errors --cover'
