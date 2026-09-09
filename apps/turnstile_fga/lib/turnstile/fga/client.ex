@@ -34,6 +34,14 @@ defmodule Turnstile.Fga.Client do
   @max_tuples_per_write 100
   @max_checks_per_batch 50
 
+  # The adapter an engine error from here names, read from this module's own
+  # name rather than written out: a behaviour that named the adapter would
+  # depend on the module that implements it, which depends on this one.
+  @adapter __MODULE__
+           |> Module.split()
+           |> Enum.drop(-1)
+           |> Module.concat()
+
   @typedoc "Where the server is: the address of one, or the process a fake runs on."
   @type endpoint :: String.t() | pid() | GenServer.name()
 
@@ -88,6 +96,6 @@ defmodule Turnstile.Fga.Client do
   @doc "An engine error from this adapter, naming the call it came from."
   @spec error(atom(), String.t()) :: Error.Engine.t()
   def error(operation, detail) when is_atom(operation) and is_binary(detail) do
-    %Error.Engine{adapter: Turnstile.Fga, operation: operation, detail: detail}
+    %Error.Engine{adapter: @adapter, operation: operation, detail: detail}
   end
 end
