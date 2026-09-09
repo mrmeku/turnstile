@@ -1,13 +1,17 @@
 alias Ecto.Adapters.SQL.Sandbox
 
 # The migrations, loaded once: the cluster migrates each of its databases,
-# and loading the files per database would redefine their modules.
+# and loading the files per database would redefine their modules. A replay
+# raises a database of its own and migrates it too, so the list is put where
+# a test can read it rather than loaded again there.
 migrations =
   for file <- Enum.sort(Path.wildcard("priv/repo/migrations/*.exs")) do
     [{module, _binary}] = Code.require_file(file)
     {version, _name} = Integer.parse(Path.basename(file))
     {version, module}
   end
+
+:ok = Application.put_env(:example_postgres, :migrations, migrations)
 
 # Both repos point at one database: the committed scenarios run on the app
 # repo outside a sandbox and truncate through the owner repo when they end.
