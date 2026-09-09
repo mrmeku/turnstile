@@ -13,7 +13,7 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Commit | The commit of the policy repository a Cerbos sidecar's directory is at, which is its policy version | `apps/turnstile_cerbos/glossary.md` |
 | Commit | The `commit` component of revocation latency, the time the revoking write itself takes | `docs/reference.md` §4 |
 | Check | The port operation `check/4`: a yes or no without a decision record | `apps/turnstile_core/glossary.md` |
-| Check | A Credo check, or OpenFGA's `Check` request | `docs/code.md` §5; `turnstile_fga` glossary, from S11a |
+| Check | A Credo check | `docs/code.md` §5 |
 | Position | A ledger position: the index of a fact event, taken from the counter row | `apps/turnstile_ledger/glossary.md` |
 | Position | The head position and the applied position a decision carries | `apps/turnstile_core/glossary.md` |
 | Review | `mix turnstile.review` and the port's `review`: who can do what on a date | `apps/turnstile_core/glossary.md` |
@@ -66,3 +66,12 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Fixture | The neutral fixture the conformance suite inserts | `apps/turnstile_core/glossary.md` |
 | Override | The audited privileged read of C10 | `apps/turnstile_example/glossary.md` |
 | Override | `Turnstile.Code.Binding.override/1,2`, a per-process binding for tests | `apps/turnstile_rbac/glossary.md` |
+| Check | The OpenFGA request that answers one question about one tuple | `apps/turnstile_fga/glossary.md` |
+| Object | What a decision is about: the thing a subject asks to act on | `apps/turnstile_core/glossary.md` |
+| Object | An OpenFGA object: the type and the id joined by a colon, which is the unit a store pages reads by | `apps/turnstile_fga/glossary.md` |
+| Projector | The process that drains an adapter's state toward the ledger | `apps/turnstile_core/glossary.md` |
+| Projector | The `Turnstile.Projection` implementation that keeps an OpenFGA store current | `apps/turnstile_fga/glossary.md` |
+| Checkpoint | The position a projection has applied | `apps/turnstile_core/glossary.md` |
+| Checkpoint | The position a store has been drained to, one row per store in the application's own database | `apps/turnstile_fga/glossary.md` |
+| Reconcile | Checking the ledger-fed tables against the ledger on an interval | `apps/turnstile_ledger/glossary.md` |
+| Reconcile | Comparing the fold with what a store reports, paged by object type | `apps/turnstile_fga/glossary.md` |
