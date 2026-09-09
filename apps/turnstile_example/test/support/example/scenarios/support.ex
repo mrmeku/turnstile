@@ -12,6 +12,8 @@ defmodule Example.Scenarios.Support do
   alias Turnstile.Object
   alias Turnstile.Subject
 
+  @stop [:turnstile, :user, :stop]
+
   @doc "The world and the subject of an account."
   @spec subject(String.t()) :: Subject.t()
   defdelegate subject(id), to: Fixture
@@ -73,11 +75,39 @@ defmodule Example.Scenarios.Support do
   end
 
   @doc "The adapter module the boot config names."
-  @spec adapter_name() :: String.t()
-  def adapter_name do
+  @spec adapter() :: module()
+  def adapter do
     {:ok, config} = Turnstile.Config.resolve()
     {adapter, _options} = Turnstile.Config.adapter(config)
-    inspect(adapter)
+    adapter
+  end
+
+  @doc "The adapter module as text, for a report."
+  @spec adapter_name() :: String.t()
+  def adapter_name, do: inspect(adapter())
+
+  @doc """
+  Receive the decision records the port emits from here on, in the calling
+  process. `decisions/1` reads what has arrived.
+  """
+  @spec watch_decisions() :: :ok
+  def watch_decisions do
+    _ref = :telemetry_test.attach_event_handlers(self(), [@stop])
+    :ok
+  end
+
+  @doc "The decision records of one operation, from the stop events received so far."
+  @spec decisions(Turnstile.Id.t()) :: [map()]
+  def decisions(operation_id) do
+    receive do
+      {@stop, _ref, _measurements, %{operation_id: ^operation_id, decision: decision}} ->
+        [decision | decisions(operation_id)]
+
+      {@stop, _ref, _measurements, _metadata} ->
+        decisions(operation_id)
+    after
+      0 -> []
+    end
   end
 
   # credo:disable-for-next-line Credo.Check.Refactor.IoPuts

@@ -13,14 +13,12 @@ defmodule Example.Scenarios.Audit do
   alias Turnstile.Id
   alias Turnstile.PolicyVersion
 
-  @stop [:turnstile, :user, :stop]
-
   @spec aud_01() :: term()
   def aud_01 do
     world = Fixture.world!()
     document = Fixture.document!(world)
     operation_id = Id.new()
-    _ref = :telemetry_test.attach_event_handlers(self(), [@stop])
+    :ok = watch_decisions()
     assert_read(subject("ann"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
     assert decision.subject == %{id: "ann", kind: "user", session_id: nil}
@@ -36,7 +34,7 @@ defmodule Example.Scenarios.Audit do
     world = Fixture.world!()
     document = Fixture.document!(world)
     operation_id = Id.new()
-    _ref = :telemetry_test.attach_event_handlers(self(), [@stop])
+    :ok = watch_decisions()
     assert_denied(subject("frank"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
     assert decision.verdict == "deny"
@@ -49,7 +47,7 @@ defmodule Example.Scenarios.Audit do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:federal_only, :no_foreign], releasable_to: ["GB"], list: ["ann"])
     operation_id = Id.new()
-    _ref = :telemetry_test.attach_event_handlers(self(), [@stop])
+    :ok = watch_decisions()
     assert_read(subject("ann"), document, operation_id: operation_id)
     assert_denied(subject("bob"), document, operation_id: operation_id)
     assert_denied(subject("carl"), document, operation_id: operation_id)
@@ -135,22 +133,10 @@ defmodule Example.Scenarios.Audit do
 
   defp assert_denied_under(%PolicyVersion{version: expected}, document) do
     operation_id = Id.new()
-    _ref = :telemetry_test.attach_event_handlers(self(), [@stop])
+    :ok = watch_decisions()
     assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end)
     assert_denied(subject("ann"), document, operation_id: operation_id)
     assert [%{policy_version: recorded}] = decisions(operation_id)
     assert recorded == expected
-  end
-
-  defp decisions(operation_id) do
-    receive do
-      {@stop, _ref, _measurements, %{operation_id: ^operation_id, decision: decision}} ->
-        [decision | decisions(operation_id)]
-
-      {@stop, _ref, _measurements, _metadata} ->
-        decisions(operation_id)
-    after
-      0 -> []
-    end
   end
 end
