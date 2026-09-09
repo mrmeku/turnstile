@@ -36,10 +36,14 @@ defmodule ExamplePostgres.MixProject do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]
 
-  # The schema dump task reads this: the owner repo's migrations produce the
-  # committed file, and for this binding that file carries the policies.
+  # What the library's tasks read: the repo whose migrations produce the
+  # committed schema file, which for this binding carries the policies, and
+  # the module that answers the review.
   defp turnstile do
-    [schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/postgres.sql"]]
+    [
+      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/postgres.sql"],
+      review: [reporter: Example.Review]
+    ]
   end
 
   # The example, the adapter, and the ledger's migration helper and dump

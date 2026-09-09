@@ -6,7 +6,24 @@ defmodule Example.Review do
   compares. The reviewer is administrative: the rows the review ranges over
   are read under a declared exemption, and every verdict comes from the
   port, so the report says what the adapter enforces.
+
+  This module is also the reporter `mix turnstile.review` prints, which the
+  thin applications name in their `mix.exs`. The task asks two different
+  questions and this module answers each from the place that can answer it.
+  Today's rows come from the port, one per subject, operation, and document
+  the subject may act on, with every privileged account and the roles it
+  holds. The rows of a past date come from the ledger, whose fold at that
+  date holds the grants that stood then; the tables cannot answer for a
+  date, and where the configuration names no ledger the review says so by
+  raising rather than answering for today.
+
+  A review of `change_marking` asks what a role may do rather than what one
+  session may do, so the call carries a re-authentication as of the clock
+  the configuration names: without it every marking row would be absent for
+  a reason that is the session's and not the role's.
   """
+
+  @behaviour Turnstile.Ledger.Review
 
   import Ecto.Query, only: [from: 2]
 
@@ -16,10 +33,16 @@ defmodule Example.Review do
   alias Example.Documents
   alias Example.Repo
   alias Example.User
+  alias Turnstile.Config
+  alias Turnstile.Error
+  alias Turnstile.Ledger.Replay
+  alias Turnstile.Ledger.Review.Row
   alias Turnstile.Object
   alias Turnstile.Subject
 
   @review {:exempt, "access review: the population the reviewer ranges over"}
+
+  @reviewer %Subject{id: "turnstile.review", kind: :privileged}
 
   @typedoc "Per subject, per operation, the ids of the documents the subject may act on."
   @type permissions :: %{Subject.t() => %{atom() => [integer()]}}
@@ -58,6 +81,100 @@ defmodule Example.Review do
       end)
 
     Enum.join(lines ++ privileged_lines(), "\n") <> "\n"
+  end
+
+  @doc """
+  The rows the task prints: today's from the port, a past date's from the
+  fold of the ledger stopped at the end of that date. Raises
+  `Turnstile.Error.Unsupported` when a date is asked for and the
+  configuration names no ledger.
+  """
+  @impl Turnstile.Ledger.Review
+  def rows(options) when is_list(options) do
+    case Keyword.get(options, :at) do
+      nil -> today()
+      %Date{} = date -> as_of(date)
+    end
+  end
+
+  @doc "The subject the task's review is recorded under: the reviewer names the record, not the reader."
+  @spec reviewer() :: Subject.t()
+  def reviewer, do: @reviewer
+
+  defp today do
+    {:ok, config} = Config.resolve()
+    opts = [facts: %{reauthenticated_at: config.clock.now()}]
+    agencies = Repo.all(agencies(), turnstile: @review)
+    Enum.flat_map(agencies, &agency_rows(&1, opts)) ++ privileged_rows()
+  end
+
+  defp agency_rows(agency, opts) do
+    @reviewer
+    |> permissions(agency, opts)
+    |> Enum.sort_by(fn {subject, _by_operation} -> subject.id end)
+    |> Enum.flat_map(fn {subject, by_operation} -> subject_rows(subject, by_operation, agency) end)
+  end
+
+  defp subject_rows(subject, by_operation, agency) do
+    for operation <- Documents.operations(), id <- by_operation[operation] || [] do
+      %Row{
+        subject: subject.id,
+        kind: subject.kind,
+        operation: operation,
+        object: "document:#{id}",
+        note: "agency #{agency.name}"
+      }
+    end
+  end
+
+  defp privileged_rows do
+    for {user, roles} <- Accounts.privileged(), role <- roles do
+      %Row{subject: user.id, kind: :privileged, operation: role, object: "-", note: "person #{user.person_id}"}
+    end
+  end
+
+  # The grants the fold holds at the end of the date, which is what the
+  # review of a past date is: one row per relationship, under the kind the
+  # fact mapping names a subject by.
+  defp as_of(%Date{} = date) do
+    {:ok, replay} = Replay.at(ledger!(date), DateTime.new!(date, ~T[23:59:59.999999]))
+
+    replay.fold.facts
+    |> Enum.filter(&granted?/1)
+    |> Enum.sort()
+    |> Enum.map(&granted_row(&1, replay))
+  end
+
+  defp granted?({{{:user, _id}, {_type, _object_id}, nil}, value}), do: not is_nil(value)
+  defp granted?({_key, _value}), do: false
+
+  defp granted_row({{{:user, id}, {type, object_id}, nil}, role}, replay) do
+    %Row{
+      subject: id,
+      kind: :user,
+      operation: role,
+      object: "#{type}:#{object_id}",
+      note: "as of position #{replay.position}"
+    }
+  end
+
+  defp ledger!(date) do
+    case Config.resolve() do
+      {:ok, %Config{ledger: :none} = config} -> raise Error.Unsupported, unsupported(config, date)
+      {:ok, %Config{ledger: ledger}} -> ledger
+    end
+  end
+
+  defp unsupported(%Config{} = config, date) do
+    {adapter, _options} = Config.adapter(config)
+
+    [
+      adapter: adapter,
+      feature: :point_in_time_review,
+      note:
+        "the boot configuration names no ledger, and the review of #{Date.to_iso8601(date)} " <>
+          "is the fold of one; the tables hold today"
+    ]
   end
 
   defp reader_lines(reviewer, agency, opts) do

@@ -137,6 +137,7 @@ defmodule Example.Scenarios.Ledger do
     refute document.id in reads_of("ann", world.agency)
     refute Map.has_key?(Reconcile.facts(options(), [Assignment]), membership("ann", world.program))
     assert_folds_to(at, assignments)
+    assert_reviews_as_folded(at)
   end
 
   @spec rvw_03() :: term()
@@ -224,6 +225,20 @@ defmodule Example.Scenarios.Ledger do
     assert Enum.map(written, & &1.attribute) == [:decontrol, :decontrol, :decontrol]
     assert Enum.map(written, & &1.object_ref) == for(document <- documents, do: {:document, document.id})
     assert {record.min_position, record.max_position} == {hd(written).position, List.last(written).position}
+  end
+
+  # The rows the reporter answers for a past date, against the grants the
+  # fold holds there: the review of a date is the fold stopped at it.
+  defp assert_reviews_as_folded(at) do
+    date = DateTime.to_date(at)
+    assert {:ok, replay} = Replay.at(ledger(), DateTime.new!(date, ~T[23:59:59.999999]))
+    rows = Review.rows(at: date)
+    assert rows != []
+    assert Enum.map(rows, &{&1.subject, &1.object, &1.operation}) == Enum.sort(granted(replay))
+  end
+
+  defp granted(replay) do
+    for {{{:user, id}, {type, object_id}, nil}, role} <- replay.fold.facts, role, do: {id, "#{type}:#{object_id}", role}
   end
 
   # The fold of the ledger as it stood at that moment, over the facts the
