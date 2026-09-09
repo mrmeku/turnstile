@@ -115,7 +115,7 @@ defmodule Example.Fixture do
       Repo.insert!(
         %Document{
           title: Keyword.get(opts, :title, "document"),
-          decontrol: opts[:decontrol],
+          decontrol: opts[:decontrol] && DateTime.truncate(opts[:decontrol], :second),
           program_id: program.id,
           designating_office_id: office.id
         },

@@ -201,7 +201,7 @@ defmodule Example.Scenarios.Enforcement do
         ]
       )
 
-    :ok = Fixture.set_list!(document, ["carl"])
+    _marking = Fixture.set_list!(document, ["carl"])
 
     for subject <- Enum.shuffle(Fixture.subjects()) do
       {rule, decision} = Turnstile.scope(subject, :read, :portion)

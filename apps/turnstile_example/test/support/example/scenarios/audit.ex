@@ -24,7 +24,7 @@ defmodule Example.Scenarios.Audit do
     assert_read(subject("ann"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
     assert decision.subject == %{id: "ann", kind: "user", session_id: nil}
-    assert decision.object == {"document", document.id}
+    assert decision.object == %{type: "document", id: document.id}
     assert decision.operation == "read"
     assert decision.verdict == "allow"
     assert decision.operation_id == operation_id
