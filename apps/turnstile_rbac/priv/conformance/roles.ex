@@ -6,7 +6,10 @@ defmodule Turnstile.Code.Conformance do
   loads them.
   """
 
-  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Code, Turnstile.Fixture, Ecto], exports: [Predicates, Roles]
+  use Boundary,
+    top_level?: true,
+    deps: [Turnstile, Turnstile.Code, Turnstile.Fixture, Ecto],
+    exports: [Predicates, Roles]
 end
 
 defmodule Turnstile.Code.Conformance.Roles do
