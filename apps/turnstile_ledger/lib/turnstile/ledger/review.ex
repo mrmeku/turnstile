@@ -78,8 +78,11 @@ defmodule Turnstile.Ledger.Review do
     header(at, length(rows)) <> "\n\n" <> layout([@columns | Enum.map(rows, &Row.cells/1)])
   end
 
-  defp header(nil, count), do: "who can do what, today: #{count} rows"
-  defp header(%Date{} = at, count), do: "who can do what, on #{Date.to_iso8601(at)}: #{count} rows"
+  defp header(nil, count), do: "who can do what, today: #{counted(count)}"
+  defp header(%Date{} = at, count), do: "who can do what, on #{Date.to_iso8601(at)}: #{counted(count)}"
+
+  defp counted(1), do: "1 row"
+  defp counted(count), do: "#{count} rows"
 
   defp layout(cells) do
     widths =
