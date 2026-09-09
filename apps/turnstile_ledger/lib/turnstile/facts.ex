@@ -131,12 +131,12 @@ defmodule Turnstile.Facts do
     olds = locked(context, narrowed)
     :returning = rows_back!(context)
     {_count, news} = context.repo.update_all(returning(narrowed), updates, context.opts)
-    settle(context, :update, length(news), changes(context, olds, news))
+    settle(context, :update, length(news), changes(context, olds, ordered(news)))
   end
 
   defp recorded_delete(context, queryable) do
     {_count, rows} = context.repo.delete_all(returning(queryable), context.opts)
-    events = Enum.flat_map(rows, &Repo.Facts.events(context.schema, &1, nil, context.stamp))
+    events = Enum.flat_map(ordered(rows), &Repo.Facts.events(context.schema, &1, nil, context.stamp))
     settle(context, :delete, length(rows), events)
   end
 
@@ -146,6 +146,13 @@ defmodule Turnstile.Facts do
     events = Enum.flat_map(rows, &Repo.Facts.events(context.schema, nil, &1, context.stamp))
     settle(context, :insert, length(rows), events)
   end
+
+  # The rows a write returned, by key. A database answers an `UPDATE` or a
+  # `DELETE` with its rows in the order it wrote them, which is the order the
+  # query plan chose, so the events of one bulk write would take their
+  # positions differently under a plan that changed. Ordering them by key
+  # makes the range one bulk write occupies the same range every time.
+  defp ordered(rows), do: Enum.sort_by(rows, &Ecto.primary_key/1)
 
   defp changes(context, olds, news) do
     before = Map.new(olds, &{Ecto.primary_key(&1), &1})
