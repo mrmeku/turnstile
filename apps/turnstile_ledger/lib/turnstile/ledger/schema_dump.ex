@@ -34,12 +34,13 @@ defmodule Turnstile.Ledger.SchemaDump do
   @spec dump(keyword()) :: Path.t()
   def dump(options) when is_list(options) do
     options = NimbleOptions.validate!(options, @schema)
+    migrations = loaded(options[:migrations])
 
     cluster =
       Cluster.start(
         otp_app: options[:otp_app] || options[:repo].config()[:otp_app],
         repos: [{options[:repo], role: :owner, database: :sandboxed, pool_size: 2}],
-        migrate: &migrate!(&1, options[:migrations])
+        migrate: &migrate!(&1, migrations)
       )
 
     try do
@@ -54,6 +55,25 @@ defmodule Turnstile.Ledger.SchemaDump do
   defp migrate!(repo, migrations) do
     _versions = Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
     :ok
+  end
+
+  # The files of a directory, loaded once: the cluster migrates each of its
+  # databases, and loading the files per database would redefine their
+  # modules.
+  defp loaded(pairs) when is_list(pairs), do: pairs
+
+  defp loaded(directory) when is_binary(directory) do
+    directory
+    |> Path.join("*.exs")
+    |> Path.wildcard()
+    |> Enum.sort()
+    |> Enum.map(&loaded_file/1)
+  end
+
+  defp loaded_file(file) do
+    {version, _name} = Integer.parse(Path.basename(file))
+    [{module, _binary} | _rest] = Code.require_file(file) || Code.compile_file(file)
+    {version, module}
   end
 
   defp schema_sql(%Cluster{} = cluster) do
