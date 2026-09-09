@@ -7,7 +7,8 @@ defmodule Turnstile.Fga.Client.Fake do
   What it copies from the server is what a caller can get wrong. A write is
   atomic per call: a call that carries a duplicate write, a delete of a tuple
   the store does not hold, a tuple key on both of its sides, or more changes
-  than one call may carry changes nothing at all. Deletes and writes are
+  than one call may carry changes nothing at all. A batch of more checks
+  than one call may carry is refused the same way. Deletes and writes are
   matched by the tuple key alone, so a tuple written again with another
   condition is a duplicate.
 
@@ -93,9 +94,11 @@ defmodule Turnstile.Fga.Client.Fake do
 
   @impl Client
   def batch_check(agent, store, %BatchCheck{} = request) do
-    answer(agent, :batch_check, store, request, fn tuples ->
-      {:ok, Map.new(request.checks, fn {id, key} -> {id, Map.has_key?(tuples, TupleKey.key(key))} end)}
-    end)
+    with :ok <- counted(request) do
+      answer(agent, :batch_check, store, request, fn tuples ->
+        {:ok, Map.new(request.checks, fn {id, key} -> {id, Map.has_key?(tuples, TupleKey.key(key))} end)}
+      end)
+    end
   end
 
   @impl Client
@@ -182,6 +185,14 @@ defmodule Turnstile.Fga.Client.Fake do
 
   defp allowed(%{fail_after: 0}), do: {:error, Client.error(:write, "the fake was asked to fail this write")}
   defp allowed(%{}), do: :ok
+
+  defp counted(%BatchCheck{checks: checks}) do
+    if length(checks) > Client.max_checks_per_batch() do
+      {:error, Client.error(:batch_check, "the call carries #{length(checks)} checks, above the limit of one call")}
+    else
+      :ok
+    end
+  end
 
   defp limited(%Write{} = request) do
     changes = length(request.deletes) + length(request.writes)

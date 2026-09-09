@@ -32,6 +32,7 @@ defmodule Turnstile.Fga.Client do
   alias Turnstile.Fga.Client.Write
 
   @max_tuples_per_write 100
+  @max_checks_per_batch 50
 
   @typedoc "Where the server is: the address of one, or the process a fake runs on."
   @type endpoint :: String.t() | pid() | GenServer.name()
@@ -75,6 +76,14 @@ defmodule Turnstile.Fga.Client do
   """
   @spec max_tuples_per_write() :: pos_integer()
   def max_tuples_per_write, do: @max_tuples_per_write
+
+  @doc """
+  How many checks one `batch_check/3` carries. This is the pinned server's
+  own limit as well, and it is lower than the cap on identifiers a rule may
+  carry, so a batch over more objects than this is more than one call.
+  """
+  @spec max_checks_per_batch() :: pos_integer()
+  def max_checks_per_batch, do: @max_checks_per_batch
 
   @doc "An engine error from this adapter, naming the call it came from."
   @spec error(atom(), String.t()) :: Error.Engine.t()
