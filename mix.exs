@@ -49,7 +49,7 @@ defmodule Turnstile.Umbrella.MixProject do
     [ignore_advisories: ["CVE-2026-32686"]]
   end
 
-  # docs/code.md §5. The test step is a function so CI can add --partitions
+  # docs/code.md §5. The test step is the `test` alias, so CI adds --partitions
   # through MIX_TEST_PARTITION without a second alias.
   defp aliases do
     [
@@ -64,18 +64,25 @@ defmodule Turnstile.Umbrella.MixProject do
         "deps.unlock --check-unused",
         "deps.audit --ignore-advisory-ids GHSA-rhv4-8758-jx7v",
         "docs --warnings-as-errors",
-        &run_tests/1
-      ]
+        "test"
+      ],
+      test: &run_tests/1
     ]
   end
 
-  defp run_tests(_args) do
+  # `mix test` at the root, and the alias's test step, run each app's suite in
+  # an operating-system process of its own. The umbrella's own recursion starts
+  # every application in one VM before the first suite runs, and the two thin
+  # applications bind the same example modules, the repos and the audit store
+  # among them, so one VM cannot hold both. A process per app also gives each
+  # suite a cluster of its own. Arguments pass through to each app's run.
+  defp run_tests(args) do
     partitions =
       case System.get_env("MIX_TEST_PARTITION") do
         nil -> []
         _set -> ["--partitions", System.get_env("MIX_TEST_PARTITIONS", "4")]
       end
 
-    Mix.Task.run("test", ["--warnings-as-errors", "--cover"] ++ partitions)
+    Mix.Task.run("cmd", ["mix", "test", "--warnings-as-errors", "--cover"] ++ partitions ++ args)
   end
 end

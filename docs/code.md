@@ -181,7 +181,7 @@ end
 ]
 ```
 
-`turnstile_example` and each thin app add `sobelow --config --exit` to their own alias. The lock check runs at the root alone, where every app's dependencies are known; the root's `quality` is part of every stage's gate. Tier 1's property tests and shape tests run under `mix test`, so the gate checks the seam's shape too; `mix turnstile.bench` is on demand and not part of the gate. The thin-app CI jobs (`docs/testing.md` §7) run after `quality` and add the schema dump.
+At the root the test step is `mix cmd mix test`, which runs each app's suite in an operating-system process of its own: the umbrella's recursion starts every application in one VM, and the two thin applications bind the same example modules, so one VM cannot hold both (`docs/testing.md` §3). `turnstile_example` and each thin app add `sobelow --config --exit` to their own alias. The lock check runs at the root alone, where every app's dependencies are known; the root's `quality` is part of every stage's gate. Tier 1's property tests and shape tests run under `mix test`, so the gate checks the seam's shape too; `mix turnstile.bench` is on demand and not part of the gate. The thin-app CI jobs (`docs/testing.md` §7) run after `quality` and add the schema dump.
 
 ## 6. Known gaps, and what covers each
 
