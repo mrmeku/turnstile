@@ -1,8 +1,9 @@
 defmodule ExampleRbac.Rules do
   @moduledoc """
-  The two policy operations the scenarios need from this binding: a
-  tightened policy, under which a program member no longer reads, bound and
-  published for the calling process; and the boot policy restored.
+  The policy operations the scenarios need from this binding: a tightened
+  policy, under which a program member no longer reads, bound and published
+  for the calling process; the boot policy restored; and the boot policy
+  published again, which is what the boot itself does.
   """
 
   @behaviour Example.Scenarios.Rules
@@ -25,4 +26,10 @@ defmodule ExampleRbac.Rules do
 
   @impl Rules
   def restore, do: Binding.override(policy: ExampleRbac.Policy)
+
+  @impl Rules
+  def publish_boot do
+    {:ok, _published} = Turnstile.Code.publish()
+    :ok
+  end
 end
