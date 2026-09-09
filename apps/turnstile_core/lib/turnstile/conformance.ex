@@ -19,5 +19,5 @@ defmodule Turnstile.Conformance do
       StreamData,
       Mox
     ],
-    exports: [AdapterCase, AdapterCase.Laws, Case, Gen, Projected, RepoCase, Scenario, Scenarios, Seed]
+    exports: [AdapterCase, AdapterCase.Laws, Case, Gen, LedgerCase, Projected, RepoCase, Scenario, Scenarios, Seed]
 end

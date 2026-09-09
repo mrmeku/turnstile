@@ -58,6 +58,25 @@ defmodule Turnstile.Ledger.FoldTest do
     assert facts == %{{nil, @folder, :marking} => "secret"}
   end
 
+  test "a published version states no fact, and the fold carries its position and time and nothing else" do
+    inserted = event(1, [])
+
+    version = %Turnstile.PolicyVersion{
+      adapter: Turnstile.Adapter.Fake,
+      version: "abc123",
+      content_hash: "sha256-1",
+      author: "an author",
+      approval: "a change ticket",
+      at: ~U[2026-01-01 00:00:02Z]
+    }
+
+    published = event(2, kind: :policy_version, subject_ref: nil, object_ref: nil, attribute: nil, new: version)
+
+    assert %Fold{facts: facts, position: 2, at: at} = Fold.fold([inserted, published])
+    assert facts == %{{@user, @folder, nil} => :reader}
+    assert at == published.at
+  end
+
   test "fold_into continues from a fold; at and to stop at a time or a position" do
     events = [event(1, []), event(2, attribute: :role, old: :reader, new: :editor), event(3, old: :editor, new: nil)]
     first = Fold.fold(Enum.take(events, 1))
