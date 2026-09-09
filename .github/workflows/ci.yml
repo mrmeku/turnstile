@@ -75,3 +75,20 @@ jobs:
       # The sidecar the suite starts is the `cerbos` binary the flake pins, on
       # a copy of the policy files under `tmp/`, so the run needs no container.
       - run: nix develop --command bash -c 'cd apps/example_cerbos && mix test --warnings-as-errors --cover'
+
+  example_fga:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: DeterminateSystems/nix-installer-action@v22
+      - run: nix develop --command mix deps.get
+      # The fifth migration of this application creates the projector's
+      # checkpoint, one row per store, which is the position every decision
+      # reports as the state the engine could have seen.
+      - run: nix develop --command bash -c 'cd apps/example_fga && mix turnstile.schema_dump'
+      - run: git diff --exit-code priv/schema/
+        working-directory: apps/example_fga
+      # The server the suite asks is the `openfga` binary the flake pins, on a
+      # free port with the in-memory datastore, so the run needs no container
+      # and leaves nothing behind.
+      - run: nix develop --command bash -c 'cd apps/example_fga && mix test --warnings-as-errors --cover'

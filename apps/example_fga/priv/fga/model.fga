@@ -1,0 +1,103 @@
+model
+  schema 1.1
+
+type user
+
+type country
+  relations
+    define member: [user]
+
+type employment
+  relations
+    define member: [user]
+
+type agency
+  relations
+    define domestic: [country]
+    define federal: [employment]
+    define operator: [user]
+    define domestic_member: member from domestic
+    define federal_member: member from federal
+
+type office
+  relations
+    define agency: [agency]
+    define designator: [user]
+    define approver: [user]
+    define member: designator or approver
+    define domestic_member: domestic_member from agency
+    define federal_member: federal_member from agency
+    define operator: operator from agency
+
+type program
+  relations
+    define lead: [user]
+    define member: [user] or lead
+
+type category
+  relations
+    define fedonly_applies: [user:*]
+    define noforn_applies: [user:*]
+
+type document
+  relations
+    define program: [program]
+    define designating_office: [office]
+    define portion: [portion]
+    define category: [category, category with before_decontrol]
+    define listed: [user]
+    define releasable_to: [country]
+
+    define fedonly_applies: [user:*, user:* with before_decontrol] or fedonly_applies from category or fedonly_applies from portion
+    define noforn_applies: [user:*, user:* with before_decontrol] or noforn_applies from category or noforn_applies from portion
+    define relto_applies: [user:*, user:* with before_decontrol] or relto_applies from portion
+    define list_applies: [user:*, user:* with before_decontrol] or list_applies from portion
+
+    define lawful_purpose: member from program or member from designating_office
+    define fedonly_clear: federal_member from designating_office
+    define noforn_clear: domestic_member from designating_office
+    define relto_clear: member from releasable_to
+
+    define blocked_by_fedonly: fedonly_applies but not fedonly_clear
+    define blocked_by_noforn: noforn_applies but not noforn_clear
+    define blocked_by_relto: relto_applies but not relto_clear
+    define blocked_by_list: list_applies but not listed
+    define blocked: blocked_by_fedonly or blocked_by_noforn or blocked_by_relto or blocked_by_list
+
+    define can_read: lawful_purpose but not blocked
+    define can_read_redacted: lawful_purpose
+    define can_change_marking: designator from designating_office
+    define can_set_decontrol: can_change_marking
+    define can_decontrol: can_change_marking
+    define can_propose_marking: can_change_marking
+    define can_override: operator from designating_office
+
+type portion
+  relations
+    define document: [document]
+    define category: [category, category with before_decontrol]
+    define listed: listed from document
+    define releasable_to: [country]
+
+    define fedonly_applies: [user:*, user:* with before_decontrol] or fedonly_applies from category
+    define noforn_applies: [user:*, user:* with before_decontrol] or noforn_applies from category
+    define relto_applies: [user:*, user:* with before_decontrol]
+    define list_applies: [user:*, user:* with before_decontrol]
+
+    define fedonly_clear: fedonly_clear from document
+    define noforn_clear: noforn_clear from document
+    define relto_clear: member from releasable_to
+
+    define blocked: (fedonly_applies but not fedonly_clear) or (noforn_applies but not noforn_clear) or (relto_applies but not relto_clear) or (list_applies but not listed)
+    define can_read: can_read_redacted from document but not blocked
+    define can_change_marking: can_change_marking from document
+
+type proposal
+  relations
+    define office: [office]
+    define proposer: [user]
+    define can_approve_marking: approver from office but not proposer
+
+condition before_decontrol(decontrol_at: timestamp, current_time: timestamp) {
+  current_time < decontrol_at
+}
