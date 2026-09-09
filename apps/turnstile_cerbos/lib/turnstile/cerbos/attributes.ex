@@ -13,6 +13,10 @@ defmodule Turnstile.Cerbos.Attributes do
         resource :document, schema: MyApp.Document do
           attribute :effective_controls, subquery: &MyApp.Markings.effective_controls_for/1
         end
+
+        environment do
+          fact :reauthenticated_at
+        end
       end
 
   A `principal` block names a subject kind and the schema whose row is the
@@ -20,14 +24,23 @@ defmodule Turnstile.Cerbos.Attributes do
   are the objects. Inside either, `attribute/2` maps a name the policies use
   to a column or to a subquery (`Turnstile.Cerbos.Attribute`).
 
+  An `environment` block names the request-time facts a policy may read.
+  They come from the caller rather than from a row, and they reach the
+  policies as the principal attribute `Turnstile.Cerbos.Attribute.reserved/0`
+  beside the moment the port stamped the request with, which travels
+  whether anything is declared or not
+  (`Turnstile.Cerbos.Values.environment/2`). A fact the caller did not
+  supply goes as nothing rather than being left out.
+
   Two rules follow from the declarations, and they are the reason the
   declarations exist rather than the adapter sending whatever it finds.
-  The adapter sends the sidecar the declared attributes and nothing else,
-  so a policy cannot come to depend on a value no one declared. And the
-  query plan the sidecar returns is compiled over declared attributes
-  alone, so a plan that reads anything else is a plan this adapter refuses
-  to turn into a query. What the columns behind them must also be is a
-  declared fact, which `Turnstile.Cerbos.Coverage` checks.
+  The adapter sends the sidecar the declared attributes and the declared
+  request-time facts and nothing else, so a policy cannot come to depend on
+  a value no one declared. And the query plan the sidecar returns is
+  compiled over declared attributes alone, so a plan that reads anything
+  else is a plan this adapter refuses to turn into a query. What the columns
+  behind them must also be is a declared fact of the application, which
+  `Turnstile.Cerbos.Coverage` checks.
 
   A module that used this one answers `__turnstile_cerbos__/1`, and the
   functions here read the declarations through it, so what a declaration
@@ -53,10 +66,11 @@ defmodule Turnstile.Cerbos.Attributes do
   @doc false
   defmacro __using__(_options) do
     quote do
-      import Turnstile.Cerbos.Attributes, only: [attribute: 2, principal: 3, resource: 3]
+      import Turnstile.Cerbos.Attributes, only: [attribute: 2, environment: 1, principal: 3, resource: 3]
 
       Module.register_attribute(__MODULE__, :turnstile_cerbos_kinds, accumulate: true)
       Module.register_attribute(__MODULE__, :turnstile_cerbos_declared, accumulate: true)
+      Module.register_attribute(__MODULE__, :turnstile_cerbos_facts, accumulate: true)
       Module.put_attribute(__MODULE__, :turnstile_cerbos_current, nil)
 
       @before_compile Turnstile.Cerbos.Attributes
@@ -68,6 +82,14 @@ defmodule Turnstile.Cerbos.Attributes do
 
   @doc "Declare the attributes of an object type, read from the rows the objects name."
   defmacro resource(kind, options, do: block), do: kind(:resource, kind, options, block, __CALLER__)
+
+  @doc """
+  Declare the request-time facts the policies may read, each with
+  `fact :name`, where the name is the key the caller's facts carry.
+  """
+  defmacro environment(do: block) do
+    {:__block__, [], Enum.map(fact_names(block), &quote(do: @turnstile_cerbos_facts(unquote(&1))))}
+  end
 
   @doc "Declare one attribute of the block it stands in: `column:` or `subquery:`."
   defmacro attribute(name, options) do
@@ -85,9 +107,10 @@ defmodule Turnstile.Cerbos.Attributes do
   defmacro __before_compile__(_env) do
     quote do
       @doc false
-      @spec __turnstile_cerbos__(:kinds | :declared) :: term()
+      @spec __turnstile_cerbos__(:kinds | :declared | :facts) :: term()
       def __turnstile_cerbos__(:kinds), do: Enum.reverse(@turnstile_cerbos_kinds)
       def __turnstile_cerbos__(:declared), do: Enum.reverse(@turnstile_cerbos_declared)
+      def __turnstile_cerbos__(:facts), do: Enum.reverse(@turnstile_cerbos_facts)
     end
   end
 
@@ -100,6 +123,10 @@ defmodule Turnstile.Cerbos.Attributes do
   def declares?(module) when is_atom(module) do
     Code.ensure_loaded?(module) and function_exported?(module, :__turnstile_cerbos__, 1)
   end
+
+  @doc "The request-time facts declared, in the order they were written."
+  @spec facts(t()) :: [atom()]
+  def facts(module) when is_atom(module), do: module.__turnstile_cerbos__(:facts)
 
   @doc "The subject kinds and object types declared, with the side each is on and its schema."
   @spec kinds(t()) :: [kind()]
@@ -143,6 +170,17 @@ defmodule Turnstile.Cerbos.Attributes do
   @spec find(t(), atom(), atom()) :: Attribute.t() | nil
   def find(module, kind, name) when is_atom(module) and is_atom(kind) and is_atom(name) do
     Enum.find(attributes_of(module, kind), &(&1.name == name))
+  end
+
+  # The block is read where it stands rather than by a macro per fact,
+  # so an expression that is not a fact declaration is refused as one.
+  defp fact_names({:__block__, _meta, declarations}), do: Enum.map(declarations, &fact_name/1)
+  defp fact_names(declaration), do: [fact_name(declaration)]
+
+  defp fact_name({:fact, _meta, [name]}) when is_atom(name), do: name
+
+  defp fact_name(other) do
+    raise ArgumentError, "an environment block declares a fact with `fact :name`, not #{Macro.to_string(other)}"
   end
 
   defp kind(side, kind, options, block, caller) do

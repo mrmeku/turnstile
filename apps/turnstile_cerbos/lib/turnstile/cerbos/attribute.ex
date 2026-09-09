@@ -12,6 +12,11 @@ defmodule Turnstile.Cerbos.Attribute do
   attribute declared this way gets the list of its values, since its id is
   the only one asked about.
 
+  The name `environment` is not one a declaration may take: it is the
+  principal attribute the request-time facts travel under, so a declaration
+  of that name would put a row's value where the moment of the request
+  goes.
+
   The two sources differ in what a query plan can be compiled to. A column
   becomes a comparison on the row. A subquery becomes membership in the
   ids the subquery selects, which is why a rule that tests a subject's
@@ -29,6 +34,8 @@ defmodule Turnstile.Cerbos.Attribute do
             ]
           )
 
+  @reserved :environment
+
   @enforce_keys [:name, :source]
   defstruct [:name, :source]
 
@@ -37,6 +44,10 @@ defmodule Turnstile.Cerbos.Attribute do
 
   @type t :: %__MODULE__{name: atom(), source: source()}
 
+  @doc "The attribute name the request-time facts travel under, which no declaration may take."
+  @spec reserved() :: atom()
+  def reserved, do: @reserved
+
   @doc "The schema of an attribute declaration's options."
   @spec options_schema() :: NimbleOptions.t()
   def options_schema, do: @schema
@@ -44,7 +55,8 @@ defmodule Turnstile.Cerbos.Attribute do
   @doc "The declaration, or the reason it is not one."
   @spec new(atom(), keyword()) :: {:ok, t()} | {:error, Error.Invalid.t()}
   def new(name, options) when is_atom(name) and is_list(options) do
-    with {:ok, validated} <- validate(name, options),
+    with :ok <- available(name),
+         {:ok, validated} <- validate(name, options),
          {:ok, source} <- source(name, validated) do
       {:ok, %__MODULE__{name: name, source: source}}
     end
@@ -63,6 +75,9 @@ defmodule Turnstile.Cerbos.Attribute do
   @spec column?(t()) :: boolean()
   def column?(%__MODULE__{source: {:column, _column}}), do: true
   def column?(%__MODULE__{}), do: false
+
+  defp available(@reserved), do: {:error, invalid(@reserved, "is the name the request-time facts travel under")}
+  defp available(_name), do: :ok
 
   defp validate(name, options) do
     case NimbleOptions.validate(options, @schema) do

@@ -1,8 +1,11 @@
 defmodule Turnstile.CerbosTest do
   use ExUnit.Case, async: true
 
+  alias Turnstile.Answer
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Conformance.Attributes
+  alias Turnstile.Cerbos.Sidecar
+  alias Turnstile.Cerbos.Version
   alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
@@ -13,6 +16,42 @@ defmodule Turnstile.CerbosTest do
 
   @ann %Subject{id: "ann", kind: :user}
   @folder %Object{type: :folder, id: 1}
+
+  @window ~s|
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  version: default
+  resource: folder
+  rules:
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["user"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.principal.attr.environment.reauthenticated_at != null
+              - expr: >
+                  timestamp(request.principal.attr.environment.now) -
+                  timestamp(request.principal.attr.environment.reauthenticated_at) < duration("900s")
+|
+
+  defmodule Window do
+    @moduledoc false
+    use Turnstile.Cerbos.Attributes
+
+    alias Turnstile.Fixture.Account
+
+    principal :user, schema: Account do
+    end
+
+    resource :folder, schema: Folder do
+    end
+
+    environment do
+      fact(:reauthenticated_at)
+    end
+  end
 
   setup do
     sidecar = Test.Cerbos.info()
@@ -46,6 +85,22 @@ defmodule Turnstile.CerbosTest do
       assert {:error, %Error.Engine{operation: ^operation} = error} = call.()
       assert error.detail == "Turnstile.Fixture.Folder did not use Turnstile.Cerbos.Attributes"
     end
+  end
+
+  test "a policy that reads a request-time fact is answered from the moment the request carries" do
+    sidecar = Sidecar.replayed!(Version.to_text([{"folder.yaml", @window}]))
+    :ok = Binding.override(repo: Sandboxed, attributes: Window, policies: sidecar.policies, commit: "window")
+    now = ~U[2026-09-09 12:00:00Z]
+    options = [address: sidecar.address]
+
+    fresh = %Environment{now: now, facts: %{reauthenticated_at: DateTime.shift(now, minute: -1)}}
+    assert {:ok, %Answer{verdict: :allow}} = Turnstile.Cerbos.check(@ann, :read, @folder, fresh, options)
+
+    stale = %Environment{now: now, facts: %{reauthenticated_at: DateTime.shift(now, second: -901)}}
+    assert {:ok, %Answer{verdict: :deny}} = Turnstile.Cerbos.check(@ann, :read, @folder, stale, options)
+
+    absent = %Environment{now: now}
+    assert {:ok, %Answer{verdict: :deny}} = Turnstile.Cerbos.check(@ann, :read, @folder, absent, options)
   end
 
   # A decision for one row is one explanation with the answer taken out of

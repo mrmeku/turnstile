@@ -20,7 +20,22 @@ The adapter whose rules are policy files and whose decisions come from a sidecar
 
 ## What the sidecar is told
 
-The declarations bound the request in both directions. What reaches the sidecar is the declared attributes and a role per subject kind, so a policy says which kinds it answers for by naming roles, and nothing else about the subject travels. The environment's caller-supplied facts do not travel at all: a policy cannot come to depend on a value no declaration names, and a value no declaration names cannot reach a decision that a ledger would later have to replay.
+The declarations bound the request in both directions. What reaches the sidecar is the declared attributes and a role per subject kind, so a policy says which kinds it answers for by naming roles, and nothing else about the subject travels. A policy cannot come to depend on a value no declaration names, and a value no declaration names cannot reach a decision that a ledger would later have to replay.
+
+The moment of the request travels too, and so does each request-time fact an `environment` block declares, as one principal attribute named `environment` holding them:
+
+```elixir
+environment do
+  fact :reauthenticated_at
+end
+```
+
+```
+request.principal.attr.environment.now
+request.principal.attr.environment.reauthenticated_at
+```
+
+The moment comes from the port's clock rather than the sidecar's, so two calls in one request read the same one. A declared fact the caller did not supply travels as null, since an attribute that is absent makes the sidecar record an evaluation error where the answer is sound. Every moment among them is cut to the second first: a policy compares them as text, a plan compiled from the same policy compares a column of the same moment in the database, and the two readings agree only where the precision does. A fact no `environment` block names does not travel, and `environment` is not a name a declaration of a row's value may take.
 
 The same declarations bound the other direction. A query plan is compiled over declared attributes alone, and the columns behind them are what `Turnstile.Cerbos.Coverage` sets against the fact declarations of their schemas.
 

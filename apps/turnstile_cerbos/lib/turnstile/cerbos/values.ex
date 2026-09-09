@@ -14,6 +14,15 @@ defmodule Turnstile.Cerbos.Values do
   A value crosses to JSON as itself where JSON has it, and as text where it
   does not: an `Ecto.Enum` column reaches the sidecar as the string the
   column holds, a date as its ISO 8601 form.
+
+  The request-time facts go with the subject's own attributes, under the
+  name `Turnstile.Cerbos.Attribute.reserved/0`, and `environment/2` builds
+  them: the moment the port stamped the request with, always, and each fact
+  an `environment` block declared, whether the caller supplied it or not.
+  Every moment among them is cut to the second first. A policy compares
+  them as text, while a plan compiled from that same policy compares a
+  column of the same moment in the database, and the two readings agree only
+  where both sides carry the same precision.
   """
 
   import Ecto.Query, only: [from: 2, subquery: 1]
@@ -21,6 +30,7 @@ defmodule Turnstile.Cerbos.Values do
   alias Turnstile.Cerbos.Attribute
   alias Turnstile.Cerbos.Attributes
   alias Turnstile.Cerbos.Binding
+  alias Turnstile.Environment
   alias Turnstile.Object
   alias Turnstile.Subject
 
@@ -29,12 +39,20 @@ defmodule Turnstile.Cerbos.Values do
   @typedoc "The attributes of one row, by the name the declarations gave."
   @type attributes :: %{atom() => term()}
 
-  @doc "The subject's own attributes, from the declarations of its kind."
-  @spec principal(Binding.t(), Subject.t()) :: {:ok, attributes()} | {:error, String.t()}
-  def principal(%Binding{} = binding, %Subject{id: id} = subject) do
+  @doc "The subject's own attributes, from the declarations of its kind, with the request-time facts beside them."
+  @spec principal(Binding.t(), Subject.t(), Environment.t()) :: {:ok, attributes()} | {:error, String.t()}
+  def principal(%Binding{} = binding, %Subject{id: id} = subject, %Environment{} = request) do
     with {:ok, by_id} <- of(binding, subject, subject.kind, [id]) do
-      {:ok, Map.fetch!(by_id, to_string(id))}
+      own = Map.fetch!(by_id, to_string(id))
+      {:ok, Map.put(own, Attribute.reserved(), environment(binding, request))}
     end
+  end
+
+  @doc "The request-time facts: the moment the port stamped the request with, and each declared fact."
+  @spec environment(Binding.t(), Environment.t()) :: attributes()
+  def environment(%Binding{attributes: attributes}, %Environment{} = request) do
+    declared = Map.new(Attributes.facts(attributes), &{&1, moment(Map.get(request.facts, &1))})
+    Map.put(declared, :now, moment(request.now))
   end
 
   @doc "The attributes of each object of one type, by the object's id as text."
@@ -130,6 +148,11 @@ defmodule Turnstile.Cerbos.Values do
   rescue
     error in [DBConnection.ConnectionError, Postgrex.Error, Ecto.Query.CastError] -> {:error, Exception.message(error)}
   end
+
+  # A moment is cut to the second so the text a policy compares and the
+  # column a plan compares carry the same precision.
+  defp moment(%DateTime{} = value), do: json(DateTime.truncate(value, :second))
+  defp moment(value), do: json(value)
 
   defp json(nil), do: nil
   defp json(true), do: true

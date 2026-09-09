@@ -175,7 +175,7 @@ defmodule Turnstile.Cerbos.PlanTest do
   end
 
   test "a scope the sidecar denies outright is a denial with the rule that admits no row", ctx do
-    assert {:ok, %Scope{} = scope} = Decide.scoped(ctx.binding, ctx.address, ctx.bob, :read, :folder)
+    assert {:ok, %Scope{} = scope} = Decide.scoped(ctx.binding, ctx.address, ctx.bob, :read, :folder, ctx.environment)
     assert %Answer{verdict: :deny} = scope.answer
     assert scope.answer.policy_version == "conformance"
     assert ids(scope.rule) == []

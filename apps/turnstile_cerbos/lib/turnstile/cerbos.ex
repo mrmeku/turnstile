@@ -20,9 +20,11 @@ defmodule Turnstile.Cerbos do
 
   The commit is the version identifier of every decision, and
   `publish/0` appends it to the ledger the way a deploy is a version
-  (`Turnstile.Cerbos.Version`). The environment's caller-supplied facts do
-  not travel: what reaches the sidecar is what the declarations name, so a
-  policy cannot come to depend on a value no one declared.
+  (`Turnstile.Cerbos.Version`). What reaches the sidecar is what the
+  declarations name, so a policy cannot come to depend on a value no one
+  declared: the moment the request carries, and each request-time fact an
+  `environment` block declared, go as one principal attribute beside the
+  subject's own (`Turnstile.Cerbos.Values.environment/2`).
   """
 
   @behaviour Turnstile.Adapter
@@ -94,26 +96,26 @@ defmodule Turnstile.Cerbos do
   end
 
   @impl Turnstile.Adapter
-  def batch(%Subject{} = subject, operation, objects, %Environment{} = _environment, options)
+  def batch(%Subject{} = subject, operation, objects, %Environment{} = environment, options)
       when is_atom(operation) and is_list(objects) do
     with {:ok, binding, address} <- bound(:batch, options) do
-      named(Decide.many(binding, address, subject, operation, objects), :batch)
+      named(Decide.many(binding, address, subject, operation, objects, environment), :batch)
     end
   end
 
   @impl Turnstile.Adapter
-  def scope(%Subject{} = subject, operation, object_type, %Environment{} = _environment, options)
+  def scope(%Subject{} = subject, operation, object_type, %Environment{} = environment, options)
       when is_atom(operation) and is_atom(object_type) do
     with {:ok, binding, address} <- bound(:scope, options) do
-      named(Decide.scoped(binding, address, subject, operation, object_type), :scope)
+      named(Decide.scoped(binding, address, subject, operation, object_type, environment), :scope)
     end
   end
 
   @impl Turnstile.Adapter
-  def explain(%Subject{} = subject, operation, %Object{} = object, %Environment{} = _environment, options)
+  def explain(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     with {:ok, binding, address} <- bound(:explain, options) do
-      named(Decide.one(binding, address, subject, operation, object), :explain)
+      named(Decide.one(binding, address, subject, operation, object, environment), :explain)
     end
   end
 

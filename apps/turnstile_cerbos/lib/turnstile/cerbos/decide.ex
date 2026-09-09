@@ -14,6 +14,11 @@ defmodule Turnstile.Cerbos.Decide do
   A resource the sidecar answered nothing about is denied by default, and a
   failure of the call is the failure's detail, which the adapter turns into
   an engine error.
+
+  Each call carries the request-time facts with the subject's attributes, so
+  a rule about the moment of the request is answered from the moment the
+  port stamped it with rather than from the sidecar's own clock
+  (`Turnstile.Cerbos.Values.environment/2`).
   """
 
   import Ecto.Query, only: [dynamic: 2]
@@ -24,6 +29,7 @@ defmodule Turnstile.Cerbos.Decide do
   alias Turnstile.Cerbos.Plan
   alias Turnstile.Cerbos.Request
   alias Turnstile.Cerbos.Values
+  alias Turnstile.Environment
   alias Turnstile.Explanation
   alias Turnstile.Object
   alias Turnstile.Reason
@@ -37,21 +43,21 @@ defmodule Turnstile.Cerbos.Decide do
   def fallback_event, do: @fallback
 
   @doc "The explanation for one object: its answer and the policy the sidecar matched."
-  @spec one(Binding.t(), Client.address(), Subject.t(), atom(), Object.t()) ::
+  @spec one(Binding.t(), Client.address(), Subject.t(), atom(), Object.t(), Environment.t()) ::
           {:ok, Explanation.t()} | {:error, String.t()}
-  def one(%Binding{} = binding, address, %Subject{} = subject, operation, %Object{} = object)
+  def one(%Binding{} = binding, address, %Subject{} = subject, operation, %Object{} = object, %Environment{} = request)
       when is_binary(address) and is_atom(operation) do
-    with {:ok, explained} <- explained(binding, address, subject, operation, [object]) do
+    with {:ok, explained} <- explained(binding, address, subject, operation, [object], request) do
       {:ok, Map.fetch!(explained, Object.ref(object))}
     end
   end
 
   @doc "The answers for a list of objects, one per object reference."
-  @spec many(Binding.t(), Client.address(), Subject.t(), atom(), [Object.t()]) ::
+  @spec many(Binding.t(), Client.address(), Subject.t(), atom(), [Object.t()], Environment.t()) ::
           {:ok, %{Object.ref() => Answer.t()}} | {:error, String.t()}
-  def many(%Binding{} = binding, address, %Subject{} = subject, operation, objects)
+  def many(%Binding{} = binding, address, %Subject{} = subject, operation, objects, %Environment{} = request)
       when is_binary(address) and is_atom(operation) and is_list(objects) do
-    with {:ok, explained} <- explained(binding, address, subject, operation, objects) do
+    with {:ok, explained} <- explained(binding, address, subject, operation, objects, request) do
       {:ok, Map.new(explained, fn {ref, %Explanation{answer: answer}} -> {ref, answer} end)}
     end
   end
@@ -62,10 +68,11 @@ defmodule Turnstile.Cerbos.Decide do
   rule that admits none, and a plan this adapter does not express emits
   `fallback_event/0` and fails, which is what a caller records as limited.
   """
-  @spec scoped(Binding.t(), Client.address(), Subject.t(), atom(), atom()) :: {:ok, Scope.t()} | {:error, String.t()}
-  def scoped(%Binding{} = binding, address, %Subject{} = subject, operation, kind)
+  @spec scoped(Binding.t(), Client.address(), Subject.t(), atom(), atom(), Environment.t()) ::
+          {:ok, Scope.t()} | {:error, String.t()}
+  def scoped(%Binding{} = binding, address, %Subject{} = subject, operation, kind, %Environment{} = request)
       when is_binary(address) and is_atom(operation) and is_atom(kind) do
-    with {:ok, principal} <- Values.principal(binding, subject),
+    with {:ok, principal} <- Values.principal(binding, subject, request),
          body = Request.plan(subject, operation, kind, principal),
          {:ok, answered} <- Client.plan_resources(address, body) do
       compiled(binding, subject, operation, kind, answered)
@@ -108,8 +115,8 @@ defmodule Turnstile.Cerbos.Decide do
     {:error, detail}
   end
 
-  defp explained(binding, address, subject, operation, objects) do
-    with {:ok, principal} <- Values.principal(binding, subject),
+  defp explained(binding, address, subject, operation, objects, request) do
+    with {:ok, principal} <- Values.principal(binding, subject, request),
          {:ok, paired} <- paired(binding, subject, objects),
          body = Request.check(subject, operation, principal, paired),
          {:ok, answered} <- Client.check_resources(address, body),

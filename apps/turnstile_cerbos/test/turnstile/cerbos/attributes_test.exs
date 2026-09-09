@@ -20,6 +20,10 @@ defmodule Turnstile.Cerbos.AttributesTest do
       attribute :name, column: :name
       attribute :member_roles, subquery: &Memberships.folder_roles_for/1
     end
+
+    environment do
+      fact(:reauthenticated_at)
+    end
   end
 
   test "the declarations name the kinds, the side each is on, and the schema behind it" do
@@ -42,6 +46,33 @@ defmodule Turnstile.Cerbos.AttributesTest do
     assert Attributes.attributes_of(Declarations, :nothing) == []
 
     assert Enum.map(Attributes.all(Declarations), &elem(&1, 0)) == [:user, :folder, :folder]
+  end
+
+  test "the request-time facts the declarations name come back in the order they were written" do
+    assert Attributes.facts(Declarations) == [:reauthenticated_at]
+  end
+
+  test "the name the request-time facts travel under is not a name a declaration may take" do
+    assert Attribute.reserved() == :environment
+
+    assert {:error, %Error.Invalid{what: :attribute} = error} = Attribute.new(:environment, column: :environment)
+    assert error.detail == "attribute environment is the name the request-time facts travel under"
+  end
+
+  test "an environment block declares a fact and refuses anything else" do
+    declaration =
+      quote do
+        defmodule Nothing do
+          @moduledoc false
+          use Turnstile.Cerbos.Attributes
+
+          environment do
+            reauthenticated_at()
+          end
+        end
+      end
+
+    assert_raise ArgumentError, ~r/declares a fact with `fact :name`/, fn -> Code.eval_quoted(declaration) end
   end
 
   test "one declaration is found by its kind and its name" do

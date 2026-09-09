@@ -4,6 +4,7 @@ defmodule Turnstile.Cerbos.ValuesTest do
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Conformance.Memberships
   alias Turnstile.Cerbos.Values
+  alias Turnstile.Environment
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
@@ -48,6 +49,10 @@ defmodule Turnstile.Cerbos.ValuesTest do
     resource :pair, schema: Pair do
       attribute :left, column: :left
     end
+
+    environment do
+      fact(:reauthenticated_at)
+    end
   end
 
   setup tags do
@@ -71,12 +76,33 @@ defmodule Turnstile.Cerbos.ValuesTest do
 
     :ok = World.insert(Sandboxed, world)
     {:ok, binding} = Binding.resolve()
-    {:ok, binding: binding, ann: %Subject{id: "ann", kind: :user}, bob: %Subject{id: "bob", kind: :user}}
+
+    {:ok,
+     binding: binding,
+     ann: %Subject{id: "ann", kind: :user},
+     bob: %Subject{id: "bob", kind: :user},
+     request: %Environment{now: ~U[2026-09-09 12:00:00.123456Z]}}
   end
 
-  test "the subject's own attributes come from the row its id names", ctx do
-    assert Values.principal(ctx.binding, ctx.ann) == {:ok, %{clearance: "cleared"}}
-    assert Values.principal(ctx.binding, ctx.bob) == {:ok, %{clearance: nil}}
+  test "the subject's own attributes come from the row its id names, the request's facts beside them", ctx do
+    facts = %{now: "2026-09-09T12:00:00Z", reauthenticated_at: nil}
+
+    assert Values.principal(ctx.binding, ctx.ann, ctx.request) ==
+             {:ok, %{clearance: "cleared", environment: facts}}
+
+    assert Values.principal(ctx.binding, ctx.bob, ctx.request) == {:ok, %{clearance: nil, environment: facts}}
+  end
+
+  test "a fact the declarations name travels cut to the second, and one they do not name does not", ctx do
+    request = %Environment{
+      now: ~U[2026-09-09 12:00:00Z],
+      facts: %{reauthenticated_at: ~U[2026-09-09 11:59:30.987654Z], clearance: "cleared"}
+    }
+
+    assert Values.environment(ctx.binding, request) == %{
+             now: "2026-09-09T12:00:00Z",
+             reauthenticated_at: "2026-09-09T11:59:30Z"
+           }
   end
 
   test "an object's attributes are its columns and what the subject's subquery selected for it", ctx do

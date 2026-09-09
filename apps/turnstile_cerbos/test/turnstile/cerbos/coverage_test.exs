@@ -7,6 +7,7 @@ defmodule Turnstile.Cerbos.CoverageTest do
   alias Turnstile.Cerbos.Conformance.Attributes
   alias Turnstile.Cerbos.Coverage
   alias Turnstile.Cerbos.Decide
+  alias Turnstile.Environment
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
@@ -34,14 +35,19 @@ defmodule Turnstile.Cerbos.CoverageTest do
 
     :ok = World.insert(Sandboxed, world)
     {:ok, binding} = Binding.resolve()
-    {:ok, binding: binding, address: sidecar.address, ann: %Subject{id: "ann", kind: :user}}
+
+    {:ok,
+     binding: binding,
+     address: sidecar.address,
+     ann: %Subject{id: "ann", kind: :user},
+     request: %Environment{now: DateTime.utc_now()}}
   end
 
   test "the query the sidecar's own plan compiles to reads declared facts alone", ctx do
-    assert {:ok, %Scope{} = folders} = Decide.scoped(ctx.binding, ctx.address, ctx.ann, :read, :folder)
+    assert {:ok, %Scope{} = folders} = Decide.scoped(ctx.binding, ctx.address, ctx.ann, :read, :folder, ctx.request)
     assert Coverage.check(Attributes, from(f in Folder, where: ^folders.rule)) == :ok
 
-    assert {:ok, %Scope{} = items} = Decide.scoped(ctx.binding, ctx.address, ctx.ann, :edit, :item)
+    assert {:ok, %Scope{} = items} = Decide.scoped(ctx.binding, ctx.address, ctx.ann, :edit, :item, ctx.request)
     assert Coverage.check!(Attributes, from(i in Item, where: ^items.rule)) == :ok
   end
 
