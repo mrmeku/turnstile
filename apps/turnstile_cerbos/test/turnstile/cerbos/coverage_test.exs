@@ -1,7 +1,7 @@
 defmodule Turnstile.Cerbos.CoverageTest do
   use ExUnit.Case, async: true
 
-  import Ecto.Query, only: [from: 2, subquery: 1]
+  import Ecto.Query, only: [from: 2, subquery: 1, union_all: 2]
 
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Conformance.Attributes
@@ -85,6 +85,20 @@ defmodule Turnstile.Cerbos.CoverageTest do
     members = from(m in Membership, select: %{folder: m.folder_id})
 
     assert Coverage.check(Attributes, from(s in subquery(members), where: s.folder > 0)) == :ok
+  end
+
+  test "the walk follows the query behind a source, so a column it reads is a finding" do
+    named = from(f in Folder, select: %{name: f.name})
+
+    assert Coverage.check(Attributes, from(s in subquery(named), where: not is_nil(s.name))) ==
+             {:error, [{Folder, :name}]}
+  end
+
+  test "the walk follows each query a union combines with" do
+    ids = from(f in Folder, select: %{id: f.id})
+    names = from(f in Folder, select: %{id: f.name})
+
+    assert Coverage.check(Attributes, union_all(ids, ^names)) == {:error, [{Folder, :name}]}
   end
 
   test "the walk reads every clause of a query, not the filter alone" do

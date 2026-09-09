@@ -19,6 +19,12 @@ defmodule Turnstile.Cerbos.Coverage do
   declarations name, since those are the schemas this adapter reads at all.
   A read of a column no declaration covers is a fact that never went
   through the seam, which is what this check exists to catch.
+
+  A query the walk reaches is walked whole: the query a subquery operand
+  carries, the query behind a source that is no table, and each query a
+  union or an intersection combines with. What a plan compiles a subquery
+  attribute to is a source of that kind, so a walk that stopped at the
+  source would report nothing about the very query the declaration named.
   """
 
   alias Turnstile.Cerbos.Attributes
@@ -127,10 +133,27 @@ defmodule Turnstile.Cerbos.Coverage do
   defp foreign_key(%Ecto.Association.BelongsTo{owner: owner, owner_key: key}), do: {owner, key}
   defp foreign_key(_other), do: {nil, nil}
 
-  # Every field reference in a query, by the schema of the source it names.
+  # Every field reference in a query, by the schema of the source it names,
+  # with the queries the sources and the combinations carry walked in turn.
   defp walk_query(%Ecto.Query{} = query) do
-    sources = [source_schema(query.from.source) | Enum.map(query.joins, &source_schema(&1.source))]
-    Enum.flat_map(exprs(query), &walk_expr(&1.expr, &1.subqueries || [], sources))
+    sources = [query.from.source | Enum.map(query.joins, & &1.source)]
+
+    walk_exprs(query, sources) ++ Enum.flat_map(sources, &walk_source/1) ++ walk_combinations(query)
+  end
+
+  defp walk_exprs(%Ecto.Query{} = query, sources) do
+    schemas = Enum.map(sources, &source_schema/1)
+
+    Enum.flat_map(exprs(query), &walk_expr(&1.expr, &1.subqueries || [], schemas))
+  end
+
+  # A source that is a query of its own reads columns of its own, and so
+  # does each query a union or an intersection combines with this one.
+  defp walk_source(%Ecto.SubQuery{query: query}), do: walk_query(query)
+  defp walk_source(_table_or_fragment), do: []
+
+  defp walk_combinations(%Ecto.Query{combinations: combinations}) do
+    Enum.flat_map(combinations, fn {_operator, query} -> walk_query(query) end)
   end
 
   defp exprs(%Ecto.Query{} = query) do
