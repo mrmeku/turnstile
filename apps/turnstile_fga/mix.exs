@@ -43,8 +43,10 @@ defmodule Turnstile.Fga.MixProject do
   # environment, so a narrower `only` here would not match what the umbrella
   # calculates. stream_data is unrestricted because core's
   # conformance templates ship in lib, so core carries it in every
-  # environment. Every pin is exact. Versions verified against
-  # https://hex.pm/api/packages/<name> on 2026-09-09.
+  # environment. telemetry is unrestricted because the real client emits one
+  # event per call from lib, and muontrap serves the test run alone, where it
+  # starts the one server the suite asks for. Every pin is exact. Versions
+  # verified against https://hex.pm/api/packages/<name> on 2026-09-09.
   defp deps do
     [
       {:turnstile_core, in_umbrella: true},
@@ -54,6 +56,8 @@ defmodule Turnstile.Fga.MixProject do
       {:nimble_options, "1.1.1"},
       {:postgrex, "0.22.4"},
       {:stream_data, "1.4.0"},
+      {:telemetry, "1.4.2"},
+      {:muontrap, "2.0.0", only: :test},
       {:boundary, "0.10.4", runtime: false},
       {:credo, "1.7.19", only: [:dev, :test], runtime: false},
       {:styler, "1.12.2", only: [:dev, :test], runtime: false},
