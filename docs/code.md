@@ -163,7 +163,7 @@ defp aliases do
       "credo --strict --all",
       "xref graph --label compile-connected --fail-above 0",
       "xref graph --format cycles --fail-above 0",
-      "deps.unlock --check-unused",
+      "deps.unlock --check-unused", # in the root alias only: the lock is the umbrella's, and a child's check flags what its siblings lock
       "deps.audit --ignore-advisory-ids GHSA-rhv4-8758-jx7v", # the same advisory, by its GitHub id
       "docs --warnings-as-errors",
       "test --warnings-as-errors --cover" # test_helper starts the ephemeral Postgres, Cerbos, and OpenFGA (docs/testing.md §3 to §4)
@@ -181,7 +181,7 @@ end
 ]
 ```
 
-`turnstile_example` and each thin app add `sobelow --config --exit` to their own alias. Tier 1's property tests and shape tests run under `mix test`, so the gate checks the seam's shape too; `mix turnstile.bench` is on demand and not part of the gate. The thin-app CI jobs (`docs/testing.md` §7) run after `quality` and add the schema dump.
+`turnstile_example` and each thin app add `sobelow --config --exit` to their own alias. The lock check runs at the root alone, where every app's dependencies are known; the root's `quality` is part of every stage's gate. Tier 1's property tests and shape tests run under `mix test`, so the gate checks the seam's shape too; `mix turnstile.bench` is on demand and not part of the gate. The thin-app CI jobs (`docs/testing.md` §7) run after `quality` and add the schema dump.
 
 ## 6. Known gaps, and what covers each
 
