@@ -26,17 +26,24 @@ defmodule Example.Fixture do
 
   alias Example.Accounts
   alias Example.Agency
+  alias Example.Assignment
   alias Example.Category
   alias Example.Document
   alias Example.Marking
   alias Example.Office
+  alias Example.OfficeRole
   alias Example.Portion
   alias Example.Program
   alias Example.Repo
   alias Example.User
+  alias Turnstile.Ledger.Fold
   alias Turnstile.Subject
 
   @exempt {:exempt, "fixture: the world a scenario starts from"}
+
+  # Children before parents, which is the order rows leave in.
+  @domain ~w(override_reports marking_proposals portions markings documents office_roles assignments
+    account_roles users programs offices agencies categories)
 
   @accounts [
     {"ann", :user, :federal, "US", "ann"},
@@ -173,6 +180,29 @@ defmodule Example.Fixture do
   end
 
   @doc """
+  Put back the relationships a fold holds that the tables do not, so a
+  question asked now is answered from the state a replay names. Program
+  assignments and office roles are the relationships the example keeps in
+  rows of their own, and a revocation is the removal of one of those rows.
+  Every other fact of a fold is a column of a row the replay leaves where
+  it is: a marking's categories, a document's decontrol date, an account's
+  nationality.
+  """
+  @spec restore!(Fold.t()) :: :ok
+  def restore!(%Fold{facts: facts}) do
+    Enum.each(facts, fn {key, value} -> restore(key, value) end)
+  end
+
+  @doc """
+  Every domain table, parents before children, which is the order rows copy
+  into a database that starts empty. The ledger's events are not among them:
+  a copy of the rows is the state a question is asked against, and the record
+  of how they got there is the ledger the copy was named from.
+  """
+  @spec tables() :: [String.t()]
+  def tables, do: Enum.reverse(@domain)
+
+  @doc """
   Empty every domain table and the ledger's events, and reset the counter,
   through the owner-role repo, after a committed test. The events go with
   the rows they describe: a ledger kept beside emptied tables would report
@@ -180,12 +210,36 @@ defmodule Example.Fixture do
   """
   @spec truncate!(module()) :: :ok
   def truncate!(owner_repo) when is_atom(owner_repo) do
-    tables = ~w(override_reports marking_proposals portions markings documents office_roles assignments
-      account_roles users programs offices agencies categories turnstile_ledger_events)
+    tables = Enum.join(["turnstile_ledger_events" | @domain], ", ")
 
-    _result = owner_repo.query!("TRUNCATE #{Enum.join(tables, ", ")} RESTART IDENTITY CASCADE")
+    _result = owner_repo.query!("TRUNCATE #{tables} RESTART IDENTITY CASCADE")
     _result = owner_repo.query!("UPDATE turnstile_ledger_counter SET position = 0 WHERE name = 'default'")
     :ok
+  end
+
+  defp restore(_key, nil), do: :ok
+
+  defp restore({{:user, user_id}, {:program, program_id}, nil}, role) do
+    if !held?(Assignment, user_id, :program_id, program_id) do
+      _assignment = Accounts.assign(user_id, program_id, role)
+    end
+
+    :ok
+  end
+
+  defp restore({{:user, user_id}, {:office, office_id}, nil}, role) do
+    if !held?(OfficeRole, user_id, :office_id, office_id) do
+      _office_role = Accounts.office_role(user_id, office_id, role)
+    end
+
+    :ok
+  end
+
+  defp restore(_key, _value), do: :ok
+
+  defp held?(schema, user_id, field, id) do
+    query = from(row in schema, where: row.user_id == ^user_id and field(row, ^field) == ^id)
+    Repo.all(query, turnstile: @exempt) != []
   end
 
   defp categories! do
