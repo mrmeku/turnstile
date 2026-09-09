@@ -8,23 +8,7 @@ defmodule Example.MigrationsTest do
   end
 
   test "the tables the helper creates are the schemas' sources" do
-    sources =
-      for module <- [
-            Example.Agency,
-            Example.Office,
-            Example.Program,
-            Example.Category,
-            Example.User,
-            Example.AccountRole,
-            Example.Assignment,
-            Example.OfficeRole,
-            Example.Document,
-            Example.Marking,
-            Example.Portion,
-            Example.Proposal,
-            Example.OverrideReport
-          ],
-          do: module.__schema__(:source)
+    sources = for module <- Example.schemas(), do: module.__schema__(:source)
 
     assert Enum.sort(sources) == Enum.sort(Domain.tables())
   end

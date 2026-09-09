@@ -43,4 +43,28 @@ defmodule Example do
       Sessions,
       User
     ]
+
+  @schemas [
+    Example.Agency,
+    Example.Office,
+    Example.Program,
+    Example.Category,
+    Example.User,
+    Example.AccountRole,
+    Example.Assignment,
+    Example.OfficeRole,
+    Example.Document,
+    Example.Marking,
+    Example.Portion,
+    Example.Proposal,
+    Example.OverrideReport
+  ]
+
+  @doc """
+  Every schema of the example, in the order its tables are created: what
+  the genesis backfill writes at position zero and what reconcile compares
+  the ledger with. The ones that declare no fact are ignored by both.
+  """
+  @spec schemas() :: [module()]
+  def schemas, do: @schemas
 end
