@@ -23,8 +23,10 @@ defmodule ExampleRbac.MixProject do
     ]
   end
 
+  # The dump task raises an ephemeral cluster, and the connection library the
+  # cluster rests on is loaded in the test environment alone.
   def cli do
-    [preferred_envs: [quality: :test]]
+    [preferred_envs: [quality: :test, "turnstile.schema_dump": :test]]
   end
 
   def application do
