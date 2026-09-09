@@ -44,6 +44,7 @@ defmodule Turnstile do
       Projection.Drift,
       Reason,
       Repo,
+      Repo.Facts,
       Repo.Mediation,
       Repo.Overrides,
       Repo.Seam,
