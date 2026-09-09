@@ -11,7 +11,7 @@ defmodule Turnstile.Repo.FactsTest.Team do
   end
 
   object_type(:team)
-  fact(:members, kind: :relationship, subject: :element, object: :id, element: :user)
+  fact(:members, kind: :relationship, object: :id, element: :user)
   fact(:label, kind: :object_attribute, object: :id)
 end
 

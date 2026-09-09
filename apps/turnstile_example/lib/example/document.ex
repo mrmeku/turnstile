@@ -71,7 +71,7 @@ defmodule Example.Marking do
   fact(:categories, kind: :object_attribute, object: :document_id, element: :category)
   fact(:controls, kind: :object_attribute, object: :document_id, element: :control)
   fact(:releasable_to, kind: :object_attribute, object: :document_id, element: :country)
-  fact(:list, kind: :relationship, subject: :element, object: :document_id, element: :user)
+  fact(:list, kind: :relationship, object: :document_id, element: :user)
 end
 
 defmodule Example.Portion do

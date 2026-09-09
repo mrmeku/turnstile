@@ -62,9 +62,15 @@ defmodule Turnstile.Schema do
 
   @fact_schema NimbleOptions.new!(
                  kind: [type: {:in, [:subject_attribute, :object_attribute, :relationship]}, required: true],
-                 subject: [type: :atom, doc: "The column naming the subject, or `:element` for a set of subjects."],
+                 subject: [
+                   type: :atom,
+                   doc: "The column naming the subject; a set-valued column's subject is its element."
+                 ],
                  object: [type: :atom, doc: "The column naming the object."],
-                 element: [type: :atom, doc: "The element type of a set-valued column."]
+                 element: [
+                   type: :atom,
+                   doc: "The element type of a set-valued column, which is the type each element is referenced by."
+                 ]
                )
 
   @relationship_schema NimbleOptions.new!(

@@ -6,6 +6,12 @@ defmodule Turnstile.Repo.Facts do
   for the row's existence and one per changed attribute. `old` comes from
   the row the seam re-read under the ledger's lock clause, never from the
   changeset's data.
+
+  A set-valued column's element is the subject of the event that carries it,
+  referenced by the type the declaration's `element:` names. That is what
+  keeps each element its own fact: a fold keys a fact by its subject, its
+  object, and its attribute, so elements sharing one subject would share one
+  key and removing one of them would erase the set.
   """
 
   import Ecto.Query, only: [where: 3]
@@ -66,7 +72,7 @@ defmodule Turnstile.Repo.Facts do
       [
         event(
           fact.kind,
-          subject_ref(fact.subject, row, nil),
+          subject_ref(fact.subject, row),
           object_ref(fact.object, schema, row),
           fact.column,
           old_value,
@@ -84,12 +90,12 @@ defmodule Turnstile.Repo.Facts do
 
     removed =
       Enum.map(old_set -- new_set, fn element ->
-        event(fact.kind, subject_ref(fact.subject, row, element), object, fact.column, element, nil, stamp)
+        event(fact.kind, {fact.element, element}, object, fact.column, element, nil, stamp)
       end)
 
     added =
       Enum.map(new_set -- old_set, fn element ->
-        event(fact.kind, subject_ref(fact.subject, row, element), object, fact.column, nil, element, stamp)
+        event(fact.kind, {fact.element, element}, object, fact.column, nil, element, stamp)
       end)
 
     removed ++ added
@@ -124,7 +130,7 @@ defmodule Turnstile.Repo.Facts do
     |> Enum.map(fn attribute ->
       event(
         :relationship,
-        subject_ref(relationship.subject, new, nil),
+        subject_ref(relationship.subject, new),
         object_ref(relationship.object, schema, new),
         attribute,
         value(old, attribute),
@@ -137,7 +143,7 @@ defmodule Turnstile.Repo.Facts do
   defp row_event(%Relationship{} = relationship, schema, row, old, new, stamp) do
     event(
       :relationship,
-      subject_ref(relationship.subject, row, nil),
+      subject_ref(relationship.subject, row),
       object_ref(relationship.object, schema, row),
       nil,
       old,
@@ -168,9 +174,8 @@ defmodule Turnstile.Repo.Facts do
   defp value(nil, _column), do: nil
   defp value(row, column), do: Map.get(row, column)
 
-  defp subject_ref(nil, _row, _element), do: nil
-  defp subject_ref(:element, _row, element), do: {:user, element}
-  defp subject_ref(column, row, _element), do: {:user, value(row, column)}
+  defp subject_ref(nil, _row), do: nil
+  defp subject_ref(column, row), do: {:user, value(row, column)}
 
   defp object_ref(nil, _schema, _row), do: nil
 
