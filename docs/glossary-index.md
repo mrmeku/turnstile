@@ -36,3 +36,11 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Predicate | A Postgres row-level security policy's `USING` expression | `turnstile_postgres` glossary, from S6 |
 | Binding | The policy module and repo `Turnstile.Code` reads through | `apps/turnstile_rbac/glossary.md` |
 | Binding | An Ecto query binding, the `[row]` of a `dynamic` | Ecto's own documentation |
+| Marking | A portion's or a document's categories, controls, and releasable-to list | `apps/turnstile_example/glossary.md` |
+| Marking | The CUI marking of 32 CFR Part 2002, the banner and portion marks on a page | `docs/reference.md` §2 |
+| Control | A dissemination control of the CUI Registry, a test on the subject | `apps/turnstile_example/glossary.md` |
+| Control | A NIST SP 800-53 control, named by a scenario's `control:` tag | `docs/reference.md` §1 |
+| Fixture | The example's world every scenario starts from | `apps/turnstile_example/glossary.md` |
+| Fixture | The neutral fixture the conformance suite inserts | `apps/turnstile_core/glossary.md` |
+| Override | The audited privileged read of C10 | `apps/turnstile_example/glossary.md` |
+| Override | `Turnstile.Code.Binding.override/1,2`, a per-process binding for tests | `apps/turnstile_rbac/glossary.md` |
