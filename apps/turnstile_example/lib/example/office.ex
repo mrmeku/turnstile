@@ -15,4 +15,5 @@ defmodule Example.Office do
 
   object_type(:office)
   carries([:agency])
+  fact(:agency_id, kind: :object_attribute, object: :id)
 end
