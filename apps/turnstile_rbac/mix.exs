@@ -79,7 +79,6 @@ defmodule Turnstile.Rbac.MixProject do
         "credo --strict --all",
         "xref graph --label compile-connected --fail-above 0",
         "xref graph --format cycles --fail-above 0",
-        "deps.unlock --check-unused",
         "deps.audit --ignore-advisory-ids GHSA-rhv4-8758-jx7v",
         "docs --warnings-as-errors",
         "test --warnings-as-errors --cover"

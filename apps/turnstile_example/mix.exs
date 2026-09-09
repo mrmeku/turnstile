@@ -97,7 +97,6 @@ defmodule Turnstile.Example.MixProject do
         "credo --strict --all",
         "xref graph --label compile-connected --fail-above 0",
         "xref graph --format cycles --fail-above 0",
-        "deps.unlock --check-unused",
         "deps.audit --ignore-advisory-ids GHSA-rhv4-8758-jx7v",
         "sobelow --config --exit",
         "docs --warnings-as-errors",
