@@ -77,7 +77,7 @@ The rules move to the example's glossary as `turnstile_example` appears.
 | C6 | membership of the marking's list in a subquery | the policy over the marking's `list` column | the attribute `listed`, a subquery | `listed` with the `list_applies` flag |
 | C7 | the seam refuses the write without a `change_marking` decision; the predicate tests the OfficeRole (by the seam) | `WITH CHECK` policy on `documents` and `markings` requiring a designator row; the refusal needs no application code, printed as a defense-in-depth note (by the database) | the `change_marking` action's policy requires `designator`; the write is gated by the seam (by the seam) | `can_change_marking`; the write is gated by the seam (by the seam) |
 | C8 | the adapter reads `reauthenticated_at` from the environment before the rules (by the adapter) | `current_setting('turnstile.reauthenticated_at')` inside the `WITH CHECK` predicate | sent as a request attribute; the policy compares it with the window | the adapter checks it from the environment before calling the server (by the adapter) |
-| C9 | a predicate requiring the approver and the proposer to differ | `WITH CHECK` on `marking_proposals` comparing `proposer_id` with the subject setting | policy condition over `proposal.proposer_id` | `can_approve: approver from office but not proposer` |
+| C9 | a predicate requiring the approver and the proposer to differ | `WITH CHECK` on `marking_proposals` comparing `proposer_id` with the subject setting | policy condition over `proposal.proposer_id` | `can_approve_marking: approver from office but not proposer` |
 | C10 | the privileged path in `Example.Documents.override_read/3`: permission, justification, event, report (by application code) | the read runs under a declared exemption, which the exempt policy of the application role admits; permission, justification, event, and report in application code (by application code) | an `override` action for the `privileged` principal kind; justification, event, and report in application code (by application code) | `can_override`; justification, event, and report in application code (by application code) |
 | C11 | predicates read the tables at every check | policies evaluate at execution | facts are sent with each request | every `Check` walks current tuples, up to the projector's lag |
 | C12 | measured; evidence, never a level (§4) | measured | measured | measured, drain included |
@@ -180,7 +180,7 @@ No scenario tests "write gates without application code"; it is not a rule.
 | Cerbos | `turnstile_cerbos` | the application's discipline; policies versioned and tested as their own artifact | verdict and matched rule | commit for facts; policy propagation (the poll interval) for rules | policy files; a policy owner | one sidecar |
 | OpenFGA | `turnstile_fga` | the application's discipline, backed by the seam; the graph decides | the path (`Expand`) | commit, projector drain, engine write, check-cache TTL for facts; model publication for rules | a model file in a repository, published as an immutable model id; tuples projected from the ledger | a server and a datastore: two inventory items, one engine if the datastore shares the application's Postgres instance |
 
-**Declarations, in two places**. An adapter package declares only what is true of it in any domain: `requires_ledger` (boolean) and `scope_cap` (an integer or `:none`). It also ships `priv/conformance/` for Tier 1's neutral fixture (§14). The thin app declares the capability per rule, C1 to C13, as §3's function clauses, and, in its README, the translation table from the domain's words to the adapter's. Measured revocation latency is in neither declaration; it is evidence (below).
+**Declarations, in two places**. An adapter package declares only what is true of it in any domain: `requires_ledger` (boolean), `scope_cap` (an integer or `:none`), and its projection, the module implementing `Turnstile.Projection` and the configuration that module takes, or `:none` for an adapter whose working state is the application's own tables. It also ships `priv/conformance/` for Tier 1's neutral fixture (§14). The thin app declares the capability per rule, C1 to C13, as §3's function clauses, and, in its README, the translation table from the domain's words to the adapter's. Measured revocation latency is in neither declaration; it is evidence (below).
 
 - **Postgres.** The application role must not own the tables, or row-level security is bypassed, and it carries `NOBYPASSRLS`; `FORCE ROW LEVEL SECURITY` on every protected table. Forcing it applies the policies to the owner as well, so the migrations give the owner role a `SELECT` policy on every protected table, which is what reconcile, genesis, and the accessor functions read through. Session settings are set inside `around_query/3`: the adapter opens a transaction where none is open, one per call, and runs `set_config(name, value, true)` for `turnstile.subject_id`, `turnstile.subject_kind`, `turnstile.operation`, `turnstile.now`, and one name per fact the caller supplied, such as `turnstile.reauthenticated_at`, so two subjects in one transaction each set their own; policies read them with `current_setting(name, true)`. Where the transaction was already open when the call arrived, the adapter puts the names it set back to the empty string as the call returns, so a query the seam admits outside a decision is not read under the settings of the last one. `check` for a write operation is a `SELECT` of the update policy's `USING` predicate, read from `pg_policy` at boot and cached per policy version, run against the target row under those settings; `authorize(subject, :change_marking, document)` answers before the write this way, and the write itself is then refused or admitted by `WITH CHECK`. A thin application that writes `USING (true)` on a gate moves the whole decision into `WITH CHECK`, so a write no one asked about raises instead of matching no row, and the `SELECT` policy of the operation is what narrows the answer. An RLS `scope` decision record carries rule `true`, the migration number as policy version, and a hash of the session settings in force (§7). The policy expressions are read back from `pg_policy` for the policy-version event. The `replica_lag` component prints "not measured": v9 configures no replica. Portions: a second policy on `portions`. Replay for this adapter means state and policies in a scratch database. The per-rule table is `example_postgres`'s (§3).
 - **Cerbos.** Facts arrive with each request, so their latency is one request; rules arrive on the sidecar's policy poll interval, which is the latency for policy changes, measured from a policy publish. A sidecar picking a version up is measured as propagation latency, not ledgered. The sidecar's decision logs are reconciled with the port's decision events; any difference is a drift scenario. Its `version` field on a policy runs variants side by side and is not history; history is the policy repository's commit. An attribute declaration maps a Cerbos attribute name to a column or to a subquery, and the query plan is compiled to a `dynamic` over declared attributes only; a plan over an attribute declared as a subquery becomes `in subquery(...)`, and a plan the compiler cannot express falls back to `filter` with the thin app recording limited:
@@ -323,7 +323,7 @@ defmodule Example.Marking do
 
   object_type :marking
   fact :controls, kind: :object_attribute, object: :document_id, element: :control
-  fact :list, kind: :relationship, subject: :element, object: :document_id, element: :user_id
+  fact :list, kind: :relationship, object: :document_id, element: :user
   ...
 end
 
@@ -337,7 +337,7 @@ defmodule Example.User do
 end
 ```
 
-A set-valued column emits one event per element added (`old: nil, new: element`) or removed (`old: element, new: nil`). A fact schema need not be protected: `Example.User` above declares facts and no object type, so its writes are recorded and pass the seam without a decision. The CUI mapping: Assignment and OfficeRole rows are relationships with a `role` attribute; `Marking.controls` and `Marking.list` are set-valued; `User.employment` and `User.nationality` are subject attributes; `Document.decontrol`, `Document.marking`, and `Portion.marking` are object attributes. The `turnstile_fga` tuple mapping (§13) reads these events, not the schemas.
+A set-valued column emits one event per element added (`old: nil, new: element`) or removed (`old: element, new: nil`), and the element is that event's subject reference, typed by `element:`, so a fold keys each element on its own and one removal erases one element rather than the set. A fact schema need not be protected: `Example.User` above declares facts and no object type, so its writes are recorded and pass the seam without a decision. The CUI mapping: Assignment and OfficeRole rows are relationships with a `role` attribute, and a Proposal row is a relationship with a `status` attribute; the Marking's `categories`, `controls`, `releasable_to`, and `list`, and the Portion's `categories`, `controls`, and `releasable_to`, are set-valued; `User.employment` and `User.nationality` are subject attributes; `Document.decontrol` and the columns holding the structure a graph walks, an office's agency, a document's program and designating office, a portion's document, and a proposal's document and proposer, are object attributes. The `turnstile_fga` tuple mapping (§13) reads these events, not the schemas.
 
 **The event.** `%Turnstile.FactEvent{kind, subject_ref, object_ref, attribute, old, new, position, operation_id, at, by}`; `kind` is `:subject_attribute | :object_attribute | :relationship | :policy_version`; a ref is `{object_type, id}`; `position` is `nil` in mode none; `by` is the subject of the operation that wrote it.
 
@@ -534,7 +534,6 @@ type office
 
 type program
   relations
-    define agency: [agency]
     define lead: [user]
     define member: [user] or lead
 
@@ -571,13 +570,16 @@ type document
     define can_read: lawful_purpose but not blocked
     define can_read_redacted: lawful_purpose
     define can_change_marking: designator from designating_office
+    define can_set_decontrol: can_change_marking
+    define can_decontrol: can_change_marking
+    define can_propose_marking: can_change_marking
     define can_override: operator from designating_office
 
 type portion
   relations
     define document: [document]
     define category: [category, category with before_decontrol]
-    define listed: [user]
+    define listed: listed from document
     define releasable_to: [country]
 
     define fedonly_applies: [user:*, user:* with before_decontrol] or fedonly_applies from category
@@ -591,32 +593,33 @@ type portion
 
     define blocked: (fedonly_applies but not fedonly_clear) or (noforn_applies but not noforn_clear) or (relto_applies but not relto_clear) or (list_applies but not listed)
     define can_read: can_read_redacted from document but not blocked
+    define can_change_marking: can_change_marking from document
 
 type proposal
   relations
     define office: [office]
     define proposer: [user]
-    define can_approve: approver from office but not proposer
+    define can_approve_marking: approver from office but not proposer
 
 condition before_decontrol(decontrol_at: timestamp, current_time: timestamp) {
   current_time < decontrol_at
 }
 ```
 
-Rule by rule. C1 is `lawful_purpose`. C2 is `can_read: lawful_purpose but not blocked`: every flag present must be cleared, and an absent flag blocks nobody. C3: a Specified category carries its own wildcard flags, and `fedonly_applies from category` inherits them; nothing is copied. C4: the document's flags include `from portion`, so the banner is the union by construction on this adapter as well as at write time in the domain; the redacted read is `can_read_redacted` on the document and `can_read` per portion, whose `scope` is a `ListObjects` over `portion`. C5: a document with a decontrol writes its flag and category tuples with `before_decontrol` and the date; one without writes them plain; after the date the flags evaluate false and only C1 remains. C6: `listed` is a per-document grant and combines with nothing; the model has no path from `listed` to `lawful_purpose`. C7 is `can_change_marking`; the write itself is gated by the seam, not by FGA. C8, re-authentication, is not modeled: it is a fact about the session, and putting it in a condition would make every use of `designator` demand session context, so the adapter checks it from the environment before calling FGA, as the RBAC adapter does. C9 is `can_approve: approver from office but not proposer`. C10 is `can_override` plus the justification and the event, in code. C11 holds per check, up to the projector's lag. C12 is measured. C13 is `ListObjects`, by FGA's definition of it, under the cap. The per-rule levels are `example_fga`'s declaration (§3), not this package's.
+Rule by rule. C1 is `lawful_purpose`. C2 is `can_read: lawful_purpose but not blocked`: every flag present must be cleared, and an absent flag blocks nobody. C3: a Specified category carries its own wildcard flags, and `fedonly_applies from category` inherits them; nothing is copied. C4: the document's flags include `from portion`, so the banner is the union by construction on this adapter as well as at write time in the domain; the redacted read is `can_read_redacted` on the document and `can_read` per portion, whose `scope` is a `ListObjects` over `portion`. C5: a document with a decontrol writes its flag and category tuples with `before_decontrol` and the date; one without writes them plain; after the date the flags evaluate false and only C1 remains. C6: `listed` is a per-document grant and combines with nothing; the model has no path from `listed` to `lawful_purpose`. C7 is `can_change_marking`; the write itself is gated by the seam, not by FGA. C8, re-authentication, is not modeled: it is a fact about the session, and putting it in a condition would make every use of `designator` demand session context, so the adapter checks it from the environment before calling FGA, through the guard its binding names, as the RBAC adapter does through a predicate. C9 is `can_approve_marking: approver from office but not proposer`. C10 is `can_override` plus the justification and the event, in code. C11 holds per check, up to the projector's lag. C12 is measured. C13 is `ListObjects`, by FGA's definition of it, under the cap. The per-rule levels are `example_fga`'s declaration (§3), not this package's.
 
 **The tuple mapping** (`ExampleFga.TupleMapping`, implementing `Turnstile.Fga.TupleMapping`). It maps fact events (§8), with their `old` and `new`, to tuple writes and deletes. Attributes become reified entities, a country, an employment kind, because a graph compares by walking, not by equality.
 
 | Fact event | Tuples (user · relation · object) |
 |---|---|
-| Assignment(U, P, member or lead), a relationship | `user:U · member \| lead · program:P`; a `role` change deletes the old relation's tuple and writes the new |
+| Assignment(U, P, member or lead), a relationship | `user:U · member \| lead · program:P` while the program is open; a `role` change deletes the old relation's tuple and writes the new, and a closure date deletes both |
 | OfficeRole(U, O, designator or approver), a relationship | `user:U · designator \| approver · office:O` |
-| Program in Agency; Office in Agency | `agency:A · agency · program:P`; `agency:A · agency · office:O` |
+| Office in Agency | `agency:A · agency · office:O` |
 | Document's program and designating office | `program:P · program · document:D`; `office:O · designating_office · document:D` |
 | Portion under Document | `portion:X · portion · document:D`; `document:D · document · portion:X` |
 | Document's or Portion's categories | `category:C · category · document:D` (or `portion:X`), with `before_decontrol{decontrol_at}` when set |
 | Marking's controls, one event per element | `user:* · fedonly_applies · document:D` (and the others), with the condition when set; a removed element deletes its tuple |
-| Marking's list, one event per element | `user:U · listed · document:D`, plus the `user:* · list_applies · document:D` flag while the list is non-empty |
+| Marking's list, one event per element | `user:U · listed · document:D`; the `list_applies` flag is the `named_list` control's, written from the controls row |
 | REL TO countries | `country:CC · releasable_to · document:D` |
 | Specified category's implied controls | `user:* · fedonly_applies · category:C`, written once per category |
 | User's employment; nationality | `user:U · member · employment:federal`; `user:U · member · country:CC`; a change deletes the old entity's tuple and writes the new |
@@ -639,7 +642,7 @@ The adapter therefore requires a ledger and declares so; in ledger mode none the
 
 **Decisions, scope, replay.** `Check` with the model id pinned per request and `consistency` set per operation: `HIGHER_CONSISTENCY` for anything under C7 to C10, `MINIMIZE_LATENCY` allowed for reads, a constant of the adapter. The decision event carries the model id as its policy version, the ledger head at decision time, and the checkpoint as `applied_position`; replay uses the applied position, because that is the state the engine saw. `ListObjects` returns ids, so `scope` is `dynamic([d], d.id in ^ids)`, and the `caps[:batch_ids]` elision applies to the recorded rule; above the cap the seam falls back to `filter` per page with `BatchCheck`; tenant-scoping the query first (`d.agency_id == ^agency`) keeps most lists under the cap. Replay: fold the ledger to *t*, write the tuples into a throwaway OpenFGA with the in-memory datastore, pin the model in force at *t*, and `Check`; heavier than Cerbos's replay because the state must be loaded, lighter than Postgres's because no schema is involved. Revocation latency decomposes as commit, drain, engine write, check-cache TTL if the cache is enabled, and the consistency mode; the committed-repo case measures it (§4).
 
-**Declaration summary**, domain-free: `requires_ledger: true`; `scope_cap` the `ListObjects` cap. Constants: consistency per operation and the `ListObjects` cap; option: the drain interval (§15).
+**Declaration summary**, domain-free: `requires_ledger: true`; `scope_cap` the `ListObjects` cap; the projection, `Turnstile.Fga.Projector` and the configuration the binding resolves for it. Constants: consistency per operation and the `ListObjects` cap; option: the drain interval (§15).
 
 **Projection cases in Tier 1**, each `@tag :committed`, driving `drain_once/1`: measured lag, from a fact's commit to the checkpoint advance that covers it; drift from a tuple deleted through the client directly, caught by reconcile; a re-drain after a simulated crash (a `Write` acknowledged, the checkpoint advance interrupted) converges. They activate only for an adapter that declares a projection.
 
