@@ -268,5 +268,11 @@ defmodule Turnstile.Fga.Client.HttpTest do
     refute_received {:event, _measurements, _metadata}
   end
 
-  defp send_event(_event, measurements, metadata, pid), do: send(pid, {:event, measurements, metadata})
+  # A handler is global, and another async module raising a server of its own
+  # publishes a model through this client, so only calls this process made
+  # count.
+  defp send_event(_event, measurements, metadata, pid) do
+    if self() == pid, do: send(pid, {:event, measurements, metadata})
+    :ok
+  end
 end
