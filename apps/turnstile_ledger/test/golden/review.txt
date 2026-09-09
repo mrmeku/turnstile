@@ -1,0 +1,5 @@
+who can do what, today: 2 rows
+
+subject        kind        operation  object    note
+account-00001  user        read       folder:1  reader
+account-00002  privileged  edit       folder:1  editor
