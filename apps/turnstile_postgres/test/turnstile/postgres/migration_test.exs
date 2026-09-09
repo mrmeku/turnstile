@@ -48,6 +48,15 @@ defmodule Turnstile.Postgres.MigrationTest do
     assert gate.with_check == gate.using
   end
 
+  test "an operation whose write is an insert has no row to read first, so its gate checks the new row alone" do
+    assert Migration.gate!(Owner, table: @table, operation: :add, command: :insert, with_check: @using) == :ok
+
+    assert [gate] = policies()
+    assert {gate.name, gate.command} == {"turnstile_gate_add", :insert}
+    assert gate.using == nil
+    assert gate.with_check =~ "label"
+  end
+
   test "admit! adds the permissive true policy a command needs under forced row-level security" do
     Enum.each([:insert, :delete, :select, :update], &(:ok = Migration.admit!(Owner, table: @table, command: &1)))
 

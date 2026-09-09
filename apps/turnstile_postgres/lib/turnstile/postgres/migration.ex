@@ -12,11 +12,13 @@ defmodule Turnstile.Postgres.Migration do
     joins the caller's expression to it. Permissive policies combine with
     OR, so without the guard the policy of one operation would widen
     another; with it, only the policy of the operation in force can hold.
-  - `gate!/2` adds the `UPDATE` policy of one operation: the `USING`
+  - `gate!/2` adds the write policy of one operation: the `USING`
     expression an answer reads before a write, and the `WITH CHECK`
-    expression the database applies to the write itself. A gate carries no
-    operation guard, so the database refuses a write that violates it
-    whether or not anything asked first.
+    expression the database applies to the write itself. An operation
+    whose write is an insert has no row to read first, so its gate is an
+    `INSERT` policy and carries the `WITH CHECK` expression alone. A gate
+    carries no operation guard, so the database refuses a write that
+    violates it whether or not anything asked first.
   - `admit!/2` adds a permissive `true` policy for one command. Forcing
     row-level security refuses every statement no policy admits, so a table
     whose rows are inserted or deleted outside a decision needs one.
@@ -68,16 +70,19 @@ defmodule Turnstile.Postgres.Migration do
     )
   end
 
-  @doc "Add the `UPDATE` gate of one operation. Requires `table:`, `operation:`, `using:`, and `with_check:`."
+  @doc """
+  Add the write gate of one operation. Requires `table:` and
+  `operation:`; takes `command:`, `:update` by default. An update gate
+  requires `using:` and `with_check:`, an insert gate `with_check:` alone.
+  """
   @spec gate!(module(), keyword()) :: :ok
   def gate!(repo, options) when is_atom(repo) and is_list(options) do
     table = Name.check!(Keyword.fetch!(options, :table), :table)
     operation = Name.check!(Keyword.fetch!(options, :operation), :operation)
     name = Name.check!(Policy.gate_name(operation), :policy)
-    using = Keyword.fetch!(options, :using)
-    with_check = Keyword.fetch!(options, :with_check)
+    {clause, shape} = gate(Keyword.get(options, :command, :update), options)
 
-    run!(repo, "CREATE POLICY #{name} ON #{table} FOR UPDATE USING (#{using}) WITH CHECK (#{with_check})")
+    run!(repo, "CREATE POLICY #{name} ON #{table} FOR #{clause} #{shape}")
   end
 
   @doc "Add a permissive `true` policy for one command. Requires `table:` and `command:`."
@@ -143,6 +148,13 @@ defmodule Turnstile.Postgres.Migration do
       content_bytes: Keyword.get(options, :content_bytes, @content_bytes)
     ]
   end
+
+  defp gate(:update, options) do
+    using = Keyword.fetch!(options, :using)
+    {"UPDATE", "USING (#{using}) WITH CHECK (#{Keyword.fetch!(options, :with_check)})"}
+  end
+
+  defp gate(:insert, options), do: {"INSERT", "WITH CHECK (#{Keyword.fetch!(options, :with_check)})"}
 
   defp exemption(role, true), do: "current_user = '#{role}' AND coalesce(#{@guard}, '') = ''"
   defp exemption(role, false), do: "current_user = '#{role}'"
