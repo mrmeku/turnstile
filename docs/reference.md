@@ -69,7 +69,7 @@ The rules move to the example's glossary as `turnstile_example` appears.
 
 | Rule | `example_rbac` | `example_postgres` | `example_cerbos` | `example_fga` |
 |---|---|---|---|---|
-| C1 | predicate with subqueries over Assignment and OfficeRole in the `dynamic` | `USING` policy on `documents` with `EXISTS` subqueries over `assignments` and `office_roles` against `current_setting('turnstile.subject_id')` | policy condition over the declared attributes `assigned_programs` and `office_roles`, both subqueries | `lawful_purpose` relation |
+| C1 | predicate with subqueries over Assignment and OfficeRole in the `dynamic` | `USING` policy on `documents` with `EXISTS` subqueries over `assignments` and `office_roles` against `current_setting('turnstile.subject_id')` | policy condition over the declared attributes `program_roles` and `office_roles`, both subqueries selecting the role held over the row | `lawful_purpose` relation |
 | C2 | one predicate per control, conjoined | the same policy's predicate over the marking tables, reading `employment` and `nationality` from `users` at every call | one policy rule per control over sent subject attributes | `can_read: lawful_purpose but not blocked` |
 | C3 | implied controls read from `categories` in a subquery | the policy joins `categories` | `check` over the attribute `effective_controls`, a subquery; `scope` falls back to `filter` (limited) | `fedonly_applies from category` and the other flags, nothing copied |
 | C4 | the union enforced in `Example.Documents` at write time; a `read` on `Portion` for the redacted read | the union in the domain; the second policy on `portions`, which reads the document's program, office, and decontrol through `SECURITY DEFINER` accessors so the document's own policy does not narrow it | the union in the domain; the `portion` resource kind, `scope` by `filter` (limited) | the union in the domain; `from portion` on the document's flags, the `portion` type for the redacted read |
@@ -186,7 +186,7 @@ No scenario tests "write gates without application code"; it is not a rule.
   ```elixir
   attribute :nationality, column: :nationality
   attribute :employment, column: :employment
-  attribute :assigned_programs, subquery: &Example.Assignments.program_ids_for/1
+  attribute :program_roles, subquery: &Example.Assignments.program_roles_for/1
   attribute :effective_controls, subquery: &Example.Markings.effective_controls_for/1
   ```
 
