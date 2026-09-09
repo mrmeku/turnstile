@@ -17,7 +17,19 @@ defmodule Mix.Tasks.Turnstile.ReviewTest do
     assert table == File.read!(@golden)
   end
 
-  test "it takes no arguments, because a date is what point-in-time review adds" do
-    assert_raise Mix.Error, ~r/takes no arguments/, fn -> Review.run(["--at", "2026-03-01"]) end
+  test "it prints the review of the date it was asked about" do
+    Review.run(["--at", "2026-03-01"])
+
+    assert_received {:mix_shell, :info, [table]}
+    assert table =~ "who can do what, on 2026-03-01: 2 rows"
+    assert table =~ "as of 2026-03-01"
+  end
+
+  test "a date it cannot read says what a date looks like" do
+    assert_raise Mix.Error, ~r/takes a date as YYYY-MM-DD/, fn -> Review.run(["--at", "March"]) end
+  end
+
+  test "an argument it does not know says which arguments it takes" do
+    assert_raise Mix.Error, ~r/takes --at <date> or nothing/, fn -> Review.run(["--since", "2026-03-01"]) end
   end
 end
