@@ -44,7 +44,7 @@ defmodule Turnstile.Ledger.Dialect.Postgres do
   def take(repo, counter, count) when is_atom(repo) and is_binary(counter) and is_integer(count) and count > 0 do
     sql = "UPDATE #{@counter} SET position = position + $2 WHERE name = $1 RETURNING position"
 
-    case SQL.query(repo, sql, [counter, count]) do
+    case SQL.query(instance(repo), sql, [counter, count]) do
       {:ok, %{rows: [[position]]}} -> {:ok, position}
       {:ok, %{rows: []}} -> {:error, engine(:take, "no counter row named #{inspect(counter)}")}
       {:error, error} -> {:error, engine(:take, Exception.message(error))}
@@ -61,11 +61,17 @@ defmodule Turnstile.Ledger.Dialect.Postgres do
 
   @impl Dialect
   def cascades(repo, tables) when is_atom(repo) and is_list(tables) do
-    case SQL.query(repo, @cascades, [tables]) do
+    case SQL.query(instance(repo), @cascades, [tables]) do
       {:ok, %{rows: rows}} -> {:ok, Enum.map(rows, &cascade/1)}
       {:error, error} -> {:error, engine(:cascades, Exception.message(error))}
     end
   end
+
+  # The instance the repo module is pointed at: a pid when a caller has put
+  # a dynamic repo in front of it, as a migration run against one database
+  # of several does, and the module's own name otherwise. `SQL.query/4`
+  # takes either and looks up neither.
+  defp instance(repo), do: repo.get_dynamic_repo()
 
   defp cascade([constraint, table, referenced, action]) do
     %Cascade{constraint: constraint, table: table, referenced: referenced, action: action(action)}
