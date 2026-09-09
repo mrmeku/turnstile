@@ -1,8 +1,17 @@
+defmodule Turnstile.Fga.BindingTest.Guarded do
+  @moduledoc false
+  @behaviour Turnstile.Fga.Guard
+
+  @impl Turnstile.Fga.Guard
+  def admits?(_operation, _environment), do: true
+end
+
 defmodule Turnstile.Fga.BindingTest do
   use ExUnit.Case, async: false
 
   alias Turnstile.Error
   alias Turnstile.Fga.Binding
+  alias Turnstile.Fga.BindingTest.Guarded
   alias Turnstile.Fga.Conformance.Mapping
   alias Turnstile.Fixture.Folder
   alias Turnstile.TestRepos.Sandboxed
@@ -15,11 +24,12 @@ defmodule Turnstile.Fga.BindingTest do
     on_exit(fn -> :persistent_term.erase(Binding) end)
   end
 
-  test "the binding is the repo, the model file, the mapping, and who stands behind it" do
+  test "the binding is the repo, the model file, the mapping, the guard, and who stands behind it" do
     assert {:ok, %Binding{} = binding} = Binding.new(@options)
     assert binding.repo == Sandboxed
     assert binding.model == "priv/conformance/model.fga"
     assert binding.mapping == Mapping
+    assert binding.guard == nil
     assert binding.author == nil
     assert binding.approval == nil
 
@@ -27,9 +37,12 @@ defmodule Turnstile.Fga.BindingTest do
              repo: Sandboxed,
              model: "priv/conformance/model.fga",
              mapping: Mapping,
+             guard: nil,
              author: nil,
              approval: nil
            ]
+
+    assert {:ok, %Binding{guard: Guarded}} = Binding.new(put_in(@options[:guard], Guarded))
   end
 
   test "options the schema does not accept are an invalid binding" do
@@ -41,6 +54,11 @@ defmodule Turnstile.Fga.BindingTest do
   test "a module that is no tuple mapping is an invalid binding" do
     assert {:error, %Error.Invalid{what: :binding} = error} = Binding.new(put_in(@options[:mapping], Folder))
     assert error.detail == "Turnstile.Fixture.Folder is no Turnstile.Fga.TupleMapping"
+  end
+
+  test "a module that is no guard is an invalid binding" do
+    assert {:error, %Error.Invalid{what: :binding} = error} = Binding.new(put_in(@options[:guard], Folder))
+    assert error.detail == "Turnstile.Fixture.Folder is no Turnstile.Fga.Guard"
   end
 
   test "what is bound at boot is what resolve answers, under the calling process's override" do

@@ -3,7 +3,8 @@ defmodule Turnstile.Fga.Binding do
   What `Turnstile.Fga` needs beyond the configuration entry, which carries
   the endpoint and the store alone: the mediated repo the checkpoint is read
   through, the model text the store is published from, the module that maps
-  facts to tuples, and who wrote and approved that model.
+  facts to tuples, who wrote and approved that model, and the guard, where
+  the application has a precondition the model cannot hold.
 
   `bind/1` validates them and keeps them for the life of the VM, as
   `Turnstile.Config.boot!/1` keeps the configuration; `override/1` puts a
@@ -21,6 +22,7 @@ defmodule Turnstile.Fga.Binding do
   """
 
   alias Turnstile.Error
+  alias Turnstile.Fga.Guard
   alias Turnstile.Fga.Model
   alias Turnstile.Fga.TupleMapping
 
@@ -36,17 +38,23 @@ defmodule Turnstile.Fga.Binding do
               required: true,
               doc: "The `Turnstile.Fga.TupleMapping` implementation for this application's facts."
             ],
+            guard: [
+              type: :atom,
+              default: nil,
+              doc: "The `Turnstile.Fga.Guard` every callback consults before it asks, where there is one."
+            ],
             author: [type: {:or, [:string, nil]}, default: nil, doc: "Who wrote the model."],
             approval: [type: {:or, [:string, nil]}, default: nil, doc: "The approval the model carries."]
           )
 
   @enforce_keys [:repo, :model, :mapping]
-  defstruct [:repo, :model, :mapping, :author, :approval]
+  defstruct [:repo, :model, :mapping, :guard, :author, :approval]
 
   @type t :: %__MODULE__{
           repo: module(),
           model: Path.t(),
           mapping: module(),
+          guard: module() | nil,
           author: String.t() | nil,
           approval: String.t() | nil
         }
@@ -59,7 +67,8 @@ defmodule Turnstile.Fga.Binding do
   @spec new(keyword()) :: {:ok, t()} | {:error, Error.Invalid.t()}
   def new(options) when is_list(options) do
     with {:ok, validated} <- validate(options),
-         :ok <- maps?(validated[:mapping]) do
+         :ok <- implements?(validated[:mapping], TupleMapping),
+         :ok <- implements?(validated[:guard], Guard) do
       {:ok, struct!(__MODULE__, validated)}
     end
   end
@@ -122,6 +131,7 @@ defmodule Turnstile.Fga.Binding do
       repo: binding.repo,
       model: binding.model,
       mapping: binding.mapping,
+      guard: binding.guard,
       author: binding.author,
       approval: binding.approval
     ]
@@ -149,11 +159,13 @@ defmodule Turnstile.Fga.Binding do
     end
   end
 
-  defp maps?(mapping) do
-    if TupleMapping in behaviours(mapping) do
+  defp implements?(nil, _behaviour), do: :ok
+
+  defp implements?(module, behaviour) do
+    if behaviour in behaviours(module) do
       :ok
     else
-      {:error, invalid("#{inspect(mapping)} is no Turnstile.Fga.TupleMapping")}
+      {:error, invalid("#{inspect(module)} is no #{inspect(behaviour)}")}
     end
   end
 

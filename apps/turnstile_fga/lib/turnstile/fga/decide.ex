@@ -33,6 +33,11 @@ defmodule Turnstile.Fga.Decide do
   this module emits `fallback_event/0` with the level `limited` and fails,
   and the caller asks per page instead.
 
+  A guard is a rule outside the graph. Where the binding names one and it
+  does not admit the operation, this module answers the denial and asks
+  nothing, and that denial names the guard as the rule that denied, because
+  something denied it rather than nothing allowing it.
+
   An operation the model has no relation for is a question the server
   refuses, and that refusal is answered as it stands rather than turned into
   a denial of this module's own, because nothing here can tell an operation
@@ -60,6 +65,7 @@ defmodule Turnstile.Fga.Decide do
   alias Turnstile.Subject
 
   @fallback [:turnstile, :fga, :scope_fallback]
+  @guard "guard"
   @scope_cap 1_000
   @time "current_time"
 
@@ -77,6 +83,10 @@ defmodule Turnstile.Fga.Decide do
   @doc "The telemetry event a scope at the cap emits, once per scope that falls back."
   @spec fallback_event() :: [atom()]
   def fallback_event, do: @fallback
+
+  @doc "The rule a refusal names, which is the guard rather than anything of the model."
+  @spec guard_rule() :: String.t()
+  def guard_rule, do: @guard
 
   @doc "How many objects one `ListObjects` answers with, the pinned server's own limit."
   @spec scope_cap() :: pos_integer()
@@ -163,6 +173,31 @@ defmodule Turnstile.Fga.Decide do
       {:ok, scope(ids, operation, model, entry.applied)}
     end
   end
+
+  @doc "The denial a guard's refusal is for one object, under the entry's model and position."
+  @spec refused(entry()) :: Answer.t()
+  def refused(entry) do
+    %Answer{
+      verdict: :deny,
+      reason: Reason.rule_denied(@guard),
+      policy_version: entry.model,
+      applied_position: entry.applied
+    }
+  end
+
+  @doc "The denial a guard's refusal is for every object of a batch."
+  @spec refused_all(entry(), [Object.t()]) :: %{Object.ref() => Answer.t()}
+  def refused_all(entry, objects) when is_list(objects) do
+    Map.new(objects, &{Object.ref(&1), refused(entry)})
+  end
+
+  @doc "The scope a guard's refusal is: the rule no row satisfies, and the denial."
+  @spec refused_scope(entry()) :: Scope.t()
+  def refused_scope(entry), do: %Scope{rule: dynamic([_row], false), answer: refused(entry)}
+
+  @doc "The explanation a guard's refusal is: the denial, and no relation that holds."
+  @spec refused_explanation(entry()) :: Explanation.t()
+  def refused_explanation(entry), do: %Explanation{answer: refused(entry), matched: []}
 
   @doc """
   The explanation for one object: the answer, and where it is allowed the

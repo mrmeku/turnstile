@@ -27,7 +27,10 @@ defmodule Turnstile.Fga do
     reports.
   - `Turnstile.Fga.Binding`, what the configuration entry does not carry:
     the repo the checkpoint is read through, the model file the store is
-    published from, and the mapping.
+    published from, the mapping, and the guard.
+  - `Turnstile.Fga.Guard`, a precondition on the environment a binding may
+    name, which every callback consults before it asks, for a fact about the
+    call that no tuple should carry.
   - `Turnstile.Fga.Version`, the model published as a policy version, and
     `Turnstile.Fga.Replay`, a past state in a server that is thrown away.
   - `Turnstile.Fga.Migration`, the checkpoint table, which a thin
@@ -59,6 +62,7 @@ defmodule Turnstile.Fga do
       Condition,
       Consistency,
       Decide,
+      Guard,
       Model,
       Projector,
       Replay,
@@ -125,51 +129,69 @@ defmodule Turnstile.Fga do
   @impl Turnstile.Adapter
   def authorize(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
       when is_atom(operation) do
-    with {:ok, entry} <- entry(options, :authorize, environment) do
-      Decide.one(entry, subject, operation, object)
+    case entry(options, :authorize, operation, environment) do
+      {:ok, entry} -> Decide.one(entry, subject, operation, object)
+      {:refused, entry} -> {:ok, Decide.refused(entry)}
+      {:error, error} -> {:error, error}
     end
   end
 
   @impl Turnstile.Adapter
   def check(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
       when is_atom(operation) do
-    with {:ok, entry} <- entry(options, :check, environment) do
-      Decide.one(entry, subject, operation, object)
+    case entry(options, :check, operation, environment) do
+      {:ok, entry} -> Decide.one(entry, subject, operation, object)
+      {:refused, entry} -> {:ok, Decide.refused(entry)}
+      {:error, error} -> {:error, error}
     end
   end
 
   @impl Turnstile.Adapter
   def batch(%Subject{} = subject, operation, objects, %Environment{} = environment, options)
       when is_atom(operation) and is_list(objects) do
-    with {:ok, entry} <- entry(options, :batch, environment) do
-      Decide.many(entry, subject, operation, objects)
+    case entry(options, :batch, operation, environment) do
+      {:ok, entry} -> Decide.many(entry, subject, operation, objects)
+      {:refused, entry} -> {:ok, Decide.refused_all(entry, objects)}
+      {:error, error} -> {:error, error}
     end
   end
 
   @impl Turnstile.Adapter
   def scope(%Subject{} = subject, operation, object_type, %Environment{} = environment, options)
       when is_atom(operation) and is_atom(object_type) do
-    with {:ok, entry} <- entry(options, :scope, environment) do
-      Decide.scoped(entry, subject, operation, object_type)
+    case entry(options, :scope, operation, environment) do
+      {:ok, entry} -> Decide.scoped(entry, subject, operation, object_type)
+      {:refused, entry} -> {:ok, Decide.refused_scope(entry)}
+      {:error, error} -> {:error, error}
     end
   end
 
   @impl Turnstile.Adapter
   def explain(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
       when is_atom(operation) do
-    with {:ok, entry} <- entry(options, :explain, environment) do
-      Decide.explained(entry, subject, operation, object)
+    case entry(options, :explain, operation, environment) do
+      {:ok, entry} -> Decide.explained(entry, subject, operation, object)
+      {:refused, entry} -> {:ok, Decide.refused_explanation(entry)}
+      {:error, error} -> {:error, error}
     end
   end
 
   # The position the store has been drained to is read where the
   # application's own tables are, so the binding is resolved for the repo
-  # that holds the checkpoint before any question is asked.
-  defp entry(options, callback, environment) do
+  # that holds the checkpoint before any question is asked. The guard the
+  # same binding names is asked next, and a refusal is answered with the
+  # entry the denial is reported under.
+  defp entry(options, callback, operation, environment) do
     with {:ok, %Binding{} = binding} <- bound(callback),
          {:ok, entry} <- Decide.entry(options, callback, environment) do
-      {:ok, Decide.applied(entry, Checkpoint.position(binding.repo, entry.store))}
+      admits(binding, operation, environment, Decide.applied(entry, Checkpoint.position(binding.repo, entry.store)))
     end
+  end
+
+  defp admits(%Binding{guard: nil}, _operation, _environment, entry), do: {:ok, entry}
+
+  defp admits(%Binding{guard: guard}, operation, %Environment{} = environment, entry) do
+    if guard.admits?(operation, environment), do: {:ok, entry}, else: {:refused, entry}
   end
 
   defp bound(callback) do

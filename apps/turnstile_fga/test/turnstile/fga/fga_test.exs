@@ -1,3 +1,14 @@
+defmodule Turnstile.FgaTest.Guard do
+  @moduledoc false
+  @behaviour Turnstile.Fga.Guard
+
+  alias Turnstile.Environment
+
+  @impl Turnstile.Fga.Guard
+  def admits?(:read, %Environment{facts: facts}), do: Map.get(facts, :cleared) == true
+  def admits?(_operation, %Environment{}), do: true
+end
+
 defmodule Turnstile.FgaTest do
   use ExUnit.Case, async: true
 
@@ -20,6 +31,7 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Fga.Decide
   alias Turnstile.Fga.Projector
   alias Turnstile.Fga.TupleKey
+  alias Turnstile.FgaTest.Guard
   alias Turnstile.Ledger.Memory
   alias Turnstile.Object
   alias Turnstile.Reason
@@ -128,6 +140,40 @@ defmodule Turnstile.FgaTest do
     assert {:error, %Error.Invalid{what: :binding, detail: ^detail}} = Fga.projection()
   end
 
+  test "a guard the binding names is asked first, and what it refuses is denied by the guard", context do
+    :ok = write(context, [tuple("ann", "can_read", "folder:1")])
+    :ok = Binding.override(guard: Guard)
+    folder = %Object{type: :folder, id: 1}
+
+    assert {:ok, %Answer{verdict: :allow}} = Fga.check(ann(), :read, folder, cleared(), context.options)
+
+    assert {:ok, %Answer{verdict: :deny} = denied} = Fga.check(ann(), :read, folder, environment(), context.options)
+    assert denied.reason == Reason.rule_denied(Decide.guard_rule())
+    assert denied.policy_version == context.model
+    assert denied.applied_position == 0
+
+    assert {:ok, %Answer{verdict: :deny}} = Fga.authorize(ann(), :read, folder, environment(), context.options)
+    assert {:ok, answers} = Fga.batch(ann(), :read, [folder], environment(), context.options)
+    assert answers[{:folder, 1}].verdict == :deny
+
+    assert {:ok, %Scope{rule: rule, answer: %Answer{verdict: :deny}}} =
+             Fga.scope(ann(), :read, :folder, environment(), context.options)
+
+    assert inspect(rule) == inspect(dynamic([_row], false))
+
+    assert {:ok, %Explanation{answer: %Answer{verdict: :deny}, matched: []}} =
+             Fga.explain(ann(), :read, folder, environment(), context.options)
+  end
+
+  test "what the guard admits still needs a model pinned, and what it refuses does not", context do
+    :ok = Binding.override(guard: Guard)
+    options = Keyword.delete(context.options, :model_id)
+    folder = %Object{type: :folder, id: 1}
+
+    assert {:ok, %Answer{verdict: :deny, policy_version: nil}} = Fga.check(ann(), :read, folder, environment(), options)
+    assert {:error, %Error.Engine{operation: :check}} = Fga.check(ann(), :read, folder, cleared(), options)
+  end
+
   test "a scope above the cap records limited and matches filter", context do
     :ok = readable(context, 1..1_000)
     :telemetry.attach(inspect(self()), Decide.fallback_event(), &__MODULE__.forward/4, self())
@@ -164,6 +210,8 @@ defmodule Turnstile.FgaTest do
   defp ann, do: %Subject{id: "ann", kind: :user}
 
   defp environment, do: %Environment{now: @now}
+
+  defp cleared, do: %Environment{now: @now, facts: %{cleared: true}}
 
   defp tuple(user, relation, object), do: %TupleKey{user: "user:#{user}", relation: relation, object: object}
 
