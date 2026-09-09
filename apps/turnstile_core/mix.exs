@@ -27,7 +27,9 @@ defmodule Turnstile.Core.MixProject do
   end
 
   def application do
-    [extra_applications: [:logger]]
+    # `:inets` carries `httpc`, which `Turnstile.Test.Cerbos` asks a sidecar's
+    # health endpoint with. It ships with OTP, so it is no pin.
+    [extra_applications: [:logger, :inets]]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
@@ -38,7 +40,9 @@ defmodule Turnstile.Core.MixProject do
   # generators, the mock, and the sandbox they rest on are dependencies of
   # the package rather than of its own suite. `ecto_sql` is optional because
   # an application that takes the port without the seam needs `ecto` alone;
-  # `postgrex` is the driver core's own suite connects with.
+  # `postgrex` is the driver core's own suite connects with. `muontrap` is
+  # optional for the same reason `ecto_sql` is: it starts the Cerbos sidecar
+  # in `Turnstile.Test.Cerbos`, which only an adapter suite calls.
   # Every pin is exact. Versions verified against https://hex.pm/api/packages/<name>
   # on 2026-09-08.
   defp deps do
@@ -47,6 +51,7 @@ defmodule Turnstile.Core.MixProject do
       {:nimble_options, "1.1.1"},
       {:telemetry, "1.4.2"},
       {:ecto_sql, "3.14.0", optional: true},
+      {:muontrap, "2.0.0", optional: true},
       {:postgrex, "0.22.4", only: :test},
       {:stream_data, "1.4.0"},
       {:mox, "1.3.1"},
