@@ -4,6 +4,6 @@ import Config
 # it from EXAMPLE_LEDGER so the suite runs once per mode.
 config :example_rbac, ledger: :none
 
-if config_env() == :test do
-  import_config "test.exs"
+if config_env() in [:dev, :test] do
+  import_config "#{config_env()}.exs"
 end

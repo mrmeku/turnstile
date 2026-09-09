@@ -127,6 +127,12 @@
                 CREATE ROLE turnstile_app LOGIN NOBYPASSRLS;
               '';
               initialDatabases = [ { name = "turnstile_dev"; } ];
+              # The owner role owns the development database, as it owns each
+              # of the test cluster's, so migrations run by it can create in
+              # the public schema and the tables they create are its own.
+              initialScript.after = ''
+                ALTER DATABASE turnstile_dev OWNER TO turnstile_owner;
+              '';
             };
             settings.processes = {
               cerbos.command = ''
