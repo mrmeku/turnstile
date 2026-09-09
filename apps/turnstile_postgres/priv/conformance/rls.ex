@@ -21,6 +21,12 @@ defmodule Turnstile.Postgres.Conformance.Rules do
   refuses every statement no policy admits and the fixture writes its
   population through the same role it reads with.
 
+  The owner role reads the protected tables while no operation is in force,
+  which is the exemption the seam leaves behind for it. Forcing row-level
+  security applies the policies to the table's owner too, so without that
+  policy the role that owns the tables could not copy their rows out, and a
+  replay is a copy of the rows into a database of its own.
+
   The migration number is the policy version every decision over the
   fixture names, and the application role is granted `SELECT` on the
   migrations table so it can read that number back.
@@ -32,6 +38,7 @@ defmodule Turnstile.Postgres.Conformance.Rules do
 
   @version 20_260_908_000_001
   @role "turnstile_app"
+  @owner "turnstile_owner"
   @folders "turnstile_fixture_folders"
   @items "turnstile_fixture_items"
 
@@ -95,6 +102,7 @@ defmodule Turnstile.Postgres.Conformance.Rules do
     :ok = Migration.policy!(repo, table: table, operation: :edit, using: "#{editor} AND #{@cleared}")
     :ok = Migration.admit!(repo, table: table, command: :insert)
     :ok = Migration.admit!(repo, table: table, command: :delete)
+    Migration.exempt!(repo, table: table, to: @owner, commands: [:select])
   end
 
   defp published do

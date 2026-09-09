@@ -42,7 +42,7 @@ defmodule Turnstile.Postgres do
   use Boundary,
     deps: [Turnstile, Ecto, NimbleOptions],
     check: [apps: [:ecto_sql, :postgrex]],
-    exports: [Binding, Catalog, Coverage, Decide, Migration, Name, Policy, Session, Settings, Version]
+    exports: [Binding, Catalog, Coverage, Decide, Migration, Name, Policy, Replay, Session, Settings, Version]
 
   import Ecto.Query, only: [dynamic: 2]
 

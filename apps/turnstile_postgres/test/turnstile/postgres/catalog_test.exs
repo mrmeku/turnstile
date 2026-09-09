@@ -58,7 +58,14 @@ defmodule Turnstile.Postgres.CatalogTest do
   end
 
   defp names do
-    ~w(turnstile_admit_delete turnstile_admit_insert turnstile_gate_edit turnstile_scope_edit turnstile_scope_read)
+    ~w(
+      turnstile_admit_delete
+      turnstile_admit_insert
+      turnstile_exempt_turnstile_owner_select
+      turnstile_gate_edit
+      turnstile_scope_edit
+      turnstile_scope_read
+    )
   end
 
   defp binding!(overrides \\ []) do
