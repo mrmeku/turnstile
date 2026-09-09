@@ -7,10 +7,13 @@ defmodule Example.Scenarios do
 
   Each scenario's body is a function in a module under this one, named by
   the scenario's id. Scenarios that measure latency, `rev-01` and `rev-06`,
-  the reconcile scenario `rvw-04`, and the change-management scenarios
-  `cm-01`, `cm-02` and `cm-03` run on the committed database in a nested
-  module that is not async; every other scenario runs in a sandbox
-  transaction. The change-management three publish a rule change, which for
+  the reconcile scenario `rvw-04`, the replay scenario `rvw-03`, and the
+  change-management scenarios `cm-01`, `cm-02` and `cm-03` run on the
+  committed database in a nested module that is not async; every other
+  scenario runs in a sandbox transaction. Replay runs there because a
+  binding whose rules are the database's own reproduces a decision in a
+  database of its own, and the rows it copies over are the committed
+  ones. The change-management three publish a rule change, which for
   an adapter whose rules are the database's own is a schema change, and a
   schema change waits for every other connection reading the tables it
   changes; the committed tier runs after the async ones, so it holds the
@@ -18,8 +21,8 @@ defmodule Example.Scenarios do
   equal the table's rows less the ones the declaration marks `unsupported`
   and, without a ledger, less the ones that need a ledger.
 
-  A thin application supplies the two policy operations a test cannot write
-  without naming the adapter through `Example.Scenarios.Rules`.
+  A thin application supplies through `Example.Scenarios.Rules` the policy
+  operations a test cannot write without naming the adapter.
   """
 
   use Boundary,
@@ -57,7 +60,7 @@ defmodule Example.Scenarios do
     Example.Scenarios.Ledger
   ]
 
-  @committed ~w[cm-01 cm-02 cm-03 rev-01 rev-06 rvw-04]
+  @committed ~w[cm-01 cm-02 cm-03 rev-01 rev-06 rvw-03 rvw-04]
 
   @doc false
   defmacro __using__(opts) do
@@ -175,11 +178,12 @@ end
 
 defmodule Example.Scenarios.Rules do
   @moduledoc """
-  What a thin application supplies for the scenarios that publish a rule
-  change: a tightened policy under which a program member no longer reads,
-  published as a policy version for the calling process, its restoration,
-  and the boot policy published again for a tier that empties the ledger
-  between tests.
+  What a thin application supplies for the scenarios that name the rules
+  themselves: a tightened policy under which a program member no longer
+  reads, published as a policy version for the calling process, its
+  restoration, the boot policy published again for a tier that empties the
+  ledger between tests, and a question asked again under a version and a
+  state the ledger names.
   """
 
   @doc "Publish a policy under which `member` no longer holds `read`, returning the version."
@@ -190,4 +194,14 @@ defmodule Example.Scenarios.Rules do
 
   @doc "Publish the boot policy as the version the ledger starts from."
   @callback publish_boot() :: :ok
+
+  @doc """
+  Run the function with the state and the policies a replay names in force,
+  and answer what it answered. What that costs is the binding's business:
+  for rules in code it is the running release matching the version the
+  replay names and the relationships of the fold put back; for rules the
+  database holds it is a database of its own, carrying the rows and the
+  policies of that version.
+  """
+  @callback replay(Turnstile.Ledger.Replay.t(), (-> result)) :: result when result: var
 end

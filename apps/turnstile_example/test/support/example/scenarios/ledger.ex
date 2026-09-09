@@ -140,8 +140,8 @@ defmodule Example.Scenarios.Ledger do
     assert_reviews_as_folded(at)
   end
 
-  @spec rvw_03() :: term()
-  def rvw_03 do
+  @spec rvw_03(module()) :: term()
+  def rvw_03(rules) do
     world = Fixture.world!()
     document = Fixture.document!(world)
     operation_id = Id.new()
@@ -154,6 +154,7 @@ defmodule Example.Scenarios.Ledger do
     assert 1 = Accounts.unassign("ann", world.program.id)
     again = assert_replays(decision, grant)
     assert again.fold.facts == replay.fold.facts
+    assert_reproduces(rules, again, decision, document)
   end
 
   @spec rvw_04() :: term()
@@ -258,6 +259,16 @@ defmodule Example.Scenarios.Ledger do
     assert replay.fold.facts[grant] == :member
     assert replay.policy_version.version == decision.policy_version
     replay
+  end
+
+  # The verdict the record holds, asked again with the state and the
+  # policies the replay names in force: the same answer, whatever the tables
+  # hold now. What putting those two back costs is the binding's, and
+  # `Example.Scenarios.Rules` is where a test asks for it.
+  defp assert_reproduces(rules, replay, decision, document) do
+    assert decision.verdict == "allow"
+    refute reads?(subject("ann"), document)
+    assert rules.replay(replay, fn -> reads?(subject("ann"), document) end)
   end
 
   defp assert_attributed(%PolicyVersion{author: author, approval: approval}) do
