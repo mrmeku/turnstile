@@ -15,6 +15,21 @@ defmodule Turnstile.Repo.FactsTest.Team do
   fact(:label, kind: :object_attribute, object: :id)
 end
 
+defmodule Turnstile.Repo.FactsTest.Board do
+  @moduledoc false
+  use Ecto.Schema
+  use Turnstile.Schema
+
+  @primary_key {:id, :string, autogenerate: false}
+
+  schema "facts_test_boards" do
+    field(:tags, {:array, :string})
+  end
+
+  object_type(:board)
+  fact(:tags, kind: :object_attribute, object: :id, element: :tag)
+end
+
 defmodule Turnstile.Repo.FactsTest.Seat do
   @moduledoc false
   use Ecto.Schema
@@ -63,7 +78,9 @@ defmodule Turnstile.Repo.FactsTest do
   alias Turnstile.Error
   alias Turnstile.FactEvent
   alias Turnstile.Id
+  alias Turnstile.Ledger.Fold
   alias Turnstile.Repo.Facts
+  alias Turnstile.Repo.FactsTest.Board
   alias Turnstile.Repo.FactsTest.Grant
   alias Turnstile.Repo.FactsTest.Seat
   alias Turnstile.Repo.FactsTest.Team
@@ -89,6 +106,27 @@ defmodule Turnstile.Repo.FactsTest do
              %FactEvent{attribute: :members, old: "b", new: nil},
              %FactEvent{attribute: :label, old: "blue", new: nil}
            ] = Facts.events(Team, team, nil, @stamp)
+  end
+
+  test "a set of object attributes folds to one fact per element, and one removal erases one element" do
+    board = %Board{id: "b1", tags: ["red", "blue"]}
+    added = Facts.events(Board, nil, board, @stamp)
+
+    assert [
+             %FactEvent{kind: :object_attribute, subject_ref: {:tag, "red"}, object_ref: {:board, "b1"}, new: "red"},
+             %FactEvent{kind: :object_attribute, subject_ref: {:tag, "blue"}, new: "blue"}
+           ] = added
+
+    assert Fold.fold(added).facts == %{
+             {{:tag, "red"}, {:board, "b1"}, :tags} => "red",
+             {{:tag, "blue"}, {:board, "b1"}, :tags} => "blue"
+           }
+
+    dropped = Facts.events(Board, board, %{board | tags: ["blue"]}, @stamp)
+
+    assert [%FactEvent{subject_ref: {:tag, "red"}, old: "red", new: nil}] = dropped
+
+    assert Fold.fold(added ++ dropped).facts == %{{{:tag, "blue"}, {:board, "b1"}, :tags} => "blue"}
   end
 
   test "a relationship with no attributes records its existence as true" do
