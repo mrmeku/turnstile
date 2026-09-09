@@ -20,6 +20,12 @@ defmodule Example.AccountsTest do
     assert %OfficeRole{role: :approver} = Accounts.office_role("frank", world.office.id, :approver)
   end
 
+  test "a grant to many accounts at once is one record naming the schema and the count", %{world: world} do
+    assert {:ok, record} = Accounts.assign_all(["frank", "dana"], world.program.id, :member)
+    assert {record.operation, record.schema, record.count} == {:insert, Assignment, 2}
+    assert Accounts.unassign("frank", world.program.id) == 1
+  end
+
   test "the override permission is a row, and privileged accounts are listed with their roles", %{} do
     refute Accounts.override_permitted?("frank")
     assert Accounts.override_permitted?("gil")

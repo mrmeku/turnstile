@@ -43,13 +43,15 @@ defmodule Turnstile.Example.MixProject do
     [~r/\.Generated\./, ~r/^Example\.Scenarios/, ~r/^Example\.Fixture/, ~r/^Example\.Cluster/]
   end
 
-  # lib depends on core, ecto, ecto_sql (the migration helper and preload),
+  # lib depends on core, on the ledger's bulk API for the writes that change
+  # many facts at once, on ecto, ecto_sql (the migration helper and preload),
   # phoenix and plug (the web layer), and telemetry. Every pin is exact.
   # Versions verified against https://hex.pm/api/packages/<name> on
   # 2026-09-08.
   defp deps do
     [
       {:turnstile_core, in_umbrella: true},
+      {:turnstile_ledger, in_umbrella: true},
       {:ecto, "3.14.2"},
       {:ecto_sql, "3.14.0"},
       {:postgrex, "0.22.4"},

@@ -27,6 +27,11 @@ defmodule Example.Documents do
   the banner invariant (C4) is enforced here at write time; the override
   (C10) is the one path that reads outside C1, under a declared exemption,
   with its own event and its report.
+
+  A change that reaches many documents at once goes through
+  `Turnstile.Facts` under the rule `scope` answers with, so the ledger
+  receives one event per document and the audit one record for the
+  operation.
   """
 
   import Ecto.Query, only: [from: 2, where: 2]
@@ -42,6 +47,8 @@ defmodule Example.Documents do
   alias Example.Repo
   alias Turnstile.Decision
   alias Turnstile.Error
+  alias Turnstile.Facts
+  alias Turnstile.Facts.Record
   alias Turnstile.Object
   alias Turnstile.Subject
 
@@ -149,6 +156,25 @@ defmodule Example.Documents do
     end
   end
 
+  @doc """
+  Set the decontrol date of every document the subject may set it on, as one
+  bulk write under `scope`: one audit record for the operation and one fact
+  event per document whose date changes, all sharing its operation id.
+  """
+  @spec decontrol_all(Subject.t(), DateTime.t(), keyword()) ::
+          {:ok, Record.t()} | {:error, refusal() | Error.Engine.t()}
+  def decontrol_all(%Subject{} = subject, %DateTime{} = at, opts \\ []) when is_list(opts) do
+    case Turnstile.scope(subject, :set_decontrol, :document, opts) do
+      {_rule, %Decision{verdict: :deny} = decision} ->
+        {:error, refused(subject, :set_decontrol, decision)}
+
+      {rule, decision} ->
+        admitted = from(d in Document, where: ^rule)
+        updates = [set: [decontrol: DateTime.truncate(at, :second)]]
+        Facts.bulk_update(admitted, updates, repo: Repo, turnstile: decision)
+    end
+  end
+
   @doc "Decontrol a document now, by the port's clock (C5, C7, C8)."
   @spec decontrol(Subject.t(), integer(), keyword()) :: {:ok, Document.t()} | {:error, refusal()}
   def decontrol(%Subject{} = subject, id, opts \\ []) when is_integer(id) do
@@ -210,6 +236,10 @@ defmodule Example.Documents do
   @doc "The object reference for a row of a type."
   @spec object(atom(), integer()) :: Object.t()
   def object(type, id) when is_atom(type) and is_integer(id), do: %Object{type: type, id: id}
+
+  defp refused(subject, operation, %Decision{reason: reason}) do
+    %Error.NotAuthorized{subject: subject, operation: operation, object: :document, reason: reason}
+  end
 
   defp covered(document_id, attrs) do
     portions = Repo.all(where(Portion, document_id: ^document_id), turnstile: @banner)

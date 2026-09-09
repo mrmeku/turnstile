@@ -8,7 +8,17 @@ defmodule Example do
   """
 
   use Boundary,
-    deps: [Turnstile, Ecto, Ecto.Adapters.Postgres, Ecto.Adapters.SQL, Ecto.Migration, Phoenix, Plug, NimbleOptions],
+    deps: [
+      Turnstile,
+      Turnstile.Facts,
+      Ecto,
+      Ecto.Adapters.Postgres,
+      Ecto.Adapters.SQL,
+      Ecto.Migration,
+      Phoenix,
+      Plug,
+      NimbleOptions
+    ],
     exports: [
       Accounts,
       AccountRole,

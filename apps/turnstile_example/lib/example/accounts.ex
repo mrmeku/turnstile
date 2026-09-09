@@ -5,6 +5,10 @@ defmodule Example.Accounts do
   a rule of the example, so its writes carry a declared exemption naming
   it; every read of a role by a rule happens inside the adapter at check
   time, and a revocation deletes nothing but the role row.
+
+  A grant to many accounts at once goes through `Turnstile.Facts`, which
+  records one event per assignment; a plain `insert_all` on a fact schema is
+  refused where a ledger is configured.
   """
 
   import Ecto.Query, only: [from: 2]
@@ -14,6 +18,9 @@ defmodule Example.Accounts do
   alias Example.OfficeRole
   alias Example.Repo
   alias Example.User
+  alias Turnstile.Error
+  alias Turnstile.Facts
+  alias Turnstile.Facts.Record
   alias Turnstile.Subject
 
   @administration {:exempt, "role administration: no rule of the example governs who grants roles"}
@@ -33,12 +40,28 @@ defmodule Example.Accounts do
     Repo.insert!(%Assignment{user_id: user_id, program_id: program_id, role: role}, turnstile: @administration)
   end
 
-  @doc "Revoke an account's assignment to a program. Returns the number of rows removed."
+  @doc """
+  Assign many accounts to a program with one role, as one write: one audit
+  record and one fact event per assignment, sharing an operation id.
+  """
+  @spec assign_all([String.t()], integer(), :lead | :member) :: {:ok, Record.t()} | {:error, Error.Engine.t()}
+  def assign_all(user_ids, program_id, role) when is_list(user_ids) and role in [:lead, :member] do
+    entries = Enum.map(user_ids, &%{user_id: &1, program_id: program_id, role: role})
+    Facts.bulk_insert(Assignment, entries, repo: Repo, turnstile: @administration)
+  end
+
+  @doc """
+  Revoke an account's assignment to a program, one row at a time so the
+  ledger receives the revocation. Returns the number of rows removed.
+  """
   @spec unassign(String.t(), integer()) :: non_neg_integer()
   def unassign(user_id, program_id) when is_binary(user_id) do
     query = from(a in Assignment, where: a.user_id == ^user_id and a.program_id == ^program_id)
-    {count, nil} = Repo.delete_all(query, turnstile: @administration)
-    count
+
+    query
+    |> Repo.all(turnstile: @administration)
+    |> Enum.map(&Repo.delete!(&1, turnstile: @administration))
+    |> length()
   end
 
   @doc "Give an account a role in an office."
