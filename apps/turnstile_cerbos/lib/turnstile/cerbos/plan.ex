@@ -12,6 +12,12 @@ defmodule Turnstile.Cerbos.Plan do
   comparison on that column, and an attribute read from a subquery becomes
   membership in the ids the subquery selects for the asking subject.
 
+  An attribute the sidecar could not resolve, compared with nothing,
+  becomes a null test on the column. A row whose column holds nothing is
+  what the policy is asking about, and SQL answers nothing rather than true
+  to `= NULL`, so the comparison is written as `is_nil`; an ordering against
+  nothing carries no such reading and is refused.
+
   An expression this module cannot express is not guessed at and not
   ignored: it is an error, and the caller records the operation as limited
   and asks the port for each row instead. The reason is that a plan
@@ -135,6 +141,16 @@ defmodule Turnstile.Cerbos.Plan do
   defp applied(%__MODULE__{key: key} = plan, "has", {:subquery, fun}, value) when is_binary(value) do
     ids = from(row in subquery(fun.(plan.subject)), where: row.value == ^value, select: row.id)
     {:ok, dynamic([row], field(row, ^key) in subquery(ids))}
+  end
+
+  # Nothing on one side is a null test rather than a comparison: SQL reads
+  # `= NULL` as neither true nor false, and an ordering against nothing
+  # admits no row whatever the column holds, which is no rule.
+  defp applied(_plan, "eq", {:column, column}, nil), do: {:ok, dynamic([row], is_nil(field(row, ^column)))}
+  defp applied(_plan, "ne", {:column, column}, nil), do: {:ok, dynamic([row], not is_nil(field(row, ^column)))}
+
+  defp applied(_plan, operator, {:column, _column}, nil) do
+    {:error, "the plan compares #{operator} with nothing, which reads as no rule over the rows"}
   end
 
   defp applied(plan, "in", {:column, column}, values) when is_list(values) do

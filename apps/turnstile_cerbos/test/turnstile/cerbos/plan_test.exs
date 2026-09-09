@@ -10,6 +10,7 @@ defmodule Turnstile.Cerbos.PlanTest do
   alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
+  alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.World
   alias Turnstile.Scope
   alias Turnstile.Subject
@@ -23,7 +24,6 @@ defmodule Turnstile.Cerbos.PlanTest do
 
     alias Turnstile.Cerbos.Conformance.Memberships
     alias Turnstile.Fixture.Account
-    alias Turnstile.Fixture.Item
 
     principal :user, schema: Account do
       attribute :clearance, column: :clearance
@@ -93,6 +93,18 @@ defmodule Turnstile.Cerbos.PlanTest do
     assert ids(compiled!(ctx, "le", [id_of(), value(1)])) == [1]
     assert ids(compiled!(ctx, "lt", [value(1), id_of()])) == [2]
     assert ids(compiled!(ctx, "ge", [value(1), id_of()])) == [1]
+  end
+
+  test "a comparison with nothing is a null test, and an ordering against nothing is no rule", ctx do
+    Sandboxed.insert!(%Item{id: 11, title: "item 11"}, turnstile: World.exemption())
+
+    assert items(ctx, "eq", [attr("folder"), value(nil)]) == [11]
+    assert items(ctx, "ne", [attr("folder"), value(nil)]) == [10]
+
+    filter = conditional(expression("gt", [attr("folder"), value(nil)]))
+
+    assert Plan.dynamic(ctx.binding, ctx.ann, :item, filter) ==
+             {:error, "the plan compares gt with nothing, which reads as no rule over the rows"}
   end
 
   test "a value the subject's subquery selected is membership in the rows it selected", ctx do
@@ -207,6 +219,13 @@ defmodule Turnstile.Cerbos.PlanTest do
   defp attr(name), do: %{"variable" => "request.resource.attr." <> name}
   defp id_of, do: %{"variable" => "request.resource.id"}
   defp value(value), do: %{"value" => value}
+
+  defp items(ctx, operator, operands) do
+    filter = conditional(expression(operator, operands))
+    {:ok, rule} = Plan.dynamic(ctx.binding, ctx.ann, :item, filter)
+    query = from(i in Item, where: ^rule, select: i.id, order_by: i.id)
+    Sandboxed.all(query, turnstile: World.exemption())
+  end
 
   defp ids(rule) do
     query = from(f in Folder, where: ^rule, select: f.id, order_by: f.id)
