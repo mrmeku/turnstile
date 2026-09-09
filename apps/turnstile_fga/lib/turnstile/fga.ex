@@ -33,9 +33,10 @@ defmodule Turnstile.Fga do
   - `Turnstile.Fga.Migration`, the checkpoint table, which a thin
     application's migration creates.
 
-  Two declarations of this adapter in any domain: it requires a ledger,
-  since nothing drains without one, and its scope is capped at what one
-  `ListObjects` answers with.
+  Three declarations of this adapter in any domain: it requires a ledger,
+  since nothing drains without one, its scope is capped at what one
+  `ListObjects` answers with, and its projection is
+  `Turnstile.Fga.Projector` over the configuration the binding resolves.
   """
 
   @behaviour Turnstile.Adapter
@@ -72,6 +73,7 @@ defmodule Turnstile.Fga do
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Checkpoint
   alias Turnstile.Fga.Decide
+  alias Turnstile.Fga.Projector
   alias Turnstile.Fga.Version
   alias Turnstile.Object
   alias Turnstile.Subject
@@ -112,6 +114,13 @@ defmodule Turnstile.Fga do
 
   @impl Turnstile.Adapter
   def scope_cap, do: Decide.scope_cap()
+
+  @impl Turnstile.Adapter
+  def projection do
+    with {:ok, %Projector{} = projector} <- Projector.resolve(__MODULE__) do
+      {:ok, {Projector, projector}}
+    end
+  end
 
   @impl Turnstile.Adapter
   def authorize(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)

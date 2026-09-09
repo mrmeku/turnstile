@@ -121,23 +121,21 @@ defmodule Turnstile.Fga.Projector do
   and compiled model, and the ledger the configuration names. This is what
   the process a thin application starts drains with, and what a test that
   drains by hand resolves for itself.
+
+  The adapter is the caller's to name, because this module is what an
+  adapter's `projection/0` answers with rather than something that knows
+  which adapter it belongs to. A configuration naming another adapter
+  resolves to an error: the store this would drain into is not the one
+  answering questions.
   """
-  @spec resolve() :: {:ok, t()} | {:error, Error.Invalid.t() | Error.Unsupported.t()}
-  def resolve do
+  @spec resolve(module()) :: {:ok, t()} | {:error, Error.Invalid.t() | Error.Unsupported.t()}
+  def resolve(adapter) when is_atom(adapter) do
     with {:ok, %Binding{} = binding} <- Binding.resolve(),
          {:ok, %Config{} = config} <- Config.resolve(),
-         {:ok, ledger} <- ledger(config),
-         {:ok, options} <- entry(config),
+         {:ok, ledger} <- ledger(config, adapter),
+         {:ok, options} <- entry(config, adapter),
          {:ok, model} <- Binding.compiled(binding) do
-      new(
-        client: Keyword.get(options, :client, Client.Http),
-        endpoint: Keyword.fetch!(options, :endpoint),
-        store: Keyword.fetch!(options, :store_id),
-        model: model,
-        mapping: binding.mapping,
-        ledger: ledger,
-        repo: binding.repo
-      )
+      built(binding, options, ledger, model)
     end
   end
 
@@ -171,23 +169,35 @@ defmodule Turnstile.Fga.Projector do
     end
   end
 
-  defp entry(%Config{} = config) do
+  defp built(%Binding{} = binding, options, ledger, model) do
+    new(
+      client: Keyword.get(options, :client, Client.Http),
+      endpoint: Keyword.fetch!(options, :endpoint),
+      store: Keyword.fetch!(options, :store_id),
+      model: model,
+      mapping: binding.mapping,
+      ledger: ledger,
+      repo: binding.repo
+    )
+  end
+
+  defp entry(%Config{} = config, adapter) do
     case Config.adapter(config) do
-      {Turnstile.Fga, options} -> {:ok, options}
+      {^adapter, options} -> {:ok, options}
       {other, _options} -> {:error, invalid("#{inspect(other)} is the configured adapter, so it drains nothing here")}
     end
   end
 
-  defp ledger(%Config{ledger: :none}) do
+  defp ledger(%Config{ledger: :none}, adapter) do
     {:error,
      %Error.Unsupported{
-       adapter: Turnstile.Fga,
+       adapter: adapter,
        feature: :ledger_mode_none,
        note: "a projection has nothing to drain without a ledger"
      }}
   end
 
-  defp ledger(%Config{ledger: {module, options}}), do: {:ok, {module, options}}
+  defp ledger(%Config{ledger: {module, options}}, _adapter), do: {:ok, {module, options}}
 
   defp invalid(detail), do: %Error.Invalid{what: :projector, detail: detail}
 

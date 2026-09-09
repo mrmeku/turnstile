@@ -71,7 +71,7 @@ defmodule Turnstile.Fga.ConformanceTest do
   defp projection(address) do
     {:ok, store} = Http.create_store(address, name())
     {:ok, _model} = Http.write_model(address, store, Model.read!(@model))
-    {:ok, projector} = Projector.resolve()
+    {:ok, projector} = Projector.resolve(Fga)
 
     %{projector | store: store}
   end

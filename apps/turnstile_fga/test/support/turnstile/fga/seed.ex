@@ -18,6 +18,7 @@ defmodule Turnstile.Fga.Seed do
 
   use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Conformance, Turnstile.Fga, Turnstile.Fixture]
 
+  alias Turnstile.Fga
   alias Turnstile.Fga.Client.Page
   alias Turnstile.Fga.Client.Read
   alias Turnstile.Fga.Client.Write
@@ -28,7 +29,7 @@ defmodule Turnstile.Fga.Seed do
 
   @impl Turnstile.Conformance.Seed
   def seed(%World{} = world) do
-    {:ok, projector} = Projector.resolve()
+    {:ok, projector} = Projector.resolve(Fga)
     {:ok, %Drain{}} = Projector.drain_once(projector)
 
     linked(projector, world)

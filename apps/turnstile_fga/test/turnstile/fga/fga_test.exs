@@ -18,6 +18,7 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.Conformance.Mapping
   alias Turnstile.Fga.Decide
+  alias Turnstile.Fga.Projector
   alias Turnstile.Fga.TupleKey
   alias Turnstile.Ledger.Memory
   alias Turnstile.Object
@@ -52,10 +53,14 @@ defmodule Turnstile.FgaTest do
     {:ok, agent: agent, store: store, model: model, options: options}
   end
 
-  test "the adapter declares that it requires a ledger and how far one listing reaches" do
+  test "the adapter declares a ledger, how far one listing reaches, and its projection", context do
     assert Fga.requires_ledger() == true
     assert Fga.scope_cap() == Decide.scope_cap()
     assert Fga.scope_cap() == 1_000
+
+    assert {:ok, {Projector, %Projector{} = projector}} = Fga.projection()
+    assert projector.store == context.store
+    assert projector.repo == Sandboxed
 
     schema = Fga.options_schema().schema
     assert schema[:endpoint][:required]
@@ -119,6 +124,8 @@ defmodule Turnstile.FgaTest do
 
     assert {:error, %Error.Engine{operation: :explain}} =
              Fga.explain(ann(), :read, folder, environment(), context.options)
+
+    assert {:error, %Error.Invalid{what: :binding, detail: ^detail}} = Fga.projection()
   end
 
   test "a scope above the cap records limited and matches filter", context do
