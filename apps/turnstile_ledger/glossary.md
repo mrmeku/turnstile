@@ -4,7 +4,7 @@ The words `turnstile_ledger` owns.
 
 | Term | Meaning |
 |---|---|
-| Event / ledger / fold / replay | An immutable record of a change / an append-only list of them / reducing them to state / folding up to a date |
+| Event / ledger / fold / replay | An immutable record of a change / an append-only list of them / reducing them to state / folding to a date or a position, with the policy version in force there, so a recorded decision can be asked again |
 | Transactional outbox | A record committed in the same transaction as the write it describes and read afterwards by consumers from the same database; the ledger's shape, never emptied |
 | Ledger position / head / applied position | The index in the ledger / the counter row's committed value / the position an adapter's state has applied |
 | Counter row | The locked row every fact-writing transaction takes positions from; `default` in production, one row per test in the sandbox |

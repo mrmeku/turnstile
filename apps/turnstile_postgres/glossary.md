@@ -16,5 +16,6 @@ The words `turnstile_postgres` owns. A word with a second meaning elsewhere is l
 | Protect | Turn row-level security on for a table and force it, so the policies apply to the table's owner as well as to everyone else |
 | Admit | The permissive `true` policy of one command, which a table whose rows are written outside a decision needs under forced row-level security |
 | Migration number | The highest version in the migrations table, which is the policy version a decision names |
+| Replay | A database of its own, raised by the same migrations, carrying the rows a fold names and the policies of the version a decision was made under, which is what asking that decision again costs here |
 | Coverage | The read of the policy expressions and their column references that fails on a column no declaration names |
 | Finding | One undeclared read: a schema and a column, or a table no bound schema names |

@@ -9,8 +9,8 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Version | A policy version: an artifact an adapter decides under, named in every decision | `apps/turnstile_core/glossary.md` |
 | Version | A pinned dependency release in `docs/reference.md` §12 | `docs/reference.md` |
 | Check | The port operation `check/4`: a yes or no without a decision record | `apps/turnstile_core/glossary.md` |
-| Check | A Credo check, or OpenFGA's `Check` request | `docs/code.md` §5; `turnstile_fga` glossary, from S9 |
-| Position | A ledger position: the index of a fact event, taken from the counter row | `turnstile_ledger` glossary |
+| Check | A Credo check, or OpenFGA's `Check` request | `docs/code.md` §5; `turnstile_fga` glossary, from S11a |
+| Position | A ledger position: the index of a fact event, taken from the counter row | `apps/turnstile_ledger/glossary.md` |
 | Position | The head position and the applied position a decision carries | `apps/turnstile_core/glossary.md` |
 | Review | `mix turnstile.review` and the port's `review`: who can do what on a date | `apps/turnstile_core/glossary.md` |
 | Review | Access review, the AC-2 activity the scenarios `rvw-01` to `rvw-04` cover | `docs/reference.md` §1 |
@@ -18,6 +18,8 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Record | A capability record: a rule's level with the enforcing component and a note | `apps/turnstile_core/glossary.md` |
 | Declaration | A capability declaration in a thin app | `apps/turnstile_core/glossary.md` |
 | Declaration | A fact-mapping declaration, `use Turnstile.Schema` | `apps/turnstile_core/glossary.md` |
+| Scenario | A cited test: the case a capability declaration names as its evidence | `apps/turnstile_core/glossary.md` |
+| Scenario | One row of the reference's scenario table, defined in a thin application by `use Example.Scenarios` | `apps/turnstile_example/glossary.md` |
 | Owner | The owner role, `turnstile_owner`, and an owner-role repo | `docs/testing.md` §3, `docs/reference.md` §6 |
 | Owner | The project's owner, who answers questions | `CLAUDE.md` |
 | Sandbox | The Ecto SQL sandbox that wraps a test in a transaction | `docs/testing.md` §3 |
@@ -28,6 +30,10 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Table | A Postgres table, protected by the seam or truncated between committed tests | `docs/reference.md` §6, `docs/testing.md` §3 |
 | Fold | `Turnstile.Ledger.Fold`: the facts a list of events leaves | `apps/turnstile_core/glossary.md` |
 | Fold | The fold-then-replay property of Tier 1 | `docs/testing.md` §6 |
+| Replay | Folding a ledger to a date or a position, and the state, policy version, and position a recorded decision is asked again under | `apps/turnstile_ledger/glossary.md` |
+| Replay | The scratch database that state and those policies are put back in | `apps/turnstile_postgres/glossary.md` |
+| Catalog | The bound tables' policies, the columns they reference, and the policy version, as the database reports them | `apps/turnstile_postgres/glossary.md` |
+| Catalog | The database's own catalog, read for a foreign key that would delete or blank a fact with no event to say so | `apps/turnstile_ledger/glossary.md` |
 | Rule | A protected schema's clauses built for one subject and operation, as one `dynamic` | `apps/turnstile_rbac/glossary.md` |
 | Rule | A rule of the example, C1 to C13, with its capability level | `docs/reference.md` §3 |
 | Grant | A clause of a policy module that holds a role on a row through a relationship schema | `apps/turnstile_rbac/glossary.md` |
