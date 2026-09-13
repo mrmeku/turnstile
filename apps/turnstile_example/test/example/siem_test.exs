@@ -82,7 +82,7 @@ defmodule Example.SiemTest do
     assert record.unmapped.policy_version == "fake"
   end
 
-  test "a denial is a failure of low severity, an operation OCSF does not number is other, and a narrowing call is a query" do
+  test "a denial is a failure of low severity, an unnumbered operation is other, and a narrowing call is a query that succeeded" do
     denied = Ocsf.decision(%{@decision | verdict: :deny, reason: :deny_by_default, operation: :change_marking}, 1)
 
     assert {denied.status_id, denied.status, denied.severity_id} == {2, "Failure", 2}
@@ -90,8 +90,9 @@ defmodule Example.SiemTest do
     assert denied.api.operation == "change_marking"
     assert denied.api.response.message == "deny_by_default"
 
-    narrowed = Ocsf.decision(%{@decision | object: dynamic([row], row.id == 1)}, 1)
+    narrowed = Ocsf.decision(%{@decision | verdict: :scoped, object: dynamic([row], row.id == 1)}, 1)
     assert narrowed.resource == %{type: "query", uid: nil}
+    assert {narrowed.status_id, narrowed.status, narrowed.severity_id} == {1, "Success", 1}
 
     raised = Ocsf.decision(%{@decision | verdict: :deny, reason: nil, exception: %RuntimeError{}}, 1)
     assert raised.unmapped.exception == "RuntimeError"

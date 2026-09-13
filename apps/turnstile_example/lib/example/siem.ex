@@ -176,8 +176,10 @@ defmodule Example.Siem.Ocsf do
   end
 
   # A verdict is a status and a severity, which is what a security log
-  # sorts and alerts on.
+  # sorts and alerts on. A scope answered a rule rather than a yes or a no,
+  # and nothing was refused, so it is recorded as the success it is.
   defp outcome(:allow), do: %{status_id: 1, status: "Success", severity_id: 1}
+  defp outcome(:scoped), do: %{status_id: 1, status: "Success", severity_id: 1}
   defp outcome(:deny), do: %{status_id: 2, status: "Failure", severity_id: 2}
 
   # What OCSF names no field for: which decider answered, under which
