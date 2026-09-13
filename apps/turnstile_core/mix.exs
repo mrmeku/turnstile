@@ -50,7 +50,6 @@ defmodule Turnstile.Core.MixProject do
       {:ecto_sql, "3.14.0", optional: true},
       {:postgrex, "0.22.4", only: :test},
       {:stream_data, "1.4.0"},
-      {:mox, "1.3.1"},
       {:boundary, "0.10.4", runtime: false},
       {:credo, "1.7.19", only: [:dev, :test], runtime: false},
       {:styler, "1.12.2", only: [:dev, :test], runtime: false},

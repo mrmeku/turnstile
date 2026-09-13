@@ -55,10 +55,10 @@ defmodule Turnstile.Ledger.Genesis do
               doc: "The migration doing the backfill, named in the stamp every event carries."
             ],
             clock: [
-              type: :atom,
+              type: {:fun, 0},
               doc:
-                "The `Turnstile.Clock` the stamp's date and every event's time come from; " <>
-                  "`Turnstile.Clock.System` when absent, named when this runs rather than when it compiles."
+                "The zero-arity function the stamp's date and every event's time come from; " <>
+                  "`&DateTime.utc_now/0` when absent, passed when this runs rather than when it compiles."
             ]
           )
 
@@ -71,10 +71,10 @@ defmodule Turnstile.Ledger.Genesis do
   @spec run(keyword(), [module()], keyword()) ::
           {:ok, non_neg_integer()} | {:error, Error.Invalid.t() | Error.Engine.t()}
   def run(ledger_options, schemas, options \\ []) when is_list(ledger_options) and is_list(schemas) do
-    options = NimbleOptions.validate!(Keyword.put_new(options, :clock, Turnstile.Clock.System), @schema)
+    options = NimbleOptions.validate!(Keyword.put_new(options, :clock, &DateTime.utc_now/0), @schema)
     repo = owner_repo!(ledger_options)
     dialect = Ledger.Ecto.dialect(ledger_options)
-    at = options[:clock].now()
+    at = options[:clock].()
 
     with :ok <- Ledger.Catalog.check(repo, schemas, dialect),
          :ok <- empty!(repo) do

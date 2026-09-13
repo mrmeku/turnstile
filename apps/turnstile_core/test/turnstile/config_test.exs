@@ -38,7 +38,7 @@ defmodule Turnstile.ConfigTest do
     assert Config.adapter(config) == {Fake, verdict: :allow}
     assert config.ledger == :none
     assert config.ledger_counter == "default"
-    assert config.clock == Turnstile.Clock.System
+    assert %DateTime{time_zone: "Etc/UTC"} = config.clock.()
     assert config.caps == [batch_ids: 1_000, rule_bytes: 4_096, policy_content_bytes: 65_536]
   end
 

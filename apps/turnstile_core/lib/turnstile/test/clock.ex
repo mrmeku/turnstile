@@ -1,22 +1,19 @@
 defmodule Turnstile.Test.Clock do
   @moduledoc """
-  The `Mox` mock of `Turnstile.Clock` the conformance templates stub, and
-  the one call that defines it. A suite defines it once, from
-  `test_helper.exs` or from whatever raises the suite's database, and every
-  test module then stubs `now/0` on it; defining it per test would race
-  between modules that run at the same time.
+  The clock a test sets. `set/1` overrides the configured clock for the rest
+  of the calling process and answers the moment it set, so a test that needs
+  a fixed time names it once and every call the port makes reads it.
+
+  The configured clock is a zero-arity function, so a test needs no mock and
+  no behaviour of its own: what `set/1` installs is a closure over the
+  moment, and `Turnstile.Config.resolve/0` finds it from the test process
+  and from any process in its `$callers` chain.
   """
 
-  @mock __MODULE__.Mock
-
-  @doc "Define the mock, once per virtual machine. Safe to call twice."
-  @spec define_mock() :: module()
-  def define_mock do
-    if !Code.ensure_loaded?(@mock), do: Mox.defmock(@mock, for: Turnstile.Clock)
-    @mock
+  @doc "Set the clock for the rest of the calling process, and answer the moment."
+  @spec set(DateTime.t()) :: DateTime.t()
+  def set(%DateTime{} = at) do
+    :ok = Turnstile.Test.with_config(clock: fn -> at end)
+    at
   end
-
-  @doc "The mock module, whether or not it is defined yet."
-  @spec mock() :: module()
-  def mock, do: @mock
 end

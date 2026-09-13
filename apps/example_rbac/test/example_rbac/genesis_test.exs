@@ -6,7 +6,6 @@ defmodule ExampleRbac.GenesisTest do
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Example.Fixture
-  alias Example.Fixture.Clock
   alias Example.OwnerRepo
   alias Example.User
   alias Turnstile.Ledger.Genesis
@@ -34,8 +33,7 @@ defmodule ExampleRbac.GenesisTest do
         nationality: "US"
       })
 
-    :ok = Clock.set(@at)
-    assert {:ok, 2} = Genesis.run(options(), Example.schemas(), migration: __MODULE__, clock: Clock)
+    assert {:ok, 2} = Genesis.run(options(), Example.schemas(), migration: __MODULE__, clock: fn -> @at end)
 
     assert {:ok, events} = Reader.all(ledger())
     assert Enum.map(events, & &1.attribute) == [:employment, :nationality]

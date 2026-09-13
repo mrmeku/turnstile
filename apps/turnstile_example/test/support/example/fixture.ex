@@ -284,25 +284,3 @@ defmodule Example.Fixture do
     )
   end
 end
-
-defmodule Example.Fixture.Clock do
-  @moduledoc "A clock a test sets: `Turnstile.Test.with_config(clock: Example.Fixture.Clock)` after `set/1`."
-
-  @behaviour Turnstile.Clock
-
-  use Boundary, top_level?: true, deps: [Turnstile]
-
-  @key {__MODULE__, :now}
-
-  @doc "Set the time the calling process's port calls see."
-  @spec set(DateTime.t()) :: :ok
-  def set(%DateTime{} = now) do
-    Process.put(@key, now)
-    :ok
-  end
-
-  @impl Turnstile.Clock
-  def now do
-    Process.get(@key) || raise "Example.Fixture.Clock.set/1 was not called in this process"
-  end
-end

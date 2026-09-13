@@ -223,6 +223,6 @@ defmodule ExampleCerbos.Facts do
   defp now do
     {:ok, config} = Config.resolve()
 
-    DateTime.truncate(config.clock.now(), :second)
+    DateTime.truncate(config.clock.(), :second)
   end
 end

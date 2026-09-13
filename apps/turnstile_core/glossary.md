@@ -31,7 +31,7 @@ The words `turnstile_core` owns. A word with a second meaning elsewhere is liste
 | SIEM | The security team's central log system; a sink |
 | Continuous evaluation | Attributes looked up on every check, never cached across requests |
 | Revocation latency | Time from a revoking change to the first denial; evidence, measured |
-| Environment fact (port-supplied / caller-supplied) | Time from the clock behaviour / facts only the caller knows |
+| Environment fact (port-supplied / caller-supplied) | Time from the configured clock / facts only the caller knows |
 | User / NPE / privileged user | A person / software acting alone / a person who can change the system; the subject's kind |
 | Control / enhancement / family | A requirement (AC-2) / an optional sharpening (AC-2(4)) / a group (AC) |
 | ODP / FedRAMP-assigned parameter | A blank in a control / a blank FedRAMP fills |

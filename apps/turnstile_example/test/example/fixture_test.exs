@@ -2,7 +2,6 @@ defmodule Example.FixtureTest do
   use Example.FakeCase, async: true
 
   alias Example.Fixture
-  alias Example.Fixture.Clock
 
   test "the world has its accounts, its two tenants, and its categories", %{world: world} do
     assert world.agency.nationality == "US" and world.foreign_agency.nationality == "FR"
@@ -28,11 +27,5 @@ defmodule Example.FixtureTest do
       )
 
     assert document.marking.releasable_to == ["US"]
-  end
-
-  test "the clock answers what the process set and raises otherwise" do
-    assert_raise RuntimeError, fn -> Clock.now() end
-    :ok = Clock.set(~U[2026-09-08 12:00:00Z])
-    assert Clock.now() == ~U[2026-09-08 12:00:00Z]
   end
 end

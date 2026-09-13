@@ -412,7 +412,7 @@ Genesis: every current fact as an event at position zero, stamped "backfilled fr
 | OpenFGA | 1.19.0 | `pkgs.openfga` | https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/by-name/op/openfga/package.nix; release https://api.github.com/repos/openfga/openfga/releases/latest (published 2026-08-25) |
 | Cerbos | 0.55.0 | a `stdenvNoCC` derivation that `fetchurl`s `cerbos_0.55.0_<Linux\|Darwin>_<x86_64\|arm64>.tar.gz` per system with hashes in the flake | absent from nixpkgs on every branch: https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/by-name/ce/cerbos/package.nix (404), https://github.com/NixOS/nixpkgs/issues/290460; release https://api.github.com/repos/cerbos/cerbos/releases/latest (published 2026-08-13); asset pattern from the same response, tag has `v`, filename does not |
 | services-flake | active, last commit 2026-08-18 | the flake's input; `postgres` service, Cerbos and OpenFGA as process-compose processes | https://github.com/juspay/services-flake; https://community.flake.parts/services-flake/services (no cerbos or openfga service) |
-| Hex: nimble_options, mox, stream_data, boundary, styler, muontrap | 1.1.1, 1.3.1, 1.4.0, 0.10.4, 1.12.2, 2.0.0 | `mix.lock` | https://hex.pm/api/packages/<name>; muontrap 2.0.0 is a new major, check its changelog |
+| Hex: nimble_options, stream_data, boundary, styler, muontrap | 1.1.1, 1.4.0, 0.10.4, 1.12.2, 2.0.0 | `mix.lock` | https://hex.pm/api/packages/<name>; muontrap 2.0.0 is a new major, check its changelog |
 
 Nix is not installed on the development Mac; the S0 agent installs it and stops to ask before running the installer. No Docker.
 
@@ -453,7 +453,7 @@ Each thin app's README carries the translation table from the domain's words to 
 | Hash chain / anchoring | Each record hashes the previous; keeping the head somewhere the attacker cannot write | `turnstile_example` |
 | Continuous evaluation | Attributes looked up on every check, never cached across requests | core |
 | Revocation latency | Time from a revoking change to the first denial; evidence, measured | core |
-| Environment fact (port-supplied / caller-supplied) | Time from the clock behaviour / facts only the caller knows | core |
+| Environment fact (port-supplied / caller-supplied) | Time from the configured clock / facts only the caller knows | core |
 | Re-authentication | Prove it is still you before sensitive operations | `turnstile_example` |
 | User / NPE / privileged user | A person / software acting alone / a person who can change the system; the subject's kind | core |
 | Least privilege / separation of duties | The least access needed / dangerous combinations split between people | `turnstile_example` |
@@ -673,7 +673,7 @@ See `docs/testing.md`: a Nix flake pins the toolchain (§12) and provides Postgr
 | `adapter` | `module \| {module, keyword}`, the module implementing `Turnstile.Adapter` and its options, validated by the adapter's own schema; a bare module means `[]` | required |
 | `ledger` | `{Turnstile.Ledger.Ecto, repo: module, owner_repo: module} \| :none`; `owner_repo` is `use Turnstile.Repo, role: :owner` | required |
 | `ledger_counter` | `String.t()`, the counter row's name; a test override that the sandbox sets per test, left at the default by applications | `"default"` |
-| `clock` | module implementing `Turnstile.Clock` | `Turnstile.Clock.System` |
+| `clock` | `(-> DateTime.t())`, a zero-arity function answering the current time in UTC | `&DateTime.utc_now/0` |
 | `caps` | keyword: `batch_ids` (ids listed in a record), `rule_bytes` (rule text kept in a record), `policy_content_bytes` (policy text kept by value) | `[batch_ids: 1_000, rule_bytes: 4_096, policy_content_bytes: 65_536]` |
 
 Adapter options by adapter: `turnstile_cerbos` `address`; `turnstile_fga` `endpoint`, `store_id`, `model_id`, `drain_interval`, `client` (the behaviour's implementation, the fake in tests); `turnstile_rbac` and `turnstile_postgres` none, so their entry is the bare module. Consistency per operation and the `ListObjects` cap are constants of `turnstile_fga`.

@@ -171,10 +171,10 @@ defmodule Turnstile.Repo.Seam do
   end
 
   defp stamp(%Mediation{decision: %Decision{} = decision}) do
-    %{by: decision.subject, operation_id: decision.operation_id, at: config!().clock.now()}
+    %{by: decision.subject, operation_id: decision.operation_id, at: config!().clock.()}
   end
 
-  defp stamp(_mediation), do: %{by: Subject.library(), operation_id: Id.new(), at: config!().clock.now()}
+  defp stamp(_mediation), do: %{by: Subject.library(), operation_id: Id.new(), at: config!().clock.()}
 
   # A fact write runs inside a transaction so the re-read's lock, the write,
   # and the append commit together; a write that reports an error rolls it

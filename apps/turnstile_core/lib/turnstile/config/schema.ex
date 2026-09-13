@@ -19,7 +19,10 @@ defmodule Turnstile.Config.Schema do
               default: "default",
               doc: "The counter row's name; a test override, left at the default by applications."
             ],
-            clock: [type: :atom, doc: "The module implementing `Turnstile.Clock`; `Turnstile.Clock.System` when absent."],
+            clock: [
+              type: {:fun, 0},
+              doc: "A zero-arity function answering the current time in UTC; `&DateTime.utc_now/0` when absent."
+            ],
             caps: [
               type: :keyword_list,
               default: [batch_ids: 1_000, rule_bytes: 4_096, policy_content_bytes: 65_536],

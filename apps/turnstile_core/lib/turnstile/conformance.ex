@@ -10,7 +10,7 @@ defmodule Turnstile.Conformance do
 
   use Boundary,
     top_level?: true,
-    deps: [Turnstile, Turnstile.Test, Ecto, ExUnit, ExUnitProperties, StreamData, Mox],
+    deps: [Turnstile, Turnstile.Test, Ecto, ExUnit, ExUnitProperties, StreamData],
     exports: [
       AdapterCase,
       AdapterCase.Laws,

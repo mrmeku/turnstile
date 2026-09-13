@@ -1,12 +1,12 @@
 defmodule Turnstile.Test do
   @moduledoc """
   Helpers every test tier and a third party's adapter suite share: the
-  configuration override, settling the configured adapter's projection, and
-  polling with a deadline in place of sleeping. Shipped in core so Tier 1 can
-  run outside this repository.
+  configuration override, the clock a test sets, settling the configured
+  adapter's projection, and polling with a deadline in place of sleeping.
+  Shipped in core so Tier 1 can run outside this repository.
   """
 
-  use Boundary, top_level?: true, deps: [Turnstile, Ecto, Mox, NimbleOptions], exports: [Clock, Cluster]
+  use Boundary, top_level?: true, deps: [Turnstile, Ecto, NimbleOptions], exports: [Clock, Cluster]
 
   alias Turnstile.Config
   alias Turnstile.Projection.Drain

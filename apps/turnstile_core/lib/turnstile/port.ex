@@ -200,7 +200,7 @@ defmodule Turnstile.Port do
       adapter: adapter,
       options: options,
       kind: kind(subject),
-      environment: %Environment{now: config.clock.now(), facts: validated[:facts]},
+      environment: %Environment{now: config.clock.(), facts: validated[:facts]},
       operation_id: Keyword.get_lazy(validated, :operation_id, &Id.new/0),
       head: head(config)
     }

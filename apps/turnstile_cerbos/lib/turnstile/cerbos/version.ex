@@ -107,7 +107,7 @@ defmodule Turnstile.Cerbos.Version do
   def publish(adapter) when is_atom(adapter) do
     with {:ok, %Binding{} = binding} <- Binding.resolve(),
          {:ok, %Config{} = config} <- Config.resolve(),
-         {:ok, %PolicyVersion{} = version} <- of(adapter, binding, config, config.clock.now()) do
+         {:ok, %PolicyVersion{} = version} <- of(adapter, binding, config, config.clock.()) do
       result = published(version, config.ledger)
       :telemetry.execute(@telemetry, %{}, %{version: version, result: elem(result, 1)})
       result

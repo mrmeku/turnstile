@@ -41,9 +41,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   def tick do
     count = Process.get(@tick_key, 0) + 1
     Process.put(@tick_key, count)
-    at = DateTime.shift(@base, second: count)
-    Mox.stub(Clock.mock(), :now, fn -> at end)
-    at
+    Clock.set(DateTime.shift(@base, second: count))
   end
 
   @doc "Replace the tables' population with this one and seed the adapter."

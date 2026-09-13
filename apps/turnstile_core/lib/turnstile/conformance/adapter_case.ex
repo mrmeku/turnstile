@@ -52,7 +52,6 @@ defmodule Turnstile.Conformance.AdapterCase do
 
   alias Turnstile.Conformance.AdapterCase.Laws
   alias Turnstile.Ledger.Memory
-  alias Turnstile.Test.Clock
 
   @doc false
   defmacro __using__(opts) do
@@ -93,9 +92,7 @@ defmodule Turnstile.Conformance.AdapterCase do
     if config.sandbox, do: :ok = config.sandbox.setup(repo, tags)
     if tags[:committed], do: truncate!(config)
     ledger = start_ledger!(config.ledger)
-    mock = Clock.mock()
-    Mox.stub(mock, :now, &DateTime.utc_now/0)
-    :ok = Turnstile.Test.with_config(adapter: config.adapter, ledger: ledger, clock: mock)
+    :ok = Turnstile.Test.with_config(adapter: config.adapter, ledger: ledger, clock: &DateTime.utc_now/0)
     {:ok, adapter: config.adapter, repo: repo, ledger: ledger, case: config}
   end
 

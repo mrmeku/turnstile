@@ -29,14 +29,13 @@ defmodule Turnstile.Conformance.AdapterCaseTest do
     {:ok, rules: rules, projection: %Projection{agent: agent, ledger: ledger}}
   end
 
-  test "the setup binds the adapter, a memory ledger, the mock clock, and a per-test counter row", %{rules: rules} do
+  test "the setup binds the adapter, a memory ledger, the clock, and a per-test counter row", %{rules: rules} do
     assert {:ok, %Config{} = config} = Config.resolve()
     assert {Fake, options} = config.adapter
     assert options[:rules] == rules
     assert {Memory, ledger_options} = config.ledger
     assert is_pid(ledger_options[:agent])
-    assert config.clock == Turnstile.Test.Clock.Mock
-    assert %DateTime{} = config.clock.now()
+    assert %DateTime{} = config.clock.()
     assert "test-" <> _rest = counter = config.ledger_counter
 
     assert %{rows: [[0]]} =

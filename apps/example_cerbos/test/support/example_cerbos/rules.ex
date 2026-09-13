@@ -61,7 +61,7 @@ defmodule ExampleCerbos.Rules do
     with {:ok, _published} <- Turnstile.Cerbos.publish() do
       {:ok, tightened} = Binding.resolve()
       {:ok, config} = Config.resolve()
-      Version.of(Turnstile.Cerbos, tightened, config, config.clock.now())
+      Version.of(Turnstile.Cerbos, tightened, config, config.clock.())
     end
   end
 
@@ -156,7 +156,7 @@ defmodule ExampleCerbos.Rules do
   end
 
   defp principal(config) do
-    now = DateTime.to_iso8601(DateTime.truncate(config.clock.now(), :second))
+    now = DateTime.to_iso8601(DateTime.truncate(config.clock.(), :second))
 
     %{
       id: "turnstile.restore",

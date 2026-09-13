@@ -78,7 +78,7 @@ defmodule Turnstile.Code.Version do
   def publish(adapter) when is_atom(adapter) do
     with {:ok, %Binding{policy: policy}} <- Binding.resolve(),
          {:ok, %Config{} = config} <- Config.resolve() do
-      version = of(adapter, policy, config, config.clock.now())
+      version = of(adapter, policy, config, config.clock.())
       result = publish(version, config.ledger)
       :telemetry.execute(@telemetry, %{}, %{version: version, result: elem(result, 1)})
       result

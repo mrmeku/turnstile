@@ -16,21 +16,7 @@ alias Example.OwnerRepo
 alias Example.Program
 alias Example.Repo
 alias Example.User
-
-defmodule Seed.Clock do
-  @moduledoc false
-  @behaviour Turnstile.Clock
-
-  @key {__MODULE__, :now}
-
-  def set(%DateTime{} = now) do
-    _previous = Process.put(@key, now)
-    :ok
-  end
-
-  @impl Turnstile.Clock
-  def now, do: Process.get(@key) || raise("Seed.Clock.set/1 was not called in this process")
-end
+alias Turnstile.Test.Clock
 
 exempt = {:exempt, "seed: the world the review is asked about"}
 emptied = "turnstile_ledger_events, assignments, users, programs, offices, agencies"
@@ -38,8 +24,7 @@ emptied = "turnstile_ledger_events, assignments, users, programs, offices, agenc
 _truncated = OwnerRepo.query!("TRUNCATE #{emptied} RESTART IDENTITY CASCADE")
 _reset = OwnerRepo.query!("UPDATE turnstile_ledger_counter SET position = 0 WHERE name = 'default'")
 
-:ok = Turnstile.Test.with_config(clock: Seed.Clock)
-:ok = Seed.Clock.set(~U[2026-03-01 09:00:00.000000Z])
+_march = Clock.set(~U[2026-03-01 09:00:00.000000Z])
 
 agency = Repo.insert!(%Agency{name: "Domestic", nationality: "US"}, turnstile: exempt)
 office = Repo.insert!(%Office{name: "Domestic office", agency_id: agency.id}, turnstile: exempt)
@@ -53,7 +38,7 @@ end
 _ann = Accounts.assign("ann", program.id, :member)
 _bob = Accounts.assign("bob", program.id, :member)
 
-:ok = Seed.Clock.set(~U[2026-04-01 09:00:00.000000Z])
+_april = Clock.set(~U[2026-04-01 09:00:00.000000Z])
 1 = Accounts.unassign("ann", program.id)
 
 IO.puts("ann and bob assigned to program #{program.id} on 2026-03-01, ann revoked on 2026-04-01")

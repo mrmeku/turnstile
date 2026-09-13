@@ -55,8 +55,4 @@ defmodule Turnstile.ValuesTest do
     assert Drift.clean?(%Drift{missing: [], extra: [], checked_to: 0})
     refute Drift.clean?(%Drift{missing: [{:user, "1"}], extra: [], checked_to: 0})
   end
-
-  test "the system clock answers UTC" do
-    assert %DateTime{time_zone: "Etc/UTC"} = Turnstile.Clock.System.now()
-  end
 end

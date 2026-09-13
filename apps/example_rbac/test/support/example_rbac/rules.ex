@@ -44,7 +44,7 @@ defmodule ExampleRbac.Rules do
     {:ok, config} = Turnstile.Config.resolve()
 
     with {:ok, _published} <- Turnstile.Code.publish() do
-      {:ok, Version.of(Turnstile.Code, ExampleRbac.Tightened, config, config.clock.now())}
+      {:ok, Version.of(Turnstile.Code, ExampleRbac.Tightened, config, config.clock.())}
     end
   end
 

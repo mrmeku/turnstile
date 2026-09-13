@@ -292,11 +292,11 @@ defmodule Turnstile.Facts do
   end
 
   defp stamp(config, %Decision{} = decision) do
-    %{by: decision.subject, operation_id: decision.operation_id, at: config.clock.now()}
+    %{by: decision.subject, operation_id: decision.operation_id, at: config.clock.()}
   end
 
   defp stamp(config, {:exempt, _reason}) do
-    %{by: Subject.library(), operation_id: Id.new(), at: config.clock.now()}
+    %{by: Subject.library(), operation_id: Id.new(), at: config.clock.()}
   end
 
   defp config! do

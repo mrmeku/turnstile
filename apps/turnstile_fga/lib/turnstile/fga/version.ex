@@ -138,7 +138,7 @@ defmodule Turnstile.Fga.Version do
     of(publication.adapter, model, publication.text,
       author: publication.binding.author,
       approval: publication.binding.approval,
-      at: publication.config.clock.now(),
+      at: publication.config.clock.(),
       path: publication.binding.model,
       content_bytes: publication.config.caps[:policy_content_bytes]
     )

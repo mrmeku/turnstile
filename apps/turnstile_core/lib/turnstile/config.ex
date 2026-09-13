@@ -16,6 +16,7 @@ defmodule Turnstile.Config do
   defstruct @enforce_keys
 
   @type adapter :: module() | {module(), keyword()}
+  @type clock :: (-> DateTime.t())
   @type ledger :: {module(), keyword()} | :none
   @type caps :: [batch_ids: pos_integer(), rule_bytes: pos_integer(), policy_content_bytes: pos_integer()]
 
@@ -23,7 +24,7 @@ defmodule Turnstile.Config do
           adapter: adapter(),
           ledger: ledger(),
           ledger_counter: String.t(),
-          clock: module(),
+          clock: clock(),
           caps: caps()
         }
 
@@ -96,7 +97,7 @@ defmodule Turnstile.Config do
   def override_key, do: __MODULE__
 
   defp validate(options) do
-    case NimbleOptions.validate(Keyword.put_new(options, :clock, Turnstile.Clock.System), Schema.schema()) do
+    case NimbleOptions.validate(Keyword.put_new(options, :clock, &DateTime.utc_now/0), Schema.schema()) do
       {:ok, validated} -> {:ok, validated}
       {:error, %NimbleOptions.ValidationError{} = error} -> {:error, invalid(:config, Exception.message(error))}
     end

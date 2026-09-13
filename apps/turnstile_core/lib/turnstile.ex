@@ -18,8 +18,6 @@ defmodule Turnstile do
       Adapter.Fake,
       Answer,
       Capabilities,
-      Clock,
-      Clock.System,
       Config,
       Decision,
       Edge,

@@ -6,7 +6,6 @@ defmodule Example.Scenarios.Enforcement do
     deps: [
       Example,
       Example.Fixture,
-      Example.Fixture.Clock,
       Example.Scenarios.Support,
       Turnstile,
       Turnstile.Test,
@@ -21,10 +20,10 @@ defmodule Example.Scenarios.Enforcement do
   alias Example.Document
   alias Example.Documents
   alias Example.Fixture
-  alias Example.Fixture.Clock
   alias Example.Portion
   alias Example.Repo
   alias Turnstile.Error
+  alias Turnstile.Test.Clock
 
   @spec enf_01() :: term()
   def enf_01 do
@@ -181,12 +180,11 @@ defmodule Example.Scenarios.Enforcement do
     world = Fixture.world!()
     decontrol = DateTime.utc_now(:second)
     document = Fixture.document!(world, controls: [:federal_only], decontrol: decontrol)
-    :ok = Turnstile.Test.with_config(clock: Clock)
-    :ok = Clock.set(DateTime.shift(decontrol, second: -1))
+    _at = Clock.set(DateTime.shift(decontrol, second: -1))
 
     settle()
     assert_denied(subject("bob"), document)
-    :ok = Clock.set(DateTime.shift(decontrol, second: 1))
+    _at = Clock.set(DateTime.shift(decontrol, second: 1))
     assert_read(subject("bob"), document)
   end
 

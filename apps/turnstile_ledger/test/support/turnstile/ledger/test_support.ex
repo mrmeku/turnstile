@@ -37,7 +37,6 @@ defmodule Turnstile.Ledger.TestSupport.Boot do
   alias Turnstile.Ledger
   alias Turnstile.Ledger.TestRepos
   alias Turnstile.Ledger.TestSupport.Committed
-  alias Turnstile.Test.Clock.Mock
   alias Turnstile.Test.Sandbox
 
   @doc """
@@ -50,8 +49,7 @@ defmodule Turnstile.Ledger.TestSupport.Boot do
     repo = repo(tags)
     ledger = ledger || ledger(tags)
     :ok = connect(tags, repo)
-    Mox.stub(Mock, :now, &DateTime.utc_now/0)
-    :ok = Turnstile.Test.with_config(adapter: Adapter.Fake, ledger: ledger, clock: Mock)
+    :ok = Turnstile.Test.with_config(adapter: Adapter.Fake, ledger: ledger, clock: &DateTime.utc_now/0)
     {:ok, ledger: ledger, repo: repo, counter: Ledger.Ecto.counter!()}
   end
 

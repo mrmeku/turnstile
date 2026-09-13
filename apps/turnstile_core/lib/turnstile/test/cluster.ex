@@ -10,10 +10,7 @@ defmodule Turnstile.Test.Cluster do
   The cluster stops and its directory is removed when the suite ends, so a
   VM that runs several suites in turn, the umbrella root's `mix test`,
   starts each app's cluster afresh; a run that is no suite, a schema dump's,
-  stops it at VM exit. `start/1` also defines the `Mox` mock of
-  `Turnstile.Clock` that the conformance templates stub per test, through
-  `Turnstile.Test.Clock`, so a suite that raises a cluster needs no second
-  line in its `test_helper.exs` for it.
+  stops it at VM exit.
 
   Roles: `turnstile_owner` (owns every table, runs migrations) and
   `turnstile_app` (`NOBYPASSRLS`, what the application connects as).
@@ -24,8 +21,6 @@ defmodule Turnstile.Test.Cluster do
   `pg_ctl`, so this module needs `ecto` and nothing from `ecto_sql`; the
   sandbox mode is the caller's to set.
   """
-
-  alias Turnstile.Test.Clock
 
   @owner "turnstile_owner"
   @app "turnstile_app"
@@ -92,7 +87,6 @@ defmodule Turnstile.Test.Cluster do
     configure_repos!(cluster, opts)
     cluster = %{cluster | supervisor: start_repos!(opts)}
     :persistent_term.put(__MODULE__, [cluster | registered()])
-    _mock = Clock.define_mock()
     cluster
   end
 
