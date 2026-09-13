@@ -30,5 +30,6 @@ defmodule Turnstile.Cerbos.Core.Codec do
   def encode(%DateTime{} = value), do: DateTime.to_iso8601(value)
   def encode(%NaiveDateTime{} = value), do: NaiveDateTime.to_iso8601(value)
   def encode(%Time{} = value), do: Time.to_iso8601(value)
+  def encode(value) when is_list(value), do: Enum.map(value, &encode/1)
   def encode(value), do: value
 end
