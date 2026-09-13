@@ -10,7 +10,10 @@ defmodule Turnstile.Fixture do
   cycle between files.
   """
 
-  use Boundary, top_level?: true, deps: [Ecto, Turnstile], exports: [Account, Folder, Item, Membership, World]
+  use Boundary,
+    top_level?: true,
+    deps: [Ecto, ExUnitProperties, StreamData, Turnstile, Turnstile.Conformance],
+    exports: [Account, Folder, Item, Membership, World]
 end
 
 defmodule Turnstile.Fixture.Item do

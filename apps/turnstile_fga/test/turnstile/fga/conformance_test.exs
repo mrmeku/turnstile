@@ -2,6 +2,8 @@ defmodule Turnstile.Fga.ConformanceTest do
   use Turnstile.Conformance.AdapterCase,
     adapter: Turnstile.Fga,
     repo: Turnstile.TestRepos.Sandboxed,
+    world: Turnstile.Fixture.World,
+    sandbox: Turnstile.Test.Sandbox,
     async: false,
     setup_queries: 1,
     seed: Turnstile.Fga.Seed,

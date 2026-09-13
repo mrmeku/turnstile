@@ -7,6 +7,8 @@ defmodule Turnstile.Test.Capabilities do
 
   @behaviour Turnstile.Capabilities
 
+  use Boundary, top_level?: true, deps: [Turnstile]
+
   @impl Turnstile.Capabilities
   def capability(:c3), do: {:unsupported, by: :adapter, note: "the test declaration marks C3 unsupported"}
   def capability(_rule), do: {:native, by: :adapter, note: "the test declaration"}

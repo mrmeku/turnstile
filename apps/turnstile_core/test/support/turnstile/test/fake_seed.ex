@@ -20,7 +20,7 @@ defmodule Turnstile.Test.FakeSeed do
   def seed(%World{} = world) do
     rules = rules!()
     :ok = Fake.reset(rules)
-    Enum.each(World.grants(world), fn {account, operation, ref} -> Fake.allow(rules, account, operation, ref) end)
+    Enum.each(World.grants(world), fn {subject, operation, ref} -> Fake.allow(rules, subject.id, operation, ref) end)
   end
 
   @impl Seed

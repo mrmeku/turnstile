@@ -1,24 +1,34 @@
 defmodule Turnstile.Conformance.AdapterCase do
   @moduledoc """
   The Tier 1 case template. `use Turnstile.Conformance.AdapterCase,
-  adapter: Turnstile.Code, repo: Example.Repo` defines an async test module
-  whose setup checks out the sandbox on the repo, inserts the test's counter
-  row, starts a ledger for the test, stubs the clock, and binds the adapter
+  adapter: Turnstile.Code, repo: Example.Repo, world: Example.World`
+  defines an async test module whose setup prepares the repo for the test,
+  starts a ledger for the test, stubs the clock, and binds the adapter
   through the configuration override, so each adapter's conformance run is
   its own module and all of them run in one `mix test`.
 
+  The template names no schema and no rule. `world:` is a
+  `Turnstile.Conformance.World`: the module that says what a population
+  holds, what the rule over it allows, and how to write one through the
+  seam. An adapter outside this repository points the template at its own
+  tables and runs the same laws.
+
   The tests are the port's invariants as properties over
-  `Turnstile.Conformance.Gen`, each iteration writing a world of the
-  neutral fixture through the seam and, when the adapter keeps state of its
-  own, seeding it through the `seed:` module; the shape tests, of ledger
-  mode none for an adapter that admits it and of the ledger for one that
-  requires it; the fail-closed case; the revocation-latency template; and
-  the three projection cases.
+  `Turnstile.Conformance.Gen`, each iteration writing a population through
+  the seam and, when the adapter keeps state of its own, seeding it through
+  the `seed:` module; the shape tests, of ledger mode none for an adapter
+  that admits it and of the ledger for one that requires it; the
+  fail-closed case; the revocation-latency template; and the three
+  projection cases.
 
   Options:
 
   - `adapter:` the adapter module, required.
-  - `repo:` the sandboxed application-role repo, required.
+  - `repo:` the mediated repo the population is written through, required.
+  - `world:` the `Turnstile.Conformance.World` module, required.
+  - `sandbox:` a module answering `setup(repo, tags)`, called first in every
+    test, for a suite whose repo needs a checkout, a transaction, or a row
+    of its own before the test runs. Omit it for a repo that needs none.
   - `async:` default `true`, and `false` when `committed:` is given, since
     the committed cases truncate tables every module shares.
   - `ledger:` `:memory` (default: a `Turnstile.Ledger.Memory` per test),
@@ -26,8 +36,8 @@ defmodule Turnstile.Conformance.AdapterCase do
     fold-then-replay properties need a ledger and are not defined under
     `:none`.
   - `seed:` a `Turnstile.Conformance.Seed` module, called after every
-    world the template writes. Omit it for an adapter that reads the
-    fixture's tables.
+    population the template writes. Omit it for an adapter that reads the
+    world's own tables.
   - `outage:` a module whose `outage/0` makes the engine unreachable for
     the rest of the test; the fail-closed case is defined when given.
   - `setup_queries:` the queries the adapter adds to every mediated call,
@@ -42,8 +52,7 @@ defmodule Turnstile.Conformance.AdapterCase do
 
   alias Turnstile.Conformance.AdapterCase.Laws
   alias Turnstile.Ledger.Memory
-  alias Turnstile.Test.Clock.Mock
-  alias Turnstile.Test.Sandbox
+  alias Turnstile.Test.Clock
 
   @doc false
   defmacro __using__(opts) do
@@ -52,6 +61,8 @@ defmodule Turnstile.Conformance.AdapterCase do
     config = %{
       adapter: Keyword.fetch!(opts, :adapter),
       repo: Keyword.fetch!(opts, :repo),
+      world: Keyword.fetch!(opts, :world),
+      sandbox: Keyword.get(opts, :sandbox),
       ledger: Keyword.get(opts, :ledger, :memory),
       seed: Keyword.get(opts, :seed),
       outage: Keyword.get(opts, :outage),
@@ -79,11 +90,12 @@ defmodule Turnstile.Conformance.AdapterCase do
   @spec __setup__(map(), map()) :: {:ok, keyword()}
   def __setup__(config, tags) do
     repo = if tags[:committed], do: committed_repo!(config), else: config.repo
-    :ok = Sandbox.setup(repo, tags)
+    if config.sandbox, do: :ok = config.sandbox.setup(repo, tags)
     if tags[:committed], do: truncate!(config)
     ledger = start_ledger!(config.ledger)
-    Mox.stub(Mock, :now, &DateTime.utc_now/0)
-    :ok = Turnstile.Test.with_config(adapter: config.adapter, ledger: ledger, clock: Mock)
+    mock = Clock.mock()
+    Mox.stub(mock, :now, &DateTime.utc_now/0)
+    :ok = Turnstile.Test.with_config(adapter: config.adapter, ledger: ledger, clock: mock)
     {:ok, adapter: config.adapter, repo: repo, ledger: ledger, case: config}
   end
 
@@ -97,6 +109,7 @@ defmodule Turnstile.Conformance.AdapterCase do
 
       @moduletag adapter: unquote(config.adapter)
       @adapter_case unquote(Macro.escape(config))
+      @conformance_world unquote(config.world)
 
       setup tags do
         unquote(__MODULE__).__setup__(@adapter_case, tags)
@@ -117,11 +130,11 @@ defmodule Turnstile.Conformance.AdapterCase do
 
   defp rule_agreement do
     quote do
-      property "rule agreement: the adapter answers as the fixture's rule does", context do
+      property "rule agreement: the adapter answers as the world's rule does", context do
         check all(
-                world <- Gen.world(),
+                world <- Gen.world(@conformance_world),
                 subject <- Gen.subject(world),
-                operation <- Gen.operation(),
+                operation <- Gen.operation(@conformance_world),
                 object <- Gen.object(world),
                 max_runs: 25
               ) do
@@ -134,7 +147,12 @@ defmodule Turnstile.Conformance.AdapterCase do
   defp scope_fidelity do
     quote do
       property "scope fidelity: the rows a scope admits are the objects check allows", context do
-        check all(world <- Gen.world(), subject <- Gen.subject(world), operation <- Gen.operation(), max_runs: 25) do
+        check all(
+                world <- Gen.world(@conformance_world),
+                subject <- Gen.subject(world),
+                operation <- Gen.operation(@conformance_world),
+                max_runs: 25
+              ) do
           Laws.scope_fidelity(context, world, subject, operation)
         end
       end
@@ -145,7 +163,7 @@ defmodule Turnstile.Conformance.AdapterCase do
     quote do
       property "deny by default: an unknown operation, subject kind, or subject is denied", context do
         check all(
-                world <- Gen.world(),
+                world <- Gen.world(@conformance_world),
                 subjects <- Gen.strangers(world),
                 operation <- Gen.unknown_operation(),
                 object <- Gen.object(world),
@@ -161,9 +179,9 @@ defmodule Turnstile.Conformance.AdapterCase do
     quote do
       property "batch agreement: batch and filter agree with check object by object", context do
         check all(
-                world <- Gen.world(),
+                world <- Gen.world(@conformance_world),
                 subject <- Gen.subject(world),
-                operation <- Gen.operation(),
+                operation <- Gen.operation(@conformance_world),
                 objects <- Gen.objects(world),
                 max_runs: 25
               ) do
@@ -180,13 +198,13 @@ defmodule Turnstile.Conformance.AdapterCase do
     quote do
       property "record-then-erase: a grant written and erased leaves two events, no fact, and a denial", context do
         check all(
-                world <- Gen.world(),
-                account <- Gen.account(world),
-                folder <- Gen.folder(world),
-                role <- Gen.role(),
+                world <- Gen.world(@conformance_world),
+                subject <- Gen.grantee(world),
+                grantable <- Gen.grantable(world),
+                grant_type <- Gen.grant_type(@conformance_world),
                 max_runs: 25
               ) do
-          Laws.record_then_erase(context, world, account, folder, role)
+          Laws.record_then_erase(context, world, subject, grantable, grant_type)
         end
       end
     end
@@ -195,7 +213,7 @@ defmodule Turnstile.Conformance.AdapterCase do
   defp fold_then_replay do
     quote do
       property "fold-then-replay: the fold equals the state and the fold at t equals the state at t", context do
-        check all(world <- Gen.world(), steps <- Gen.steps(world), max_runs: 25) do
+        check all(world <- Gen.world(@conformance_world), steps <- Gen.steps(world), max_runs: 25) do
           Laws.fold_then_replay(context, world, steps)
         end
       end

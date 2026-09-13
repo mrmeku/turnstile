@@ -3,6 +3,8 @@ defmodule Turnstile.Code.ConformanceTest do
     async: false,
     adapter: Turnstile.Code,
     repo: Turnstile.TestRepos.Sandboxed,
+    world: Turnstile.Fixture.World,
+    sandbox: Turnstile.Test.Sandbox,
     committed: [
       repo: Turnstile.TestRepos.Committed,
       owner: Turnstile.TestRepos.Owner,

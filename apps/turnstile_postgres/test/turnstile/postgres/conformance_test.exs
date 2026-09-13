@@ -2,6 +2,8 @@ defmodule Turnstile.Postgres.ConformanceTest do
   use Turnstile.Conformance.AdapterCase,
     adapter: Turnstile.Postgres,
     repo: Turnstile.TestRepos.Sandboxed,
+    world: Turnstile.Fixture.World,
+    sandbox: Turnstile.Test.Sandbox,
     async: false,
     setup_queries: 2,
     outage: Turnstile.Postgres.ConformanceTest.Unreachable,

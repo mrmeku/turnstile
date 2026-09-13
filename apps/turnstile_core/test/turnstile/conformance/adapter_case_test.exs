@@ -3,6 +3,8 @@ defmodule Turnstile.Conformance.AdapterCaseTest do
     async: false,
     adapter: Turnstile.Adapter.Fake,
     repo: Turnstile.TestRepos.Sandboxed,
+    world: Turnstile.Fixture.World,
+    sandbox: Turnstile.Test.Sandbox,
     seed: Turnstile.Test.FakeSeed,
     outage: Turnstile.Test.FakeSeed,
     committed: [
@@ -47,6 +49,8 @@ defmodule Turnstile.Conformance.AdapterCaseNoLedgerTest do
     async: true,
     adapter: Turnstile.Adapter.Fake,
     repo: Turnstile.TestRepos.Sandboxed,
+    world: Turnstile.Fixture.World,
+    sandbox: Turnstile.Test.Sandbox,
     ledger: :none,
     seed: Turnstile.Test.FakeSeed
 
@@ -71,6 +75,8 @@ defmodule Turnstile.Conformance.AdapterCaseLedgerTest do
     async: false,
     adapter: Turnstile.Test.LedgerAdapter,
     repo: Turnstile.TestRepos.Sandboxed,
+    world: Turnstile.Fixture.World,
+    sandbox: Turnstile.Test.Sandbox,
     seed: Turnstile.Test.FakeSeed
 
   alias Turnstile.Adapter.Fake

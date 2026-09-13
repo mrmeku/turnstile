@@ -2,6 +2,8 @@ defmodule Turnstile.Cerbos.ConformanceTest do
   use Turnstile.Conformance.AdapterCase,
     adapter: Turnstile.Cerbos,
     repo: Turnstile.TestRepos.Sandboxed,
+    world: Turnstile.Fixture.World,
+    sandbox: Turnstile.Test.Sandbox,
     async: false,
     setup_queries: 1,
     outage: Turnstile.Cerbos.ConformanceTest.Unreachable,

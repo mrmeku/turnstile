@@ -16,9 +16,11 @@ defmodule Turnstile.Conformance.LedgerCase do
 
   - `ledger:` `:memory`, a `Turnstile.Ledger.Memory` started per test, or
     `{module, options}`, the tuple a configuration carries.
-  - `repo:` a sandboxed application-role repo, checked out for each test,
-    for a ledger whose events live in a database. Omit it for a ledger that
-    keeps them in a process.
+  - `repo:` a mediated repo, for a ledger whose events live in a database.
+    Omit it for a ledger that keeps them in a process.
+  - `sandbox:` a module answering `setup(repo, tags)`, called first in
+    every test, for a repo that needs a checkout or a row of its own before
+    the test runs. Omit it for a repo that needs none.
   - `adapter:` the adapter the configuration override names, since a
     configuration needs one even where no decision is asked for; default
     `Turnstile.Adapter.Fake`.
@@ -27,8 +29,7 @@ defmodule Turnstile.Conformance.LedgerCase do
 
   alias Turnstile.FactEvent
   alias Turnstile.Ledger.Memory
-  alias Turnstile.Test.Clock.Mock
-  alias Turnstile.Test.Sandbox
+  alias Turnstile.Test.Clock
 
   @doc false
   defmacro __using__(opts) do
@@ -37,6 +38,7 @@ defmodule Turnstile.Conformance.LedgerCase do
     config = %{
       ledger: Keyword.get(opts, :ledger, :memory),
       repo: Keyword.get(opts, :repo),
+      sandbox: Keyword.get(opts, :sandbox),
       adapter: Keyword.get(opts, :adapter, Turnstile.Adapter.Fake)
     }
 
@@ -86,13 +88,14 @@ defmodule Turnstile.Conformance.LedgerCase do
   @doc false
   @spec __setup__(map(), map()) :: {:ok, keyword()}
   def __setup__(config, tags) do
-    if config.repo do
-      :ok = Sandbox.setup(config.repo, tags)
+    if config.repo && config.sandbox do
+      :ok = config.sandbox.setup(config.repo, tags)
     end
 
     {module, options} = ledger = start_ledger!(config.ledger)
-    Mox.stub(Mock, :now, &DateTime.utc_now/0)
-    :ok = Turnstile.Test.with_config(adapter: config.adapter, ledger: ledger, clock: Mock)
+    mock = Clock.mock()
+    Mox.stub(mock, :now, &DateTime.utc_now/0)
+    :ok = Turnstile.Test.with_config(adapter: config.adapter, ledger: ledger, clock: mock)
     {:ok, module: module, options: options, ledger: ledger, repo: config.repo}
   end
 

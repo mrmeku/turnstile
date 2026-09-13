@@ -1,9 +1,9 @@
 defmodule Turnstile.TestRepos do
   @moduledoc """
-  The three repos of core's own test run: the application role on the
-  sandboxed database, the application role on the committed database, and
-  the owner role on the committed database. Test support only; a thin
-  application runs its own repos.
+  The three repos of this repository's own runs: the application role on
+  the sandboxed database, the application role on the committed database,
+  and the owner role on the committed database. A thin application runs its
+  own repos instead.
   """
 
   use Boundary, top_level?: true, deps: [Ecto, Ecto.Adapters.Postgres, Ecto.Adapters.SQL, Turnstile]

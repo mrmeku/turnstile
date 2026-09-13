@@ -35,16 +35,17 @@ defmodule Turnstile.Core.MixProject do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]
 
-  # The conformance templates, the neutral fixture, and the sandbox setup
-  # ship in lib, so an adapter outside this repository can run them: the
-  # generators, the mock, and the sandbox they rest on are dependencies of
-  # the package rather than of its own suite. `ecto_sql` is optional because
-  # an application that takes the port without the seam needs `ecto` alone;
-  # `postgrex` is the driver core's own suite connects with. `muontrap` is
-  # optional for the same reason `ecto_sql` is: it starts the Cerbos sidecar
-  # in `Turnstile.Test.Cerbos`, which only an adapter suite calls.
-  # Every pin is exact. Versions verified against https://hex.pm/api/packages/<name>
-  # on 2026-09-08.
+  # The conformance templates, the cluster, and the sandbox setup ship in
+  # lib, so an adapter outside this repository can run them, and the
+  # generators and the mock they rest on are dependencies of the package
+  # rather than of its own suite. `ecto_sql` is optional because an
+  # application that takes the port without the seam needs `ecto` alone;
+  # `postgrex` is the driver this package's own suite connects with, and the
+  # population it proves itself over sits in `test/support`, which is
+  # compiled and never published. `muontrap` is optional for the same reason
+  # `ecto_sql` is: it starts the Cerbos sidecar in `Turnstile.Test.Cerbos`,
+  # which only an adapter suite calls. Every pin is exact. Versions verified
+  # against https://hex.pm/api/packages/<name> on 2026-09-08.
   defp deps do
     [
       {:ecto, "3.14.2"},
