@@ -6,10 +6,10 @@ defmodule Turnstile.Config do
   boot struct under the overrides `Turnstile.Test.with_config/1` put in the
   process dictionary of the caller or of a process in its `$callers` chain.
 
-  Fields: #{NimbleOptions.docs(Turnstile.Config.Schema.schema())}
+  Fields: #{NimbleOptions.docs(Turnstile.Core.ConfigSchema.schema())}
   """
 
-  alias Turnstile.Config.Schema
+  alias Turnstile.Core.ConfigSchema
   alias Turnstile.Error
 
   @enforce_keys [:adapter, :ledger, :ledger_counter, :clock, :caps]
@@ -97,7 +97,7 @@ defmodule Turnstile.Config do
   def override_key, do: __MODULE__
 
   defp validate(options) do
-    case NimbleOptions.validate(Keyword.put_new(options, :clock, &DateTime.utc_now/0), Schema.schema()) do
+    case NimbleOptions.validate(Keyword.put_new(options, :clock, &DateTime.utc_now/0), ConfigSchema.schema()) do
       {:ok, validated} -> {:ok, validated}
       {:error, %NimbleOptions.ValidationError{} = error} -> {:error, invalid(:config, Exception.message(error))}
     end

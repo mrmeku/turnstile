@@ -1,7 +1,8 @@
-defmodule Turnstile.Config.Schema do
+defmodule Turnstile.Core.ConfigSchema do
   @moduledoc false
   # The NimbleOptions schema behind `Turnstile.Config`, in its own module so
-  # the config's moduledoc can render it.
+  # the config's moduledoc can render it. What the fields mean is written
+  # here, and the struct is built from what this validates.
 
   @schema NimbleOptions.new!(
             adapter: [
