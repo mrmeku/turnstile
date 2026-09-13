@@ -1,40 +1,44 @@
-defmodule Turnstile.Postgres.Decide do
-  @moduledoc """
-  What the adapter asks the database. One statement per object type in the
-  call, run under the session settings, selecting each object's primary key
-  as text beside the update gate's `USING` expression where the operation
-  has a gate:
-
-      SELECT id::text, coalesce((<gate using>), false)
-      FROM <table> WHERE id::text = ANY($1)
-
-  Visibility answers the read: the `SELECT` policy of the operation narrows
-  the statement, so a row that comes back is one the subject may see under
-  that operation and a row that does not come back is a denial. The gate
-  answers the write: its expression is the one the database will apply
-  through `WITH CHECK` when the write runs, so an answer given before a
-  write agrees with what the write meets. The statement names the table
-  with no alias, because the database renders a policy's references to its
-  own table qualified by that table's name.
-
-  Primary keys are compared as text, so an integer key and a string key ask
-  the same question and neither the object's id type nor the schema's has
-  to be known here.
-  """
+defmodule Turnstile.Postgres.Adapter.Decide do
+  # What the adapter asks the database. One statement per object type in the
+  # call, run under the session settings, selecting each object's primary key
+  # as text beside the update gate's `USING` expression where the operation
+  # has a gate:
+  #
+  #     SELECT id::text, coalesce((<gate using>), false)
+  #     FROM <table> WHERE id::text = ANY($1)
+  #
+  # Visibility answers the read: the `SELECT` policy of the operation narrows
+  # the statement, so a row that comes back is one the subject may see under
+  # that operation and a row that does not come back is a denial. The gate
+  # answers the write: its expression is the one the database will apply
+  # through `WITH CHECK` when the write runs, so an answer given before a
+  # write agrees with what the write meets. The statement names the table
+  # with no alias, because the database renders a policy's references to its
+  # own table qualified by that table's name.
+  #
+  # Primary keys are compared as text, so an integer key and a string key ask
+  # the same question and neither the object's id type nor the schema's has
+  # to be known here.
+  #
+  # A repo that raises is left to raise. The port turns any exception a
+  # decider raises into the engine error that denies, so this package names
+  # no driver's error, and a driver it does not carry needs no clause of its
+  # own.
+  @moduledoc false
 
   alias Turnstile.Answer
+  alias Turnstile.Postgres.Adapter.Session
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
-  alias Turnstile.Postgres.Name
+  alias Turnstile.Postgres.Core.Name
+  alias Turnstile.Postgres.Core.Settings
   alias Turnstile.Postgres.Policy
-  alias Turnstile.Postgres.Session
-  alias Turnstile.Postgres.Settings
 
   @exemption {:exempt, :library}
 
   @doc "One answer per object, grouped by object type, under one set of settings."
   @spec many(Binding.t(), Catalog.t(), Turnstile.subject(), atom(), [Turnstile.object()], Turnstile.environment()) ::
-          {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
+          {:ok, %{Turnstile.object() => Answer.t()}}
   def many(
         %Binding{} = binding,
         %Catalog{} = catalog,
@@ -51,17 +55,14 @@ defmodule Turnstile.Postgres.Decide do
     else
       {:ok, Session.around(binding.repo, settings, fn -> grouped(binding, catalog, operation, objects) end)}
     end
-  rescue
-    error -> {:error, Exception.message(error)}
   end
 
   @doc "The answer for one object."
   @spec one(Binding.t(), Catalog.t(), Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment()) ::
-          {:ok, Answer.t()} | {:error, String.t()}
+          {:ok, Answer.t()}
   def one(%Binding{} = binding, %Catalog{} = catalog, {_kind, _account} = subject, operation, {_type, _id} = object, env) do
-    with {:ok, answers} <- many(binding, catalog, subject, operation, [object], env) do
-      {:ok, Map.fetch!(answers, object)}
-    end
+    {:ok, answers} = many(binding, catalog, subject, operation, [object], env)
+    {:ok, Map.fetch!(answers, object)}
   end
 
   @doc """

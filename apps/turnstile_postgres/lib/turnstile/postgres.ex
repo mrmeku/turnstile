@@ -42,18 +42,18 @@ defmodule Turnstile.Postgres do
   use Boundary,
     deps: [Turnstile, Ecto, NimbleOptions],
     check: [apps: [:ecto_sql, :postgrex]],
-    exports: [Binding, Catalog, Coverage, Decide, Migration, Name, Policy, Session, Settings, Version]
+    exports: [Binding, Catalog, Coverage, Migration, Policy, Version]
 
   import Ecto.Query, only: [dynamic: 2]
 
   alias Turnstile.Answer
   alias Turnstile.Decision
   alias Turnstile.Error
+  alias Turnstile.Postgres.Adapter.Decide
+  alias Turnstile.Postgres.Adapter.Session
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
-  alias Turnstile.Postgres.Decide
-  alias Turnstile.Postgres.Session
-  alias Turnstile.Postgres.Settings
+  alias Turnstile.Postgres.Core.Settings
 
   @doc """
   Read the policies and the version once, so no call on the request path
@@ -94,7 +94,7 @@ defmodule Turnstile.Postgres do
   def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, _options)
       when is_atom(operation) do
     with {:ok, binding, catalog} <- ready(:authorize) do
-      named(Decide.one(binding, catalog, subject, operation, object, environment), :authorize)
+      Decide.one(binding, catalog, subject, operation, object, environment)
     end
   end
 
@@ -108,7 +108,7 @@ defmodule Turnstile.Postgres do
   def batch({_kind, _account} = subject, operation, objects, %{now: _now} = environment, _options)
       when is_atom(operation) and is_list(objects) do
     with {:ok, binding, catalog} <- ready(:batch) do
-      named(Decide.many(binding, catalog, subject, operation, objects, environment), :batch)
+      Decide.many(binding, catalog, subject, operation, objects, environment)
     end
   end
 
@@ -159,10 +159,6 @@ defmodule Turnstile.Postgres do
   rescue
     error -> {:error, engine(operation, Exception.message(error))}
   end
-
-  # A failure's detail becomes the engine error, naming the callback that failed.
-  defp named({:error, detail}, callback) when is_binary(detail), do: {:error, engine(callback, detail)}
-  defp named(other, _callback), do: other
 
   defp bound(operation) do
     case Binding.resolve() do

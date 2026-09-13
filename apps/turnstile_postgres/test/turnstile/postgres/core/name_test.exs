@@ -2,7 +2,7 @@ defmodule Turnstile.Postgres.NameTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Error
-  alias Turnstile.Postgres.Name
+  alias Turnstile.Postgres.Core.Name
 
   test "a plain lowercase identifier passes, as an atom or as text" do
     assert Name.check!("turnstile_fixture_folders", :table) == "turnstile_fixture_folders"

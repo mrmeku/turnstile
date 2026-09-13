@@ -32,14 +32,15 @@ defmodule Turnstile.Postgres.Migration do
   - `publish!/2` reads the policies back from `pg_policy` and appends the
     policy version, in the transaction the migration is already running in.
 
-  Every name a helper puts into a statement passes
-  `Turnstile.Postgres.Name.check!/2` first. An expression is written by
-  whoever writes the migration and reaches the database as given.
+  Every name a helper puts into a statement is checked first: a plain
+  lowercase identifier within the length an identifier can hold, or a
+  raise saying which name was refused. An expression is written by whoever
+  writes the migration and reaches the database as given.
   """
 
   alias Turnstile.PolicyVersion
   alias Turnstile.Postgres.Catalog
-  alias Turnstile.Postgres.Name
+  alias Turnstile.Postgres.Core.Name
   alias Turnstile.Postgres.Policy
   alias Turnstile.Postgres.Version
 

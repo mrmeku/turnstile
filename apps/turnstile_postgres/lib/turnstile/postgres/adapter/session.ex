@@ -1,33 +1,32 @@
-defmodule Turnstile.Postgres.Session do
-  @moduledoc """
-  Where the settings meet the connection. `set_config(name, value, true)`
-  is local to a transaction, so a call that is not already inside one opens
-  a transaction for the length of the call and the settings leave with it.
-  A call already inside a transaction sets them there, and the next call in
-  that transaction sets its own over them, so two subjects in one
-  transaction never read each other's.
+defmodule Turnstile.Postgres.Adapter.Session do
+  # Where the settings meet the connection. `set_config(name, value, true)`
+  # is local to a transaction, so a call that is not already inside one opens
+  # a transaction for the length of the call and the settings leave with it.
+  # A call already inside a transaction sets them there, and the next call in
+  # that transaction sets its own over them, so two subjects in one
+  # transaction never read each other's.
+  #
+  # Every call puts back what it found: each name it wrote returns to the
+  # value the call around it holds, whether the function returned or raised.
+  # Where no call is around it, that value is the empty string. A transaction
+  # the adapter did not open outlives the call, and so does one the adapter
+  # opens inside another, which the database keeps as a savepoint whose
+  # settings survive its release. Without the putting back, a statement the
+  # seam admits outside a decision, later in the same transaction, would run
+  # under the settings of the decision before it, and a policy written for
+  # "no operation in force" would not hold. A mediated read inside a mediated
+  # write is the other side of the same coin: the read sets the settings it
+  # was given and the write that follows it needs them still there, so the
+  # read leaves the outer call's settings behind rather than an empty string.
+  # The statement runs through the repo's non-raising channel, so a
+  # transaction the function already aborted keeps the error the function
+  # raised.
+  #
+  # Each statement runs through the bound repo's raw channel under the
+  # library exemption, and each is one query in the shape counts.
+  @moduledoc false
 
-  Every call puts back what it found: each name it wrote returns to the
-  value the call around it holds, whether the function returned or raised.
-  Where no call is around it, that value is the empty string. A transaction
-  the adapter did not open outlives the call, and so does one the adapter
-  opens inside another, which the database keeps as a savepoint whose
-  settings survive its release. Without the putting back, a statement the
-  seam admits outside a decision, later in the same transaction, would run
-  under the settings of the decision before it, and a policy written for
-  "no operation in force" would not hold. A mediated read inside a mediated
-  write is the other side of the same coin: the read sets the settings it
-  was given and the write that follows it needs them still there, so the
-  read leaves the outer call's settings behind rather than an empty string.
-  The statement runs through the repo's non-raising channel, so a
-  transaction the function already aborted keeps the error the function
-  raised.
-
-  Each statement runs through the bound repo's raw channel under the
-  library exemption, and each is one query in the shape counts.
-  """
-
-  alias Turnstile.Postgres.Settings
+  alias Turnstile.Postgres.Core.Settings
 
   @exemption {:exempt, :library}
   @stash {__MODULE__, :settings}

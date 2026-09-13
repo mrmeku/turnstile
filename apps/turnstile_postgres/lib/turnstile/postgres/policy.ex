@@ -15,7 +15,7 @@ defmodule Turnstile.Postgres.Policy do
   answers `:other` for it.
   """
 
-  alias Turnstile.Postgres.Name
+  alias Turnstile.Postgres.Core.Name
 
   @scope "turnstile_scope_"
   @gate "turnstile_gate_"

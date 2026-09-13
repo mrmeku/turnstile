@@ -1,23 +1,24 @@
-defmodule Turnstile.Postgres.Settings do
-  @moduledoc """
-  The session settings a call runs under. Four are always set:
-  `turnstile.subject_id`, `turnstile.subject_kind`, `turnstile.operation`,
-  and `turnstile.now`. Beyond those, every fact the caller supplied in the
-  environment is set under its own name, so an application whose policies
-  read `current_setting('turnstile.reauthenticated_at', true)` supplies
-  `reauthenticated_at` as a fact and this package never learns the name.
-
-  Every value is text. A value the caller did not supply is the empty
-  string, and a name the caller never supplied is unset, which
-  `current_setting(name, true)` answers as `NULL`; neither compares equal
-  to anything a policy grants on, so an absent fact denies.
-
-  `statement/1` renders the settings as one `SELECT` over
-  `set_config(name, value, true)`, which is one statement, one round trip,
-  and one query in the shape counts. `hash/1` is the SHA-256 a scope
-  decision carries as its rule text, because under row-level security the
-  settings are what the database enforced.
-  """
+defmodule Turnstile.Postgres.Core.Settings do
+  # The session settings a call runs under. Four are always set:
+  # `turnstile.subject_id`, `turnstile.subject_kind`, `turnstile.operation`,
+  # and `turnstile.now`. Beyond those, every fact the caller supplied in the
+  # environment is set under its own name, so an application whose policies
+  # read `current_setting('turnstile.reauthenticated_at', true)` supplies
+  # `reauthenticated_at` as a fact and this package never learns the name.
+  #
+  # Every value is text. A value the caller did not supply is the empty
+  # string, and a name the caller never supplied is unset, which
+  # `current_setting(name, true)` answers as `NULL`; neither compares equal
+  # to anything a policy grants on, so an absent fact denies.
+  #
+  # `statement/1` renders the settings as one `SELECT` over
+  # `set_config(name, value, true)`, which is one statement, one round trip,
+  # and one query in the shape counts. `hash/1` is the SHA-256 a scope
+  # decision carries as its rule text, because under row-level security the
+  # settings are what the database enforced. Building them runs no statement:
+  # what the settings are is decided here, and setting them belongs to the
+  # module that holds the connection.
+  @moduledoc false
 
   @prefix "turnstile."
 
