@@ -27,7 +27,7 @@ defmodule Turnstile.Example.MixProject do
   end
 
   # A library application: no callback module, nothing started. The thin
-  # applications start the repos and the audit store.
+  # applications start the repos and the consumer of the events.
   def application do
     [extra_applications: [:logger]]
   end

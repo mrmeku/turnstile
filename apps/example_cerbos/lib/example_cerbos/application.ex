@@ -3,7 +3,7 @@ defmodule ExampleCerbos.Application do
   Boot: the configuration names the sidecar's address and the ledger mode,
   the binding names the repo, the attribute declarations, the policy
   directory, and the commit that directory is at, the supervisor starts the
-  repos and the audit store, and the commit is published as a policy version
+  repos and the consumer of the events, and the commit is published as a policy version
   once the tree is up. The test configuration leaves the repos to the
   ephemeral cluster, and with them the publish: a ledger mode writes the
   version as an event, which needs a repo to write it through.
@@ -11,7 +11,7 @@ defmodule ExampleCerbos.Application do
 
   use Application
 
-  alias Example.Audit.Store
+  alias Example.Siem
   alias Turnstile.Cerbos.Binding
 
   @impl Application
@@ -31,7 +31,7 @@ defmodule ExampleCerbos.Application do
       )
 
     repos = repos()
-    children = [{Store, name: Store, attach: true} | repos]
+    children = [{Siem, name: Siem, attach: true} | repos]
 
     with {:ok, pid} <- Supervisor.start_link(children, strategy: :one_for_one, name: ExampleCerbos.Supervisor) do
       :ok = publish(repos)

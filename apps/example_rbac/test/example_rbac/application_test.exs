@@ -4,7 +4,7 @@ defmodule ExampleRbac.ApplicationTest do
 
   import ExUnit.CaptureLog
 
-  alias Example.Audit.Store
+  alias Example.Siem
   alias ExampleRbac.Policy
   alias Turnstile.Code.Binding
   alias Turnstile.Config
@@ -13,11 +13,11 @@ defmodule ExampleRbac.ApplicationTest do
     {:ok, before} = Config.resolve()
     _stopped = capture_log(fn -> :ok = Application.stop(:example_rbac) end)
     refute Process.whereis(ExampleRbac.Supervisor)
-    refute Process.whereis(Store)
+    refute Process.whereis(Siem)
 
     _started = capture_log(fn -> assert {:ok, [:example_rbac]} = Application.ensure_all_started(:example_rbac) end)
     assert Process.alive?(Process.whereis(ExampleRbac.Supervisor))
-    assert Process.alive?(Process.whereis(Store))
+    assert Process.alive?(Process.whereis(Siem))
 
     assert {:ok, %Config{} = config} = Config.resolve()
     assert config.ledger == before.ledger

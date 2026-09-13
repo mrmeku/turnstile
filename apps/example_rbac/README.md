@@ -9,7 +9,7 @@ example; the mechanism lives in the adapter.
 
 ## What is here
 
-- `ExampleRbac.Application`: boots `Turnstile.Config` with the adapter and the ledger mode from the application env, binds `ExampleRbac.Policy` to `Example.Repo`, starts the repos and the audit store, and publishes the policy version.
+- `ExampleRbac.Application`: boots `Turnstile.Config` with the adapter and the ledger mode from the application env, binds `ExampleRbac.Policy` to `Example.Repo`, starts the repos and the consumer of the events, and publishes the policy version.
 - `ExampleRbac.Policy`: the role table and, per protected schema, the grants and predicates. A program role reaches a document through its open program and a portion through its document; an office role reaches a document through its designating office and a proposal through the document's office.
 - `ExampleRbac.Predicates`: the hop filter for an open program, the controls subquery, the session check, and the separation-of-duties check, as `dynamic` expressions the adapter puts in every rule.
 - `ExampleRbac.Capabilities`: the capability level of every rule, with the component that enforces it.

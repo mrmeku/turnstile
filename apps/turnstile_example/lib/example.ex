@@ -3,8 +3,9 @@ defmodule Example do
   The example application: controlled unclassified information, as a
   library application. The schemas declare object types and fact mappings,
   the contexts call the port and write through the seam, the web layer
-  identifies the caller and nothing else, and the audit store chains the
-  decision events. No adapter is named here; a thin application binds one.
+  identifies the caller and nothing else, and the consumer maps the
+  library's events to the shape a security log takes. No adapter is named
+  here; a thin application binds one.
   """
 
   use Boundary,
@@ -26,10 +27,6 @@ defmodule Example do
       AccountRole,
       Agency,
       Assignment,
-      Audit,
-      Audit.Chain,
-      Audit.Record,
-      Audit.Store,
       DocumentController,
       Category,
       Controls,

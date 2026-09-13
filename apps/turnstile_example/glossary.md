@@ -21,7 +21,6 @@ The words `turnstile_example` owns. A word with a second meaning elsewhere is li
 | Privileged account | An account of kind `privileged`, separate from the person's user account, that may hold the override permission |
 | Re-authentication | The `reauthenticated_at` fact the identity layer supplies; a C7 operation needs it within the window (C8) |
 | Window | The re-authentication window, `Example.Sessions.window/0`, the organization's parameter for IA-11 |
-| Audit store | The hash-chained records of every decision and override event, verified as a chain (AU-9) |
 | SIEM | The consumer of the library's two events: one OCSF record per change and per decision, held in memory (AU-2, AU-3, AU-12) |
 | Access review | The report of who may do what on each agency's documents and of every privileged account (AC-2) |
 | Fixture | The world every scenario starts from: two agencies, offices, programs, categories, and one account per role |

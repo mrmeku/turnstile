@@ -2,7 +2,7 @@ defmodule ExamplePostgres.Application do
   @moduledoc """
   Boot: the configuration names the adapter and the ledger mode, the
   binding names the repo and the schemas whose tables the policies protect,
-  the supervisor starts the repos and the audit store, and the policies and
+  the supervisor starts the repos and the consumer of the events, and the policies and
   their version are read from the database once the tree is up. The test
   configuration leaves the repos to the ephemeral cluster, and with them
   the read: the catalog is a query, which needs a repo to run through.
@@ -10,7 +10,7 @@ defmodule ExamplePostgres.Application do
 
   use Application
 
-  alias Example.Audit.Store
+  alias Example.Siem
   alias ExamplePostgres.Policies
   alias Turnstile.Postgres.Binding
 
@@ -20,7 +20,7 @@ defmodule ExamplePostgres.Application do
     _config = Turnstile.Config.boot!(adapter: Turnstile.Postgres, ledger: ledger)
     _binding = Binding.bind!(repo: Example.Repo, schemas: Policies.schemas())
     repos = repos()
-    children = [{Store, name: Store, attach: true} | repos]
+    children = [{Siem, name: Siem, attach: true} | repos]
 
     with {:ok, pid} <- Supervisor.start_link(children, strategy: :one_for_one, name: ExamplePostgres.Supervisor) do
       :ok = ready(repos)

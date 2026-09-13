@@ -14,7 +14,7 @@ answer a call gets and the rows a query returns come from the same place.
 
 ## What is here
 
-- `ExamplePostgres.Application`: boots `Turnstile.Config` with the adapter and the ledger mode from the application env, binds `Example.Repo` and the protected schemas, starts the repos and the audit store, reads the policies, and publishes the version.
+- `ExamplePostgres.Application`: boots `Turnstile.Config` with the adapter and the ledger mode from the application env, binds `Example.Repo` and the protected schemas, starts the repos and the consumer of the events, reads the policies, and publishes the version.
 - `ExamplePostgres.Policies`: every SQL expression the migrations write, one function per policy, with the accessors a portion reads its document through.
 - `ExamplePostgres.Capabilities`: the capability level of every rule, with the component that enforces it.
 - `ExamplePostgres.publish/0`: the version the database is at, appended to the ledger once the repos are up. A migration has no repo to write a ledger event through, so the boot does it.

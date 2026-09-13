@@ -2,7 +2,7 @@ defmodule ExampleRbac.Application do
   @moduledoc """
   Boot: the configuration names the adapter and the ledger mode, the
   binding names the policy and the repo, the supervisor starts the repos
-  and the audit store, and the policy version is published once the tree
+  and the consumer of the events, and the policy version is published once the tree
   is up. The test configuration leaves the repos to the ephemeral cluster,
   and with them the publish: a ledger mode writes the version as an event,
   which needs a repo to write it through.
@@ -10,7 +10,7 @@ defmodule ExampleRbac.Application do
 
   use Application
 
-  alias Example.Audit.Store
+  alias Example.Siem
   alias Turnstile.Code.Binding
 
   @impl Application
@@ -19,7 +19,7 @@ defmodule ExampleRbac.Application do
     _config = Turnstile.Config.boot!(adapter: Turnstile.Code, ledger: ledger)
     _binding = Binding.bind!(policy: ExampleRbac.Policy, repo: Example.Repo)
     repos = repos()
-    children = [{Store, name: Store, attach: true} | repos]
+    children = [{Siem, name: Siem, attach: true} | repos]
 
     with {:ok, pid} <- Supervisor.start_link(children, strategy: :one_for_one, name: ExampleRbac.Supervisor) do
       :ok = publish(repos)
