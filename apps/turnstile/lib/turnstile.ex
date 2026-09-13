@@ -15,12 +15,12 @@ defmodule Turnstile do
     check: [apps: [:ecto_sql, :postgrex]],
     exports: [
       Adapter,
+      Adapter.Overrides,
       Adapter.Seam,
       Answer,
       Capabilities,
       Change,
       Config,
-      Core.Overrides,
       Core.Surface,
       Decision,
       Edge,

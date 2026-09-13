@@ -1,9 +1,10 @@
-defmodule Turnstile.Core.Overrides do
+defmodule Turnstile.Adapter.Overrides do
   @moduledoc false
   # Generates, at the repo's `@before_compile`, the override of every
-  # `Turnstile.Core.Surface` function the repo defines. Each override calls
-  # the seam with the arguments and a function that runs Ecto's own
-  # definition with the options the seam settled.
+  # function of the surface the repo defines. Each override calls the seam
+  # with the arguments and a function that runs Ecto's own definition with
+  # the options the seam settled. Writing the calls into a module being
+  # compiled is what puts this here rather than beside what decides.
 
   alias Turnstile.Adapter.Seam
 
@@ -15,8 +16,8 @@ defmodule Turnstile.Core.Overrides do
   @doc """
   The quoted overrides for the functions of `surface` that `module` defines.
   The surface arrives from the repo's own `@turnstile_surface`, which
-  `use Turnstile.Repo` sets, so this file references no other module and a
-  repo that uses it recompiles for no change but its own.
+  `use Turnstile.Repo` sets, so the surface is not read here and a repo that
+  uses it recompiles for no change but its own.
   """
   @spec generate(module(), [{atom(), non_neg_integer(), atom()}]) :: Macro.t()
   def generate(module, surface) when is_atom(module) and is_list(surface) do

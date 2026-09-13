@@ -39,7 +39,7 @@ defmodule Turnstile.Repo do
       Turnstile.Repo.__check_order__(__MODULE__)
       @turnstile_role Turnstile.Repo.__role__(opts)
       @turnstile_surface Turnstile.Core.Surface.all()
-      @before_compile Turnstile.Core.Overrides
+      @before_compile Turnstile.Adapter.Overrides
 
       @doc "The repo's role in Turnstile, `:app` or `:owner`, and the surface it was compiled against."
       @spec __turnstile__(:role) :: :app | :owner
