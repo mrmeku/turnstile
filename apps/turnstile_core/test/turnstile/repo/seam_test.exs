@@ -349,6 +349,90 @@ defmodule Turnstile.Repo.SeamTest do
     end
   end
 
+  describe "change events" do
+    test "a single-row write publishes one change carrying every fact field that changed",
+         %{folder: folder, decision: decision} do
+      subject = {:user, "user-9"}
+      decision = %{decision | subject: subject}
+
+      {membership, [created]} =
+        Turnstile.Test.changes(fn ->
+          Sandboxed.insert!(%Membership{account_id: "acct-5", role: :reader, folder_id: folder.id},
+            turnstile: {:exempt, "grant"}
+          )
+        end)
+
+      assert created.operation == :create
+      assert created.kind == :role
+      assert created.target == {:role, membership.id}
+      assert created.changes == %{account_id: {nil, "acct-5"}, folder_id: {nil, folder.id}, role: {nil, :reader}}
+      assert created.actor == FactEvent.library()
+      assert created.actor_kind == :non_person_entity
+      assert created.schema == Membership
+      assert %DateTime{} = created.time
+
+      {_updated, [changed]} =
+        Turnstile.Test.changes(fn ->
+          membership
+          |> Changeset.change(role: :editor)
+          |> Sandboxed.update!(turnstile: decision)
+        end)
+
+      assert changed.operation == :update
+      assert changed.changes == %{role: {:reader, :editor}}
+      assert changed.actor == subject
+      assert changed.actor_kind == :user
+      assert changed.operation_id == decision.operation_id
+
+      {_deleted, [removed]} =
+        Turnstile.Test.changes(fn -> Sandboxed.delete!(membership, turnstile: {:exempt, "revoke"}) end)
+
+      assert removed.operation == :delete
+      assert removed.changes == %{account_id: {"acct-5", nil}, folder_id: {folder.id, nil}, role: {:reader, nil}}
+    end
+
+    test "a write that changes no fact field publishes a change with no changes" do
+      account = Sandboxed.insert!(%Account{id: "acct-6", clearance: "secret"})
+
+      {_same, [published]} =
+        Turnstile.Test.changes(fn ->
+          account
+          |> Changeset.change(clearance: "secret")
+          |> Sandboxed.update!()
+        end)
+
+      assert published.changes == %{}
+      assert published.target == {:user, "acct-6"}
+    end
+
+    test "a schema that declares no kind publishes nothing, and so does the owner-role repo", %{folder: folder} do
+      {_item, []} =
+        Turnstile.Test.changes(fn ->
+          Sandboxed.insert!(%Item{title: "second", folder_id: folder.id}, turnstile: {:exempt, "seed"})
+        end)
+
+      {_account, []} = Turnstile.Test.changes(fn -> Owner.insert!(%Account{id: "acct-7", clearance: "secret"}) end)
+    end
+
+    test "a write that fails publishes nothing" do
+      changeset =
+        %Account{id: "acct-8"}
+        |> Changeset.change(clearance: "x")
+        |> Changeset.add_error(:clearance, "no")
+
+      assert {{:error, %Changeset{}}, []} = Turnstile.Test.changes(fn -> Sandboxed.insert(changeset) end)
+    end
+
+    test "in ledger mode none a write to an audited schema publishes its change" do
+      Turnstile.Test.with_config(ledger: :none)
+
+      {_account, [published]} =
+        Turnstile.Test.changes(fn -> Sandboxed.insert!(%Account{id: "acct-9", clearance: "secret"}) end)
+
+      assert published.changes == %{clearance: {nil, "secret"}}
+    end
+  end
+
   describe "the seam's edges" do
     test "insert_or_update inserts a new struct and updates a loaded one", %{folder: folder, decision: decision} do
       assert {:ok, %Folder{id: id}} =

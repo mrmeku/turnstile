@@ -52,14 +52,10 @@ defmodule Turnstile.Repo.Facts do
   @doc "The fact columns a bulk write touches: the declared columns among `fields`, and the relationship's columns."
   @spec touched(module(), [atom()]) :: [atom()]
   def touched(schema, fields) when is_atom(schema) and is_list(fields) do
-    declared = Enum.map(Schema.facts_of(schema), & &1.column) ++ relationship_columns(Schema.relationship_of(schema))
+    declared = Schema.fact_columns(schema)
+
     Enum.filter(fields, &(&1 in declared))
   end
-
-  defp relationship_columns(nil), do: []
-
-  defp relationship_columns(%Relationship{subject: subject, object: object, attributes: attributes}),
-    do: [subject, object | attributes]
 
   defp fact_events(%Fact{element: nil} = fact, schema, old, new, row, stamp) do
     old_value = value(old, fact.column)

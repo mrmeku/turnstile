@@ -10,6 +10,7 @@ defmodule Turnstile.Test do
 
   alias Turnstile.Config
   alias Turnstile.Projection.Drain
+  alias Turnstile.Repo.Change
 
   @default_timeout 5_000
   @interval 10
@@ -81,6 +82,24 @@ defmodule Turnstile.Test do
   end
 
   @doc """
+  The change events the calling process published while `fun` ran, in
+  order, with what `fun` returned. Only this process's changes count, so
+  async tests never see one another's.
+  """
+  @spec changes((-> term())) :: {term(), [map()]}
+  def changes(fun) when is_function(fun, 0) do
+    id = {__MODULE__, make_ref()}
+    :ok = :telemetry.attach(id, Change.event(), &__MODULE__.__change__/4, %{pid: self(), id: id})
+
+    try do
+      result = fun.()
+      {result, collect(id, [])}
+    after
+      :telemetry.detach(id)
+    end
+  end
+
+  @doc """
   Calls `fun` until it returns a truthy value or `timeout` milliseconds pass.
   Returns the truthy value. Raises with the last value on timeout. This is
   the one place the suite sleeps.
@@ -99,6 +118,13 @@ defmodule Turnstile.Test do
   @spec __query__([atom()], map(), map(), map()) :: :ok
   def __query__(_event, _measurements, %{query: query}, %{pid: pid, id: id}) do
     if self() == pid and not Regex.match?(@control, query), do: send(pid, {id, query})
+    :ok
+  end
+
+  @doc false
+  @spec __change__([atom()], map(), map(), map()) :: :ok
+  def __change__(_event, _measurements, payload, %{pid: pid, id: id}) do
+    if self() == pid, do: send(pid, {id, payload})
     :ok
   end
 
@@ -128,11 +154,11 @@ defmodule Turnstile.Test do
     end
   end
 
-  defp collect(id, queries) do
+  defp collect(id, collected) do
     receive do
-      {^id, query} -> collect(id, [query | queries])
+      {^id, one} -> collect(id, [one | collected])
     after
-      0 -> Enum.reverse(queries)
+      0 -> Enum.reverse(collected)
     end
   end
 

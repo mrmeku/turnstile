@@ -180,6 +180,17 @@ defmodule Turnstile.Schema do
     if declares?(module), do: module.__turnstile__(:facts), else: []
   end
 
+  @doc """
+  The columns a module declares as facts: its fact columns and the columns
+  of its relationship, each once, in declaration order.
+  """
+  @spec fact_columns(term()) :: [atom()]
+  def fact_columns(module) do
+    columns = Enum.map(facts_of(module), & &1.column) ++ relationship_columns(relationship_of(module))
+
+    Enum.uniq(columns)
+  end
+
   @doc "The relationship a module's rows are, or `nil`."
   @spec relationship_of(term()) :: Relationship.t() | nil
   def relationship_of(module) do
@@ -270,4 +281,9 @@ defmodule Turnstile.Schema do
         raise ArgumentError, "#{inspect(module)} already declares a relationship"
     end
   end
+
+  defp relationship_columns(nil), do: []
+
+  defp relationship_columns(%Relationship{subject: subject, object: object, attributes: attributes}),
+    do: [subject, object | attributes]
 end

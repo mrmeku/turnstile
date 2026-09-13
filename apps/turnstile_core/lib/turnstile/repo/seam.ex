@@ -7,10 +7,12 @@ defmodule Turnstile.Repo.Seam do
   `prepare_query/3`, where every query, including the ones `preload`
   generates, is judged.
 
-  A write to a fact schema on an application-role repo, with a ledger
-  configured, runs in a transaction: the row is re-read under the ledger's
-  lock clause, the write runs, the events are appended. The owner-role repo
-  records nothing: it is the library's own channel.
+  A write to an audited schema on an application-role repo runs in a
+  transaction, and the change it made is published inside that transaction
+  (`Turnstile.Repo.Change`). Where a ledger is configured, a write to a
+  fact schema runs in the same transaction with the row re-read under the
+  ledger's lock clause and the events appended. The owner-role repo records
+  nothing: it is the library's own channel.
   """
 
   alias Turnstile.Config
@@ -19,6 +21,7 @@ defmodule Turnstile.Repo.Seam do
   alias Turnstile.FactEvent
   alias Turnstile.Id
   alias Turnstile.Repo.Caller
+  alias Turnstile.Repo.Change
   alias Turnstile.Repo.Facts
   alias Turnstile.Repo.Matching
   alias Turnstile.Repo.Mediation
@@ -116,19 +119,19 @@ defmodule Turnstile.Repo.Seam do
 
   defp recorded(repo, {name, _arity}, changeset, mediation, opts, continue) do
     schema = changeset.data.__struct__
+    ledger = ledger(repo, schema)
 
-    case ledger(repo, schema) do
-      :none ->
-        continue.(opts)
-
-      {ledger, options} ->
-        action = action(name, changeset)
-        transactional(repo, fn -> record(repo, action, changeset, mediation, opts, continue, {ledger, options}) end)
+    if ledger == :none and not audited?(repo, schema) do
+      continue.(opts)
+    else
+      action = action(name, changeset)
+      transactional(repo, fn -> record(repo, action, changeset, mediation, opts, continue, ledger) end)
     end
   end
 
-  defp record(repo, action, changeset, mediation, opts, continue, {ledger, options}) do
-    old = if action in [:update, :delete], do: Facts.reread(repo, changeset.data, options[:lock], opts)
+  defp record(repo, action, changeset, mediation, opts, continue, ledger) do
+    schema = changeset.data.__struct__
+    old = reread(repo, ledger, action, changeset, opts)
     result = continue.(opts)
 
     case written(result) do
@@ -136,11 +139,43 @@ defmodule Turnstile.Repo.Seam do
         result
 
       row ->
-        events = Facts.events(changeset.data.__struct__, old, new(action, old, changeset, row), stamp(mediation))
-        :ok = append(ledger, options, events)
+        stamp = stamp(mediation)
+        :ok = appended(ledger, schema, old, new(action, old, changeset, row), stamp)
+        :ok = published(repo, schema, action, changeset.data, row, stamp)
         result
     end
   end
+
+  defp reread(_repo, :none, _action, _changeset, _opts), do: nil
+
+  defp reread(repo, {_ledger, options}, action, changeset, opts) do
+    if action in [:update, :delete], do: Facts.reread(repo, changeset.data, options[:lock], opts)
+  end
+
+  defp appended(:none, _schema, _old, _new, _stamp), do: :ok
+
+  defp appended({ledger, options}, schema, old, new, stamp) do
+    append(ledger, options, Facts.events(schema, old, new, stamp))
+  end
+
+  # The event a consumer builds a record from, published inside the
+  # transaction the write runs in, with the row the caller loaded as the
+  # value before the change.
+  defp published(repo, schema, action, data, row, stamp) do
+    if audited?(repo, schema) do
+      {old, new} = sides(action, data, row)
+      Change.publish(schema, operation(action), old, new, stamp)
+    else
+      :ok
+    end
+  end
+
+  defp sides(:insert, _data, row), do: {nil, row}
+  defp sides(:update, data, row), do: {data, row}
+  defp sides(:delete, data, _row), do: {data, nil}
+
+  defp operation(:insert), do: :create
+  defp operation(action), do: action
 
   # The row after the write: nothing after a delete, the re-read row with
   # the changes applied after an update, the returned row after an insert.
@@ -205,6 +240,10 @@ defmodule Turnstile.Repo.Seam do
   defp ledger(repo, schema) do
     if repo.__turnstile__(:role) == :app and Schema.fact_schema?(schema), do: config!().ledger, else: :none
   end
+
+  # The owner-role repo is the library's own channel, so what it writes is
+  # not a change the application made.
+  defp audited?(repo, schema), do: repo.__turnstile__(:role) == :app and Schema.audited?(schema)
 
   defp config! do
     case Config.resolve() do
