@@ -55,7 +55,7 @@ Every scenario of `docs/reference.md` §3a is a test there, named by its id and 
 
 ## Layout
 
-An umbrella. `apps/turnstile_core` holds the port, the structs, the behaviours, the fact-mapping macro, the configuration struct, the conformance mechanisms, and the test cluster. `apps/turnstile_ledger` holds the Ecto ledger, its migration helpers, reconcile, replay, the review table, and the schema-dump task. `apps/turnstile_rbac` and `apps/turnstile_postgres` are the first two adapters, `apps/turnstile_example` is the example domain and its scenarios, and `apps/example_rbac` and `apps/example_postgres` are the thin applications that bind an adapter to it. The remaining adapter packages and thin applications arrive stage by stage, as `docs/delivery.md` lists them.
+An umbrella. `apps/turnstile` holds the port, the structs, the behaviours, the fact-mapping macro, the configuration struct, the conformance mechanisms, and the test cluster. `apps/turnstile_ledger` holds the Ecto ledger, its migration helpers, reconcile, replay, the review table, and the schema-dump task. `apps/turnstile_rbac` and `apps/turnstile_postgres` are the first two adapters, `apps/turnstile_example` is the example domain and its scenarios, and `apps/example_rbac` and `apps/example_postgres` are the thin applications that bind an adapter to it. The remaining adapter packages and thin applications arrive stage by stage, as `docs/delivery.md` lists them.
 
 ## Working on it
 

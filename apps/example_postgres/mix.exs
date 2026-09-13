@@ -49,7 +49,7 @@ defmodule ExamplePostgres.MixProject do
   # https://hex.pm/api/packages/<name> on 2026-09-09.
   defp deps do
     [
-      {:turnstile_core, in_umbrella: true},
+      {:turnstile, in_umbrella: true},
       {:turnstile_example, in_umbrella: true},
       {:turnstile_postgres, in_umbrella: true},
       {:turnstile_ledger, in_umbrella: true},

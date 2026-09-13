@@ -1,6 +1,6 @@
 # Core glossary
 
-The words `turnstile_core` owns. A word with a second meaning elsewhere is listed in `docs/glossary-index.md` with the place each meaning lives.
+The words `turnstile` owns. A word with a second meaning elsewhere is listed in `docs/glossary-index.md` with the place each meaning lives.
 
 | Term | Meaning |
 |---|---|

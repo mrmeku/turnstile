@@ -2,7 +2,7 @@ locals_without_parens = [role: 2, object: 2, object: 3, grant: 2, grant: 3, pred
 
 [
   plugins: [Styler],
-  import_deps: [:ecto, :nimble_options, :turnstile_core],
+  import_deps: [:ecto, :nimble_options, :turnstile],
   inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"],
   locals_without_parens: locals_without_parens,
   export: [locals_without_parens: locals_without_parens]

@@ -11,7 +11,7 @@ The ledger as a table in the application's own database: every fact change recor
 - `Turnstile.Ledger.Dialect` and `Turnstile.Ledger.Dialect.Postgres`: the database-dependent mechanisms behind all of it. Postgres takes positions with one `UPDATE turnstile_ledger_counter SET position = position + $2 WHERE name = $1 RETURNING position`, locks a fact row for its re-read with `FOR UPDATE`, inserts events in batches of two thousand, and reads the catalog for cascades.
 - `mix turnstile.schema_dump`: an application's migrations run on an ephemeral cluster as the owner role, `pg_dump --schema-only` written to a file the application commits under `priv/schema/`, so `git diff --exit-code` proves the migrations produce the schema the repository shows.
 
-`glossary.md` defines the words this package owns. The package's `lib` depends on `turnstile_core`, `ecto`, and `nimble_options`; `ecto_sql` and `postgrex` serve its own tests only, and Boundary checks that no call from `lib` reaches them.
+`glossary.md` defines the words this package owns. The package's `lib` depends on `turnstile`, `ecto`, and `nimble_options`; `ecto_sql` and `postgrex` serve its own tests only, and Boundary checks that no call from `lib` reaches them.
 
 ## What the migrations do
 

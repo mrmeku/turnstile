@@ -12,7 +12,7 @@ The one structural difference from the adapters whose state is the application's
 - `Turnstile.Fga.Checkpoint` and `Turnstile.Fga.Migration`: how far a store has been drained, one row per store in the application's own database, and the helper a thin application's migration calls to create that table. The row is in the database rather than the store because it advances in step with a write the server acknowledged, and a store that no row names stands at zero, which is where genesis sits.
 - `Turnstile.Fga.Conformance`: the tuple mapping for the neutral fixture, in `test/support`, beside `priv/conformance/model.fga`, the model those tuples are read under. The test run compiles the module; an application loads neither.
 
-`glossary.md` defines the words this package owns. The package's `lib` depends on `turnstile_core`, `turnstile_ledger`, `ecto`, `ecto_sql`, and `nimble_options`; `postgrex` serves its own tests only, and Boundary checks that no call from `lib` reaches it.
+`glossary.md` defines the words this package owns. The package's `lib` depends on `turnstile`, `turnstile_ledger`, `ecto`, `ecto_sql`, and `nimble_options`; `postgrex` serves its own tests only, and Boundary checks that no call from `lib` reaches it.
 
 ## The checkpoint and the two calls a rewrite takes
 

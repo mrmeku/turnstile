@@ -23,7 +23,7 @@ defmodule Turnstile.Postgres.ConformanceTest do
   defmodule Stopped do
     @moduledoc "A repo that is configured nowhere and started never, so every statement through it raises."
 
-    use Ecto.Repo, otp_app: :turnstile_core, adapter: Ecto.Adapters.Postgres
+    use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres
     use Turnstile.Repo
   end
 

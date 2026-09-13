@@ -6,7 +6,7 @@ alias Turnstile.TestRepos.Sandboxed
 # migration protects them and writes the policies. Both run once per
 # database, so the sandboxed tier and the committed tier hold the same rules.
 Turnstile.Test.Cluster.start(
-  otp_app: :turnstile_core,
+  otp_app: :turnstile,
   repos: [
     {Sandboxed, role: :app, database: :sandboxed, pool: Sandbox},
     {Turnstile.TestRepos.Committed, role: :app, database: :committed, pool_size: 2},

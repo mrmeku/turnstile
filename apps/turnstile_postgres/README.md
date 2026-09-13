@@ -13,7 +13,7 @@ The adapter whose rules are Postgres policies on the tables themselves: `Turnsti
 - `Turnstile.Postgres.Coverage`: declared-fact coverage. It reads the policy expressions from `pg_policy` and the columns they reference from `pg_depend`, and fails with the column's name on a read that no `fact`, `relationship`, primary key, or carried foreign key declares, and with the table's name on a read of a table no bound schema names.
 - `Turnstile.Postgres.Conformance`: the row-level security migration for the neutral fixture, in `test/support`, the rules the conformance suite runs against. The test run compiles it; an application never loads it.
 
-`glossary.md` defines the words this package owns. The package's `lib` depends on `turnstile_core`, `ecto`, and `nimble_options`; `ecto_sql` and `postgrex` serve its own tests only, and Boundary checks that no call from `lib` reaches them.
+`glossary.md` defines the words this package owns. The package's `lib` depends on `turnstile`, `ecto`, and `nimble_options`; `ecto_sql` and `postgrex` serve its own tests only, and Boundary checks that no call from `lib` reaches them.
 
 ## Two policies per operation, and what each is for
 

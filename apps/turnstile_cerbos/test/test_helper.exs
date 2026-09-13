@@ -4,7 +4,7 @@ alias Turnstile.TestRepos.Sandboxed
 # One sidecar for the run, reading the conformance policies where they sit
 # in the repository, and the fixture's tables in both tiers of the cluster.
 Turnstile.Test.Cluster.start(
-  otp_app: :turnstile_core,
+  otp_app: :turnstile,
   repos: [
     {Sandboxed, role: :app, database: :sandboxed, pool: Sandbox},
     {Turnstile.TestRepos.Committed, role: :app, database: :committed, pool_size: 2},

@@ -9,7 +9,7 @@ The adapter whose rules are Elixir modules: `Turnstile.Code`.
 - `Turnstile.Code.Coverage`: declared-fact coverage. `check/1` walks the `dynamic` every rule becomes, subqueries included, and fails with the schema and the column of any read that no `fact`, `relationship`, primary key, or carried foreign key declares. A fragment cannot be walked and is a finding of its own.
 - `Turnstile.Code.Conformance`: the role table and the predicates that encode the neutral fixture's rule, in `test/support`, the modules the conformance suite binds. The test run compiles them; an application never loads them.
 
-`glossary.md` defines the words this package owns. The package's `lib` depends on `turnstile_core`, `ecto`, and `nimble_options`; `ecto_sql` and `postgrex` serve its own tests only, and Boundary checks that no call from `lib` reaches them.
+`glossary.md` defines the words this package owns. The package's `lib` depends on `turnstile`, `ecto`, and `nimble_options`; `ecto_sql` and `postgrex` serve its own tests only, and Boundary checks that no call from `lib` reaches them.
 
 ## Binding at boot
 

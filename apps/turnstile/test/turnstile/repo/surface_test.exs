@@ -1,6 +1,6 @@
 defmodule Turnstile.Repo.SurfaceTest.ExtraRepo do
   @moduledoc false
-  use Ecto.Repo, otp_app: :turnstile_core, adapter: Ecto.Adapters.Postgres
+  use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres
   use Turnstile.Repo
 
   @doc false
@@ -10,7 +10,7 @@ end
 
 defmodule Turnstile.Repo.SurfaceTest.ReadOnlyRepo do
   @moduledoc false
-  use Ecto.Repo, otp_app: :turnstile_core, adapter: Ecto.Adapters.Postgres, read_only: true
+  use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres, read_only: true
   use Turnstile.Repo
 end
 
@@ -22,7 +22,7 @@ defmodule Turnstile.Repo.SurfaceTest.ReadOnlyRepoCase do
   alias Turnstile.Repo.SurfaceTest.ReadOnlyRepo
 
   setup_all do
-    config = Application.get_env(:turnstile_core, Turnstile.TestRepos.Sandboxed)
+    config = Application.get_env(:turnstile, Turnstile.TestRepos.Sandboxed)
     start_supervised!({ReadOnlyRepo, config})
     :ok
   end
@@ -76,7 +76,7 @@ defmodule Turnstile.Repo.SurfaceTest do
           defmodule Turnstile.Repo.SurfaceTest.WrongOrder do
             @moduledoc false
             use Turnstile.Repo
-            use Ecto.Repo, otp_app: :turnstile_core, adapter: Ecto.Adapters.Postgres
+            use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres
           end
         end
       )
@@ -89,7 +89,7 @@ defmodule Turnstile.Repo.SurfaceTest do
         quote do
           defmodule Turnstile.Repo.SurfaceTest.BadRole do
             @moduledoc false
-            use Ecto.Repo, otp_app: :turnstile_core, adapter: Ecto.Adapters.Postgres
+            use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres
             use Turnstile.Repo, role: :tenant
           end
         end

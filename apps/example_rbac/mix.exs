@@ -49,7 +49,7 @@ defmodule ExampleRbac.MixProject do
   # https://hex.pm/api/packages/<name> on 2026-09-08.
   defp deps do
     [
-      {:turnstile_core, in_umbrella: true},
+      {:turnstile, in_umbrella: true},
       {:turnstile_example, in_umbrella: true},
       {:turnstile_rbac, in_umbrella: true},
       {:turnstile_ledger, in_umbrella: true},

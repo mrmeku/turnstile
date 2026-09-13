@@ -1,6 +1,6 @@
 # Credo 1.7.19. Every check the release ships is enabled unless a comment
 # beside it says why not. docs/code.md §5 names the checks that are off by
-# default and on here. Core's own two checks, compiled into turnstile_core,
+# default and on here. Core's own two checks, compiled into turnstile,
 # close the list.
 %{
   configs: [

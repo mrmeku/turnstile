@@ -49,7 +49,7 @@ defmodule Turnstile.Fga.MixProject do
   # verified against https://hex.pm/api/packages/<name> on 2026-09-09.
   defp deps do
     [
-      {:turnstile_core, in_umbrella: true},
+      {:turnstile, in_umbrella: true},
       {:turnstile_dev, in_umbrella: true, only: :test},
       {:turnstile_ledger, in_umbrella: true},
       {:ecto, "3.14.2"},

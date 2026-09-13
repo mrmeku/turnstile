@@ -15,7 +15,7 @@ The adapter whose rules are policy files and whose decisions come from a sidecar
 - `Turnstile.Cerbos.Decisions`, `Turnstile.Cerbos.Decisions.Line`, and `Turnstile.Cerbos.Finding`: the sidecar's decision log read back and set beside what the port recorded. The log is a file of JSON objects, one per line, and each becomes as many lines as it holds answers. Reconciliation matches on who asked, which operation, and which object, since the sidecar is never told the identifier the port gave the call, and reports a decision the log holds that no record matches, a record no line holds, and a pair that agree on the question and disagree on the answer. Reading it is the caller's move and happens on no request path.
 - `Turnstile.Cerbos.Conformance`: the attribute declarations for the neutral fixture and the subqueries behind them, in `test/support`, beside `priv/conformance/`, which holds the policies that read those attributes. The test run compiles the module and the sidecar reads the policies; an application loads neither.
 
-`glossary.md` defines the words this package owns. The package's `lib` depends on `turnstile_core`, `ecto`, `nimble_options`, and `telemetry`; `ecto_sql`, `postgrex`, and `muontrap` serve its own tests only, and Boundary checks that no call from `lib` reaches them.
+`glossary.md` defines the words this package owns. The package's `lib` depends on `turnstile`, `ecto`, `nimble_options`, and `telemetry`; `ecto_sql`, `postgrex`, and `muontrap` serve its own tests only, and Boundary checks that no call from `lib` reaches them.
 
 ## What the sidecar is told
 

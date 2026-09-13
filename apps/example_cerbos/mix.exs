@@ -51,7 +51,7 @@ defmodule ExampleCerbos.MixProject do
   # https://hex.pm/api/packages/<name> on 2026-09-09.
   defp deps do
     [
-      {:turnstile_core, in_umbrella: true},
+      {:turnstile, in_umbrella: true},
       {:turnstile_dev, in_umbrella: true, only: :test},
       {:turnstile_example, in_umbrella: true},
       {:turnstile_cerbos, in_umbrella: true},

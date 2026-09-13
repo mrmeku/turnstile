@@ -58,7 +58,7 @@ defmodule Turnstile.Ledger.MixProject do
   # on 2026-09-08.
   defp deps do
     [
-      {:turnstile_core, in_umbrella: true},
+      {:turnstile, in_umbrella: true},
       {:ecto, "3.14.2"},
       {:ecto_sql, "3.14.0"},
       {:postgrex, "0.22.4"},

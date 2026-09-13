@@ -41,7 +41,7 @@ defmodule Turnstile.Postgres.MixProject do
   # against https://hex.pm/api/packages/<name> on 2026-09-08.
   defp deps do
     [
-      {:turnstile_core, in_umbrella: true},
+      {:turnstile, in_umbrella: true},
       {:ecto, "3.14.2"},
       {:nimble_options, "1.1.1"},
       {:telemetry, "1.4.2"},
