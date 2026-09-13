@@ -8,8 +8,10 @@ defmodule Example.Scenarios.Audit do
   import Example.Scenarios.Support
   import ExUnit.Assertions
 
-  alias Example.Audit.Chain
+  alias Example.Documents
   alias Example.Fixture
+  alias Example.Siem
+  alias Example.Siem.Ocsf
   alias Turnstile.Answer
   alias Turnstile.Id
   alias Turnstile.PolicyVersion
@@ -71,18 +73,18 @@ defmodule Example.Scenarios.Audit do
 
   @spec aud_07() :: term()
   def aud_07 do
-    now = DateTime.utc_now()
+    world = Fixture.world!()
+    document = Fixture.document!(world)
+    operation_id = Id.new()
+    {:ok, siem} = Siem.start_link(attach: true)
 
-    chain =
-      Enum.reduce(0..4, Chain.new(), fn index, chain ->
-        Chain.append(chain, :decision, "op-#{index}", %{verdict: "allow", index: index}, now)
-      end)
-
-    assert :ok = Chain.verify(chain)
-    assert length(Chain.records(chain)) == 5
-    rewritten = Chain.rewrite(chain, 2, &Map.put(&1, :verdict, "deny"))
-    assert {:error, [2, 3, 4]} = Chain.verify(rewritten)
-    assert :ok = Chain.verify(Chain.rewrite(chain, 2, & &1))
+    try do
+      settle()
+      assert_marking_changed(document, operation_id)
+      assert_mapped(Siem.records(siem, operation_id))
+    after
+      :ok = GenServer.stop(siem)
+    end
   end
 
   @spec rvw_01() :: term()
@@ -116,6 +118,28 @@ defmodule Example.Scenarios.Audit do
     after
       :ok = rules.restore()
     end
+  end
+
+  defp assert_marking_changed(document, operation_id) do
+    marking = %{categories: ["PRVCY"], controls: [:federal_only]}
+    options = [operation_id: operation_id] ++ fresh()
+
+    assert {:ok, _marking} = Documents.change_marking(subject("dana"), document.id, marking, options)
+  end
+
+  defp assert_mapped([decision | changes]) do
+    assert {decision.class_uid, decision.status} == {6003, "Success"}
+    assert decision.api.operation == "change_marking"
+    assert Enum.any?(changes, &(&1.entity.type == "marking" and &1.activity_name == "Update"))
+    for record <- [decision | changes], do: assert_ocsf_fields(record)
+  end
+
+  # Every record names the schema version it was mapped against, and its
+  # type identifier is the class and the activity, which is how OCSF
+  # builds it.
+  defp assert_ocsf_fields(record) do
+    assert record.metadata.version == Ocsf.version()
+    assert record.type_uid == record.class_uid * 100 + record.activity_id
   end
 
   # The reason a record carries is one word every decider shares.

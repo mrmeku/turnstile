@@ -154,7 +154,7 @@ Frozen at S1 with the contracts. Every row is a test in `Example.Scenarios` whos
 | `aud-04` | A marking change emits one decision event and one fact event per changed fact field in the same transaction | decision audit | AU-12, AC-2(4) | no fact without an entry | ledger |
 | `aud-05` | A bulk re-marking of N Documents emits one audit record and N fact events sharing an operation id | decision audit | AU-12, AC-2(4) | per operation, never per row | ledger |
 | `aud-06` | An Assignment grant and its revoke each produce a fact event carrying old and new | decision audit | AC-2(4) | the fact mapping | ledger |
-| `aud-07` | The example store's chain verifies, and a rewritten record breaks every hash after it | decision audit | AU-9, AU-9(4) | the chained store | |
+| `aud-07` | A marking change reaches the consumer as one OCSF record per event, all under one correlation id | decision audit | AU-2, AU-3, AU-12 | every event is mapped | |
 | `aud-08` | A rolled-back write leaves no fact event and no decision outcome but the exception span | decision audit | AU-2, AU-12 | atomicity | ledger |
 | `rvw-01` | `mix turnstile.review` lists who can read what today, per Agency | access review | AC-2, AC-6(7) | `review` | |
 | `rvw-02` | With a ledger, review on a past date equals the fold stopped there | access review | AC-2, AC-6(7) | replay | ledger |
