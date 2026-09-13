@@ -1,5 +1,5 @@
 defmodule Example.Documents.BannerViolation do
-  @moduledoc "A banner that would drop a portion's marking: the union of the portions is not covered."
+  @moduledoc "A banner that would admit a subject a portion denies: the portions' banner is not covered."
 
   @enforce_keys [:document_id, :banner, :portions]
   defstruct @enforce_keys
@@ -52,7 +52,7 @@ defmodule Example.Documents do
   alias Turnstile.Object
   alias Turnstile.Subject
 
-  @banner {:exempt, "banner invariant: the portions' markings are read to check the union"}
+  @banner {:exempt, "banner invariant: the portions' markings are read to derive the banner"}
   @override {:exempt, "audited override: the read outside C1 that C10 permits, evented and reported"}
   @override_event [:example, :override, :read]
 
@@ -97,7 +97,7 @@ defmodule Example.Documents do
     end
   end
 
-  @doc "Change a document's banner (C7, C8); refused when it would drop a portion's control (C4)."
+  @doc "Change a document's banner (C7, C8); refused when it would admit a subject a portion denies (C4)."
   @spec change_marking(Subject.t(), integer(), map(), keyword()) ::
           {:ok, Marking.t()} | {:error, refusal() | BannerViolation.t()}
   def change_marking(%Subject{} = subject, id, attrs, opts \\ []) when is_integer(id) and is_map(attrs) do
@@ -128,8 +128,8 @@ defmodule Example.Documents do
 
   @doc """
   The change of a loaded document that applies a marking to its banner,
-  refused when the banner would drop a portion's control (C4). The caller
-  writes it under a decision that carries the document.
+  refused when the banner would admit a subject a portion denies (C4). The
+  caller writes it under a decision that carries the document.
   """
   @spec marking_change(Document.t(), map()) :: {:ok, Changeset.t()} | {:error, BannerViolation.t()}
   def marking_change(%Document{marking: %Marking{} = marking} = document, attrs) when is_map(attrs) do
@@ -198,7 +198,7 @@ defmodule Example.Documents do
          {:ok, decision} <- Turnstile.authorize(subject, :change_marking, object(portion.document_id), opts) do
       Repo.transaction(fn ->
         updated = Repo.update!(Portion.changeset(portion, attrs), turnstile: portion_decision)
-        :ok = widen_banner(portion.document_id, decision)
+        :ok = recompute_banner(portion.document_id, decision)
         updated
       end)
     end
@@ -244,19 +244,22 @@ defmodule Example.Documents do
   defp covered(document_id, attrs) do
     portions = Repo.all(where(Portion, document_id: ^document_id), turnstile: @banner)
     banner = Controls.marking(attrs)
-    union = Controls.union(portions)
+    required = Controls.banner(portions)
 
-    if Controls.covers?(banner, union) do
+    if Controls.covers?(banner, required) do
       :ok
     else
-      {:error, %BannerViolation{document_id: document_id, banner: banner, portions: union}}
+      {:error, %BannerViolation{document_id: document_id, banner: banner, portions: required}}
     end
   end
 
-  defp widen_banner(document_id, decision) do
+  # The banner the document keeps, combined with the portions' own, which
+  # tightens it wherever a portion is the stricter of the two and leaves the
+  # document's own categories, controls, and countries standing where none is.
+  defp recompute_banner(document_id, decision) do
     {:ok, %Document{marking: marking} = document} = fetch(document_id, decision)
     portions = Repo.all(where(Portion, document_id: ^document_id), turnstile: @banner)
-    banner = Controls.union([marking | portions])
+    banner = Controls.banner([marking | portions])
     change = Changeset.put_assoc(Changeset.change(document), :marking, Marking.changeset(marking, banner))
     _document = Repo.update!(change, turnstile: decision)
     :ok

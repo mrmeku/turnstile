@@ -109,8 +109,9 @@ defmodule Example.Fixture do
   Insert a document of the world's domestic program with a banner and
   portions. Options: `title:`, `program:`, `office:`, `decontrol:`,
   `categories:`, `controls:`, `releasable_to:`, `list:`, and `portions:`,
-  a list of maps with `body:` and marking fields. The banner is the union
-  of the given marking and the portions'.
+  a list of maps with `body:` and marking fields. The banner is the given
+  marking combined with the portions', which admits no subject any of them
+  denies.
   """
   @spec document!(t(), keyword()) :: Document.t()
   def document!(%__MODULE__{} = world, opts \\ []) when is_list(opts) do
@@ -269,7 +270,7 @@ defmodule Example.Fixture do
   end
 
   defp marking!(%Document{id: id}, opts, portions) do
-    banner = Example.Controls.union([Map.new(opts) | portions])
+    banner = Example.Controls.banner([Map.new(opts) | portions])
 
     Repo.insert!(
       %Marking{

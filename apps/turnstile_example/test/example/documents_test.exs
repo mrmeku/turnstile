@@ -83,7 +83,7 @@ defmodule Example.DocumentsTest do
     Documents.set_decontrol(@dana, ctx.document.id + 1000, at)
   end
 
-  test "change_portion_marking needs the portion's and the document's operation and widens the banner", ctx do
+  test "change_portion_marking needs the portion's and the document's operation and recomputes the banner", ctx do
     [open, _domestic] = ctx.document.portions
     attrs = %{controls: [:federal_only]}
 
@@ -102,6 +102,41 @@ defmodule Example.DocumentsTest do
     assert Enum.sort(controls) == [:federal_only, :no_foreign]
     allow(ctx.rules, "dana", :change_marking, {:portion, :any})
     assert {:error, :not_found} = Documents.change_portion_marking(@dana, open.id + 1000, attrs)
+  end
+
+  test "change_portion_marking narrows the banner to the countries every portion releases to", ctx do
+    document =
+      Fixture.document!(ctx.world,
+        controls: [:releasable_to],
+        releasable_to: ["FR", "US"],
+        portions: [%{body: "open", controls: [:releasable_to], releasable_to: ["FR", "US"]}]
+      )
+
+    [portion] = document.portions
+    allow(ctx.rules, "dana", :change_marking, {:portion, portion.id})
+    allow(ctx.rules, "dana", :change_marking, {:document, document.id})
+    allow(ctx.rules, "dana", :read, {:document, document.id})
+    attrs = %{controls: [:releasable_to], releasable_to: ["US"]}
+    assert {:ok, %Portion{}} = Documents.change_portion_marking(@dana, portion.id, attrs)
+    assert {:ok, %Document{marking: %Marking{releasable_to: ["US"]}}} = Documents.read(@dana, document.id)
+  end
+
+  test "change_marking refuses a banner that releases to a country a portion withholds", ctx do
+    document =
+      Fixture.document!(ctx.world,
+        controls: [:releasable_to],
+        releasable_to: ["US"],
+        portions: [%{body: "open", controls: [:releasable_to], releasable_to: ["US"]}]
+      )
+
+    allow(ctx.rules, "dana", :change_marking, {:document, document.id})
+    wider = %{controls: [:releasable_to], releasable_to: ["FR", "US"]}
+
+    assert {:error, %Documents.BannerViolation{portions: %{releasable_to: ["US"]}}} =
+             Documents.change_marking(@dana, document.id, wider)
+
+    narrower = %{controls: [:releasable_to], releasable_to: []}
+    assert {:ok, %Marking{releasable_to: []}} = Documents.change_marking(@dana, document.id, narrower)
   end
 
   test "override_read needs a privileged kind, a justification, and the permission, and reports itself", ctx do
