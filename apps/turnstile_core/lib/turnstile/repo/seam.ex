@@ -28,8 +28,6 @@ defmodule Turnstile.Repo.Seam do
   alias Turnstile.Repo.Source
   alias Turnstile.Schema
 
-  @bulk_api "Turnstile.Facts.bulk_insert/3, Turnstile.Facts.bulk_update/3, or Turnstile.Facts.bulk_delete/2 in turnstile_ledger"
-
   @type call :: Mediation.call()
   @type continue :: (keyword() -> term())
 
@@ -45,7 +43,7 @@ defmodule Turnstile.Repo.Seam do
   def bulk(repo, call, queryable, opts, continue) when is_atom(repo) and is_list(opts) do
     root = Source.root(queryable)
     {mediation, opts} = Mediation.resolve(repo, call, root, opts)
-    :ok = refuse_bulk(repo, call, root, mediation)
+    :ok = refuse_bulk(repo, call, root)
     around(repo, mediation, Source.to_query(queryable), fn -> continue.(opts) end)
   end
 
@@ -70,7 +68,7 @@ defmodule Turnstile.Repo.Seam do
     {mediation, opts} = Mediation.resolve(repo, call, root, opts)
     :ok = Matching.admit(schema_of(root), mediation, repo)
     :ok = refuse_upsert(call, schema_of(root), opts)
-    :ok = refuse_bulk(repo, call, root, mediation)
+    :ok = refuse_bulk(repo, call, root)
     around(repo, mediation, Source.to_query(source), fn -> continue.(opts) end)
   end
 
@@ -256,8 +254,8 @@ defmodule Turnstile.Repo.Seam do
     if Schema.fact_schema?(schema) and Keyword.get(opts, :on_conflict, :raise) != :raise do
       raise Error.invalid(
               :upsert,
-              "Repo.#{name}/#{arity} with on_conflict: on #{inspect(schema)} is an upsert of fact fields; use " <>
-                @bulk_api
+              "Repo.#{name}/#{arity} with on_conflict: on #{inspect(schema)} is an upsert of fact fields; " <>
+                "write the rows one at a time"
             )
     else
       :ok
@@ -265,33 +263,22 @@ defmodule Turnstile.Repo.Seam do
   end
 
   # A bulk write to an audited schema is refused: one statement changes many
-  # rows, and the change each row made cannot be read back from it. The
-  # library's own bulk API records what it writes, so a Turnstile.* caller
-  # passes, and so does the owner-role repo.
-  defp refuse_bulk(repo, {name, arity}, root, mediation) do
+  # rows, and the change each row made cannot be read back from it, so no
+  # caller of an application-role repo may make one. The owner-role repo is
+  # the library's own channel and records nothing, so it passes.
+  defp refuse_bulk(repo, {name, arity}, root) do
     schema = schema_of(root)
 
-    cond do
-      repo.__turnstile__(:role) == :owner ->
-        :ok
-
-      not Schema.audited?(schema) ->
-        :ok
-
-      Caller.library?(caller(mediation, repo)) ->
-        :ok
-
-      true ->
-        raise Error.invalid(
-                :bulk_write,
-                "Repo.#{name}/#{arity} on #{inspect(schema)} is a bulk write to an audited schema; " <>
-                  "write the rows one at a time, or use " <> @bulk_api
-              )
+    if repo.__turnstile__(:role) != :owner and Schema.audited?(schema) do
+      raise Error.invalid(
+              :bulk_write,
+              "Repo.#{name}/#{arity} on #{inspect(schema)} is a bulk write to an audited schema; " <>
+                "write the rows one at a time"
+            )
+    else
+      :ok
     end
   end
-
-  defp caller(%Mediation{caller: caller}, _repo) when is_atom(caller) and not is_nil(caller), do: caller
-  defp caller(_mediation, repo), do: Caller.module(repo)
 
   defp schema_of(root) when is_atom(root), do: root
   defp schema_of(_root), do: nil

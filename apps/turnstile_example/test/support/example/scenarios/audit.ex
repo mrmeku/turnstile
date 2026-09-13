@@ -8,8 +8,12 @@ defmodule Example.Scenarios.Audit do
   import Example.Scenarios.Support
   import ExUnit.Assertions
 
+  alias Example.Accounts
+  alias Example.Assignment
   alias Example.Documents
   alias Example.Fixture
+  alias Example.Marking
+  alias Example.Repo
   alias Example.Siem
   alias Example.Siem.Ocsf
   alias Turnstile.Answer
@@ -71,6 +75,25 @@ defmodule Example.Scenarios.Audit do
     end
   end
 
+  @spec aud_05() :: term()
+  def aud_05 do
+    world = Fixture.world!()
+    documents = for title <- ~w[one two three], do: Fixture.document!(world, title: title)
+
+    settle()
+
+    {error, changes} =
+      Turnstile.Test.changes(fn ->
+        assert_raise Turnstile.Error, fn ->
+          Repo.update_all(Marking, [set: [controls: [:federal_only]]], turnstile: Fixture.exemption())
+        end
+      end)
+
+    assert Exception.message(error) =~ "bulk write to an audited schema"
+    assert changes == []
+    assert Enum.map(markings(documents), & &1.controls) == [[], [], []]
+  end
+
   @spec aud_07() :: term()
   def aud_07 do
     world = Fixture.world!()
@@ -85,6 +108,20 @@ defmodule Example.Scenarios.Audit do
     after
       :ok = GenServer.stop(siem)
     end
+  end
+
+  @spec aud_08() :: term()
+  def aud_08 do
+    world = Fixture.world!()
+    granted = assignments()
+
+    {_raised, changes} =
+      Turnstile.Test.changes(fn ->
+        assert_raise Ecto.ConstraintError, fn -> Accounts.assign_all(["frank"], world.program.id + 10_000, :member) end
+      end)
+
+    assert changes == []
+    assert assignments() == granted
   end
 
   @spec rvw_01() :: term()
@@ -117,6 +154,17 @@ defmodule Example.Scenarios.Audit do
       assert_denied_under(version, document)
     after
       :ok = rules.restore()
+    end
+  end
+
+  # The assignments the tables hold, in the order their ids were granted.
+  defp assignments, do: Enum.sort_by(Repo.all(Assignment, turnstile: Fixture.exemption()), & &1.id)
+
+  # Each document's banner as the tables hold it now.
+  defp markings(documents) do
+    for document <- documents do
+      assert {:ok, read} = Documents.fetch(document.id, Fixture.exemption())
+      read.marking
     end
   end
 

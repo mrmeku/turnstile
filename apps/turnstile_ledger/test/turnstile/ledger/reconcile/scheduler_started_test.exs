@@ -2,7 +2,6 @@ defmodule Turnstile.Ledger.Reconcile.SchedulerStartedTest do
   use ExUnit.Case, async: false
 
   alias Turnstile.Config
-  alias Turnstile.Facts
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
@@ -13,7 +12,6 @@ defmodule Turnstile.Ledger.Reconcile.SchedulerStartedTest do
   alias Turnstile.Ledger.TestSupport.Population
 
   @repo TestRepos.App
-  @exemption Population.exemption()
   @schemas [Account, Folder, Membership]
 
   # A scheduler is a process of its own, so no test's configuration override
@@ -24,8 +22,8 @@ defmodule Turnstile.Ledger.Reconcile.SchedulerStartedTest do
     handler = :telemetry_test.attach_event_handlers(self(), [Scheduler.event()])
     on_exit(fn -> :telemetry.detach(handler) end)
     {:ok, context} = Boot.setup(tags)
-    [_account] = Population.accounts!(@repo, 1)
-    {:ok, _record} = Facts.bulk_update(Account, [set: [clearance: "cleared"]], repo: @repo, turnstile: @exemption)
+    [account] = Population.accounts!(@repo, 1)
+    1 = Population.clearance!(@repo, [account], "cleared")
     :ok = boot()
     {:ok, context}
   end

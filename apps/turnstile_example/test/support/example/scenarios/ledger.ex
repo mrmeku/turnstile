@@ -15,7 +15,6 @@ defmodule Example.Scenarios.Ledger do
       Example.Scenarios.Support,
       ExUnit,
       Turnstile,
-      Turnstile.Facts,
       Turnstile.Ledger.Reader,
       Turnstile.Ledger.Reconcile,
       Turnstile.Ledger.Reconcile.Scheduler,
@@ -33,7 +32,6 @@ defmodule Example.Scenarios.Ledger do
   alias Example.Program
   alias Example.Repo
   alias Turnstile.FactEvent
-  alias Turnstile.Facts
   alias Turnstile.Id
   alias Turnstile.Ledger.Fold
   alias Turnstile.Ledger.Reader
@@ -42,11 +40,7 @@ defmodule Example.Scenarios.Ledger do
   alias Turnstile.PolicyVersion
   alias Turnstile.Projection.Drift
 
-  @bulk_stop [:turnstile, :bulk, :stop]
-  @bulk_start [:turnstile, :bulk, :start]
-  @bulk_exception [:turnstile, :bulk, :exception]
   @reconcile [:turnstile, :ledger, :reconcile]
-  @decision [:turnstile, :decision]
 
   @spec rev_07() :: term()
   def rev_07 do
@@ -83,19 +77,6 @@ defmodule Example.Scenarios.Ledger do
     assert_marking_events(under(operation_id), document)
   end
 
-  @spec aud_05() :: term()
-  def aud_05 do
-    world = Fixture.world!()
-    documents = for title <- ~w[one two three], do: Fixture.document!(world, title: title)
-    _ref = :telemetry_test.attach_event_handlers(self(), Facts.events())
-
-    settle()
-    assert {:ok, record} = Documents.decontrol_all(subject("dana"), DateTime.utc_now(), fresh())
-    assert {record.operation, record.schema, record.count} == {:update, Document, 3}
-    assert_receive {@bulk_stop, _ref, _measurements, %{record: ^record}}
-    assert_decontrol_events(under(record.operation_id), documents, record)
-  end
-
   @spec aud_06() :: term()
   def aud_06 do
     world = Fixture.world!()
@@ -109,23 +90,6 @@ defmodule Example.Scenarios.Ledger do
     assert [^granted, revoked] = about(grant)
     assert {revoked.kind, revoked.attribute, revoked.old, revoked.new} == {:relationship, nil, :member, nil}
     assert revoked.position > granted.position
-  end
-
-  @spec aud_08() :: term()
-  def aud_08 do
-    world = Fixture.world!()
-    _document = Fixture.document!(world)
-    recorded = events()
-    :ok = watch_decisions()
-    _ref = :telemetry_test.attach_event_handlers(self(), Facts.events())
-
-    assert_raise Postgrex.Error, fn -> Accounts.assign_all(["frank"], -1, :member) end
-
-    assert_receive {@bulk_start, _start_ref, _started, %{operation: :insert}}
-    assert_receive {@bulk_exception, _exception_ref, _exception, %{operation: :insert}}
-    refute_received {@bulk_stop, _stop_ref, _stopped, _stop_metadata}
-    refute_received {@decision, _decision_ref, _measured, _said}
-    assert events() == recorded
   end
 
   @spec rvw_04() :: term()
@@ -193,12 +157,6 @@ defmodule Example.Scenarios.Ledger do
 
     assert Enum.map(written, & &1.object_ref) == [{:document, document.id}, {:document, document.id}]
     assert Enum.map(written, & &1.position) == consecutive(written)
-  end
-
-  defp assert_decontrol_events(written, documents, record) do
-    assert Enum.map(written, & &1.attribute) == [:decontrol, :decontrol, :decontrol]
-    assert Enum.map(written, & &1.object_ref) == for(document <- documents, do: {:document, document.id})
-    assert {record.min_position, record.max_position} == {hd(written).position, List.last(written).position}
   end
 
   defp assert_attributed(%PolicyVersion{author: author, approval: approval}) do

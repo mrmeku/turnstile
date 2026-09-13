@@ -28,10 +28,9 @@ defmodule Example.Documents do
   (C10) is the one path that reads outside C1, under a declared exemption,
   with its own event and its report.
 
-  A change that reaches many documents at once goes through
-  `Turnstile.Facts` under the rule `scope` answers with, so the ledger
-  receives one event per document and the audit one record for the
-  operation.
+  A change that reaches many documents at once is written a row at a time
+  under the one decision `scope` answers with, so every change event it
+  makes carries that decision's operation id.
   """
 
   import Ecto.Query, only: [from: 2, where: 2]
@@ -48,8 +47,6 @@ defmodule Example.Documents do
   alias Turnstile.Config
   alias Turnstile.Decision
   alias Turnstile.Error
-  alias Turnstile.Facts
-  alias Turnstile.Facts.Record
 
   @banner {:exempt, "banner invariant: the portions' markings are read to derive the banner"}
   @override {:exempt, "audited override: the read outside C1 that C10 permits, evented and reported"}
@@ -157,21 +154,20 @@ defmodule Example.Documents do
   end
 
   @doc """
-  Set the decontrol date of every document the subject may set it on, as one
-  bulk write under `scope`: one audit record for the operation and one fact
-  event per document whose date changes, all sharing its operation id.
+  Set the decontrol date of every document the subject may set it on: the
+  rule `scope` answers with narrows the rows, and each is written on its
+  own under that one decision, so every change event carries its operation
+  id. Answers how many documents changed.
   """
   @spec decontrol_all(Turnstile.subject(), DateTime.t(), keyword()) ::
-          {:ok, Record.t()} | {:error, refusal() | Error.t()}
+          {:ok, non_neg_integer()} | {:error, refusal()}
   def decontrol_all({_kind, _account} = subject, %DateTime{} = at, opts \\ []) when is_list(opts) do
     case Turnstile.scope(subject, :set_decontrol, :document, opts) do
       {_rule, %Decision{verdict: :deny} = decision} ->
         {:error, refused(subject, :set_decontrol, decision)}
 
       {rule, decision} ->
-        admitted = from(d in Document, where: ^rule)
-        updates = [set: [decontrol: DateTime.truncate(at, :second)]]
-        Facts.bulk_update(admitted, updates, repo: Repo, turnstile: decision)
+        {:ok, decontrolled(rule, decision, DateTime.truncate(at, :second))}
     end
   end
 
@@ -236,6 +232,16 @@ defmodule Example.Documents do
   @doc "The object reference for a row of a type."
   @spec object(atom(), integer()) :: Turnstile.object()
   def object(type, id) when is_atom(type) and is_integer(id), do: {type, id}
+
+  # Each admitted document is written on its own, under the decision the
+  # scope answered with, which is what a bulk statement cannot do: the seam
+  # reads the row before and after and publishes the change it made.
+  defp decontrolled(rule, decision, at) do
+    query = from(d in Document, where: ^rule)
+    admitted = Repo.all(query, turnstile: decision)
+    Enum.each(admitted, &Repo.update!(Changeset.change(&1, decontrol: at), turnstile: decision))
+    length(admitted)
+  end
 
   defp refused(subject, operation, %Decision{reason: reason}) do
     Error.denied(subject, operation, :document, reason)

@@ -160,10 +160,4 @@ defmodule Turnstile.Repo.FactsTest do
     assert %Error{reason: :invalid} = error
     assert Exception.message(error) =~ "invalid fact_mapping: #{inspect(Untyped)}.thing_id names no object type"
   end
-
-  test "touched/2 keeps the fields a bulk write names that are fact columns" do
-    assert Facts.touched(Grant, [:role, :inserted_at, :team_id]) == [:role, :team_id]
-    assert Facts.touched(Team, [:label, :members, :name]) == [:label, :members]
-    assert Facts.touched(Turnstile.Repo, [:anything]) == []
-  end
 end

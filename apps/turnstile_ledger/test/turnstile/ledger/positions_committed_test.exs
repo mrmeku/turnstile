@@ -1,10 +1,8 @@
 defmodule Turnstile.Ledger.PositionsCommittedTest do
   use ExUnit.Case, async: false
 
-  import Ecto.Query, only: [from: 2]
-
   alias Ecto.Adapters.SQL
-  alias Turnstile.Facts
+  alias Ecto.Changeset
   alias Turnstile.Fixture.Account
   alias Turnstile.Ledger
   alias Turnstile.Ledger.TestRepos.CommittedApp
@@ -68,7 +66,7 @@ defmodule Turnstile.Ledger.PositionsCommittedTest do
   end
 
   test "the application role may add an event and read one, and cannot change or remove one", context do
-    {:ok, _record} = write(hd(context.accounts), "cleared")
+    _row = write(hd(context.accounts), "cleared")
 
     assert %{rows: [[1]]} = SQL.query!(@repo, "SELECT count(*) FROM turnstile_ledger_events")
 
@@ -85,7 +83,7 @@ defmodule Turnstile.Ledger.PositionsCommittedTest do
 
   defp hold(parent, name, account) do
     fn ->
-      {:ok, _record} = write(account, "cleared by #{name}")
+      _row = write(account, "cleared by #{name}")
       {:ok, position} = Ledger.Ecto.head(repo: @repo, owner_repo: @repo)
       send(parent, {:took, name, position})
 
@@ -99,13 +97,13 @@ defmodule Turnstile.Ledger.PositionsCommittedTest do
 
   defp timed_write(account) do
     started = System.monotonic_time(:microsecond)
-    {:ok, _record} = write(account, "cleared")
+    _row = write(account, "cleared")
     System.monotonic_time(:microsecond) - started
   end
 
   defp write(account, clearance) do
-    query = from(a in Account, where: a.id == ^account)
-    Facts.bulk_update(query, [set: [clearance: clearance]], repo: @repo, turnstile: @exemption)
+    row = @repo.get!(Account, account, turnstile: @exemption)
+    @repo.update!(Changeset.change(row, clearance: clearance), turnstile: @exemption)
   end
 
   defp options(%{ledger: {Ledger.Ecto, options}}), do: options

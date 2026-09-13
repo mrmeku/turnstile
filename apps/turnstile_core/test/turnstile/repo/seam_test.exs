@@ -252,7 +252,7 @@ defmodule Turnstile.Repo.SeamTest do
       assert %Error{reason: :invalid} = error
       assert Exception.message(error) =~ "invalid upsert: "
       assert Exception.message(error) =~ "on Turnstile.Fixture.Membership"
-      assert Exception.message(error) =~ "bulk_insert/3"
+      assert Exception.message(error) =~ "write the rows one at a time"
     end
 
     test "a bulk write to an audited schema is refused, exemption or not, ledger or not", %{folder: folder} do

@@ -180,8 +180,7 @@ defmodule Example.DocumentsTest do
     at = DateTime.utc_now()
     assert {:error, %Error{detail: "user dana may not set_decontrol" <> _rest}} = Documents.decontrol_all(@dana, at)
     allow(ctx.rules, "dana", :set_decontrol, {:document, :any})
-    assert {:ok, record} = Documents.decontrol_all(@dana, at)
-    assert {record.operation, record.schema, record.count} == {:update, Document, 2}
+    assert {:ok, 2} = Documents.decontrol_all(@dana, at)
 
     for id <- [ctx.document.id, other.id] do
       assert %Document{decontrol: %DateTime{}} = Example.Repo.get(Document, id, turnstile: Fixture.exemption())

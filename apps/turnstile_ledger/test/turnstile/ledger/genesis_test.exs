@@ -76,11 +76,7 @@ defmodule Turnstile.Ledger.GenesisTest do
       [folder] = Population.folders!(@repo, 1)
       1 = Population.memberships!(@repo, [account], folder)
 
-      {:ok, _record} =
-        Turnstile.Facts.bulk_update(Account, [set: [clearance: "cleared"]],
-          repo: @repo,
-          turnstile: Population.exemption()
-        )
+      1 = Population.clearance!(@repo, [account], "cleared")
 
       1 = Population.memberships!(@repo, [account], folder)
       :ok

@@ -2,7 +2,6 @@ defmodule Turnstile.Ledger.Reconcile.SchedulerTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Error
-  alias Turnstile.Facts
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
@@ -15,14 +14,13 @@ defmodule Turnstile.Ledger.Reconcile.SchedulerTest do
   alias Turnstile.Test
 
   @repo TestRepos.App
-  @exemption Population.exemption()
   @schemas [Account, Folder, Membership]
 
   setup tags do
     :ok = listen()
     {:ok, context} = Boot.setup(tags)
     [account] = Population.accounts!(@repo, 1)
-    {:ok, _record} = Facts.bulk_update(Account, [set: [clearance: "cleared"]], repo: @repo, turnstile: @exemption)
+    1 = Population.clearance!(@repo, [account], "cleared")
     {:ok, Keyword.put(context, :account, account)}
   end
 
@@ -36,7 +34,7 @@ defmodule Turnstile.Ledger.Reconcile.SchedulerTest do
 
   test "a pass that finds drift says how much of it there is and that the ledger and the tables differ", context do
     Test.with_config([ledger: :none], fn ->
-      {:ok, _record} = Facts.bulk_update(Account, [set: [clearance: "patched"]], repo: @repo, turnstile: @exemption)
+      1 = Population.clearance!(@repo, [context.account], "patched")
     end)
 
     assert {:ok, drift} = Scheduler.pass(pass(context))

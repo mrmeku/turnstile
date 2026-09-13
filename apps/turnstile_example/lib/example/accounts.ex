@@ -6,9 +6,9 @@ defmodule Example.Accounts do
   it; every read of a role by a rule happens inside the adapter at check
   time, and a revocation deletes nothing but the role row.
 
-  A grant to many accounts at once goes through `Turnstile.Facts`, which
-  records one event per assignment; a plain `insert_all` on a fact schema is
-  refused where a ledger is configured.
+  A grant to many accounts at once is a row at a time in one transaction; a
+  plain `insert_all` on an audited schema is refused, because the change each
+  row made cannot be read back from one statement.
   """
 
   import Ecto.Query, only: [from: 2]
@@ -18,9 +18,6 @@ defmodule Example.Accounts do
   alias Example.OfficeRole
   alias Example.Repo
   alias Example.User
-  alias Turnstile.Error
-  alias Turnstile.Facts
-  alias Turnstile.Facts.Record
 
   @administration {:exempt, "role administration: no rule of the example governs who grants roles"}
 
@@ -40,13 +37,14 @@ defmodule Example.Accounts do
   end
 
   @doc """
-  Assign many accounts to a program with one role, as one write: one audit
-  record and one fact event per assignment, sharing an operation id.
+  Assign many accounts to a program with one role: one transaction, one row
+  at a time, so each grant is a change of its own. A row the database
+  refuses rolls the whole grant back.
   """
-  @spec assign_all([String.t()], integer(), :lead | :member) :: {:ok, Record.t()} | {:error, Error.t()}
+  @spec assign_all([String.t()], integer(), :lead | :member) :: [Assignment.t()]
   def assign_all(user_ids, program_id, role) when is_list(user_ids) and role in [:lead, :member] do
-    entries = Enum.map(user_ids, &%{user_id: &1, program_id: program_id, role: role})
-    Facts.bulk_insert(Assignment, entries, repo: Repo, turnstile: @administration)
+    {:ok, assignments} = Repo.transaction(fn -> Enum.map(user_ids, &assign(&1, program_id, role)) end)
+    assignments
   end
 
   @doc """

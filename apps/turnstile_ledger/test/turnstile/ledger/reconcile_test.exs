@@ -1,7 +1,6 @@
 defmodule Turnstile.Ledger.ReconcileTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Facts
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
@@ -23,7 +22,7 @@ defmodule Turnstile.Ledger.ReconcileTest do
     [account] = Population.accounts!(@repo, 1)
     [folder] = Population.folders!(@repo, 1)
     1 = Population.memberships!(@repo, [account], folder)
-    {:ok, _record} = Facts.bulk_update(Account, [set: [clearance: "cleared"]], repo: @repo, turnstile: @exemption)
+    1 = Population.clearance!(@repo, [account], "cleared")
     {:ok, Keyword.merge(context, account: account, folder: folder)}
   end
 
@@ -36,7 +35,8 @@ defmodule Turnstile.Ledger.ReconcileTest do
 
   test "a fact the tables lost outside the seam is missing", context do
     Test.with_config([ledger: :none], fn ->
-      {:ok, _record} = Facts.bulk_delete(Membership, repo: @repo, turnstile: @exemption)
+      grant = @repo.get_by!(Membership, [account_id: context.account, folder_id: context.folder], turnstile: @exemption)
+      %Membership{} = @repo.delete!(grant, turnstile: @exemption)
     end)
 
     assert {:ok, drift} = Reconcile.run(options(context), @schemas)
@@ -47,8 +47,7 @@ defmodule Turnstile.Ledger.ReconcileTest do
 
   test "a fact the tables gained outside the seam is extra", context do
     Test.with_config([ledger: :none], fn ->
-      entries = [%{id: @unrecorded, clearance: "raised"}]
-      {:ok, _record} = Facts.bulk_insert(Account, entries, repo: @repo, turnstile: @exemption)
+      %Account{} = @repo.insert!(%Account{id: @unrecorded, clearance: "raised"}, turnstile: @exemption)
     end)
 
     assert {:ok, drift} = Reconcile.run(options(context), @schemas)

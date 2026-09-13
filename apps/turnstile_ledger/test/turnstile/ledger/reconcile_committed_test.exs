@@ -2,7 +2,6 @@ defmodule Turnstile.Ledger.ReconcileCommittedTest do
   use ExUnit.Case, async: false
 
   alias Ecto.Adapters.SQL
-  alias Turnstile.Facts
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
@@ -17,13 +16,12 @@ defmodule Turnstile.Ledger.ReconcileCommittedTest do
   @moduletag :committed
 
   @repo CommittedApp
-  @exemption Population.exemption()
   @schemas [Account, Folder, Membership]
 
   setup tags do
     {:ok, context} = Boot.setup(tags)
     [account] = Population.accounts!(@repo, 1)
-    {:ok, _record} = Facts.bulk_update(Account, [set: [clearance: "cleared"]], repo: @repo, turnstile: @exemption)
+    1 = Population.clearance!(@repo, [account], "cleared")
     {:ok, Keyword.put(context, :account, account)}
   end
 

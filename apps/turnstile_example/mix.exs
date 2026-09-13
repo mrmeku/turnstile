@@ -43,8 +43,9 @@ defmodule Turnstile.Example.MixProject do
     [~r/\.Generated\./, ~r/^Example\.Scenarios/, ~r/^Example\.Fixture/, ~r/^Example\.Cluster/]
   end
 
-  # lib depends on core, on the ledger's bulk API for the writes that change
-  # many facts at once, on ecto, ecto_sql (the migration helper and preload),
+  # lib depends on core, on the ledger, whose reader and reconcile the
+  # scenario bodies read the record through, on ecto, ecto_sql (the
+  # migration helper and preload),
   # phoenix and plug (the web layer), and telemetry. stream_data is
   # unrestricted because core's conformance templates ship in lib, so core
   # carries it in every environment and a dependent that narrowed it would

@@ -12,7 +12,6 @@ defmodule Turnstile.Ledger.TestSupport do
       Ecto,
       Ecto.Adapters.SQL,
       Turnstile,
-      Turnstile.Facts,
       Turnstile.Fixture,
       Turnstile.Ledger.Dialect,
       Turnstile.Ledger.Ecto,
@@ -118,12 +117,12 @@ defmodule Turnstile.Ledger.TestSupport.Population do
   @moduledoc """
   The rows the shape tests measure against: accounts with no clearance yet,
   folders with no fact of their own, and memberships that are grants. Every
-  insert goes through the bulk API under an exemption, so the ledger records
-  the population as it records anything else and the shapes measured
-  afterwards start from a ledger that agrees with the tables.
+  insert goes through the seam under an exemption, one row at a time, so the
+  ledger records the population as it records anything else and the shapes
+  measured afterwards start from a ledger that agrees with the tables.
   """
 
-  alias Turnstile.Facts
+  alias Ecto.Changeset
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
@@ -137,26 +136,36 @@ defmodule Turnstile.Ledger.TestSupport.Population do
   @doc "Insert `count` accounts with no clearance, named `account-<n>`, and answer their ids."
   @spec accounts!(module(), pos_integer()) :: [String.t()]
   def accounts!(repo, count) when is_atom(repo) and is_integer(count) do
-    entries = Enum.map(1..count, &%{id: id(&1), clearance: nil})
-    {:ok, _record} = Facts.bulk_insert(Account, entries, repo: repo, turnstile: @exemption)
-    Enum.map(entries, & &1.id)
+    Enum.map(1..count, &repo.insert!(%Account{id: id(&1), clearance: nil}, turnstile: @exemption).id)
   end
 
   @doc "Insert `count` folders, which declare no fact, and answer their ids."
   @spec folders!(module(), pos_integer()) :: [pos_integer()]
   def folders!(repo, count) when is_atom(repo) and is_integer(count) do
-    entries = Enum.map(1..count, &%{name: "folder #{&1}"})
-    {:ok, record} = Facts.bulk_insert(Folder, entries, repo: repo, turnstile: @exemption)
-    ^count = record.count
-    Enum.map(repo.all(Folder, turnstile: @exemption), & &1.id)
+    Enum.map(1..count, &repo.insert!(%Folder{name: "folder #{&1}"}, turnstile: @exemption).id)
   end
 
   @doc "Grant every account the reader role on the folder, and answer how many grants that was."
   @spec memberships!(module(), [String.t()], pos_integer()) :: pos_integer()
   def memberships!(repo, accounts, folder) when is_atom(repo) and is_list(accounts) do
-    entries = Enum.map(accounts, &%{account_id: &1, folder_id: folder, role: :reader})
-    {:ok, record} = Facts.bulk_insert(Membership, entries, repo: repo, turnstile: @exemption)
-    record.count
+    Enum.each(
+      accounts,
+      &repo.insert!(%Membership{account_id: &1, folder_id: folder, role: :reader}, turnstile: @exemption)
+    )
+
+    length(accounts)
+  end
+
+  @doc "Set the clearance of every account named, one row at a time, and answer how many rows that was."
+  @spec clearance!(module(), [String.t()], String.t() | nil) :: non_neg_integer()
+  def clearance!(repo, accounts, value) when is_atom(repo) and is_list(accounts) do
+    Enum.each(accounts, fn account ->
+      repo.update!(Changeset.change(repo.get!(Account, account, turnstile: @exemption), clearance: value),
+        turnstile: @exemption
+      )
+    end)
+
+    length(accounts)
   end
 
   @doc "The account id for a number, in the form the population uses."
@@ -167,13 +176,8 @@ end
 defmodule Turnstile.Ledger.TestSupport.Shape do
   @moduledoc """
   What a shape test counts: each query of a call by what it was on rather
-  than by its text, and the audit records of one bulk write, found by the
-  operation id the write answered with, so the records of another async
-  test are never counted as this one's.
+  than by its text.
   """
-
-  alias Turnstile.Facts
-  alias Turnstile.Facts.Record
 
   @kinds [
     {~r/FOR UPDATE$/, :locked_select},
@@ -185,37 +189,13 @@ defmodule Turnstile.Ledger.TestSupport.Shape do
     {~r/^DELETE/, :delete}
   ]
 
-  @doc "Route the bulk API's span to the calling process for the rest of the test."
-  @spec listen() :: :ok
-  def listen do
-    handler = :telemetry_test.attach_event_handlers(self(), Facts.events())
-    ExUnit.Callbacks.on_exit(fn -> :telemetry.detach(handler) end)
-    :ok
-  end
-
   @doc "The kind of each query, in the order the queries ran."
   @spec kinds([String.t()]) :: [atom()]
   def kinds(queries) when is_list(queries), do: Enum.map(queries, &kind/1)
 
-  @doc "The audit records the write with this operation id emitted, in order."
-  @spec records(String.t()) :: [Record.t()]
-  def records(operation_id) when is_binary(operation_id), do: collect(operation_id, [])
-
   defp kind(query) do
     {_pattern, kind} = Enum.find(@kinds, {nil, :other}, fn {pattern, _kind} -> Regex.match?(pattern, query) end)
     kind
-  end
-
-  defp collect(operation_id, done) do
-    receive do
-      {[:turnstile, :bulk, :stop], _ref, _measurements, %{record: %Record{operation_id: ^operation_id} = record}} ->
-        collect(operation_id, [record | done])
-
-      {[:turnstile, :bulk, _suffix], _ref, _measurements, _metadata} ->
-        collect(operation_id, done)
-    after
-      0 -> Enum.reverse(done)
-    end
   end
 end
 
@@ -277,9 +257,9 @@ end
 defmodule Turnstile.Ledger.TestSupport.Measure do
   @moduledoc """
   Where a measurement goes: to standard output, and nowhere near an
-  assertion. The cost of serializing on the counter row and the time the
-  tripwire took are numbers a reader of the run wants and a gate must never
-  turn on, so they are printed and left there.
+  assertion. The cost of serializing on the counter row is a number a reader
+  of the run wants and a gate must never turn on, so it is printed and left
+  there.
   """
 
   @doc "Print a measurement. The test logger sits at warning, so this is what a reader of the run sees."

@@ -9,8 +9,6 @@ The words `turnstile_ledger` owns.
 | Ledger position / head / applied position | The index in the ledger / the counter row's committed value / the position an adapter's state has applied |
 | Counter row | The locked row every fact-writing transaction takes positions from; `default` in production, one row per test in the sandbox |
 | Take | Advancing the counter row by the number of events an append holds and stamping them over the range it answers with; one statement on Postgres |
-| Bulk write | One transaction that writes many facts and appends their events: `Turnstile.Facts.bulk_update/3`, `bulk_delete/2`, `bulk_insert/3`, what an application uses where a plain `Repo.update_all` on a fact field is refused |
-| Difference condition | The null-safe `WHERE` that narrows a bulk write to the rows whose value would change, so a write of the value a row already holds touches nothing |
 | Tagged value | A fact value as a column holds it: the term with its type beside it, so what comes back is what was written |
 | Lock clause | The clause a fact row is re-read under inside the writing transaction, `FOR UPDATE` on Postgres |
 | Genesis | The backfill that gives an existing application's ledger an origin |

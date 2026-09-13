@@ -11,7 +11,6 @@ defmodule Example do
   use Boundary,
     deps: [
       Turnstile,
-      Turnstile.Facts,
       Ecto,
       Ecto.Adapters.Postgres,
       Ecto.Adapters.SQL,
