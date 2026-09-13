@@ -1,5 +1,5 @@
 defmodule Example.Scenarios.Enforcement do
-  @moduledoc "The enforcement scenarios, enf-01 to enf-19."
+  @moduledoc "The enforcement scenarios, enf-01 to enf-20."
 
   use Boundary,
     top_level?: true,
@@ -261,6 +261,29 @@ defmodule Example.Scenarios.Enforcement do
     refute reads?(subject("ann"), foreign)
     assert listed(subject("ivan")) == [foreign.id]
     assert_read(subject("ivan"), foreign)
+  end
+
+  @spec enf_20() :: term()
+  def enf_20 do
+    world = Fixture.world!()
+
+    document =
+      Fixture.document!(world,
+        portions: [
+          %{body: "allied", controls: [:releasable_to], releasable_to: ["FR", "US"]},
+          %{body: "domestic", controls: [:releasable_to], releasable_to: ["US"]}
+        ]
+      )
+
+    [allied, domestic] = document.portions
+
+    settle()
+    assert_denied(subject("carl"), document)
+    assert {:ok, %Document{portions: portions}} = Documents.read_redacted(subject("carl"), document.id)
+    assert Enum.map(portions, & &1.id) == [allied.id]
+    assert_read(subject("ann"), document)
+    assert {:ok, %Document{portions: portions}} = Documents.read_redacted(subject("ann"), document.id)
+    assert Enum.map(portions, & &1.id) == [allied.id, domestic.id]
   end
 
   defp varied_documents(world) do
