@@ -152,10 +152,10 @@ Frozen at S1 with the contracts. Every row is a test in `Example.Scenarios` whos
 | `aud-02` | A denied read emits its event with the reason | decision audit | AU-2, AU-3 | every call is evented | |
 | `aud-03` | A decision record carries no attribute value | decision audit | AU-3 | record shape | |
 | `aud-04` | A marking change emits one decision event and one fact event per changed fact field in the same transaction | decision audit | AU-12, AC-2(4) | no fact without an entry | ledger |
-| `aud-05` | A bulk re-marking of N Documents emits one audit record and N fact events sharing an operation id | decision audit | AU-12, AC-2(4) | per operation, never per row | ledger |
+| `aud-05` | A bulk re-marking of Documents is refused and no Document changes | decision audit | AU-12, AC-2(4) | a bulk write to an audited schema raises | |
 | `aud-06` | An Assignment grant and its revoke each produce a fact event carrying old and new | decision audit | AC-2(4) | the fact mapping | ledger |
 | `aud-07` | A marking change reaches the consumer as one OCSF record per event, all under one correlation id | decision audit | AU-2, AU-3, AU-12 | every event is mapped | |
-| `aud-08` | A rolled-back write leaves no fact event and no decision outcome but the exception span | decision audit | AU-2, AU-12 | atomicity | ledger |
+| `aud-08` | A write the database refuses leaves no row and emits no change event | decision audit | AU-2, AU-12 | atomicity | |
 | `rvw-01` | The access review lists who can read what today, per Agency | access review | AC-2, AC-6(7) | `review` | |
 | `rvw-04` | An Assignment inserted outside the seam is reported by reconcile within the interval | access review | AC-2, AC-2(4) | drift | ledger |
 | `ia-01` | A designator whose session re-authenticated within the window changes a marking | re-authentication | IA-11 | C8 | |
