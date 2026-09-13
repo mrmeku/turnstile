@@ -1,11 +1,11 @@
 defmodule Turnstile.Cerbos.PropagationTest do
   use ExUnit.Case, async: true
 
+  alias Turnstile.Cerbos.Adapter.Wait
   alias Turnstile.Cerbos.Client
   alias Turnstile.Cerbos.Propagation
   alias Turnstile.Cerbos.Request
   alias Turnstile.Cerbos.Sidecar
-  alias Turnstile.Test
 
   @principal %{id: "an-account", roles: ["user"], attr: %{"clearance" => "cleared"}}
   @resource %{kind: "folder", id: "1", attr: %{"member_roles" => ["reader"]}}
@@ -40,7 +40,7 @@ defmodule Turnstile.Cerbos.PropagationTest do
     assert previous =~ ~s(actions: ["read"])
     assert %Propagation{} = measurement
     assert measurement.total == measurement.publish + measurement.poll
-    assert measurement.floor == Test.poll_interval()
+    assert measurement.floor == Wait.interval()
     assert measurement.poll >= 0
 
     assert Propagation.to_keyword(measurement) == [
@@ -51,7 +51,7 @@ defmodule Turnstile.Cerbos.PropagationTest do
            ]
 
     :ok = Propagation.restore!(sidecar.policies, published)
-    assert Test.poll(fn -> reads?(sidecar.address) end, 30_000)
+    assert Wait.until(fn -> reads?(sidecar.address) end, 30_000)
   end
 
   test "what a swap came back with is what the directory held, and putting it back is what was there" do

@@ -30,7 +30,7 @@ defmodule Turnstile.Cerbos do
   @behaviour Turnstile.Adapter
 
   use Boundary,
-    deps: [Turnstile, Turnstile.Test, Ecto, NimbleOptions],
+    deps: [Turnstile, Ecto, NimbleOptions],
     check: [apps: [:ecto_sql, :postgrex]],
     exports: [
       Attribute,

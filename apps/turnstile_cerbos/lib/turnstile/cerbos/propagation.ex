@@ -14,16 +14,16 @@ defmodule Turnstile.Cerbos.Propagation do
   Two moves, so a caller can do both. Writing policy text into the
   directory and putting back what was there, which is a file operation and
   nothing more. And the measurement, which takes the publish as a function,
-  runs it, and polls with `Turnstile.Test.poll/2` until the caller's
-  question answers the new way. The poll interval is the floor of any
-  number this produces, and the deadline is generous, because a directory
-  watch is not instant.
+  runs it, and asks the caller's question over and over until it answers
+  the new way. The interval between asks is the floor of any number this
+  produces, and the deadline is generous, because a directory watch is not
+  instant.
 
   Nothing here asserts a number. The measurement comes back as a struct of
   milliseconds for whoever asked to record.
   """
 
-  alias Turnstile.Test
+  alias Turnstile.Cerbos.Adapter.Wait
 
   @schema NimbleOptions.new!(
             timeout: [
@@ -60,7 +60,7 @@ defmodule Turnstile.Cerbos.Propagation do
     started = System.monotonic_time(:millisecond)
     published = publish.()
     at_publish = System.monotonic_time(:millisecond)
-    _in_force = Test.poll(until, validated[:timeout])
+    _in_force = Wait.until(until, validated[:timeout])
     finished = System.monotonic_time(:millisecond)
 
     {published,
@@ -68,7 +68,7 @@ defmodule Turnstile.Cerbos.Propagation do
        total: finished - started,
        publish: at_publish - started,
        poll: finished - at_publish,
-       floor: Test.poll_interval()
+       floor: Wait.interval()
      }}
   end
 
