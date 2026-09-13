@@ -1,11 +1,11 @@
-defmodule Turnstile.Repo.Overrides do
+defmodule Turnstile.Core.Overrides do
   @moduledoc false
   # Generates, at the repo's `@before_compile`, the override of every
-  # `Turnstile.Repo.Surface` function the repo defines. Each override calls
+  # `Turnstile.Core.Surface` function the repo defines. Each override calls
   # the seam with the arguments and a function that runs Ecto's own
   # definition with the options the seam settled.
 
-  alias Turnstile.Repo.Seam
+  alias Turnstile.Adapter.Seam
 
   @doc false
   defmacro __before_compile__(env) do

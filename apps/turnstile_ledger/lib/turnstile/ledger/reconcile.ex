@@ -24,9 +24,9 @@ defmodule Turnstile.Ledger.Reconcile do
 
   alias Turnstile.Error
   alias Turnstile.FactEvent
+  alias Turnstile.Facts
   alias Turnstile.Ledger
   alias Turnstile.Projection.Drift
-  alias Turnstile.Repo
   alias Turnstile.Schema
 
   @exemption {:exempt, :library}
@@ -55,7 +55,7 @@ defmodule Turnstile.Ledger.Reconcile do
       Enum.flat_map(Enum.filter(schemas, &Schema.fact_schema?/1), fn schema ->
         schema
         |> repo.all(turnstile: @exemption)
-        |> Enum.flat_map(&Repo.Facts.events(schema, nil, &1, stamp))
+        |> Enum.flat_map(&Facts.events(schema, nil, &1, stamp))
       end)
 
     Ledger.Fold.fold(events).facts

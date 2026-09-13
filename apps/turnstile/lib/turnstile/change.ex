@@ -1,4 +1,4 @@
-defmodule Turnstile.Repo.Change do
+defmodule Turnstile.Change do
   @moduledoc """
   The change event: one telemetry event for each single-row write to an
   audited schema, computed from the write itself and published inside the

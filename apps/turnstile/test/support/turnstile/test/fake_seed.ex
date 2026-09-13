@@ -9,7 +9,7 @@ defmodule Turnstile.Test.FakeSeed do
 
   @behaviour Turnstile.Conformance.Seed
 
-  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Conformance, Turnstile.Fixture]
+  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Conformance, Turnstile.Fixture, Turnstile.Test]
 
   alias Turnstile.Config
   alias Turnstile.Conformance.Seed

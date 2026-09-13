@@ -41,8 +41,8 @@ defmodule Turnstile.Ledger.Genesis do
 
   alias Turnstile.Error
   alias Turnstile.FactEvent
+  alias Turnstile.Facts
   alias Turnstile.Ledger
-  alias Turnstile.Repo
   alias Turnstile.Schema
 
   @exemption {:exempt, :library}
@@ -103,7 +103,7 @@ defmodule Turnstile.Ledger.Genesis do
   defp events(repo, schema, stamp) do
     schema
     |> repo.all(turnstile: @exemption)
-    |> Enum.flat_map(&Repo.Facts.events(schema, nil, &1, stamp))
+    |> Enum.flat_map(&Facts.events(schema, nil, &1, stamp))
     |> Enum.map(&%{&1 | position: 0})
   end
 

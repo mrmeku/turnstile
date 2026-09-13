@@ -1,17 +1,16 @@
-defmodule Turnstile.Repo.Caller do
-  @moduledoc """
-  The module that called the Repo, read from the calling process's stack:
-  the first frame that belongs neither to the Repo nor to the seam nor to
-  Ecto and the libraries beneath it. A declared exemption is recorded
-  against it, and a library exemption is accepted only when it is a
-  `Turnstile.*` module.
-  """
+defmodule Turnstile.Adapter.Caller do
+  @moduledoc false
+  # The module that called the Repo, read from the calling process's stack:
+  # the first frame that belongs neither to the Repo nor to the seam nor to
+  # Ecto and the libraries beneath it. A declared exemption is recorded
+  # against it, and a library exemption is accepted only when it is a
+  # `Turnstile.*` module.
 
   @skipped_prefixes ~w(Elixir.Ecto. Elixir.DBConnection Elixir.Postgrex) ++
                       ~w(Elixir.Enum Elixir.Stream Elixir.Task Elixir.Agent Elixir.GenServer Elixir.Process Elixir.Kernel)
   # The seam's own modules by name, so this file depends on none of them.
   @seam Enum.map(
-          ~w(Repo Repo.Caller Repo.Facts Repo.Matching Repo.Mediation Repo.Seam Repo.Source),
+          ~w(Repo Facts Adapter.Caller Adapter.Option Adapter.Seam Core.Matching Core.Mediation Core.Source),
           &("Elixir.Turnstile." <> &1)
         )
 

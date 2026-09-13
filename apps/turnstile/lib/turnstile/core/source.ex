@@ -1,10 +1,9 @@
-defmodule Turnstile.Repo.Source do
-  @moduledoc """
-  The root source of what a Repo function was handed: a schema module, a
-  table name, or `nil`. A query answers with its `from`, through a subquery;
-  a struct with its schema; a list with its first element; a changeset with
-  its data; `{source, schema}` with the schema.
-  """
+defmodule Turnstile.Core.Source do
+  @moduledoc false
+  # The root source of what a Repo function was handed: a schema module, a
+  # table name, or `nil`. A query answers with its `from`, through a subquery;
+  # a struct with its schema; a list with its first element; a changeset with
+  # its data; `{source, schema}` with the schema.
 
   @type root :: module() | String.t() | nil
 

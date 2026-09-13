@@ -1,13 +1,14 @@
-defmodule Turnstile.Repo.MediationTest do
+defmodule Turnstile.Core.MediationTest do
   use ExUnit.Case, async: true
 
+  alias Turnstile.Core.Mediation
   alias Turnstile.Decision
+  alias Turnstile.Error
+  alias Turnstile.Exemption
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Id
-  alias Turnstile.Repo.Mediation
   alias Turnstile.Test.Fake
-  alias Turnstile.TestRepos.Sandboxed
 
   test "the option's schema is a NimbleOptions schema that admits a resolved mediation" do
     assert %NimbleOptions{} = Mediation.schema()
@@ -25,14 +26,20 @@ defmodule Turnstile.Repo.MediationTest do
     assert Mediation.carried_closure(Item) == [Item]
   end
 
-  test "a decision on a table name carries nothing, and a resolved mediation is passed through" do
+  test "a decision carries the root's associations, a denial raises, and an exemption records its caller" do
     decision = decision(:folder, 1)
 
-    assert {%Mediation{carried: [], decision: ^decision}, opts} =
-             Mediation.resolve(Sandboxed, {:all, 2}, "turnstile_fixture_folders", turnstile: decision)
+    assert %Mediation{decision: ^decision, carried: [Folder, Item]} = Mediation.decided({:all, 2}, Folder, decision)
+    assert %Mediation{carried: []} = Mediation.decided({:all, 2}, "turnstile_fixture_folders", decision)
 
-    assert {%Mediation{call: {:one, 2}} = nested, nested_opts} = Mediation.resolve(Sandboxed, {:one, 2}, Folder, opts)
-    assert nested_opts[:turnstile] == nested
+    denial = %{decision | verdict: :deny, reason: :deny_by_default}
+    assert_raise Error, fn -> Mediation.decided({:all, 2}, Folder, denial) end
+
+    assert %Mediation{exemption: %Exemption{kind: :library, caller: __MODULE__, reason: "library"}} =
+             Mediation.library({:all, 2}, Folder, __MODULE__)
+
+    assert %Mediation{exemption: %Exemption{kind: :declared, caller: __MODULE__, reason: "a reason"}} =
+             Mediation.declared({:all, 2}, Folder, __MODULE__, "a reason")
   end
 
   defp decision(type, id) do

@@ -1,18 +1,17 @@
-defmodule Turnstile.Repo.Surface do
-  @moduledoc """
-  Every function `use Ecto.Repo` defines, by name and arity, in exactly one
-  of four buckets. The list is written against Ecto 3.14 and ecto_sql 3.14;
-  `Turnstile.Conformance.RepoCase` diffs it against a compiled Repo's
-  exports, so a release that adds a function fails that test by name.
-
-  - *query*: mediated through `prepare_query/3` and wrapped by the seam.
-  - *write*: overridden by the seam: judged, recorded, wrapped.
-  - *raw*: wrapped to demand an exemption.
-  - *plumbing*: touches no rows; left alone.
-
-  The shorter arities that default arguments generate are listed too, so an
-  override that redeclares `opts \\\\ []` covers every arity the Repo exports.
-  """
+defmodule Turnstile.Core.Surface do
+  @moduledoc false
+  # Every function `use Ecto.Repo` defines, by name and arity, in exactly one
+  # of four buckets. The list is written against Ecto 3.14 and ecto_sql 3.14;
+  # `Turnstile.Conformance.RepoCase` diffs it against a compiled Repo's
+  # exports, so a release that adds a function fails that test by name.
+  #
+  # - *query*: mediated through `prepare_query/3` and wrapped by the seam.
+  # - *write*: overridden by the seam: judged, recorded, wrapped.
+  # - *raw*: wrapped to demand an exemption.
+  # - *plumbing*: touches no rows; left alone.
+  #
+  # The shorter arities that default arguments generate are listed too, so an
+  # override that redeclares `opts \\ []` covers every arity the Repo exports.
 
   @query [
     aggregate: 2,

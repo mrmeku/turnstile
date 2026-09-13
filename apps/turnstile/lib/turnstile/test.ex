@@ -8,9 +8,9 @@ defmodule Turnstile.Test do
 
   use Boundary, top_level?: true, deps: [Turnstile, Ecto, NimbleOptions], exports: [Clock, Cluster, Fake]
 
+  alias Turnstile.Change
   alias Turnstile.Config
   alias Turnstile.Projection.Drain
-  alias Turnstile.Repo.Change
 
   @default_timeout 5_000
   @interval 10

@@ -1,12 +1,12 @@
-defmodule Turnstile.Repo.SourceTest do
+defmodule Turnstile.Core.SourceTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [from: 2, subquery: 1]
 
   alias Ecto.Changeset
+  alias Turnstile.Core.Source
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
-  alias Turnstile.Repo.Source
 
   test "root/1 answers the schema, table name, or nil for every shape the Repo takes" do
     assert Source.root(Folder) == Folder

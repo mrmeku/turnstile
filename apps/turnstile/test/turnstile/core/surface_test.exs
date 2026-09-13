@@ -1,4 +1,4 @@
-defmodule Turnstile.Repo.SurfaceTest.ExtraRepo do
+defmodule Turnstile.Core.SurfaceTest.ExtraRepo do
   @moduledoc false
   use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres
   use Turnstile.Repo
@@ -8,18 +8,18 @@ defmodule Turnstile.Repo.SurfaceTest.ExtraRepo do
   def extra(x), do: x
 end
 
-defmodule Turnstile.Repo.SurfaceTest.ReadOnlyRepo do
+defmodule Turnstile.Core.SurfaceTest.ReadOnlyRepo do
   @moduledoc false
   use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres, read_only: true
   use Turnstile.Repo
 end
 
-defmodule Turnstile.Repo.SurfaceTest.ReadOnlyRepoCase do
+defmodule Turnstile.Core.SurfaceTest.ReadOnlyRepoCase do
   @moduledoc false
-  use Turnstile.Conformance.RepoCase, repo: Turnstile.Repo.SurfaceTest.ReadOnlyRepo, async: true
+  use Turnstile.Conformance.RepoCase, repo: Turnstile.Core.SurfaceTest.ReadOnlyRepo, async: true
 
   alias Turnstile.Conformance.RepoCase
-  alias Turnstile.Repo.SurfaceTest.ReadOnlyRepo
+  alias Turnstile.Core.SurfaceTest.ReadOnlyRepo
 
   setup_all do
     config = Application.get_env(:turnstile, Turnstile.TestRepos.Sandboxed)
@@ -33,12 +33,12 @@ defmodule Turnstile.Repo.SurfaceTest.ReadOnlyRepoCase do
   end
 end
 
-defmodule Turnstile.Repo.SurfaceTest do
+defmodule Turnstile.Core.SurfaceTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Conformance.RepoCase
-  alias Turnstile.Repo.Surface
-  alias Turnstile.Repo.SurfaceTest.ExtraRepo
+  alias Turnstile.Core.Surface
+  alias Turnstile.Core.SurfaceTest.ExtraRepo
   alias Turnstile.TestRepos.Owner
   alias Turnstile.TestRepos.Sandboxed
 
@@ -60,9 +60,11 @@ defmodule Turnstile.Repo.SurfaceTest do
   end
 
   test "a repo exporting a function outside the surface fails with the function's name and arity" do
-    assert_raise ExUnit.AssertionError, ~r/exports extra\/1, which Turnstile.Repo.Surface does not classify/, fn ->
-      RepoCase.assert_surface(ExtraRepo)
-    end
+    assert_raise ExUnit.AssertionError,
+                 ~r/exports extra\/1, which the surface this build was written against does not classify/,
+                 fn ->
+                   RepoCase.assert_surface(ExtraRepo)
+                 end
   end
 
   test "a repo without the seam fails the surface assertion" do
@@ -73,7 +75,7 @@ defmodule Turnstile.Repo.SurfaceTest do
     assert_raise ArgumentError, ~r/use Turnstile.Repo must follow use Ecto.Repo/, fn ->
       Code.compile_quoted(
         quote do
-          defmodule Turnstile.Repo.SurfaceTest.WrongOrder do
+          defmodule Turnstile.Core.SurfaceTest.WrongOrder do
             @moduledoc false
             use Turnstile.Repo
             use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres
@@ -87,7 +89,7 @@ defmodule Turnstile.Repo.SurfaceTest do
     assert_raise NimbleOptions.ValidationError, fn ->
       Code.compile_quoted(
         quote do
-          defmodule Turnstile.Repo.SurfaceTest.BadRole do
+          defmodule Turnstile.Core.SurfaceTest.BadRole do
             @moduledoc false
             use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres
             use Turnstile.Repo, role: :tenant

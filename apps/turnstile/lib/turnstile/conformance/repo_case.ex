@@ -2,10 +2,10 @@ defmodule Turnstile.Conformance.RepoCase do
   @moduledoc """
   The conformance case for a repo: `use Turnstile.Conformance.RepoCase,
   repo: MyApp.Repo` writes the tests that hold the repo to the seam. The
-  repo must answer `__turnstile__/1`, export nothing
-  `Turnstile.Repo.Surface` does not classify, and refuse every query,
-  write, and raw call on a protected schema that carries no decision and no
-  exemption, before any SQL. The repo is started; the protected schema's
+  repo must answer `__turnstile__/1`, export nothing outside the surface it
+  was compiled against, and refuse every query, write, and raw call on a
+  protected schema that carries no decision and no exemption, before any
+  SQL. The repo is started; the protected schema's
   table need not exist.
 
       defmodule MyApp.RepoTest do
@@ -27,9 +27,9 @@ defmodule Turnstile.Conformance.RepoCase do
 
   import ExUnit.Assertions
 
+  alias Turnstile.Change
   alias Turnstile.Conformance.RepoCase
-  alias Turnstile.Repo.Change
-  alias Turnstile.Repo.Surface
+  alias Turnstile.Core.Surface
   alias Turnstile.Schema
   alias Turnstile.Test
 
@@ -47,7 +47,7 @@ defmodule Turnstile.Conformance.RepoCase do
       @turnstile_repo repo
       @turnstile_rows rows
 
-      test "the repo answers __turnstile__/1 and exports only what Turnstile.Repo.Surface classifies" do
+      test "the repo answers __turnstile__/1 and exports only what the surface it was compiled against classifies" do
         RepoCase.assert_surface(@turnstile_repo)
       end
 
@@ -257,7 +257,8 @@ defmodule Turnstile.Conformance.RepoCase do
   end
 
   defp unclassified(repo, name, arity) do
-    "#{inspect(repo)} exports #{name}/#{arity}, which Turnstile.Repo.Surface does not classify; " <>
+    "#{inspect(repo)} exports #{name}/#{arity}, which the surface this build was written against " <>
+      "does not classify; " <>
       "a repo function outside the surface runs unchecked"
   end
 end

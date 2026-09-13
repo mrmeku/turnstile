@@ -1,4 +1,4 @@
-defmodule Turnstile.Repo.FactsTest.Team do
+defmodule Turnstile.FactsTest.Team do
   @moduledoc false
   use Ecto.Schema
   use Turnstile.Schema
@@ -15,7 +15,7 @@ defmodule Turnstile.Repo.FactsTest.Team do
   fact(:label, kind: :object_attribute, object: :id)
 end
 
-defmodule Turnstile.Repo.FactsTest.Board do
+defmodule Turnstile.FactsTest.Board do
   @moduledoc false
   use Ecto.Schema
   use Turnstile.Schema
@@ -30,20 +30,20 @@ defmodule Turnstile.Repo.FactsTest.Board do
   fact(:tags, kind: :object_attribute, object: :id, element: :tag)
 end
 
-defmodule Turnstile.Repo.FactsTest.Seat do
+defmodule Turnstile.FactsTest.Seat do
   @moduledoc false
   use Ecto.Schema
   use Turnstile.Schema
 
   schema "facts_test_seats" do
     field(:user_id, :string)
-    belongs_to(:team, Turnstile.Repo.FactsTest.Team, type: :string)
+    belongs_to(:team, Turnstile.FactsTest.Team, type: :string)
   end
 
   relationship(subject: :user_id, object: :team_id)
 end
 
-defmodule Turnstile.Repo.FactsTest.Grant do
+defmodule Turnstile.FactsTest.Grant do
   @moduledoc false
   use Ecto.Schema
   use Turnstile.Schema
@@ -52,13 +52,13 @@ defmodule Turnstile.Repo.FactsTest.Grant do
     field(:user_id, :string)
     field(:role, :string)
     field(:level, :integer)
-    belongs_to(:team, Turnstile.Repo.FactsTest.Team, type: :string)
+    belongs_to(:team, Turnstile.FactsTest.Team, type: :string)
   end
 
   relationship(subject: :user_id, object: :team_id, attributes: [:role, :level])
 end
 
-defmodule Turnstile.Repo.FactsTest.Untyped do
+defmodule Turnstile.FactsTest.Untyped do
   @moduledoc false
   use Ecto.Schema
   use Turnstile.Schema
@@ -66,25 +66,25 @@ defmodule Turnstile.Repo.FactsTest.Untyped do
   schema "facts_test_untyped" do
     field(:user_id, :string)
     field(:thing_id, :string)
-    belongs_to(:other, Turnstile.Repo.FactsTest.Team, type: :string)
+    belongs_to(:other, Turnstile.FactsTest.Team, type: :string)
   end
 
   relationship(subject: :user_id, object: :thing_id)
 end
 
-defmodule Turnstile.Repo.FactsTest do
+defmodule Turnstile.FactsTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Error
   alias Turnstile.FactEvent
+  alias Turnstile.Facts
+  alias Turnstile.FactsTest.Board
+  alias Turnstile.FactsTest.Grant
+  alias Turnstile.FactsTest.Seat
+  alias Turnstile.FactsTest.Team
+  alias Turnstile.FactsTest.Untyped
   alias Turnstile.Id
   alias Turnstile.Ledger.Fold
-  alias Turnstile.Repo.Facts
-  alias Turnstile.Repo.FactsTest.Board
-  alias Turnstile.Repo.FactsTest.Grant
-  alias Turnstile.Repo.FactsTest.Seat
-  alias Turnstile.Repo.FactsTest.Team
-  alias Turnstile.Repo.FactsTest.Untyped
 
   @stamp %{by: FactEvent.library(), operation_id: Id.new(), at: ~U[2026-09-08 00:00:00Z]}
 

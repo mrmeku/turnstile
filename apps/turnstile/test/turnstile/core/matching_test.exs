@@ -1,20 +1,19 @@
-defmodule Turnstile.Repo.MatchingTest do
+defmodule Turnstile.Core.MatchingTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [from: 2, subquery: 1]
 
+  alias Turnstile.Core.Matching
+  alias Turnstile.Core.Mediation
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.Id
-  alias Turnstile.Repo.Matching
-  alias Turnstile.Repo.Mediation
   alias Turnstile.Test.Fake
-  alias Turnstile.TestRepos.Sandboxed
 
   test "a query from a table name has no root schema and passes without a mediation" do
     query = from(a in "turnstile_fixture_accounts", select: a.id)
-    assert :ok = Matching.judge(query, nil, Sandboxed)
+    assert :ok = Matching.judge(query, nil, caller())
   end
 
   test "a subquery over a subquery is judged down to its root, and a refusal without a mediation names prepare_query" do
@@ -23,7 +22,7 @@ defmodule Turnstile.Repo.MatchingTest do
 
     error =
       assert_raise(Error, fn ->
-        judged = Matching.judge(query, nil, Sandboxed)
+        judged = Matching.judge(query, nil, caller())
         flunk("judged " <> inspect(judged))
       end)
 
@@ -33,13 +32,13 @@ defmodule Turnstile.Repo.MatchingTest do
              "Repo.prepare_query/3 on #{inspect(Folder)} carries no decision and no exemption " <>
                "(from #{inspect(__MODULE__)})"
 
-    assert :ok = Matching.judge(query, mediation(:folder), Sandboxed)
+    assert :ok = Matching.judge(query, mediation(:folder), caller())
   end
 
   test "a join to a subquery is judged, and a subquery over a table name admits nothing" do
     protected = from(a in "turnstile_fixture_accounts", join: f in subquery(from(f in Folder, select: f.id)), on: true)
-    assert_raise Error, ~r/carries no decision/, fn -> Matching.judge(protected, nil, Sandboxed) end
-    assert :ok = Matching.judge(protected, mediation(:folder), Sandboxed)
+    assert_raise Error, ~r/carries no decision/, fn -> Matching.judge(protected, nil, caller()) end
+    assert :ok = Matching.judge(protected, mediation(:folder), caller())
 
     schemaless =
       from(a in "turnstile_fixture_accounts",
@@ -47,7 +46,7 @@ defmodule Turnstile.Repo.MatchingTest do
         on: true
       )
 
-    assert :ok = Matching.judge(schemaless, nil, Sandboxed)
+    assert :ok = Matching.judge(schemaless, nil, caller())
   end
 
   defp mediation(type) do
@@ -66,7 +65,10 @@ defmodule Turnstile.Repo.MatchingTest do
       at: DateTime.utc_now()
     }
 
-    {mediation, _opts} = Mediation.resolve(Sandboxed, {:all, 2}, Folder, turnstile: decision)
-    mediation
+    Mediation.decided({:all, 2}, Folder, decision)
   end
+
+  # The module a refusal names, which the seam reads from the stack and a
+  # test of the rules themselves supplies.
+  defp caller, do: fn -> __MODULE__ end
 end

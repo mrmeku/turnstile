@@ -13,7 +13,7 @@ defmodule Turnstile.Test.LedgerAdapter do
 
   @behaviour Turnstile.Adapter
 
-  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Test.Projection]
+  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Test, Turnstile.Test.Projection]
 
   alias Turnstile.Test.Fake
   alias Turnstile.Test.Projection

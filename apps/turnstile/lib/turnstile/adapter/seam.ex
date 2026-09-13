@@ -1,31 +1,31 @@
-defmodule Turnstile.Repo.Seam do
-  @moduledoc """
-  What every override `use Turnstile.Repo` defines calls. One function per
-  bucket of `Turnstile.Repo.Surface`: `query/5` for the query bucket,
-  `bulk/5` for `update_all` and `delete_all`, `write/5` and `write_all/5`
-  for the write bucket, `raw/4` for raw SQL, and `prepare/4` behind
-  `prepare_query/3`, where every query, including the ones `preload`
-  generates, is judged.
+defmodule Turnstile.Adapter.Seam do
+  # What every override `use Turnstile.Repo` defines calls. One function per
+  # bucket of `Turnstile.Core.Surface`: `query/5` for the query bucket,
+  # `bulk/5` for `update_all` and `delete_all`, `write/5` and `write_all/5`
+  # for the write bucket, `raw/4` for raw SQL, and `prepare/4` behind
+  # `prepare_query/3`, where every query, including the ones `preload`
+  # generates, is judged.
+  #
+  # A write to an audited schema on an application-role repo runs in a
+  # transaction, and the change it made is published inside that transaction
+  # (`Turnstile.Change`). Where a ledger is configured, a write to a
+  # fact schema runs in the same transaction with the row re-read under the
+  # ledger's lock clause and the events appended. The owner-role repo records
+  # nothing: it is the library's own channel.
+  @moduledoc false
 
-  A write to an audited schema on an application-role repo runs in a
-  transaction, and the change it made is published inside that transaction
-  (`Turnstile.Repo.Change`). Where a ledger is configured, a write to a
-  fact schema runs in the same transaction with the row re-read under the
-  ledger's lock clause and the events appended. The owner-role repo records
-  nothing: it is the library's own channel.
-  """
-
+  alias Turnstile.Adapter.Caller
+  alias Turnstile.Adapter.Option
+  alias Turnstile.Change
   alias Turnstile.Config
+  alias Turnstile.Core.Matching
+  alias Turnstile.Core.Mediation
+  alias Turnstile.Core.Source
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.FactEvent
+  alias Turnstile.Facts
   alias Turnstile.Id
-  alias Turnstile.Repo.Caller
-  alias Turnstile.Repo.Change
-  alias Turnstile.Repo.Facts
-  alias Turnstile.Repo.Matching
-  alias Turnstile.Repo.Mediation
-  alias Turnstile.Repo.Source
   alias Turnstile.Schema
 
   @type call :: Mediation.call()
@@ -34,7 +34,7 @@ defmodule Turnstile.Repo.Seam do
   @doc "The query bucket: resolve the option, then wrap the call; the query itself is judged in `prepare/4`."
   @spec query(module(), call(), term(), keyword(), continue()) :: term()
   def query(repo, call, target, opts, continue) when is_atom(repo) and is_list(opts) do
-    {mediation, opts} = Mediation.resolve(repo, call, Source.root(target), opts)
+    {mediation, opts} = Option.resolve(repo, call, Source.root(target), opts)
     around(repo, mediation, Source.to_query(target), fn -> continue.(opts) end)
   end
 
@@ -42,7 +42,7 @@ defmodule Turnstile.Repo.Seam do
   @spec bulk(module(), call(), term(), keyword(), continue()) :: term()
   def bulk(repo, call, queryable, opts, continue) when is_atom(repo) and is_list(opts) do
     root = Source.root(queryable)
-    {mediation, opts} = Mediation.resolve(repo, call, root, opts)
+    {mediation, opts} = Option.resolve(repo, call, root, opts)
     :ok = refuse_bulk(repo, call, root)
     around(repo, mediation, Source.to_query(queryable), fn -> continue.(opts) end)
   end
@@ -52,12 +52,12 @@ defmodule Turnstile.Repo.Seam do
   def write(repo, call, changeset_or_struct, opts, continue) when is_atom(repo) and is_list(opts) do
     changeset = Ecto.Changeset.change(changeset_or_struct)
     schema = changeset.data.__struct__
-    {mediation, opts} = Mediation.resolve(repo, call, schema, opts)
-    :ok = Matching.admit(schema, mediation, repo)
+    {mediation, opts} = Option.resolve(repo, call, schema, opts)
+    :ok = Matching.admit(schema, mediation, caller(repo))
     :ok = refuse_upsert(call, schema, opts)
 
     around(repo, mediation, changeset, fn ->
-      Mediation.with_ambient(mediation, fn -> recorded(repo, call, changeset, mediation, opts, continue) end)
+      Option.with_ambient(mediation, fn -> recorded(repo, call, changeset, mediation, opts, continue) end)
     end)
   end
 
@@ -65,8 +65,8 @@ defmodule Turnstile.Repo.Seam do
   @spec write_all(module(), call(), term(), keyword(), continue()) :: term()
   def write_all(repo, call, source, opts, continue) when is_atom(repo) and is_list(opts) do
     root = Source.root(source)
-    {mediation, opts} = Mediation.resolve(repo, call, root, opts)
-    :ok = Matching.admit(schema_of(root), mediation, repo)
+    {mediation, opts} = Option.resolve(repo, call, root, opts)
+    :ok = Matching.admit(schema_of(root), mediation, caller(repo))
     :ok = refuse_upsert(call, schema_of(root), opts)
     :ok = refuse_bulk(repo, call, root)
     around(repo, mediation, Source.to_query(source), fn -> continue.(opts) end)
@@ -75,7 +75,7 @@ defmodule Turnstile.Repo.Seam do
   @doc "The raw bucket: an exemption or nothing."
   @spec raw(module(), call(), keyword(), continue()) :: term()
   def raw(repo, {name, arity} = call, opts, continue) when is_atom(repo) and is_list(opts) do
-    case Mediation.resolve(repo, call, nil, opts) do
+    case Option.resolve(repo, call, nil, opts) do
       {%Mediation{exemption: %Turnstile.Exemption{}}, opts} ->
         continue.(opts)
 
@@ -92,14 +92,18 @@ defmodule Turnstile.Repo.Seam do
   def prepare(repo, operation, %Ecto.Query{} = query, opts) when is_atom(repo) and is_list(opts) do
     case Keyword.get(opts, :turnstile) do
       %Mediation{} = mediation ->
-        :ok = Matching.judge(query, mediation, repo)
+        :ok = Matching.judge(query, mediation, caller(repo))
         {query, opts}
 
       _other ->
-        :ok = Matching.judge(query, %{Mediation.empty({operation, arity(operation)}) | caller: Caller.module(repo)}, repo)
+        :ok = Matching.judge(query, Mediation.empty({operation, arity(operation)}), caller(repo))
         {query, opts}
     end
   end
+
+  # What a refusal names as the module that made the call, read from the
+  # stack only where there is a refusal to name.
+  defp caller(repo), do: fn -> Caller.module(repo) end
 
   # Calls the adapter's around_query/3 when a decision is in force and the
   # adapter defines it; otherwise runs the call.

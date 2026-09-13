@@ -1,4 +1,4 @@
-defmodule Turnstile.Repo.Facts do
+defmodule Turnstile.Facts do
   @moduledoc """
   The fact events a single-row write produces, read from the schema's
   declarations: one event per changed fact column, one per element added

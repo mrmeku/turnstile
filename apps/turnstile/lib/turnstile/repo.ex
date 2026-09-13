@@ -1,10 +1,10 @@
 defmodule Turnstile.Repo do
   @moduledoc """
   The seam. `use Turnstile.Repo` after `use Ecto.Repo` overrides every
-  function of `Turnstile.Repo.Surface` the repo defines, so each call passes
-  the `turnstile:` option, a `Turnstile.Decision` or an exemption, to
-  `Turnstile.Repo.Seam` before Ecto runs it. A query on a protected schema
-  without the option raises `Turnstile.Error` before any SQL.
+  function of the Ecto surface the repo defines, so each call passes the
+  `turnstile:` option, a `Turnstile.Decision` or an exemption, to the seam
+  before Ecto runs it. A query on a protected schema without the option
+  raises `Turnstile.Error` before any SQL.
 
       defmodule MyApp.Repo do
         use Ecto.Repo, otp_app: :my_app, adapter: Ecto.Adapters.Postgres
@@ -30,17 +30,20 @@ defmodule Turnstile.Repo do
             ]
           )
 
+  @typedoc "One function of the surface a repo was compiled against: its name, its arity, and its bucket."
+  @type entry :: {atom(), non_neg_integer(), :query | :write | :raw | :plumbing}
+
   @doc false
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
       Turnstile.Repo.__check_order__(__MODULE__)
       @turnstile_role Turnstile.Repo.__role__(opts)
-      @turnstile_surface Turnstile.Repo.Surface.all()
-      @before_compile Turnstile.Repo.Overrides
+      @turnstile_surface Turnstile.Core.Surface.all()
+      @before_compile Turnstile.Core.Overrides
 
       @doc "The repo's role in Turnstile, `:app` or `:owner`, and the surface it was compiled against."
       @spec __turnstile__(:role) :: :app | :owner
-      @spec __turnstile__(:surface) :: [Turnstile.Repo.Surface.entry()]
+      @spec __turnstile__(:surface) :: [Turnstile.Repo.entry()]
       def __turnstile__(:role), do: @turnstile_role
       def __turnstile__(:surface), do: @turnstile_surface
     end

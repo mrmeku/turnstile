@@ -7,7 +7,7 @@ defmodule Turnstile.Test.AroundAdapter do
 
   @behaviour Turnstile.Adapter
 
-  use Boundary, top_level?: true, deps: [Turnstile]
+  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Test]
 
   alias Turnstile.Test.Fake
 

@@ -15,8 +15,8 @@ defmodule Example.Siem do
   use GenServer
 
   alias Example.Siem.Ocsf
+  alias Turnstile.Change
   alias Turnstile.Port
-  alias Turnstile.Repo.Change
 
   @schema NimbleOptions.new!(
             name: [type: :any, doc: "A registered name, or none."],
