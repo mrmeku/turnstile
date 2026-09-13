@@ -130,6 +130,7 @@ defmodule Example.Audit.Store do
   alias Example.Audit.Chain
   alias Example.Audit.Record
   alias Example.Documents
+  alias Turnstile.Config
 
   @schema NimbleOptions.new!(
             name: [type: :any, doc: "A registered name, or none."],
@@ -150,7 +151,8 @@ defmodule Example.Audit.Store do
   @doc "Record one payload of a kind; what the telemetry handler does."
   @spec record(GenServer.server(), Record.kind(), String.t() | nil, map()) :: :ok
   def record(store, kind, operation_id, payload) when kind in [:decision, :override] and is_map(payload) do
-    GenServer.cast(store, {:record, kind, operation_id, payload, DateTime.utc_now()})
+    {:ok, config} = Config.resolve()
+    GenServer.cast(store, {:record, kind, operation_id, payload, config.clock.()})
   end
 
   @doc "The records of an operation, oldest first."

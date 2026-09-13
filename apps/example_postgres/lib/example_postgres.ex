@@ -41,19 +41,24 @@ defmodule ExamplePostgres do
   def publish do
     %Catalog{} = catalog = Turnstile.Postgres.load!()
     {:ok, config} = Config.resolve()
-    version = Version.of(Turnstile.Postgres, catalog.policies, published(catalog.version))
+    fields = [at: config.clock.()] ++ published(catalog.version)
+    version = Version.of(Turnstile.Postgres, catalog.policies, fields)
     {:ok, _result} = Version.publish(version, config.ledger)
     {:ok, version}
   end
 
-  @doc "The fields a published version carries beside its policies."
+  @doc """
+  The fields a published version carries beside its policies and the moment
+  it was published at, which the caller supplies: the configured clock from
+  the boot, and the migration's own default where a migration publishes
+  before there is a configuration to read.
+  """
   @spec published(String.t()) :: keyword()
   def published(version) when is_binary(version) do
     [
       version: version,
       author: @author,
       approval: @approval,
-      at: DateTime.utc_now(),
       content_bytes: @content_bytes
     ]
   end

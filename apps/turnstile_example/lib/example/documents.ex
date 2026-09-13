@@ -45,6 +45,7 @@ defmodule Example.Documents do
   alias Example.OverrideReport
   alias Example.Portion
   alias Example.Repo
+  alias Turnstile.Config
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.Facts
@@ -283,7 +284,7 @@ defmodule Example.Documents do
       user_id: user_id,
       justification: justification,
       operation_id: operation_id,
-      at: DateTime.utc_now(:second)
+      at: now()
     })
   end
 
@@ -304,5 +305,13 @@ defmodule Example.Documents do
       %Portion{} = portion -> {:ok, portion}
       nil -> {:error, :not_found}
     end
+  end
+
+  # The clock the configuration names, cut to the second, which is the
+  # precision the moment a request carries is cut to.
+  defp now do
+    {:ok, config} = Config.resolve()
+
+    DateTime.truncate(config.clock.(), :second)
   end
 end
