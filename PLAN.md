@@ -117,9 +117,9 @@ Emitted inside the write transaction, where the change is computed.
 | `kind` | `:user`, `:group`, `:role`, or `:entity`, declared on the schema | The OCSF class |
 | `target` | `{type, id}` of the row that changed | The entity type and identifier |
 | `changes` | a map of field to `{old, new}`, for the fact fields that changed | The attributes before and after |
-| `actor` | `{type, id}` of the subject whose authorization allowed the write | The actor |
-| `actor_kind` | `:user`, `:service`, or `:operator` | Whether the actor is a person or a process |
-| `time` | the database clock at the moment of the write | The event time |
+| `actor` | `{kind, id}` of the subject whose authorization allowed the write, or the library where an exemption carried it | The actor |
+| `actor_kind` | `:user`, `:non_person_entity`, or `:privileged` | Whether the actor is a person or a process |
+| `time` | the configured clock at the moment of the write | The event time |
 | `operation_id` | one identifier shared by every event of one operation | The correlation identifier |
 | `schema` | the Ecto schema module | Context a mapper may need |
 
@@ -129,10 +129,10 @@ Emitted after each decision. A decision is a read, so it has no transaction.
 
 | Field | Value |
 |---|---|
-| `subject`, `subject_kind` | `{type, id}`, and `:user`, `:service`, or `:operator` |
+| `subject`, `subject_kind` | `{kind, id}`, and `:user`, `:non_person_entity`, or `:privileged` |
 | `operation` | the operation that was asked about |
 | `object` | `{type, id}`, or the query for a narrowing call |
-| `verdict` | `:allow` or `:deny` |
+| `verdict` | `:allow`, `:deny`, or `:scoped` |
 | `reason` | an atom |
 | `decider`, `version` | the module, and its policy version string |
 | `duration` | microseconds |
@@ -251,7 +251,7 @@ Each step is one merge, and `mix quality` passes at the end of each.
 2. **Split `turnstile_dev`.** Done. The package holds the two launchers and nothing else, and the four suites that raise a server take it as a test-only dependency, so no published package carries `muontrap`. The cluster and the sandbox setup stayed published for the reason §1 gives. The population moved into the test tree behind `Turnstile.Conformance.World`. Nothing changed semantically, and the published dependency list shrank. Step 3 adds `StructureTest` to this package.
 3. **One module to a file.** Done. `Turnstile.Facts.Context`, the six adapter conformance modules, and the two controllers moved to the paths their names give; the conformance modules left `priv/conformance` for their packages' `test/support`, and what an engine reads as text stayed behind. `StructureTest` in `turnstile_dev` carries the rule §2 states and nothing else, over every package's `lib` and `test/support`. One file is named as its exception, for the reason §2 gives.
 4. **Collapse the surface.** Done for the values §3 states. A subject and an object are `{kind, id}` and `{type, id}` tuples, `%Turnstile.Answer{verdict, reason, version, meta}` is the one result with `meta` the decider's own, `%Turnstile.Error{reason, detail}` is the one exception with nine reasons, the environment is a map the port stamps `now` into, and the clock is the zero-arity function the configuration names, which the applications read a recorded moment from as well. `Subject`, `Object`, `Reason`, `Explanation`, `Scope`, `Environment`, and the five exception modules are deleted. The type deletions of §8 that remain are the ones the ledger and the seam record with, and each goes with the thing that records it, in step 5.
-5. **Emit the change event.** One event for each write, inside the transaction, from the changeset, with the payload of §4. Add the kind declaration to `use Turnstile.Schema`. Refuse bulk writes on audited schemas. Delete the audit store, and make `Example.Siem` a handler that maps to OCSF. Assert E1 to E4 in `RepoCase`. History goes here, and with it the types step 4 left: `Decision`, `Edge`, `Id`, `PolicyVersion`, and `Exemption` each go with the ledger row, the record, or the seam path that carried them.
+5. **Emit the change event.** One event for each write, inside the transaction, from the changeset, with the payload of §4. Add the kind declaration to `use Turnstile.Schema`. Refuse bulk writes on audited schemas. Delete the audit store, and make `Example.Siem` a handler that maps to OCSF. Assert E1 to E4 in `RepoCase`. The fact-writing API over that store goes with it, and so do the types step 4 left: `Decision`, `Edge`, `Id`, `PolicyVersion`, and `Exemption` each go with the ledger row, the record, or the seam path that carried them. What stays is what still has a reader: the ledger behaviour, its fold, `FactEvent`, and the `turnstile_ledger` package, which the FGA projection drains and each adapter records its policy version in. Those go in step 10, where the projection takes its markers from the relay instead and the version publishing keeps its telemetry branch alone.
 6. **Rename the packages and place the contract.** `turnstile_core` becomes `turnstile`, and `turnstile_example` becomes `example`. Move its modules into `core/` and `adapter/`, write the boundary declarations, extend `StructureTest` with the effect rule, and write the classifier property.
 7. **`turnstile_rbac`.** Place its modules, write its declarations, and remove its rescue clause. It is the smallest decider, so it proves the pattern.
 8. **`turnstile_postgres` and `turnstile_cerbos`.** Place, declare, remove the rescue and the test-kit dependency, and write the Cerbos codec property.
@@ -261,7 +261,7 @@ Each step is one merge, and `mix quality` passes at the end of each.
 12. **The thin applications.** Place, change configuration and migrations, and replace the capability declarations with test tags.
 13. **Close.** Change the documents of §12, record this plan as a decision record, and delete Parts 2 and 3.
 
-Steps 1 to 5 change behaviour and the surface. Steps 6 to 12 move code without changing behaviour. Keeping that line makes each review tractable.
+Steps 1 to 5 change behaviour and the surface, and so do steps 9 and 10, which build the relay and move the projection onto it. Steps 6 to 8, 11, and 12 move code without changing behaviour. Keeping that line makes each review tractable.
 
 ## §12 Documents
 
