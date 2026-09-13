@@ -3,10 +3,14 @@ defmodule ExampleFga.Capabilities do
   What this binding declares about each rule. One rule is limited, and the
   rest are native with the component that enforces them named.
 
-  Three of the rules the graph carries better than anything else does: the
-  implied controls of a specified category (C3) and a portion's controls (C4)
-  are inherited by walking rather than copied, and separation of duties (C9)
-  is the approver of the office less the proposer. What the graph does not
+  Two of the rules the graph carries better than anything else does: the
+  implied controls of a specified category (C3) are inherited by walking
+  rather than copied, and separation of duties (C9) is the approver of the
+  office less the proposer. A portion's control flags inherit the same way,
+  through `from portion`, but the banner (C4) is the domain's at write time
+  under every binding, because the countries REL TO releases to are the ones
+  every portion releases to and a graph unions where that asks for an
+  intersection. What the graph does not
   carry is the size of a listing: `ListObjects` answers up to a cap, so a
   scope above it is a filter per page rather than a rule over identifiers,
   which is what the limited level records.
@@ -19,6 +23,9 @@ defmodule ExampleFga.Capabilities do
   @behaviour Turnstile.Capabilities
 
   @impl Turnstile.Capabilities
+  def capability(:c4),
+    do: {:native, by: :application, note: "the banner is kept at write time; the control flags inherit from the portion"}
+
   def capability(:c7), do: {:native, by: :seam, note: "the write is refused by the seam before the model is asked"}
 
   def capability(:c8),

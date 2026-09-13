@@ -10,7 +10,7 @@ defmodule ExampleRbac.Capabilities do
   @behaviour Turnstile.Capabilities
 
   @impl Turnstile.Capabilities
-  def capability(:c4), do: {:native, by: :application, note: "the union of the portions is enforced at write time"}
+  def capability(:c4), do: {:native, by: :application, note: "the banner over the portions is kept at write time"}
   def capability(:c7), do: {:native, by: :seam, note: "the write is refused without a decision for the operation"}
   def capability(:c8), do: {:native, by: :adapter, note: "the predicate reads reauthenticated_at from the environment"}
   def capability(:c10), do: {:native, by: :application, note: "permission, justification, event, and report in code"}
