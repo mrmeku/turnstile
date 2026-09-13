@@ -2,8 +2,8 @@ defmodule Turnstile.Fga.Version do
   @moduledoc """
   The policy version of this adapter: the id the server gives a model when it
   is published. A model is immutable and the server keeps it, so an id names
-  one text for as long as the store lives, and a decision taken under that id
-  is replayed under it.
+  one text for as long as the store lives, and a decision names that id as
+  the version it was taken under.
 
   The content is the model text the binding names, carried by value when it
   is under the cap and left as a pointer to the file above it, and the content

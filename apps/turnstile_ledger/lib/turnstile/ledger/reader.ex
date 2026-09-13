@@ -3,7 +3,7 @@ defmodule Turnstile.Ledger.Reader do
   Reading a ledger from one end to the other. A ledger answers at most as
   many events as the reader asked for, so a reader pages: the next page
   starts at the position the last one ended on, and the last page is the one
-  that comes back short. Replay and reconcile both read this way.
+  that comes back short. The projector and reconcile both read this way.
   """
 
   use Boundary, top_level?: true, deps: [Turnstile]

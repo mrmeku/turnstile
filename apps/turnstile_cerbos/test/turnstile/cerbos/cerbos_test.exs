@@ -5,7 +5,6 @@ defmodule Turnstile.CerbosTest do
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Conformance.Attributes
   alias Turnstile.Cerbos.Sidecar
-  alias Turnstile.Cerbos.Version
   alias Turnstile.Dev
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
@@ -89,7 +88,7 @@ resourcePolicy:
   end
 
   test "a policy that reads a request-time fact is answered from the moment the request carries" do
-    sidecar = Sidecar.replayed!(Version.to_text([{"folder.yaml", @window}]))
+    sidecar = Sidecar.over!([{"folder.yaml", @window}])
     :ok = Binding.override(repo: Sandboxed, attributes: Window, policies: sidecar.policies, commit: "window")
     now = ~U[2026-09-09 12:00:00Z]
     options = [address: sidecar.address]

@@ -14,8 +14,7 @@ defmodule Turnstile.Postgres.Conformance.Rules do
   The owner role reads the protected tables while no operation is in force,
   which is the exemption the seam leaves behind for it. Forcing row-level
   security applies the policies to the table's owner too, so without that
-  policy the role that owns the tables could not copy their rows out, and a
-  replay is a copy of the rows into a database of its own.
+  policy the role that owns the tables could not read their rows at all.
 
   The migration number is the policy version every decision over the
   fixture names, and the application role is granted `SELECT` on the

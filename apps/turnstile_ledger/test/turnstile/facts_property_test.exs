@@ -9,7 +9,6 @@ defmodule Turnstile.FactsPropertyTest do
   alias Turnstile.Fixture.Membership
   alias Turnstile.Ledger
   alias Turnstile.Ledger.Reconcile
-  alias Turnstile.Ledger.Replay
   alias Turnstile.Ledger.TestRepos
   alias Turnstile.Ledger.TestSupport.Boot
   alias Turnstile.Ledger.TestSupport.Population
@@ -25,8 +24,7 @@ defmodule Turnstile.FactsPropertyTest do
     {:ok, Keyword.merge(context, accounts: accounts, folders: folders)}
   end
 
-  property "the fold of what the bulk API wrote is what the tables hold, and a replay to the head is that fold",
-           context do
+  property "the fold of what the bulk API wrote is what the tables hold, at the head and at a time", context do
     check all(steps <- list_of(step(context), min_length: 1, max_length: 6), max_runs: 15) do
       Enum.each(steps, &apply_step/1)
 
@@ -34,13 +32,8 @@ defmodule Turnstile.FactsPropertyTest do
       assert folded.facts == Reconcile.facts(options(), @schemas)
 
       {:ok, head} = Ledger.Ecto.head(options())
-      assert {:ok, replay} = Replay.to({Ledger.Ecto, options()}, head)
-      assert replay.fold.facts == folded.facts
-      assert replay.position == head
-      assert Replay.positioned?(replay) == head > 0
-
-      assert {:ok, at} = Replay.at({Ledger.Ecto, options()}, DateTime.utc_now())
-      assert at.fold.facts == folded.facts
+      assert folded.position == head
+      assert Ledger.Fold.at(events(), DateTime.utc_now()).facts == folded.facts
     end
   end
 

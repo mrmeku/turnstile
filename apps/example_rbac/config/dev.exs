@@ -12,12 +12,3 @@ for {repo, role} <- [{Example.Repo, "turnstile_app"}, {Example.OwnerRepo, "turns
     database: "turnstile_dev",
     pool_size: 2
 end
-
-# A review of a past date is the fold of a ledger, so the development boot
-# names one: without it `mix turnstile.review --at` has nothing to fold and
-# says so rather than answering for today.
-config :example_rbac, ledger: {Turnstile.Ledger.Ecto, repo: Example.Repo, owner_repo: Example.OwnerRepo}
-
-# The review task prints a table, and a query log line per row of it would
-# bury the table. Ecto logs a query at debug, so development keeps info.
-config :logger, level: :info

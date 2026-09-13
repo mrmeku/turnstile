@@ -7,10 +7,9 @@ defmodule Turnstile.Ledger.Fold do
   attribute and its value is the row's attributes, so an event that
   changes one attribute of a relationship updates that fact: the value
   itself for a single attribute, one entry of the map for several. A
-  published policy version states no fact and changes none of them; the fold
-  passes over it and `Turnstile.Ledger.Replay` reads it on its own. The fold
-  remembers the last position and time it applied, so a replay can say
-  what state it reproduced.
+  published policy version states no fact and changes none of them, so the
+  fold passes over it. The fold remembers the last position and time it
+  applied, so a reader can say what state it folded to.
   """
 
   alias Turnstile.FactEvent
@@ -66,8 +65,7 @@ defmodule Turnstile.Ledger.Fold do
   end
 
   # A published version is the ledger's fourth kind of event and states no
-  # fact: `Turnstile.Ledger.Replay` reads it beside the fold, and a fold that
-  # kept it would report a fact no table holds.
+  # fact, and a fold that kept it would report a fact no table holds.
   defp apply_facts(facts, %FactEvent{kind: :policy_version}), do: facts
 
   defp apply_facts(facts, %FactEvent{attribute: nil} = event), do: apply_value(facts, event)

@@ -10,7 +10,7 @@ defmodule ExampleCerbos.CoverageTest do
   declarations named inside it, and sets each field reference against the
   declarations of the schema it belongs to. A column no declaration covers
   fails the case with the column's name, because a decision that depended on
-  it would replay from a ledger that never recorded it.
+  it would rest on a fact no record of a change covers.
   """
 
   use ExUnit.Case, async: true

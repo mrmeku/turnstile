@@ -5,8 +5,7 @@ defmodule Turnstile.Ledger.Genesis do
   Without it the ledger would describe a system that began empty, and a fold
   of it would lack every grant made before the table existed; with it the
   fold at the head is the tables, which is what reconcile compares and what
-  replay depends on. Replay before genesis is not available by construction,
-  and position zero is what says so.
+  the projector drains from.
 
   Genesis runs once, from the migration that creates the events table, and
   refuses to run twice. Its events share one `operation_id`, the sentence

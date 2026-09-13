@@ -37,12 +37,10 @@ defmodule ExampleRbac.MixProject do
   defp elixirc_paths(_env), do: ["lib"]
 
   # What the library's tasks read: the repo whose migrations produce the
-  # committed schema file, and the module that answers the review. The
-  # repo's own config lives under its otp_app.
+  # committed schema file. The repo's own config lives under its otp_app.
   defp turnstile do
     [
-      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/rbac.sql"],
-      review: [reporter: Example.Review]
+      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/rbac.sql"]
     ]
   end
 

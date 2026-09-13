@@ -77,14 +77,15 @@ every decision carries is that id and no configuration states it. What decides
 whether a boot publishes anything is the digest of the text: a text whose
 digest the ledger's latest version already carries needs no second model, and
 a text that changed by a character needs one. A published version carries the
-text as its content under the cap, which is what makes a replay a store of its
-own on a throwaway server rather than a checkout.
+text as its content under the cap, so the text a decision was made under is
+recorded beside its id.
 
 Two things follow. A rule change reaches every question at once, because a
 question moves to another model by being asked under another id rather than by
 waiting for anything to propagate. And an id belongs to the store that issued
-it, so the id a replay comes back with is not the id the decision named; what
-the two share is the text, and the version event carries its digest.
+it, so the same text published to a second store comes back with an id of its
+own; what the two share is the text, and the version event carries its
+digest.
 
 ## Running the suite
 

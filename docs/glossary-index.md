@@ -16,7 +16,7 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Check | A Credo check | `docs/code.md` §5 |
 | Position | A ledger position: the index of a fact event, taken from the counter row | `apps/turnstile_ledger/glossary.md` |
 | Position | The head position and the applied position a decision carries | `apps/turnstile_core/glossary.md` |
-| Review | `mix turnstile.review` and the port's `review`: who can do what on a date | `apps/turnstile_core/glossary.md` |
+| Review | The port's `review`: who can do what today | `apps/turnstile_core/glossary.md` |
 | Review | Access review, the AC-2 activity the scenarios `rvw-01` and `rvw-04` cover | `docs/reference.md` §1 |
 | Record | An audit record, the AU-3 shape | `apps/turnstile_core/glossary.md` |
 | Record | A capability record: a rule's level with the enforcing component and a note | `apps/turnstile_core/glossary.md` |
@@ -36,10 +36,7 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Table | The fake adapter's rule table, an `Agent` per test | `apps/turnstile_core/glossary.md` |
 | Table | A Postgres table, protected by the seam or truncated between committed tests | `docs/reference.md` §6, `docs/testing.md` §3 |
 | Fold | `Turnstile.Ledger.Fold`: the facts a list of events leaves | `apps/turnstile_core/glossary.md` |
-| Fold | The fold-then-replay property of Tier 1 | `docs/testing.md` §6 |
-| Replay | Folding a ledger to a date or a position, and the state, policy version, and position a recorded decision is asked again under | `apps/turnstile_ledger/glossary.md` |
-| Replay | The scratch database that state and those policies are put back in | `apps/turnstile_postgres/glossary.md` |
-| Replay | A policy version written into a throwaway sidecar's directory, and the decision asked again there | `apps/turnstile_cerbos/glossary.md` |
+| Fold | The fold-then-state property of Tier 1 | `docs/testing.md` §6 |
 | Catalog | The bound tables' policies, the columns they reference, and the policy version, as the database reports them | `apps/turnstile_postgres/glossary.md` |
 | Catalog | The database's own catalog, read for a foreign key that would delete or blank a fact with no event to say so | `apps/turnstile_ledger/glossary.md` |
 | Rule | A protected schema's clauses built for one subject and operation, as one `dynamic` | `apps/turnstile_rbac/glossary.md` |

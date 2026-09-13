@@ -24,5 +24,4 @@ The words `turnstile_cerbos` owns. A word with a second meaning elsewhere is lis
 | Line | One question and answer out of that file: who asked, the operation, the object, the verdict, and the attributes as they were sent |
 | Reconciliation | Reading the decision log and the port's records of the same window and reporting every difference between them |
 | Finding | One difference: a logged decision no record matches, a record no line carries, or a pair that agree on the question and disagree on the answer |
-| Replay | A policy version written into a directory of its own for a sidecar the caller raised and throws away, and a stored decision asked again under it from the attributes the record carries |
 | Coverage | The walk of the compiled query, subqueries included, that fails on a column no declaration names |

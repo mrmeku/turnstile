@@ -33,7 +33,7 @@ defmodule Turnstile.Conformance.AdapterCase do
     the committed cases truncate tables every module shares.
   - `ledger:` `:memory` (default: a `Turnstile.Ledger.Memory` per test),
     `:none`, or `{module, options}`. The record-then-erase and
-    fold-then-replay properties need a ledger and are not defined under
+    fold-then-state properties need a ledger and are not defined under
     `:none`.
   - `seed:` a `Turnstile.Conformance.Seed` module, called after every
     population the template writes. Omit it for an adapter that reads the
@@ -189,7 +189,7 @@ defmodule Turnstile.Conformance.AdapterCase do
   end
 
   defp ledger_properties(:none), do: []
-  defp ledger_properties(_ledger), do: [record_then_erase(), fold_then_replay()]
+  defp ledger_properties(_ledger), do: [record_then_erase(), fold_then_state()]
 
   defp record_then_erase do
     quote do
@@ -207,11 +207,11 @@ defmodule Turnstile.Conformance.AdapterCase do
     end
   end
 
-  defp fold_then_replay do
+  defp fold_then_state do
     quote do
-      property "fold-then-replay: the fold equals the state and the fold at t equals the state at t", context do
+      property "fold-then-state: the fold equals the state and the fold at t equals the state at t", context do
         check all(world <- Gen.world(@conformance_world), steps <- Gen.steps(world), max_runs: 25) do
-          Laws.fold_then_replay(context, world, steps)
+          Laws.fold_then_state(context, world, steps)
         end
       end
     end

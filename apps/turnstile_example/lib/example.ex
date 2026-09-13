@@ -12,8 +12,6 @@ defmodule Example do
     deps: [
       Turnstile,
       Turnstile.Facts,
-      Turnstile.Ledger.Replay,
-      Turnstile.Ledger.Review,
       Ecto,
       Ecto.Adapters.Postgres,
       Ecto.Adapters.SQL,

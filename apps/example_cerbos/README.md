@@ -70,8 +70,8 @@ another. So the version identifier every decision names is the commit of the
 repository the files come from, which arrives as configuration:
 `POLICY_COMMIT` in a deployment, a pinned string in the test configuration.
 A published version carries the files as its content when they are under the
-cap, which is what makes a replay a directory and a throwaway sidecar rather
-than a checkout.
+cap, so the policy text a decision was made under is recorded beside its
+commit.
 
 ## Running the suite
 

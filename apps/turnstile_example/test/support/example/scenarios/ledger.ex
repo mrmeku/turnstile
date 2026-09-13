@@ -19,7 +19,6 @@ defmodule Example.Scenarios.Ledger do
       Turnstile.Ledger.Reader,
       Turnstile.Ledger.Reconcile,
       Turnstile.Ledger.Reconcile.Scheduler,
-      Turnstile.Ledger.Replay,
       Turnstile.Test
     ]
 
@@ -33,7 +32,6 @@ defmodule Example.Scenarios.Ledger do
   alias Example.Fixture
   alias Example.Program
   alias Example.Repo
-  alias Example.Review
   alias Turnstile.FactEvent
   alias Turnstile.Facts
   alias Turnstile.Id
@@ -41,7 +39,6 @@ defmodule Example.Scenarios.Ledger do
   alias Turnstile.Ledger.Reader
   alias Turnstile.Ledger.Reconcile
   alias Turnstile.Ledger.Reconcile.Scheduler
-  alias Turnstile.Ledger.Replay
   alias Turnstile.PolicyVersion
   alias Turnstile.Projection.Drift
 
@@ -131,48 +128,6 @@ defmodule Example.Scenarios.Ledger do
     assert events() == recorded
   end
 
-  @spec rvw_02() :: term()
-  def rvw_02 do
-    world = Fixture.world!()
-    document = Fixture.document!(world)
-
-    settle()
-    assert document.id in reads_of("ann", world.agency)
-    assignments = Reconcile.facts(options(), [Assignment])
-    at = DateTime.utc_now()
-
-    assert 1 = Accounts.unassign("ann", world.program.id)
-
-    settle()
-    refute document.id in reads_of("ann", world.agency)
-    refute Map.has_key?(Reconcile.facts(options(), [Assignment]), membership("ann", world.program))
-    assert_folds_to(at, assignments)
-    assert_reviews_as_folded(at)
-  end
-
-  @spec rvw_03(module()) :: term()
-  def rvw_03(rules) do
-    world = Fixture.world!()
-    document = Fixture.document!(world)
-    operation_id = Id.new()
-
-    settle()
-    assert_read(subject("ann"), document, operation_id: operation_id)
-
-    assert {:ok, decision} =
-             Turnstile.authorize(subject("ann"), :read, Documents.object(document.id), operation_id: operation_id)
-
-    grant = membership("ann", world.program)
-    replay = assert_replays(decision, grant)
-
-    assert 1 = Accounts.unassign("ann", world.program.id)
-    again = assert_replays(decision, grant)
-    assert again.fold.facts == replay.fold.facts
-
-    settle()
-    assert_reproduces(rules, again, decision, document)
-  end
-
   @spec rvw_04() :: term()
   def rvw_04 do
     world = Fixture.world!()
@@ -246,49 +201,6 @@ defmodule Example.Scenarios.Ledger do
     assert {record.min_position, record.max_position} == {hd(written).position, List.last(written).position}
   end
 
-  # The rows the reporter answers for a past date, against the grants the
-  # fold holds there: the review of a date is the fold stopped at it.
-  defp assert_reviews_as_folded(at) do
-    date = DateTime.to_date(at)
-    assert {:ok, replay} = Replay.at(ledger(), DateTime.new!(date, ~T[23:59:59.999999]))
-    rows = Review.rows(at: date)
-    assert rows != []
-    assert Enum.map(rows, &{&1.subject, &1.object, &1.operation}) == Enum.sort(granted(replay))
-  end
-
-  defp granted(replay) do
-    for {{{:user, id}, {type, object_id}, nil}, role} <- replay.fold.facts, role, do: {id, "#{type}:#{object_id}", role}
-  end
-
-  # The fold of the ledger as it stood at that moment, over the facts the
-  # tables held then.
-  defp assert_folds_to(at, facts) do
-    assert {:ok, replay} = Replay.at(ledger(), at)
-    assert Replay.positioned?(replay)
-    assert Map.take(replay.fold.facts, Map.keys(facts)) == facts
-  end
-
-  # The ledger as it stood when the decision was made, which holds the grant
-  # the decision rested on and the version it was made under, however the
-  # tables have moved since.
-  defp assert_replays(decision, grant) do
-    assert {:ok, replay} = Replay.to(ledger(), decision.applied_position, adapter: adapter())
-    assert Replay.positioned?(replay)
-    assert replay.fold.facts[grant] == :member
-    assert replay.policy_version.version == decision.policy_version
-    replay
-  end
-
-  # The verdict the record holds, asked again with the state and the
-  # policies the replay names in force: the same answer, whatever the tables
-  # hold now. What putting those two back costs is the binding's, and
-  # `Example.Scenarios.Rules` is where a test asks for it.
-  defp assert_reproduces(rules, replay, decision, document) do
-    assert decision.verdict == :allow
-    refute reads?(subject("ann"), document)
-    assert rules.replay(replay, fn -> reads?(subject("ann"), document) end)
-  end
-
   defp assert_attributed(%PolicyVersion{author: author, approval: approval}) do
     assert is_binary(author) and author != ""
     assert is_binary(approval) and approval != ""
@@ -302,9 +214,6 @@ defmodule Example.Scenarios.Ledger do
     assert [decision] = decisions(operation_id)
     decision.version
   end
-
-  # The readers of one account, as the review reports them.
-  defp reads_of(account, agency), do: Review.readers(subject("eve"), agency, fresh())[subject(account)]
 
   # An INSERT that never passes the seam, through the owner-role repo: what
   # a patch applied by hand looks like to the ledger.

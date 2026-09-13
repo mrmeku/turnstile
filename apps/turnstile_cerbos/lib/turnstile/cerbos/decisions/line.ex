@@ -4,9 +4,8 @@ defmodule Turnstile.Cerbos.Decisions.Line do
   file of JSON objects, one per line, and a line is an edge, so this module
   is where it becomes a struct.
 
-  A line about resources carries the attributes as they were sent, and the
-  roles the principal was sent with, which is what makes a replay possible
-  without the state behind them, and one answer per resource and action, so
+  A line about resources carries the attributes as they were sent, the
+  roles the principal was sent with, and one answer per resource and action, so
   one line becomes as many of these as it holds answers. A line about a query plan carries no resource id: it
   answers for the object type, and its verdict is that the type was scoped,
   or denied where the plan admits no row.

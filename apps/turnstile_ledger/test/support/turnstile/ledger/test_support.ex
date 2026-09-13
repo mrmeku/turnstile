@@ -2,8 +2,8 @@ defmodule Turnstile.Ledger.TestSupport do
   @moduledoc """
   What the ledger's own suite needs beside its repos and its migrations: the
   ledger tuples the tests configure, the fixture population the shape tests
-  write, a dialect whose write returns no rows, the reporter the review task
-  runs, and the truncation a committed test ends with.
+  write, a dialect whose write returns no rows, and the truncation a
+  committed test ends with.
   """
 
   use Boundary,
@@ -16,11 +16,10 @@ defmodule Turnstile.Ledger.TestSupport do
       Turnstile.Fixture,
       Turnstile.Ledger.Dialect,
       Turnstile.Ledger.Ecto,
-      Turnstile.Ledger.Review,
       Turnstile.Test,
       Turnstile.Test.Sandbox
     ],
-    exports: [Boot, Committed, Dialect, Golden, Measure, Population, Review, Shape]
+    exports: [Boot, Committed, Dialect, Golden, Measure, Population, Shape]
 end
 
 defmodule Turnstile.Ledger.TestSupport.Boot do
@@ -163,28 +162,6 @@ defmodule Turnstile.Ledger.TestSupport.Population do
   @doc "The account id for a number, in the form the population uses."
   @spec id(pos_integer()) :: String.t()
   def id(number) when is_integer(number), do: "account-" <> String.pad_leading(Integer.to_string(number), 5, "0")
-end
-
-defmodule Turnstile.Ledger.TestSupport.Review do
-  @moduledoc """
-  The reporter `mix turnstile.review` runs in this package's own test: two
-  subjects and what they may do, fixed, because the table's shape is what the
-  task is being held to here. A thin application's reporter asks the port.
-  """
-
-  @behaviour Turnstile.Ledger.Review
-
-  alias Turnstile.Ledger.Review.Row
-
-  @impl Turnstile.Ledger.Review
-  def rows(options) do
-    [
-      %Row{subject: "account-00001", kind: :user, operation: :read, object: "folder:1", note: "reader"},
-      %Row{subject: "account-00002", kind: :privileged, operation: :edit, object: "folder:1", note: note(options)}
-    ]
-  end
-
-  defp note(options), do: if(options[:at], do: "as of #{options[:at]}", else: "editor")
 end
 
 defmodule Turnstile.Ledger.TestSupport.Shape do

@@ -34,9 +34,8 @@ defmodule Turnstile.Ledger.MixProject do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]
 
-  # The schema-dump and review tasks read this key from the thin app that runs
-  # them. The ledger's own test run points them at a test repo, its
-  # migrations, and a reporter that reviews the neutral fixture.
+  # The schema-dump task reads this key from the thin app that runs it. The
+  # ledger's own test run points it at a test repo and its migrations.
   defp turnstile(:test) do
     [
       schema_dump: [
@@ -46,8 +45,7 @@ defmodule Turnstile.Ledger.MixProject do
           {1, Turnstile.Ledger.TestMigrations.Counter},
           {2, Turnstile.Ledger.TestMigrations.Events}
         ]
-      ],
-      review: [reporter: Turnstile.Ledger.TestSupport.Review]
+      ]
     ]
   end
 

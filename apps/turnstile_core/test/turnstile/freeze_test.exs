@@ -76,7 +76,7 @@ defmodule Turnstile.FreezeTest do
                Enum.map(1..3, &"sod-#{pad(&1)}") ++
                Enum.map(1..7, &"rev-#{pad(&1)}") ++
                Enum.map(1..8, &"aud-#{pad(&1)}") ++
-               Enum.map(1..4, &"rvw-#{pad(&1)}") ++
+               ["rvw-01", "rvw-04"] ++
                Enum.map(1..3, &"ia-#{pad(&1)}") ++
                Enum.map(1..3, &"ovr-#{pad(&1)}") ++
                Enum.map(1..3, &"cm-#{pad(&1)}")

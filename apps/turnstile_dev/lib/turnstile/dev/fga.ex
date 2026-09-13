@@ -12,10 +12,8 @@ defmodule Turnstile.Dev.Fga do
   second call returns the first server.
 
   `start_supervised!/1` is a server of one test's own, through `ExUnit`'s
-  supervisor, for a test that replays a stored decision: a replay writes the
-  tuples of a past state into a store and asks under the model in force then,
-  and the tuples are the past rather than the present, so they belong to a
-  server the test throws away. It stops when the test ends.
+  supervisor, for a test whose tuples belong to no other test: it stops when
+  that test ends and takes them with it.
 
   Both listen on free ports of the loopback interface and wait for the health
   endpoint to answer before returning, so a caller that gets a struct back has

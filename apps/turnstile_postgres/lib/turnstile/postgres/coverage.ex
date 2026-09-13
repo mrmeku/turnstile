@@ -14,8 +14,8 @@ defmodule Turnstile.Postgres.Coverage do
   carry in turn.
 
   A policy that reads a column no declaration names fails with that
-  column's name, because a decision that depended on it would replay from a
-  ledger that never recorded it. A policy that reads a table no bound
+  column's name, because a decision that depended on it would rest on a
+  fact no record of a change covers. A policy that reads a table no bound
   schema names fails as `{:table, name}`, for the same reason.
   """
 

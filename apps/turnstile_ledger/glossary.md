@@ -4,7 +4,7 @@ The words `turnstile_ledger` owns.
 
 | Term | Meaning |
 |---|---|
-| Event / ledger / fold / replay | An immutable record of a change / an append-only list of them / reducing them to state / folding to a date or a position, with the policy version in force there, so a recorded decision can be asked again |
+| Event / ledger / fold | An immutable record of a change / an append-only list of them / reducing them to the state they leave, whole, up to a position, or at a time |
 | Transactional outbox | A record committed in the same transaction as the write it describes and read afterwards by consumers from the same database; the ledger's shape, never emptied |
 | Ledger position / head / applied position | The index in the ledger / the counter row's committed value / the position an adapter's state has applied |
 | Counter row | The locked row every fact-writing transaction takes positions from; `default` in production, one row per test in the sandbox |
@@ -18,6 +18,5 @@ The words `turnstile_ledger` owns.
 | Append-only grant | What the events migration grants the application role: insert an event and read one, and no way to change or remove one |
 | Catalog check / cascade | Reading the database catalog for a foreign key into a fact schema's table with `ON DELETE CASCADE` or `ON DELETE SET NULL`, which would delete or blank a fact with no event to say so / such a key, refused |
 | Drift / reconcile | Facts changed outside the seam / checking the tables against the ledger on an interval |
-| Point-in-time review | A review of a date the ledger covers, as against a review of today |
 | Dialect | The behaviour behind the ledger's database-dependent mechanisms; Postgres ships |
 | Schema dump | `pg_dump --schema-only` of the schema an application's migrations produce, committed under `priv/schema/` and diffed in CI |

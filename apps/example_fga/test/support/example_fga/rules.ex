@@ -2,8 +2,8 @@ defmodule ExampleFga.Rules do
   @moduledoc """
   What the scenarios need from this binding: a store of each test's own, a
   tightened model published for the calling process, the boot model pinned
-  again, the boot model published into a ledger a committed test has emptied,
-  and a question asked again under a version and a state a replay names.
+  again, and the boot model published into a ledger a committed test has
+  emptied.
 
   The store is per test because it is the engine's own copy of the facts: two
   tests writing tuples into one store would read each other's, whatever the
@@ -22,13 +22,6 @@ defmodule ExampleFga.Rules do
   type and every relation of the boot model, since the tuples in the store
   were written against it and a write after the change is validated against
   the latest model there is.
-
-  A replay is the heavier one. The state is a copy loaded into a server of the
-  test's own with the in-memory datastore: the ledger is folded to the
-  position the decision names, the mapping turns that fold into tuples, and
-  the model of the version is published into a store nothing else reads.
-  Nothing of the application's tables reaches that answer, so a scenario needs
-  no rows put back.
   """
 
   @behaviour Example.Scenarios.Rules
@@ -41,7 +34,6 @@ defmodule ExampleFga.Rules do
       ExampleFga.Tightened,
       Turnstile,
       Turnstile.Fga,
-      Turnstile.Ledger.Replay,
       Turnstile.Test
     ]
 
@@ -49,13 +41,11 @@ defmodule ExampleFga.Rules do
   alias ExampleFga.Tightened
   alias Turnstile.Config
   alias Turnstile.Dev
-  alias Turnstile.Error
   alias Turnstile.FactEvent
   alias Turnstile.Fga
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Client.Http
   alias Turnstile.Fga.Model
-  alias Turnstile.Ledger.Replay
   alias Turnstile.PolicyVersion
   alias Turnstile.Test
 
@@ -91,15 +81,6 @@ defmodule ExampleFga.Rules do
     boot(model)
   end
 
-  @impl Rules
-  def replay(%Replay{} = replay, fun) when is_function(fun, 0) do
-    server = Dev.Fga.start_supervised!([])
-    {:ok, loaded} = Fga.Replay.build(build(server, replay))
-    entry = [endpoint: server.address, store_id: loaded.store, model_id: loaded.model]
-
-    Test.with_config([adapter: {Fga, entry}], fun)
-  end
-
   # A committed test publishes the boot model itself, through `publish_boot/0`,
   # and pins what that answers. A sandboxed test has the store write the model
   # of the boot text, because the ledger's boot event already carries its
@@ -109,31 +90,6 @@ defmodule ExampleFga.Rules do
   defp stored(server, store, _sandboxed) do
     {:ok, model} = Http.write_model(server.address, store, Model.read!(ExampleFga.model()))
     boot(model)
-  end
-
-  defp build(server, %Replay{} = replay) do
-    [
-      client: Http,
-      endpoint: server.address,
-      model: text(replay),
-      mapping: ExampleFga.TupleMapping,
-      ledger: ledger(),
-      to: replay.position
-    ]
-  end
-
-  # The model text of the version, which the event carries by value under the
-  # cap. Above it the event names the file instead, and getting that text back
-  # is a checkout of the commit the file was at.
-  defp text(%Replay{policy_version: %PolicyVersion{content: content}}) when is_binary(content), do: content
-
-  defp text(%Replay{policy_version: %PolicyVersion{} = version}) do
-    raise %Error{
-      reason: :unsupported,
-      detail:
-        "Turnstile.Fga cannot replay version #{version.version}, which carries #{version.pointer} " <>
-          "rather than its text"
-    }
   end
 
   # The model every question of this test is asked under, kept beside the
@@ -158,12 +114,6 @@ defmodule ExampleFga.Rules do
     {:ok, config} = Config.resolve()
 
     Config.adapter(config)
-  end
-
-  defp ledger do
-    {:ok, config} = Config.resolve()
-
-    config.ledger
   end
 
   defp name, do: "example-fga-#{System.unique_integer([:positive])}"

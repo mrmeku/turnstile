@@ -40,7 +40,7 @@ The words `turnstile_core` owns. A word with a second meaning elsewhere is liste
 | The line | Opinionated below the port; above it the database is reached only through the ledger behaviour and `around_query/3`, checked at compile time |
 | Declaration / scenario / capability | What an adapter or thin app states about itself / a cited test / a rule's level with the enforcing component |
 | Tier 1 / Tier 2 | Port guarantees over a neutral fixture / CUI scenarios per thin app |
-| `review` | Who can do what, today or on a date |
+| `review` | Who can do what today |
 | Configuration override | The keyword list `Turnstile.Test.with_config/1,2` puts in a process's dictionary, read by the resolver from the caller and its `$callers` chain over the boot struct |
 | Counter name | The `ledger_counter` field of the configuration: which row of `turnstile_ledger_counter` a transaction takes positions from; `default` in production, a per-test row in the sandbox |
 | Answer / `meta` | What a decider says about one question: a verdict, a reason in one word, the version of the rules, and `meta` / the decider's own map beside the reason, where what only one decider can say travels |

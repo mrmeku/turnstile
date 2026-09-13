@@ -7,7 +7,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   `Turnstile.Conformance.World` through the struct, and a law that needs a
   fixed one asks the module the template was given. Every writer of a
   population calls `tick/0` first, so the stubbed clock moves forward
-  through a test and a replay at a time has one state to reproduce.
+  through a test and the fold at a time has one state to answer with.
   """
 
   import Ecto.Query, only: [where: 2]
@@ -125,8 +125,8 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   end
 
   @doc "After a sequence of changes, the fold of the ledger equals the tables, and the fold at each time equals the state then."
-  @spec fold_then_replay(context(), World.t(), [World.step()]) :: :ok
-  def fold_then_replay(%{repo: repo} = context, world, steps) do
+  @spec fold_then_state(context(), World.t(), [World.step()]) :: :ok
+  def fold_then_state(%{repo: repo} = context, world, steps) do
     module = World.module(world)
     populate(context, world)
     snapshots = snapshots(module, repo, world, steps)

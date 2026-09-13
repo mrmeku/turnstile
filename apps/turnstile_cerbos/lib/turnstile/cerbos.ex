@@ -44,7 +44,6 @@ defmodule Turnstile.Cerbos do
       Finding,
       Plan,
       Propagation,
-      Replay,
       Request,
       Values,
       Version

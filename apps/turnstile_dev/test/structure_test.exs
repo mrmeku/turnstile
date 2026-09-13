@@ -9,8 +9,8 @@ defmodule StructureTest do
   compiler is given. A path names a module when the module's name,
   underscored, is the path under its root without its extension, with the
   Mix convention for a task file: the dots in the last segment stand for the
-  dots in the name, so `lib/mix/tasks/turnstile.review.ex` names
-  `Mix.Tasks.Turnstile.Review`.
+  dots in the name, so `lib/mix/tasks/turnstile.schema_dump.ex` names
+  `Mix.Tasks.Turnstile.SchemaDump`.
 
   The test reads the syntax tree rather than the compiled modules, so it
   starts nothing and depends on nothing it reads.

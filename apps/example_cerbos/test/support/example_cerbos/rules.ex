@@ -6,15 +6,6 @@ defmodule ExampleCerbos.Rules do
   Publishing writes the file, overrides the commit, and appends the version;
   restoring puts the file back and waits for the sidecar to be serving the
   boot rules again, since the scenario asks its next question with no poll.
-
-  A replay is the same fact from the other side: the version's policy files
-  are its content, so getting them back means writing them into a directory
-  of their own and raising a sidecar on it, which the run's own sidecar
-  cannot be, because a sidecar reads one directory and the run's is
-  answering other questions from its own. The state comes back inside a
-  transaction that rolls back, which puts the relationships of the fold in
-  the tables for the length of the question and leaves them as the question
-  found them.
   """
 
   @behaviour Example.Scenarios.Rules
@@ -23,18 +14,14 @@ defmodule ExampleCerbos.Rules do
     top_level?: true,
     deps: [
       Example,
-      Example.Fixture,
       Example.Scenarios,
       Example.Scenarios.Support,
       ExampleCerbos.Tightened,
       Turnstile,
       Turnstile.Cerbos,
-      Turnstile.Ledger.Replay,
       Turnstile.Test
     ]
 
-  alias Example.Fixture
-  alias Example.Repo
   alias Example.Scenarios.Rules
   alias Example.Scenarios.Support
   alias ExampleCerbos.Tightened
@@ -44,9 +31,6 @@ defmodule ExampleCerbos.Rules do
   alias Turnstile.Cerbos.Request
   alias Turnstile.Cerbos.Version
   alias Turnstile.Config
-  alias Turnstile.Dev
-  alias Turnstile.Error
-  alias Turnstile.Ledger.Replay
   alias Turnstile.Test
 
   @swapped {__MODULE__, :swapped}
@@ -85,55 +69,6 @@ defmodule ExampleCerbos.Rules do
   def publish_boot do
     {:ok, _published} = Turnstile.Cerbos.publish()
     :ok
-  end
-
-  @impl Rules
-  def replay(%Replay{} = replay, fun) when is_function(fun, 0) do
-    dir = Path.join([File.cwd!(), "tmp", "replay-" <> suffix()])
-    directory = Path.join(dir, "policies")
-    :ok = Turnstile.Cerbos.Replay.build!(to: directory, policies: policies!(replay))
-    sidecar = Dev.Cerbos.start_supervised!(policies: directory, dir: dir)
-    overrides = [policies: sidecar.policies, commit: replay.policy_version.version]
-
-    Test.with_config([adapter: {Turnstile.Cerbos, address: sidecar.address}], fn ->
-      bound(overrides, replay, fun)
-    end)
-  end
-
-  # The question asked of the sidecar that reads the version's own policy
-  # files, under the binding that names them.
-  defp bound(overrides, replay, fun) do
-    Binding.override(overrides, fn -> rolled_back(fn -> asked(replay, fun) end) end)
-  end
-
-  # The relationships of the fold in the tables, the question asked, and the
-  # tables left as they were.
-  defp asked(%Replay{} = replay, fun) do
-    :ok = Fixture.restore!(replay.fold)
-    fun.()
-  end
-
-  defp rolled_back(fun) do
-    {:error, {:replayed, answer}} = Repo.transaction(fn -> Repo.rollback({:replayed, fun.()}) end)
-    answer
-  end
-
-  # The policy files of the version by value. A version above the content cap
-  # carries a pointer to the directory and the commit instead, and reading
-  # those back is a checkout of that commit.
-  defp policies!(%Replay{policy_version: version}) do
-    case version do
-      %{content: text} when is_binary(text) ->
-        text
-
-      %{version: commit, pointer: pointer} ->
-        raise %Error{
-          reason: :unsupported,
-          detail:
-            "Turnstile.Cerbos cannot replay version #{commit}, which carries #{pointer} rather than its " <>
-              "policies: start a sidecar on that directory"
-        }
-    end
   end
 
   # Nothing tells a sidecar that its directory changed and nothing answers
@@ -185,6 +120,4 @@ defmodule ExampleCerbos.Rules do
       }
     }
   end
-
-  defp suffix, do: Base.url_encode64(:crypto.strong_rand_bytes(8), padding: false)
 end

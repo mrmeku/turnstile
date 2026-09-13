@@ -32,8 +32,7 @@ defmodule Turnstile.Fga do
   - `Turnstile.Fga.Guard`, a precondition on the environment a binding may
     name, which every callback consults before it asks, for a fact about the
     call that no tuple should carry.
-  - `Turnstile.Fga.Version`, the model published as a policy version, and
-    `Turnstile.Fga.Replay`, a past state in a server that is thrown away.
+  - `Turnstile.Fga.Version`, the model published as a policy version.
   - `Turnstile.Fga.Migration`, the checkpoint table, which a thin
     application's migration creates.
 
@@ -67,7 +66,6 @@ defmodule Turnstile.Fga do
       Model,
       Projector,
       Projector.Scheduler,
-      Replay,
       TupleKey,
       TupleMapping,
       Version

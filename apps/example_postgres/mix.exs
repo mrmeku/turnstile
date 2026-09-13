@@ -37,12 +37,10 @@ defmodule ExamplePostgres.MixProject do
   defp elixirc_paths(_env), do: ["lib"]
 
   # What the library's tasks read: the repo whose migrations produce the
-  # committed schema file, which for this binding carries the policies, and
-  # the module that answers the review.
+  # committed schema file, which for this binding carries the policies.
   defp turnstile do
     [
-      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/postgres.sql"],
-      review: [reporter: Example.Review]
+      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/postgres.sql"]
     ]
   end
 

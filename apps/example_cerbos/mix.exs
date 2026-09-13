@@ -38,11 +38,10 @@ defmodule ExampleCerbos.MixProject do
   defp elixirc_paths(_env), do: ["lib"]
 
   # What the library's tasks read: the repo whose migrations produce the
-  # committed schema file, and the module that answers the review.
+  # committed schema file.
   defp turnstile do
     [
-      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/cerbos.sql"],
-      review: [reporter: Example.Review]
+      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/cerbos.sql"]
     ]
   end
 

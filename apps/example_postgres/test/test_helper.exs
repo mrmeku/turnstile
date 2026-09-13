@@ -1,9 +1,8 @@
 alias Ecto.Adapters.SQL.Sandbox
 
 # The migrations, loaded once: the cluster migrates each of its databases,
-# and loading the files per database would redefine their modules. A replay
-# raises a database of its own and migrates it too, so the list is put where
-# a test can read it rather than loaded again there.
+# and loading the files per database would redefine their modules, so the
+# list is put where a test can read it rather than loaded again there.
 migrations =
   for file <- Enum.sort(Path.wildcard("priv/repo/migrations/*.exs")) do
     [{module, _binary}] = Code.require_file(file)
