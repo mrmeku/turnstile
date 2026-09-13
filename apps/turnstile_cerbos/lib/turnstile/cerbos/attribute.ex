@@ -42,6 +42,9 @@ defmodule Turnstile.Cerbos.Attribute do
   @typedoc "Where an attribute's value comes from."
   @type source :: {:column, atom()} | {:subquery, (Turnstile.subject() -> Ecto.Queryable.t())}
 
+  @typedoc "The attribute values of one row, by the name the declarations gave."
+  @type values :: %{atom() => term()}
+
   @type t :: %__MODULE__{name: atom(), source: source()}
 
   @doc "The attribute name the request-time facts travel under, which no declaration may take."

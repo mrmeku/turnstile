@@ -14,6 +14,11 @@ defmodule Turnstile.Cerbos.Adapter.Values do
   # Each value crosses to JSON through the codec, which is the same encoding
   # a plan compiled from the same policy compares a column against.
   #
+  # A repo that raises is left to raise. The port turns any exception a
+  # decider raises into the engine error that denies, so this package names
+  # no driver's error, and a driver it does not carry needs no clause of its
+  # own.
+  #
   # The request-time facts go with the subject's own attributes, under the
   # name `Turnstile.Cerbos.Attribute.reserved/0`, and `environment/2` builds
   # them: the moment the port stamped the request with, always, and each fact
@@ -32,12 +37,9 @@ defmodule Turnstile.Cerbos.Adapter.Values do
 
   @exemption {:exempt, :library}
 
-  @typedoc "The attributes of one row, by the name the declarations gave."
-  @type attributes :: %{atom() => term()}
-
   @doc "The subject's own attributes, from the declarations of its kind, with the request-time facts beside them."
   @spec principal(Binding.t(), Turnstile.subject(), Turnstile.environment()) ::
-          {:ok, attributes()} | {:error, String.t()}
+          {:ok, Attribute.values()} | {:error, String.t()}
   def principal(%Binding{} = binding, {kind, id} = subject, %{now: _now} = request) do
     with {:ok, by_id} <- of(binding, subject, kind, [id]) do
       own = Map.fetch!(by_id, to_string(id))
@@ -46,7 +48,7 @@ defmodule Turnstile.Cerbos.Adapter.Values do
   end
 
   @doc "The request-time facts: the moment the port stamped the request with, and each declared fact."
-  @spec environment(Binding.t(), Turnstile.environment()) :: attributes()
+  @spec environment(Binding.t(), Turnstile.environment()) :: Attribute.values()
   def environment(%Binding{attributes: attributes}, %{now: _now} = request) do
     declared = Map.new(Attributes.facts(attributes), &{&1, Codec.moment(Map.get(request, &1))})
     Map.put(declared, :now, Codec.moment(request.now))
@@ -54,7 +56,7 @@ defmodule Turnstile.Cerbos.Adapter.Values do
 
   @doc "The attributes of each object of one type, by the object's id as text."
   @spec resources(Binding.t(), Turnstile.subject(), atom(), [Turnstile.object()]) ::
-          {:ok, %{String.t() => attributes()}} | {:error, String.t()}
+          {:ok, %{String.t() => Attribute.values()}} | {:error, String.t()}
   def resources(%Binding{} = binding, {_kind, _account} = subject, kind, objects)
       when is_atom(kind) and is_list(objects) do
     of(binding, subject, kind, Enum.map(objects, &elem(&1, 1)))
@@ -62,12 +64,12 @@ defmodule Turnstile.Cerbos.Adapter.Values do
 
   @doc "The attributes of the ids of one kind, every declared name present."
   @spec of(Binding.t(), Turnstile.subject(), atom(), [term()]) ::
-          {:ok, %{String.t() => attributes()}} | {:error, String.t()}
+          {:ok, %{String.t() => Attribute.values()}} | {:error, String.t()}
   def of(%Binding{} = binding, {_kind, _account} = subject, kind, ids) when is_atom(kind) and is_list(ids) do
     declared = Attributes.attributes_of(binding.attributes, kind)
 
-    with {:ok, from_columns} <- columns(binding, kind, ids, declared),
-         {:ok, from_subqueries} <- subqueries(binding, subject, ids, declared) do
+    with {:ok, from_columns} <- columns(binding, kind, ids, declared) do
+      from_subqueries = subqueries(binding, subject, ids, declared)
       absent = absent(declared)
       {:ok, Map.new(ids, &{to_string(&1), found(absent, from_columns, from_subqueries, to_string(&1))})}
     end
@@ -105,10 +107,9 @@ defmodule Turnstile.Cerbos.Adapter.Values do
   defp selected(repo, schema, key, ids, attributes) do
     names = Enum.map(attributes, fn %Attribute{source: {:column, column}} -> column end)
     query = from(row in schema, where: field(row, ^key) in ^ids, select: {field(row, ^key), map(row, ^names)})
+    rows = all(repo, query)
 
-    with {:ok, rows} <- all(repo, query) do
-      {:ok, Map.new(rows, fn {id, values} -> {to_string(id), named(attributes, values)} end)}
-    end
+    {:ok, Map.new(rows, fn {id, values} -> {to_string(id), named(attributes, values)} end)}
   end
 
   defp named(attributes, values) do
@@ -118,17 +119,14 @@ defmodule Turnstile.Cerbos.Adapter.Values do
   defp subqueries(binding, subject, ids, declared) do
     declared
     |> Enum.reject(&Attribute.column?/1)
-    |> Enum.reduce_while({:ok, %{}}, fn attribute, {:ok, acc} ->
-      collected(read_subquery(binding, subject, ids, attribute), attribute.name, acc)
+    |> Enum.reduce(%{}, fn attribute, acc ->
+      gathered(acc, attribute.name, read_subquery(binding, subject, ids, attribute))
     end)
   end
 
   defp read_subquery(binding, subject, ids, %Attribute{source: {:subquery, fun}}) do
     all(binding.repo, from(row in subquery(fun.(subject)), where: row.id in ^ids, select: {row.id, row.value}))
   end
-
-  defp collected({:ok, rows}, name, acc), do: {:cont, {:ok, gathered(acc, name, rows)}}
-  defp collected({:error, detail}, _name, _acc), do: {:halt, {:error, detail}}
 
   # The values of one attribute, gathered per row into the list the row's
   # other attributes are already in.
@@ -140,11 +138,5 @@ defmodule Turnstile.Cerbos.Adapter.Values do
     end)
   end
 
-  # A read is an edge: a connection that is gone and a value the query
-  # cannot cast are failures the caller turns into a denial, not a raise.
-  defp all(repo, query) do
-    {:ok, repo.all(query, turnstile: @exemption)}
-  rescue
-    error in [DBConnection.ConnectionError, Postgrex.Error, Ecto.Query.CastError] -> {:error, Exception.message(error)}
-  end
+  defp all(repo, query), do: repo.all(query, turnstile: @exemption)
 end

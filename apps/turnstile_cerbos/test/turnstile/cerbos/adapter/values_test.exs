@@ -128,8 +128,7 @@ defmodule Turnstile.Cerbos.ValuesTest do
              {:error, "the declarations name no schema with one primary key for pair"}
   end
 
-  test "a value the query cannot cast is a failure the caller turns into a denial", ctx do
-    assert {:error, detail} = Values.of(ctx.binding, ctx.ann, :folder, ["not an identifier"])
-    assert detail =~ "not an identifier"
+  test "a value the query cannot cast is left to raise, for the port to turn into a denial", ctx do
+    assert_raise Ecto.Query.CastError, fn -> Values.of(ctx.binding, ctx.ann, :folder, ["not an identifier"]) end
   end
 end
