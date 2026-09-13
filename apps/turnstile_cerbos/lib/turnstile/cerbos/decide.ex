@@ -31,7 +31,6 @@ defmodule Turnstile.Cerbos.Decide do
   alias Turnstile.Cerbos.Values
   alias Turnstile.Environment
   alias Turnstile.Explanation
-  alias Turnstile.Object
   alias Turnstile.Reason
   alias Turnstile.Scope
   alias Turnstile.Subject
@@ -43,18 +42,18 @@ defmodule Turnstile.Cerbos.Decide do
   def fallback_event, do: @fallback
 
   @doc "The explanation for one object: its answer and the policy the sidecar matched."
-  @spec one(Binding.t(), Client.address(), Subject.t(), atom(), Object.t(), Environment.t()) ::
+  @spec one(Binding.t(), Client.address(), Subject.t(), atom(), Turnstile.object(), Environment.t()) ::
           {:ok, Explanation.t()} | {:error, String.t()}
-  def one(%Binding{} = binding, address, %Subject{} = subject, operation, %Object{} = object, %Environment{} = request)
+  def one(%Binding{} = binding, address, %Subject{} = subject, operation, {_type, _id} = object, %Environment{} = request)
       when is_binary(address) and is_atom(operation) do
     with {:ok, explained} <- explained(binding, address, subject, operation, [object], request) do
-      {:ok, Map.fetch!(explained, Object.ref(object))}
+      {:ok, Map.fetch!(explained, object)}
     end
   end
 
   @doc "The answers for a list of objects, one per object reference."
-  @spec many(Binding.t(), Client.address(), Subject.t(), atom(), [Object.t()], Environment.t()) ::
-          {:ok, %{Object.ref() => Answer.t()}} | {:error, String.t()}
+  @spec many(Binding.t(), Client.address(), Subject.t(), atom(), [Turnstile.object()], Environment.t()) ::
+          {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
   def many(%Binding{} = binding, address, %Subject{} = subject, operation, objects, %Environment{} = request)
       when is_binary(address) and is_atom(operation) and is_list(objects) do
     with {:ok, explained} <- explained(binding, address, subject, operation, objects, request) do
@@ -121,7 +120,7 @@ defmodule Turnstile.Cerbos.Decide do
          body = Request.check(subject, operation, principal, paired),
          {:ok, answered} <- Client.check_resources(address, body),
          {:ok, effects} <- effects(answered, operation) do
-      {:ok, Map.new(objects, &{Object.ref(&1), explanation(binding, Map.get(effects, key(&1)))})}
+      {:ok, Map.new(objects, &{&1, explanation(binding, Map.get(effects, key(&1)))})}
     end
   end
 
@@ -129,14 +128,14 @@ defmodule Turnstile.Cerbos.Decide do
   defp paired(binding, subject, objects) do
     step = fn {kind, of_kind}, {:ok, acc} -> gathered(binding, subject, kind, of_kind, acc) end
 
-    with {:ok, by_object} <- Enum.reduce_while(Enum.group_by(objects, & &1.type), {:ok, %{}}, step) do
+    with {:ok, by_object} <- Enum.reduce_while(Enum.group_by(objects, &elem(&1, 0)), {:ok, %{}}, step) do
       {:ok, Enum.map(objects, &{&1, Map.fetch!(by_object, key(&1))})}
     end
   end
 
   defp gathered(binding, subject, kind, objects, acc) do
     case Values.resources(binding, subject, kind, objects) do
-      {:ok, by_id} -> {:cont, {:ok, Map.merge(acc, Map.new(objects, &{key(&1), Map.get(by_id, to_string(&1.id), %{})}))}}
+      {:ok, by_id} -> {:cont, {:ok, Map.merge(acc, Map.new(objects, &{key(&1), values(by_id, &1)}))}}
       {:error, detail} -> {:halt, {:error, detail}}
     end
   end
@@ -156,7 +155,9 @@ defmodule Turnstile.Cerbos.Decide do
 
   defp effect(result, action), do: result["actions"][action]
 
-  defp key(%Object{type: type, id: id}), do: {Atom.to_string(type), to_string(id)}
+  defp values(by_id, {_type, id}), do: Map.get(by_id, to_string(id), %{})
+
+  defp key({type, id}), do: {Atom.to_string(type), to_string(id)}
 
   defp explanation(binding, {"EFFECT_ALLOW", policy}) do
     %Explanation{answer: allowed(binding, policy), matched: List.wrap(policy)}

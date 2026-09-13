@@ -30,7 +30,6 @@ defmodule Turnstile.Cerbos.Replay do
   alias Turnstile.Cerbos.Version
   alias Turnstile.Decision
   alias Turnstile.Error
-  alias Turnstile.Object
 
   @schema NimbleOptions.new!(
             to: [
@@ -79,9 +78,7 @@ defmodule Turnstile.Cerbos.Replay do
   @spec ask(Client.address(), Decision.t(), map(), map()) :: {:ok, Answer.t()} | {:error, Error.Engine.t()}
   def ask(address, %Decision{} = decision, principal, resource)
       when is_binary(address) and is_map(principal) and is_map(resource) do
-    {type, id} = decision.object
-    object = %Object{type: type, id: id}
-    body = Request.check(decision.subject, decision.operation, principal, [{object, resource}])
+    body = Request.check(decision.subject, decision.operation, principal, [{decision.object, resource}])
     asked(address, body, Atom.to_string(decision.operation), decision.policy_version)
   end
 

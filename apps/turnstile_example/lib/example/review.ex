@@ -37,7 +37,6 @@ defmodule Example.Review do
   alias Turnstile.Error
   alias Turnstile.Ledger.Replay
   alias Turnstile.Ledger.Review.Row
-  alias Turnstile.Object
   alias Turnstile.Subject
 
   @review {:exempt, "access review: the population the reviewer ranges over"}
@@ -226,7 +225,7 @@ defmodule Example.Review do
 
     query
     |> Repo.all(turnstile: @review)
-    |> Enum.map(&%Object{type: :document, id: &1})
+    |> Enum.map(&{:document, &1})
   end
 
   defp ids(refs) when is_list(refs) do

@@ -7,13 +7,12 @@ defmodule Turnstile.Adapter.FakeTest do
   alias Turnstile.Answer
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Object
   alias Turnstile.Reason
   alias Turnstile.Scope
   alias Turnstile.Subject
 
   @subject %Subject{id: "11111111-1111-1111-1111-111111111111", kind: :user}
-  @object %Object{type: :thing, id: "22222222-2222-2222-2222-222222222222"}
+  @object {:thing, "22222222-2222-2222-2222-222222222222"}
   @environment %Environment{now: ~U[2026-09-08 00:00:00Z]}
 
   test "it denies by default with a deny-by-default reason and the fake policy version" do
@@ -29,11 +28,11 @@ defmodule Turnstile.Adapter.FakeTest do
              Fake.check(@subject, :read, @object, @environment, verdict: :allow)
   end
 
-  test "batch answers every object by its ref" do
-    other = %Object{type: :thing, id: "33333333-3333-3333-3333-333333333333"}
+  test "batch answers every object by its reference" do
+    other = {:thing, "33333333-3333-3333-3333-333333333333"}
     assert {:ok, answers} = Fake.batch(@subject, :read, [@object, other], @environment, verdict: :allow)
-    assert Enum.sort(Map.keys(answers)) == Enum.sort([Object.ref(@object), Object.ref(other)])
-    assert Enum.all?(answers, fn {_ref, %Answer{verdict: verdict}} -> verdict == :allow end)
+    assert Enum.sort(Map.keys(answers)) == Enum.sort([@object, other])
+    assert Enum.all?(answers, fn {_object, %Answer{verdict: verdict}} -> verdict == :allow end)
   end
 
   test "scope returns a real dynamic that composes into a query" do
@@ -69,13 +68,12 @@ defmodule Turnstile.Adapter.FakeTableTest do
   alias Turnstile.Answer
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Object
   alias Turnstile.Scope
   alias Turnstile.Subject
 
   @user %Subject{id: "acct-a", kind: :user}
   @other %Subject{id: "acct-b", kind: :user}
-  @folder %Object{type: :folder, id: 1}
+  @folder {:folder, 1}
   @environment %Environment{now: ~U[2026-09-08 00:00:00Z]}
 
   setup do
@@ -88,7 +86,7 @@ defmodule Turnstile.Adapter.FakeTableTest do
     assert {:ok, %Answer{verdict: :allow}} = Fake.check(@user, :read, @folder, @environment, options)
     assert {:ok, %Answer{verdict: :deny}} = Fake.check(@user, :edit, @folder, @environment, options)
     assert {:ok, %Answer{verdict: :deny}} = Fake.check(@other, :read, @folder, @environment, options)
-    assert {:ok, %Answer{verdict: :deny}} = Fake.authorize(@user, :read, %{@folder | id: 2}, @environment, options)
+    assert {:ok, %Answer{verdict: :deny}} = Fake.authorize(@user, :read, {:folder, 2}, @environment, options)
     assert Fake.entries(rules) == [{"acct-a", :read, {:folder, 1}}]
     :ok = Fake.revoke(rules, "acct-a", :read, {:folder, 1})
     assert Fake.entries(rules) == []
@@ -99,7 +97,7 @@ defmodule Turnstile.Adapter.FakeTableTest do
     :ok = Fake.allow(rules, :any, :read, {:folder, 1})
     :ok = Fake.allow(rules, "acct-b", :edit, {:folder, :any})
     assert {:ok, %Answer{verdict: :allow}} = Fake.check(@other, :read, @folder, @environment, options)
-    assert {:ok, %Answer{verdict: :allow}} = Fake.check(@other, :edit, %{@folder | id: 9}, @environment, options)
+    assert {:ok, %Answer{verdict: :allow}} = Fake.check(@other, :edit, {:folder, 9}, @environment, options)
     assert {:ok, %Answer{verdict: :deny}} = Fake.check(@user, :edit, @folder, @environment, options)
   end
 

@@ -7,7 +7,7 @@ defmodule Turnstile.Error.NotAuthorized do
   @type t :: %__MODULE__{
           subject: Turnstile.Subject.t(),
           operation: atom(),
-          object: Turnstile.Object.ref() | atom(),
+          object: Turnstile.object() | atom(),
           reason: Turnstile.Reason.t()
         }
 

@@ -5,7 +5,6 @@ defmodule Turnstile.PortTest do
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.Explanation
-  alias Turnstile.Object
   alias Turnstile.Port
   alias Turnstile.Subject
 
@@ -93,8 +92,8 @@ defmodule Turnstile.PortTest do
   @user %Subject{id: "acct-a", kind: :user}
   @service %Subject{id: "svc-a", kind: :non_person_entity}
   @robot %Subject{id: "r2", kind: :robot}
-  @folder %Object{type: :folder, id: 1}
-  @other %Object{type: :folder, id: 2}
+  @folder {:folder, 1}
+  @other {:folder, 2}
 
   setup do
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})
@@ -164,7 +163,7 @@ defmodule Turnstile.PortTest do
 
   test "ids past the batch cap become a count and a hash" do
     :ok = Turnstile.Test.with_config(caps: [batch_ids: 2])
-    objects = for id <- 1..3, do: %Object{type: :folder, id: id}
+    objects = for id <- 1..3, do: {:folder, id}
     assert map_size(Port.batch(@user, :read, objects, [])) == 3
     assert_received {[:turnstile, :user, :stop], _ref, _measurements, %{ids: %{count: 3, sha256: hash}}}
     assert String.length(hash) == 64

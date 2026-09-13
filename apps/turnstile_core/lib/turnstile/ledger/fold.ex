@@ -19,7 +19,7 @@ defmodule Turnstile.Ledger.Fold do
   defstruct facts: %{}, position: 0, at: nil
 
   @typedoc "A fact's key: who, about what, which attribute; `nil` attribute for a relationship's existence."
-  @type key :: {Turnstile.Object.ref() | nil, Turnstile.Object.ref() | nil, atom() | nil}
+  @type key :: {Turnstile.object() | nil, Turnstile.object() | nil, atom() | nil}
 
   @type t :: %__MODULE__{facts: %{key() => term()}, position: non_neg_integer(), at: DateTime.t() | nil}
 

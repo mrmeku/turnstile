@@ -11,14 +11,13 @@ defmodule Turnstile.Cerbos.Request do
 
   alias Turnstile.Cerbos.Values
   alias Turnstile.Id
-  alias Turnstile.Object
   alias Turnstile.Subject
 
   @doc """
   A decision for one operation over objects, each with the attribute values
   read for it: the body of `POST /api/check/resources`.
   """
-  @spec check(Subject.t(), atom(), Values.attributes(), [{Object.t(), Values.attributes()}]) :: map()
+  @spec check(Subject.t(), atom(), Values.attributes(), [{Turnstile.object(), Values.attributes()}]) :: map()
   def check(%Subject{} = subject, operation, principal, objects)
       when is_atom(operation) and is_map(principal) and is_list(objects) do
     %{
@@ -57,7 +56,7 @@ defmodule Turnstile.Cerbos.Request do
     %{id: to_string(id), roles: [Atom.to_string(kind)], attr: attributes}
   end
 
-  defp resource(%Object{type: type, id: id}, operation, attributes) do
+  defp resource({type, id}, operation, attributes) do
     %{
       resource: %{kind: Atom.to_string(type), id: to_string(id), attr: attributes},
       actions: [Atom.to_string(operation)]

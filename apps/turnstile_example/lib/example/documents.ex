@@ -49,7 +49,6 @@ defmodule Example.Documents do
   alias Turnstile.Error
   alias Turnstile.Facts
   alias Turnstile.Facts.Record
-  alias Turnstile.Object
   alias Turnstile.Subject
 
   @banner {:exempt, "banner invariant: the portions' markings are read to derive the banner"}
@@ -230,12 +229,12 @@ defmodule Example.Documents do
   end
 
   @doc "The object reference for a document id."
-  @spec object(integer()) :: Object.t()
-  def object(id) when is_integer(id), do: %Object{type: :document, id: id}
+  @spec object(integer()) :: Turnstile.object()
+  def object(id) when is_integer(id), do: {:document, id}
 
   @doc "The object reference for a row of a type."
-  @spec object(atom(), integer()) :: Object.t()
-  def object(type, id) when is_atom(type) and is_integer(id), do: %Object{type: type, id: id}
+  @spec object(atom(), integer()) :: Turnstile.object()
+  def object(type, id) when is_atom(type) and is_integer(id), do: {type, id}
 
   defp refused(subject, operation, %Decision{reason: reason}) do
     %Error.NotAuthorized{subject: subject, operation: operation, object: :document, reason: reason}

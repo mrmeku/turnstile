@@ -48,7 +48,6 @@ defmodule Turnstile.Code do
   alias Turnstile.Error
   alias Turnstile.Explanation
   alias Turnstile.FactEvent
-  alias Turnstile.Object
   alias Turnstile.Scope
   alias Turnstile.Subject
 
@@ -63,7 +62,7 @@ defmodule Turnstile.Code do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, _options)
+  def authorize(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, _options)
       when is_atom(operation) do
     with {:ok, %Binding{} = binding} <- bound(:authorize),
          {:ok, %Explanation{answer: answer}} <-
@@ -73,7 +72,7 @@ defmodule Turnstile.Code do
   end
 
   @impl Turnstile.Adapter
-  def check(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
+  def check(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     authorize(subject, operation, object, environment, options)
   end
@@ -95,7 +94,7 @@ defmodule Turnstile.Code do
   end
 
   @impl Turnstile.Adapter
-  def explain(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, _options)
+  def explain(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, _options)
       when is_atom(operation) do
     with {:ok, %Binding{} = binding} <- bound(:explain) do
       named(Decide.one(binding, subject, operation, object, environment), :explain)

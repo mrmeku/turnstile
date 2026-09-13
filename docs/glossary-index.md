@@ -67,7 +67,7 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Override | The audited privileged read of C10 | `apps/turnstile_example/glossary.md` |
 | Override | `Turnstile.Code.Binding.override/1,2`, a per-process binding for tests | `apps/turnstile_rbac/glossary.md` |
 | Check | The OpenFGA request that answers one question about one tuple | `apps/turnstile_fga/glossary.md` |
-| Object | What a decision is about: the thing a subject asks to act on | `apps/turnstile_core/glossary.md` |
+| Object | What a decision is about, as a `{type, id}` tuple: the thing a subject asks to act on | `apps/turnstile_core/glossary.md` |
 | Object | An OpenFGA object: the type and the id joined by a colon, which is the unit a store pages reads by | `apps/turnstile_fga/glossary.md` |
 | Projector | The process that drains an adapter's state toward the ledger | `apps/turnstile_core/glossary.md` |
 | Projector | The `Turnstile.Projection` implementation that keeps an OpenFGA store current | `apps/turnstile_fga/glossary.md` |

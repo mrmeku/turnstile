@@ -17,7 +17,6 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.Ledger.Fold
-  alias Turnstile.Object
   alias Turnstile.Projection.Drain
   alias Turnstile.Projection.Drift
   alias Turnstile.Schema
@@ -60,7 +59,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   def seed(%{case: %{seed: seed}}, world), do: seed.seed(world)
 
   @doc "The adapter answers `check` as the world's rule does."
-  @spec rule_agreement(context(), World.t(), Subject.t(), atom(), Object.t()) :: true
+  @spec rule_agreement(context(), World.t(), Subject.t(), atom(), Turnstile.object()) :: true
   def rule_agreement(context, world, subject, operation, object) do
     populate(context, world)
     assert Turnstile.check(subject, operation, object) == World.module(world).allowed?(world, subject, operation, object)
@@ -80,7 +79,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
           World.t(),
           %{subject: Subject.t(), stranger: Subject.t(), nobody: Subject.t()},
           atom(),
-          Object.t()
+          Turnstile.object()
         ) ::
           :ok
   def deny_by_default(context, world, %{subject: subject, stranger: stranger, nobody: nobody}, operation, object) do
@@ -96,10 +95,10 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   end
 
   @doc "`batch` and `filter` agree with `check`, object by object."
-  @spec batch_agreement(context(), World.t(), Subject.t(), atom(), [Object.t()]) :: true
+  @spec batch_agreement(context(), World.t(), Subject.t(), atom(), [Turnstile.object()]) :: true
   def batch_agreement(context, world, subject, operation, objects) do
     populate(context, world)
-    verdicts = Map.new(objects, &{Object.ref(&1), verdict(Turnstile.check(subject, operation, &1))})
+    verdicts = Map.new(objects, &{&1, verdict(Turnstile.check(subject, operation, &1))})
     assert Turnstile.batch(subject, operation, objects) == verdicts
     assert Turnstile.filter(subject, operation, objects) == Enum.filter(objects, &Turnstile.check(subject, operation, &1))
   end
@@ -189,13 +188,13 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
 
     :ok = outage.outage()
     assert Turnstile.check(subject, operation, object) == false
-    assert Turnstile.batch(subject, operation, [object]) == %{Object.ref(object) => :deny}
+    assert Turnstile.batch(subject, operation, [object]) == %{object => :deny}
     assert Turnstile.filter(subject, operation, [object]) == []
 
     assert {:error, %Error.NotAuthorized{reason: %{code: :engine_unreachable}}} =
              Turnstile.authorize(subject, operation, object)
 
-    unreachable_scope(subject, operation, object.type)
+    unreachable_scope(subject, operation, elem(object, 0))
   end
 
   @doc "The revocation-latency template: written to the log, never asserted."
@@ -271,20 +270,20 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   defp allowed_ids(module, world, subject, operation) do
     type = Schema.object_type_of(module.scope_schema())
 
-    for object <- module.objects(world),
-        object.type == type,
+    for {object_type, id} = object <- module.objects(world),
+        object_type == type,
         module.allowed?(world, subject, operation, object),
-        do: object.id
+        do: id
   end
 
   defp scope_of(repo, module, world, subject, operation, schema) do
     type = Schema.object_type_of(schema)
 
     allowed =
-      for object <- module.objects(world),
-          object.type == type,
+      for {object_type, id} = object <- module.objects(world),
+          object_type == type,
           Turnstile.check(subject, operation, object),
-          do: object.id
+          do: id
 
     {rule, %Decision{} = decision} = Turnstile.scope(subject, operation, type)
     assert_scope(repo, module, where(schema, ^rule), decision, allowed)
@@ -303,7 +302,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
 
   defp assert_erased(events, subject, object, grant_type) do
     assert [%{old: nil, new: ^grant_type}, %{old: ^grant_type, new: nil}] = events
-    assert Enum.all?(events, &(&1.subject_ref == Subject.ref(subject) and &1.object_ref == Object.ref(object)))
+    assert Enum.all?(events, &(&1.subject_ref == Subject.ref(subject) and &1.object_ref == object))
     assert Enum.all?(events, &(&1.by == Subject.library() and &1.attribute == nil and &1.kind == :relationship))
     assert Fold.fold(events).facts == %{}
   end
@@ -390,26 +389,26 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     "#{System.monotonic_time(:millisecond) - started} ms"
   end
 
-  defp denied_everywhere(subject, operation, object) do
+  defp denied_everywhere(subject, operation, {type, _id} = object) do
     denied(subject, operation, object)
-    {_rule, %Decision{verdict: verdict}} = Turnstile.scope(subject, operation, object.type)
+    {_rule, %Decision{verdict: verdict}} = Turnstile.scope(subject, operation, type)
     assert verdict == :deny
   end
 
   # A subject the population does not know is denied per object; its scope is
   # denied, or narrows to no row, since an adapter whose rule is a query
   # learns who the subject is when the query runs.
-  defp denied_or_scoped_to_nothing(%{repo: repo}, module, subject, operation, object) do
+  defp denied_or_scoped_to_nothing(%{repo: repo}, module, subject, operation, {type, _id} = object) do
     denied(subject, operation, object)
-    schema = Enum.find(module.schemas(), &(Schema.object_type_of(&1) == object.type))
-    {rule, %Decision{} = decision} = Turnstile.scope(subject, operation, object.type)
+    schema = Enum.find(module.schemas(), &(Schema.object_type_of(&1) == type))
+    {rule, %Decision{} = decision} = Turnstile.scope(subject, operation, type)
     assert_scope(repo, module, where(schema, ^rule), decision, [])
   end
 
   defp denied(subject, operation, object) do
     assert Turnstile.check(subject, operation, object) == false
     assert {:error, %Error.NotAuthorized{}} = Turnstile.authorize(subject, operation, object)
-    assert Turnstile.batch(subject, operation, [object]) == %{Object.ref(object) => :deny}
+    assert Turnstile.batch(subject, operation, [object]) == %{object => :deny}
     assert Turnstile.filter(subject, operation, [object]) == []
   end
 

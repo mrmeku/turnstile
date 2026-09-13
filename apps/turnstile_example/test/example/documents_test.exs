@@ -165,8 +165,8 @@ defmodule Example.DocumentsTest do
              :propose_marking
            ]
 
-    assert Documents.object(3) == %Turnstile.Object{type: :document, id: 3}
-    assert Documents.object(:portion, 4) == %Turnstile.Object{type: :portion, id: 4}
+    assert Documents.object(3) == {:document, 3}
+    assert Documents.object(:portion, 4) == {:portion, 4}
     assert Documents.override_event() == [:example, :override, :read]
   end
 

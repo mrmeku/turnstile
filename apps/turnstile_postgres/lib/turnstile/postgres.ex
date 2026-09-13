@@ -51,7 +51,6 @@ defmodule Turnstile.Postgres do
   alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Explanation
-  alias Turnstile.Object
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Decide
@@ -96,7 +95,7 @@ defmodule Turnstile.Postgres do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, _options)
+  def authorize(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, _options)
       when is_atom(operation) do
     with {:ok, binding, catalog} <- ready(:authorize) do
       named(Decide.one(binding, catalog, subject, operation, object, environment), :authorize)
@@ -104,7 +103,7 @@ defmodule Turnstile.Postgres do
   end
 
   @impl Turnstile.Adapter
-  def check(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
+  def check(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     authorize(subject, operation, object, environment, options)
   end
@@ -128,7 +127,7 @@ defmodule Turnstile.Postgres do
   end
 
   @impl Turnstile.Adapter
-  def explain(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
+  def explain(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     with {:ok, %Answer{} = answer} <- authorize(subject, operation, object, environment, options) do
       {:ok, %Explanation{answer: answer, matched: []}}

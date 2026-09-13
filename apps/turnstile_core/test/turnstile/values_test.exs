@@ -4,7 +4,6 @@ defmodule Turnstile.ValuesTest do
   alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Id
-  alias Turnstile.Object
   alias Turnstile.Projection.Drift
   alias Turnstile.Reason
   alias Turnstile.Subject
@@ -16,11 +15,10 @@ defmodule Turnstile.ValuesTest do
     refute Id.valid?(:not_a_string)
   end
 
-  test "subjects and objects have refs and kinds" do
+  test "subjects have refs and kinds" do
     id = Id.new()
     assert Subject.ref(%Subject{id: id, kind: :user}) == {:user, id}
     assert Subject.kinds() == [:user, :non_person_entity, :privileged]
-    assert Object.ref(%Object{type: :thing, id: id}) == {:thing, id}
     assert %Environment{now: ~U[2026-09-08 00:00:00Z], facts: %{}} = %Environment{now: ~U[2026-09-08 00:00:00Z]}
   end
 

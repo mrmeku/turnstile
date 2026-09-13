@@ -4,12 +4,11 @@ defmodule TurnstileTest do
   alias Turnstile.Adapter.Fake
   alias Turnstile.Decision
   alias Turnstile.Error
-  alias Turnstile.Object
   alias Turnstile.Subject
 
   @user %Subject{id: "acct-a", kind: :user}
-  @folder %Object{type: :folder, id: 1}
-  @other %Object{type: :folder, id: 2}
+  @folder {:folder, 1}
+  @other {:folder, 2}
 
   setup do
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})

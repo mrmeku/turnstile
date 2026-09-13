@@ -16,30 +16,29 @@ defmodule Turnstile.Code.Decide do
   alias Turnstile.Code.Rule
   alias Turnstile.Environment
   alias Turnstile.Explanation
-  alias Turnstile.Object
   alias Turnstile.Reason
   alias Turnstile.Subject
 
   @doc "The explanation for one object: its answer and the clauses that held."
-  @spec one(Binding.t(), Subject.t(), atom(), Object.t(), Environment.t()) ::
+  @spec one(Binding.t(), Subject.t(), atom(), Turnstile.object(), Environment.t()) ::
           {:ok, Explanation.t()} | {:error, String.t()}
-  def one(%Binding{} = binding, %Subject{} = subject, operation, %Object{} = object, %Environment{} = environment) do
+  def one(%Binding{} = binding, %Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment) do
     with {:ok, [{^object, explanation}]} <- explained(binding, subject, operation, [object], environment) do
       {:ok, explanation}
     end
   end
 
   @doc "The answers for a list of objects, one per object reference."
-  @spec many(Binding.t(), Subject.t(), atom(), [Object.t()], Environment.t()) ::
-          {:ok, %{Object.ref() => Answer.t()}} | {:error, String.t()}
+  @spec many(Binding.t(), Subject.t(), atom(), [Turnstile.object()], Environment.t()) ::
+          {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
   def many(%Binding{} = binding, %Subject{} = subject, operation, objects, %Environment{} = environment) do
     with {:ok, explained} <- explained(binding, subject, operation, objects, environment) do
-      {:ok, Map.new(explained, fn {object, %Explanation{answer: answer}} -> {Object.ref(object), answer} end)}
+      {:ok, Map.new(explained, fn {object, %Explanation{answer: answer}} -> {object, answer} end)}
     end
   end
 
   defp explained(binding, subject, operation, objects, environment) do
-    grouped = Enum.group_by(objects, & &1.type)
+    grouped = Enum.group_by(objects, &elem(&1, 0))
     step = fn {type, of_type}, acc -> merge(of_type(binding, subject, operation, type, of_type, environment), acc) end
 
     with {:ok, by_object} <- Enum.reduce_while(grouped, {:ok, %{}}, step) do
@@ -66,7 +65,7 @@ defmodule Turnstile.Code.Decide do
 
   defp rows(repo, %Rule{schema: schema} = rule, objects) do
     key = Rule.primary_key(schema)
-    ids = Enum.map(objects, & &1.id)
+    ids = Enum.map(objects, &elem(&1, 1))
     selected = Map.put(Rule.clauses(rule), :__key__, dynamic([row], field(row, ^key)))
     query = from(row in schema, where: field(row, ^key) in ^ids, select: ^selected)
 
@@ -75,7 +74,7 @@ defmodule Turnstile.Code.Decide do
     error in [DBConnection.ConnectionError, Postgrex.Error] -> {:error, Exception.message(error)}
   end
 
-  defp key(%Object{id: id}), do: to_string(id)
+  defp key({_type, id}), do: to_string(id)
 
   defp explain(%Rule{version: version}, nil) do
     %Explanation{answer: Rule.deny(Reason.deny_by_default(), version), matched: []}

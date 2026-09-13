@@ -12,7 +12,6 @@ defmodule Turnstile.PostgresTest do
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
   alias Turnstile.Id
-  alias Turnstile.Object
   alias Turnstile.Postgres
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
@@ -26,7 +25,7 @@ defmodule Turnstile.PostgresTest do
 
   @schemas [Account, Folder, Item, Membership]
   @subject %Subject{id: "account-1", kind: :user}
-  @object %Object{type: :folder, id: 1}
+  @object {:folder, 1}
 
   test "the declaration: no ledger, no scope cap, and a replica lag the adapter cannot measure" do
     assert Postgres.requires_ledger() == false
@@ -74,7 +73,7 @@ defmodule Turnstile.PostgresTest do
     bind()
 
     assert {:ok, %Explanation{answer: %Answer{verdict: :deny} = answer, matched: []}} =
-             Postgres.explain(@subject, :read, %Object{type: :ledger_entry, id: 1}, environment(), [])
+             Postgres.explain(@subject, :read, {:ledger_entry, 1}, environment(), [])
 
     assert answer.reason == Reason.deny_by_default()
   end

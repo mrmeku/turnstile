@@ -81,7 +81,6 @@ defmodule Turnstile.Fga do
   alias Turnstile.Fga.Decide
   alias Turnstile.Fga.Projector
   alias Turnstile.Fga.Version
-  alias Turnstile.Object
   alias Turnstile.Subject
 
   @schema NimbleOptions.new!(
@@ -129,7 +128,7 @@ defmodule Turnstile.Fga do
   end
 
   @impl Turnstile.Adapter
-  def authorize(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
+  def authorize(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     case entry(options, :authorize, operation, environment) do
       {:ok, entry} -> Decide.one(entry, subject, operation, object)
@@ -139,7 +138,7 @@ defmodule Turnstile.Fga do
   end
 
   @impl Turnstile.Adapter
-  def check(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
+  def check(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     case entry(options, :check, operation, environment) do
       {:ok, entry} -> Decide.one(entry, subject, operation, object)
@@ -169,7 +168,7 @@ defmodule Turnstile.Fga do
   end
 
   @impl Turnstile.Adapter
-  def explain(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
+  def explain(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     case entry(options, :explain, operation, environment) do
       {:ok, entry} -> Decide.explained(entry, subject, operation, object)

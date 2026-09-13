@@ -34,7 +34,6 @@ defmodule Turnstile.Fga.Replay do
   alias Turnstile.Fga.Model
   alias Turnstile.Ledger.Fold
   alias Turnstile.Ledger.Reader
-  alias Turnstile.Object
 
   @schema NimbleOptions.new!(
             client: [type: :atom, required: true, doc: "The `Turnstile.Fga.Client` implementation."],
@@ -100,10 +99,8 @@ defmodule Turnstile.Fga.Replay do
   """
   @spec ask(t(), Decision.t(), Environment.t() | nil) :: {:ok, Answer.t()} | {:error, Error.Engine.t()}
   def ask(%__MODULE__{} = replay, %Decision{} = decision, environment \\ nil) do
-    {type, id} = decision.object
-
     with {:ok, entry} <- entry(replay, environment || %Environment{now: decision.at}) do
-      Decide.one(entry, decision.subject, decision.operation, %Object{type: type, id: id})
+      Decide.one(entry, decision.subject, decision.operation, decision.object)
     end
   end
 

@@ -24,7 +24,6 @@ defmodule Turnstile.Conformance.World do
   """
 
   alias Turnstile.Ledger.Fold
-  alias Turnstile.Object
   alias Turnstile.Subject
 
   @typedoc "A population: a struct of the module that implements this behaviour."
@@ -52,7 +51,7 @@ defmodule Turnstile.Conformance.World do
   @callback exemption() :: term()
 
   @doc "The object a grant on this thing covers."
-  @callback object_of(grantable()) :: Object.t()
+  @callback object_of(grantable()) :: Turnstile.object()
 
   @doc "A random population, for the properties."
   @callback generator() :: StreamData.t(t())
@@ -76,13 +75,13 @@ defmodule Turnstile.Conformance.World do
   @callback subjects(t()) :: [Subject.t()]
 
   @doc "Every object the population holds."
-  @callback objects(t()) :: [Object.t()]
+  @callback objects(t()) :: [Turnstile.object()]
 
   @doc "Everything in the population a grant can sit on."
   @callback grantables(t()) :: [grantable()]
 
   @doc "The rule: what the population says about one subject, operation, and object."
-  @callback allowed?(t(), Subject.t(), atom(), Object.t()) :: boolean()
+  @callback allowed?(t(), Subject.t(), atom(), Turnstile.object()) :: boolean()
 
   @doc "The fold a ledger of this population's writes reaches."
   @callback facts(t()) :: %{Fold.key() => term()}

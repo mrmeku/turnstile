@@ -14,7 +14,6 @@ defmodule Turnstile.Fga.DecideTest do
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.Decide
   alias Turnstile.Fga.TupleKey
-  alias Turnstile.Object
   alias Turnstile.Reason
   alias Turnstile.Scope
   alias Turnstile.Subject
@@ -40,7 +39,7 @@ defmodule Turnstile.Fga.DecideTest do
     assert Decide.relation(:edit) == "can_edit"
     assert Decide.user(%Subject{id: "ann", kind: :user}) == "user:ann"
     assert Decide.user(%Subject{id: "importer", kind: :non_person_entity}) == "user:importer"
-    assert Decide.named(%Object{type: :folder, id: 1}) == "folder:1"
+    assert Decide.named({:folder, 1}) == "folder:1"
     assert Decide.time_fact() == "current_time"
     assert Decide.scope_cap() == 1_000
     assert Decide.fallback_event() == [:turnstile, :fga, :scope_fallback]
@@ -74,7 +73,7 @@ defmodule Turnstile.Fga.DecideTest do
     facts = %{clearance: "cleared", from: ~D[2026-01-01], seen: ~N[2026-01-02 03:04:05], count: 3}
     {:ok, entry} = Decide.entry(context.options, :check, %Environment{now: @now, facts: facts})
 
-    assert {:ok, %Answer{}} = Decide.one(entry, ann(), :read, %Object{type: :folder, id: 1})
+    assert {:ok, %Answer{}} = Decide.one(entry, ann(), :read, {:folder, 1})
 
     assert [%Check{} = request] = requests(context.agent, :check)
 
@@ -94,7 +93,7 @@ defmodule Turnstile.Fga.DecideTest do
     assert Decide.consistency(:explain) == :higher_consistency
     assert Decide.consistency(:scope) == :minimize_latency
 
-    assert {:ok, %Answer{}} = Decide.one(context.entry, ann(), :read, %Object{type: :folder, id: 1})
+    assert {:ok, %Answer{}} = Decide.one(context.entry, ann(), :read, {:folder, 1})
     assert [%Check{consistency: :higher_consistency, model: model}] = requests(context.agent, :check)
     assert model == context.model
 
@@ -108,13 +107,13 @@ defmodule Turnstile.Fga.DecideTest do
   test "an allowance names the relation that allowed and a denial is denied by default", context do
     :ok = write(context, [tuple("ann", "can_read", "folder:1")])
 
-    assert {:ok, %Answer{} = allowed} = Decide.one(context.entry, ann(), :read, %Object{type: :folder, id: 1})
+    assert {:ok, %Answer{} = allowed} = Decide.one(context.entry, ann(), :read, {:folder, 1})
     assert allowed.verdict == :allow
     assert allowed.reason == Reason.allowed("can_read")
     assert allowed.policy_version == context.model
     assert allowed.applied_position == 7
 
-    assert {:ok, %Answer{} = denied} = Decide.one(context.entry, ann(), :read, %Object{type: :folder, id: 2})
+    assert {:ok, %Answer{} = denied} = Decide.one(context.entry, ann(), :read, {:folder, 2})
     assert denied.verdict == :deny
     assert denied.reason == Reason.deny_by_default()
     assert denied.policy_version == context.model
@@ -123,7 +122,7 @@ defmodule Turnstile.Fga.DecideTest do
 
   test "an entry that pins no model asks nothing at all", context do
     {:ok, entry} = Decide.entry(Keyword.delete(context.options, :model_id), :authorize, %Environment{now: @now})
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
     detail = "the configuration entry pins no model, so no question can be asked under one"
 
     assert {:error, %Error.Engine{operation: :authorize, detail: ^detail}} = Decide.one(entry, ann(), :read, folder)
@@ -134,7 +133,7 @@ defmodule Turnstile.Fga.DecideTest do
   end
 
   test "a batch of sixty questions is one call of fifty and one of ten", context do
-    objects = for id <- 1..60, do: %Object{type: :folder, id: id}
+    objects = for id <- 1..60, do: {:folder, id}
     :ok = write(context, [tuple("ann", "can_read", "folder:7"), tuple("ann", "can_read", "folder:55")])
 
     assert {:ok, answers} = Decide.many(context.entry, ann(), :read, objects)
@@ -162,7 +161,7 @@ defmodule Turnstile.Fga.DecideTest do
   end
 
   test "an explanation of a denial names nothing that held", context do
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
 
     assert {:ok, %Explanation{answer: %Answer{verdict: :deny}, matched: []}} =
              Decide.explained(context.entry, ann(), :read, folder)
@@ -172,7 +171,7 @@ defmodule Turnstile.Fga.DecideTest do
 
   test "an explanation of an allowance asks the tree and which of its branches hold", context do
     :ok = write(context, [tuple("ann", "can_read", "folder:1")])
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
 
     assert {:ok, %Explanation{answer: %Answer{verdict: :allow}, matched: []}} =
              Decide.explained(context.entry, ann(), :read, folder)
@@ -186,7 +185,7 @@ defmodule Turnstile.Fga.DecideTest do
   test "an engine error on the way to the server is the answer, whichever callback asked", context do
     absent = Keyword.put(context.options, :store_id, "store-404")
     {:ok, entry} = Decide.entry(absent, :batch, %Environment{now: @now})
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
 
     assert {:error, %Error.Engine{operation: :check}} = Decide.one(entry, ann(), :read, folder)
     assert {:error, %Error.Engine{operation: :batch_check}} = Decide.many(entry, ann(), :read, [folder])

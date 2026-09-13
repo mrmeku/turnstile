@@ -42,7 +42,7 @@ defmodule Turnstile.Decision do
 
   @type verdict :: :allow | :deny | :scoped
   @type t :: %__MODULE__{
-          id: Turnstile.Id.t(), subject: Turnstile.Subject.t(), object: Turnstile.Object.ref(),
+          id: Turnstile.Id.t(), subject: Turnstile.Subject.t(), object: Turnstile.object(),
           operation: atom(), verdict: verdict(), reason: Turnstile.Reason.t(), adapter: module(),
           policy_version: Turnstile.PolicyVersion.ref(),
           head_position: non_neg_integer() | nil, applied_position: non_neg_integer() | nil,

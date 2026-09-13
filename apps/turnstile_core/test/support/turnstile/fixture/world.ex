@@ -25,7 +25,6 @@ defmodule Turnstile.Fixture.World do
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
-  alias Turnstile.Object
   alias Turnstile.Subject
 
   @accounts ~w(acct-a acct-b acct-c)
@@ -82,8 +81,8 @@ defmodule Turnstile.Fixture.World do
 
   @doc "The folder a membership on it covers."
   @impl World
-  @spec object_of(pos_integer()) :: Object.t()
-  def object_of(folder) when is_integer(folder), do: %Object{type: :folder, id: folder}
+  @spec object_of(pos_integer()) :: Turnstile.object()
+  def object_of(folder) when is_integer(folder), do: {:folder, folder}
 
   @doc "A world: one to three accounts, one to three folders, up to four items and memberships."
   @impl World
@@ -142,10 +141,10 @@ defmodule Turnstile.Fixture.World do
 
   @doc "Every folder and item as an object."
   @impl World
-  @spec objects(t()) :: [Object.t()]
+  @spec objects(t()) :: [Turnstile.object()]
   def objects(%__MODULE__{folders: folders, items: items}) do
     item_ids = Enum.sort(Map.keys(items))
-    Enum.map(folders, &%Object{type: :folder, id: &1}) ++ Enum.map(item_ids, &%Object{type: :item, id: &1})
+    Enum.map(folders, &{:folder, &1}) ++ Enum.map(item_ids, &{:item, &1})
   end
 
   @doc "The folders, which are what a membership sits on."
@@ -155,30 +154,30 @@ defmodule Turnstile.Fixture.World do
 
   @doc "The rule: what the world says about one subject, operation, and object."
   @impl World
-  @spec allowed?(t(), Subject.t(), atom(), Object.t()) :: boolean()
-  def allowed?(%__MODULE__{} = world, %Subject{} = subject, operation, %Object{type: :item, id: id}) do
+  @spec allowed?(t(), Subject.t(), atom(), Turnstile.object()) :: boolean()
+  def allowed?(%__MODULE__{} = world, %Subject{} = subject, operation, {:item, id}) do
     case Map.fetch(world.items, id) do
-      {:ok, folder} -> allowed?(world, subject, operation, %Object{type: :folder, id: folder})
+      {:ok, folder} -> allowed?(world, subject, operation, {:folder, folder})
       :error -> false
     end
   end
 
-  def allowed?(%__MODULE__{} = world, %Subject{id: account}, operation, %Object{type: :folder, id: id}) do
+  def allowed?(%__MODULE__{} = world, %Subject{id: account}, operation, {:folder, id}) do
     cleared? = Map.get(world.accounts, account) == @cleared
     role = Map.get(world.memberships, {account, id})
     role_allows?(role, operation) and cleared?
   end
 
-  def allowed?(%__MODULE__{}, %Subject{}, _operation, %Object{}), do: false
+  def allowed?(%__MODULE__{}, %Subject{}, _operation, {_type, _id}), do: false
 
   @doc "The subject, operation, object triples the rule allows."
-  @spec grants(t()) :: [{Subject.t(), atom(), Object.ref()}]
+  @spec grants(t()) :: [{Subject.t(), atom(), Turnstile.object()}]
   def grants(%__MODULE__{} = world) do
     for subject <- subjects(world),
         operation <- @operations,
         object <- objects(world),
         allowed?(world, subject, operation, object),
-        do: {subject, operation, Object.ref(object)}
+        do: {subject, operation, object}
   end
 
   @doc "The fold a ledger of this world's writes reaches: memberships and clearances by their fact keys."

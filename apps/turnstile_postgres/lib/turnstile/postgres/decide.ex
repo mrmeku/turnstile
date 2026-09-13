@@ -24,7 +24,6 @@ defmodule Turnstile.Postgres.Decide do
 
   alias Turnstile.Answer
   alias Turnstile.Environment
-  alias Turnstile.Object
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Name
@@ -37,8 +36,8 @@ defmodule Turnstile.Postgres.Decide do
   @exemption {:exempt, :library}
 
   @doc "One answer per object, grouped by object type, under one set of settings."
-  @spec many(Binding.t(), Catalog.t(), Subject.t(), atom(), [Object.t()], Environment.t()) ::
-          {:ok, %{Object.ref() => Answer.t()}} | {:error, String.t()}
+  @spec many(Binding.t(), Catalog.t(), Subject.t(), atom(), [Turnstile.object()], Environment.t()) ::
+          {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
   def many(%Binding{} = binding, %Catalog{} = catalog, %Subject{} = subject, operation, objects, %Environment{} = env)
       when is_atom(operation) and is_list(objects) do
     settings = remembered(subject, operation, env)
@@ -53,11 +52,11 @@ defmodule Turnstile.Postgres.Decide do
   end
 
   @doc "The answer for one object."
-  @spec one(Binding.t(), Catalog.t(), Subject.t(), atom(), Object.t(), Environment.t()) ::
+  @spec one(Binding.t(), Catalog.t(), Subject.t(), atom(), Turnstile.object(), Environment.t()) ::
           {:ok, Answer.t()} | {:error, String.t()}
-  def one(%Binding{} = binding, %Catalog{} = catalog, %Subject{} = subject, operation, %Object{} = object, env) do
+  def one(%Binding{} = binding, %Catalog{} = catalog, %Subject{} = subject, operation, {_type, _id} = object, env) do
     with {:ok, answers} <- many(binding, catalog, subject, operation, [object], env) do
-      {:ok, Map.fetch!(answers, Object.ref(object))}
+      {:ok, Map.fetch!(answers, object)}
     end
   end
 
@@ -87,7 +86,7 @@ defmodule Turnstile.Postgres.Decide do
 
   defp grouped(binding, catalog, operation, objects) do
     objects
-    |> Enum.group_by(& &1.type)
+    |> Enum.group_by(&elem(&1, 0))
     |> Enum.reduce(%{}, fn {type, group}, answers ->
       Map.merge(answers, of_type(binding, catalog, operation, type, group))
     end)
@@ -111,8 +110,8 @@ defmodule Turnstile.Postgres.Decide do
 
   defp answered(binding, catalog, operation, {table, _key} = target, scope, objects) do
     gate = Catalog.gate(catalog, table, operation)
-    rows = admitted(binding, target, gate, Enum.map(objects, &to_string(&1.id)))
-    Map.new(objects, &{Object.ref(&1), answer(catalog, scope, gate, rows, &1)})
+    rows = admitted(binding, target, gate, Enum.map(objects, &to_string(elem(&1, 1))))
+    Map.new(objects, &{&1, answer(catalog, scope, gate, rows, &1)})
   end
 
   defp admitted(%Binding{repo: repo}, {table, key}, gate, ids) do
@@ -126,7 +125,7 @@ defmodule Turnstile.Postgres.Decide do
   defp predicate(%Policy{using: using}) when is_binary(using), do: "coalesce((#{using}), false)"
   defp predicate(_ungated), do: "true"
 
-  defp answer(catalog, scope, gate, rows, %Object{id: id}) do
+  defp answer(catalog, scope, gate, rows, {_type, id}) do
     case Map.fetch(rows, to_string(id)) do
       {:ok, true} -> verdict(catalog, :allow, Reason.allowed(scope.name))
       {:ok, _refused} -> verdict(catalog, :deny, Reason.rule_denied(refusing(gate, scope)))
@@ -138,7 +137,7 @@ defmodule Turnstile.Postgres.Decide do
   defp refusing(nil, %Policy{name: name}), do: name
 
   defp denied(catalog, objects, reason) do
-    Map.new(objects, &{Object.ref(&1), verdict(catalog, :deny, reason)})
+    Map.new(objects, &{&1, verdict(catalog, :deny, reason)})
   end
 
   defp verdict(%Catalog{version: version}, verdict, reason) do

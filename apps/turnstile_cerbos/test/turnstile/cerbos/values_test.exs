@@ -10,7 +10,6 @@ defmodule Turnstile.Cerbos.ValuesTest do
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
   alias Turnstile.Fixture.World
-  alias Turnstile.Object
   alias Turnstile.Subject
   alias Turnstile.Test
   alias Turnstile.Test.Sandbox
@@ -107,7 +106,7 @@ defmodule Turnstile.Cerbos.ValuesTest do
   end
 
   test "an object's attributes are its columns and what the subject's subquery selected for it", ctx do
-    objects = [%Object{type: :folder, id: 1}, %Object{type: :folder, id: 2}]
+    objects = [{:folder, 1}, {:folder, 2}]
 
     assert {:ok, by_id} = Values.resources(ctx.binding, ctx.ann, :folder, objects)
     assert by_id["1"] == %{name: "folder 1", member_roles: ["reader"]}

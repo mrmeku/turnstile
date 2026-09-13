@@ -12,7 +12,6 @@ defmodule Turnstile.FactsTest do
   alias Turnstile.Ledger.TestSupport.Boot
   alias Turnstile.Ledger.TestSupport.Population
   alias Turnstile.Ledger.TestSupport.Shape
-  alias Turnstile.Object
   alias Turnstile.Subject
   alias Turnstile.Test
 
@@ -184,7 +183,7 @@ defmodule Turnstile.FactsTest do
 
   defp decision(id) do
     Test.with_config(adapter: {Turnstile.Adapter.Fake, verdict: :allow})
-    {:ok, decision} = Turnstile.authorize(@subject, :edit, %Object{type: :account, id: id})
+    {:ok, decision} = Turnstile.authorize(@subject, :edit, {:account, id})
     decision
   end
 

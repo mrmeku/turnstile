@@ -35,7 +35,7 @@ defmodule Turnstile.Decision do
   @type t :: %__MODULE__{
           id: Turnstile.Id.t(),
           subject: Subject.t(),
-          object: Turnstile.Object.ref(),
+          object: Turnstile.object(),
           operation: atom(),
           verdict: verdict(),
           reason: Reason.t(),

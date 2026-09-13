@@ -3,12 +3,11 @@ defmodule Turnstile.Test.AroundAdapterTest do
 
   alias Turnstile.Adapter.Fake
   alias Turnstile.Environment
-  alias Turnstile.Object
   alias Turnstile.Subject
   alias Turnstile.Test.AroundAdapter
 
   @subject %Subject{id: "11111111-1111-1111-1111-111111111111", kind: :user}
-  @object %Object{type: :thing, id: "22222222-2222-2222-2222-222222222222"}
+  @object {:thing, "22222222-2222-2222-2222-222222222222"}
   @environment %Environment{now: ~U[2026-09-08 00:00:00Z]}
 
   test "every callback but around_query answers as the fake adapter does" do

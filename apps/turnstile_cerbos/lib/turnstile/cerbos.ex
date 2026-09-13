@@ -57,7 +57,6 @@ defmodule Turnstile.Cerbos do
   alias Turnstile.Error
   alias Turnstile.Explanation
   alias Turnstile.FactEvent
-  alias Turnstile.Object
   alias Turnstile.Subject
 
   @schema NimbleOptions.new!(
@@ -82,7 +81,7 @@ defmodule Turnstile.Cerbos do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
+  def authorize(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     with {:ok, %Explanation{answer: answer}} <- explain(subject, operation, object, environment, options) do
       {:ok, answer}
@@ -90,7 +89,7 @@ defmodule Turnstile.Cerbos do
   end
 
   @impl Turnstile.Adapter
-  def check(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
+  def check(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     authorize(subject, operation, object, environment, options)
   end
@@ -112,7 +111,7 @@ defmodule Turnstile.Cerbos do
   end
 
   @impl Turnstile.Adapter
-  def explain(%Subject{} = subject, operation, %Object{} = object, %Environment{} = environment, options)
+  def explain(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     with {:ok, binding, address} <- bound(:explain, options) do
       named(Decide.one(binding, address, subject, operation, object, environment), :explain)

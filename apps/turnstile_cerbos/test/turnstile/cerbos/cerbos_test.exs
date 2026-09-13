@@ -10,12 +10,11 @@ defmodule Turnstile.CerbosTest do
   alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
-  alias Turnstile.Object
   alias Turnstile.Subject
   alias Turnstile.TestRepos.Sandboxed
 
   @ann %Subject{id: "ann", kind: :user}
-  @folder %Object{type: :folder, id: 1}
+  @folder {:folder, 1}
 
   @window ~s|
 apiVersion: api.cerbos.dev/v1

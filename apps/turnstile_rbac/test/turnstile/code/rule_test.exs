@@ -12,7 +12,6 @@ defmodule Turnstile.Code.RuleTest do
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
   alias Turnstile.Fixture.World
-  alias Turnstile.Object
   alias Turnstile.Reason
   alias Turnstile.Subject
   alias Turnstile.Test.Sandbox
@@ -111,7 +110,7 @@ defmodule Turnstile.Code.RuleTest do
 
   test "a grant with a fixed role holds through any membership row when the role permits the operation", ctx do
     :ok = Binding.override(policy: FixedRole, repo: Sandboxed)
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
 
     assert {:ok, %Answer{verdict: :allow, reason: reason}} =
              Turnstile.Code.check(ctx.ann, :read, folder, ctx.environment, [])
@@ -124,7 +123,7 @@ defmodule Turnstile.Code.RuleTest do
 
   test "a role the relationship's column cannot hold never matches and raises nothing", ctx do
     :ok = Binding.override(policy: Foreign, repo: Sandboxed)
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
     assert {:ok, %Answer{verdict: :allow}} = Turnstile.Code.check(ctx.ann, :read, folder, ctx.environment, [])
 
     assert {:ok, %Answer{verdict: :deny, reason: %Reason{code: :deny_by_default}}} =
@@ -133,7 +132,7 @@ defmodule Turnstile.Code.RuleTest do
 
   test "a named role column and a boolean predicate", ctx do
     :ok = Binding.override(policy: NamedRole, repo: Sandboxed)
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
 
     assert {:ok, %Answer{verdict: :deny, reason: reason}} =
              Turnstile.Code.check(ctx.ann, :read, folder, ctx.environment, [])
@@ -146,7 +145,7 @@ defmodule Turnstile.Code.RuleTest do
   test "a grant reaches the row through a hop, the hop's filter narrows it, and a predicate applies only to its operations",
        ctx do
     :ok = Binding.override(policy: Hopped, repo: Sandboxed)
-    item = %Object{type: :item, id: 1}
+    item = {:item, 1}
 
     assert {:ok, %Answer{verdict: :allow, reason: reason}} =
              Turnstile.Code.check(ctx.ann, :read, item, ctx.environment, [])

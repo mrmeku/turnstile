@@ -22,8 +22,8 @@ defmodule Turnstile.FactEvent do
   @typedoc "`position` is `nil` in ledger mode none; `by` is the subject of the operation that wrote it."
   @type t :: %__MODULE__{
           kind: kind(),
-          subject_ref: Turnstile.Object.ref() | nil,
-          object_ref: Turnstile.Object.ref(),
+          subject_ref: Turnstile.object() | nil,
+          object_ref: Turnstile.object(),
           attribute: atom(),
           old: term(),
           new: term(),

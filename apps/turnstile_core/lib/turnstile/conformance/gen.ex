@@ -14,7 +14,6 @@ defmodule Turnstile.Conformance.Gen do
   alias Turnstile.Decision
   alias Turnstile.FactEvent
   alias Turnstile.Id
-  alias Turnstile.Object
   alias Turnstile.PolicyVersion
   alias Turnstile.Reason
   alias Turnstile.Subject
@@ -48,11 +47,11 @@ defmodule Turnstile.Conformance.Gen do
   def grantable(world), do: member_of(World.module(world).grantables(world))
 
   @doc "An object the population holds."
-  @spec object(World.t()) :: StreamData.t(Object.t())
+  @spec object(World.t()) :: StreamData.t(Turnstile.object())
   def object(world), do: member_of(World.module(world).objects(world))
 
   @doc "A list of the population's objects, repeats allowed."
-  @spec objects(World.t()) :: StreamData.t([Object.t()])
+  @spec objects(World.t()) :: StreamData.t([Turnstile.object()])
   def objects(world), do: list_of(object(world), max_length: 6)
 
   @doc "An operation the world's rule knows."

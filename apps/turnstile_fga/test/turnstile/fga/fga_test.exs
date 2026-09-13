@@ -33,7 +33,6 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Fga.TupleKey
   alias Turnstile.FgaTest.Guard
   alias Turnstile.Ledger.Memory
-  alias Turnstile.Object
   alias Turnstile.Reason
   alias Turnstile.Scope
   alias Turnstile.Subject
@@ -83,7 +82,7 @@ defmodule Turnstile.FgaTest do
 
   test "authorize and check answer one question under the pinned model", context do
     :ok = write(context, [tuple("ann", "can_read", "folder:1")])
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
 
     assert {:ok, %Answer{verdict: :allow} = allowed} =
              Fga.authorize(ann(), :read, folder, environment(), context.options)
@@ -97,20 +96,20 @@ defmodule Turnstile.FgaTest do
 
   test "batch, scope, and explain answer for many, for a type, and with what held", context do
     :ok = write(context, [tuple("ann", "can_read", "folder:1")])
-    objects = [%Object{type: :folder, id: 1}, %Object{type: :folder, id: 2}]
+    objects = [{:folder, 1}, {:folder, 2}]
 
     assert {:ok, answers} = Fga.batch(ann(), :read, objects, environment(), context.options)
-    assert Enum.map(objects, &answers[Object.ref(&1)].verdict) == [:allow, :deny]
+    assert Enum.map(objects, &answers[&1].verdict) == [:allow, :deny]
 
     assert {:ok, %Scope{rule: rule}} = Fga.scope(ann(), :read, :folder, environment(), context.options)
     assert inspect(rule) == inspect(dynamic([row], row.id in ^["1"]))
 
     assert {:ok, %Explanation{answer: %Answer{verdict: :allow}}} =
-             Fga.explain(ann(), :read, %Object{type: :folder, id: 1}, environment(), context.options)
+             Fga.explain(ann(), :read, {:folder, 1}, environment(), context.options)
   end
 
   test "every answer carries the position the store has been drained to", context do
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
 
     assert {:ok, %Answer{applied_position: 0}} = Fga.check(ann(), :read, folder, environment(), context.options)
 
@@ -123,7 +122,7 @@ defmodule Turnstile.FgaTest do
 
   test "with nothing bound no callback asks anything", context do
     Process.delete(Binding)
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
     detail = "nothing bound and no override"
 
     assert {:error, %Error.Engine{operation: :authorize, detail: ^detail} = error} =
@@ -143,7 +142,7 @@ defmodule Turnstile.FgaTest do
   test "a guard the binding names is asked first, and what it refuses is denied by the guard", context do
     :ok = write(context, [tuple("ann", "can_read", "folder:1")])
     :ok = Binding.override(guard: Guard)
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
 
     assert {:ok, %Answer{verdict: :allow}} = Fga.check(ann(), :read, folder, cleared(), context.options)
 
@@ -168,7 +167,7 @@ defmodule Turnstile.FgaTest do
   test "what the guard admits still needs a model pinned, and what it refuses does not", context do
     :ok = Binding.override(guard: Guard)
     options = Keyword.delete(context.options, :model_id)
-    folder = %Object{type: :folder, id: 1}
+    folder = {:folder, 1}
 
     assert {:ok, %Answer{verdict: :deny, policy_version: nil}} = Fga.check(ann(), :read, folder, environment(), options)
     assert {:error, %Error.Engine{operation: :check}} = Fga.check(ann(), :read, folder, cleared(), options)
@@ -185,7 +184,7 @@ defmodule Turnstile.FgaTest do
     assert decision.reason.code == :engine_unreachable
     assert_receive {:scope_fallback, %{count: 1_000}, %{operation: :read, type: :folder, level: :limited}}
 
-    kept = Turnstile.filter(ann(), :read, for(id <- 1..1_000, do: %Object{type: :folder, id: id}))
+    kept = Turnstile.filter(ann(), :read, for(id <- 1..1_000, do: {:folder, id}))
 
     assert length(kept) == 1_000
     assert Enum.sort(Enum.map(kept, &Decide.named/1)) == Enum.sort(listed(context))

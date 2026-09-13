@@ -59,7 +59,6 @@ defmodule Turnstile.Fga.Decide do
   alias Turnstile.Fga.Client.Tree
   alias Turnstile.Fga.Consistency
   alias Turnstile.Fga.TupleKey
-  alias Turnstile.Object
   alias Turnstile.Reason
   alias Turnstile.Scope
   alias Turnstile.Subject
@@ -114,8 +113,8 @@ defmodule Turnstile.Fga.Decide do
   end
 
   @doc "The object of the store an object is."
-  @spec named(Object.t()) :: String.t()
-  def named(%Object{type: type, id: id}), do: "#{type}:#{id}"
+  @spec named(Turnstile.object()) :: String.t()
+  def named({type, id}), do: "#{type}:#{id}"
 
   @doc "What the configuration entry names, or an engine error naming what it does not."
   @spec entry(keyword(), atom(), Environment.t()) :: {:ok, entry()} | {:error, Error.Engine.t()}
@@ -140,8 +139,8 @@ defmodule Turnstile.Fga.Decide do
   def applied(entry, position) when is_nil(position) or is_integer(position), do: %{entry | applied: position}
 
   @doc "The answer to one question: one `Check` under the pinned model."
-  @spec one(entry(), Subject.t(), atom(), Object.t()) :: {:ok, Answer.t()} | {:error, Error.Engine.t()}
-  def one(entry, %Subject{} = subject, operation, %Object{} = object) when is_atom(operation) do
+  @spec one(entry(), Subject.t(), atom(), Turnstile.object()) :: {:ok, Answer.t()} | {:error, Error.Engine.t()}
+  def one(entry, %Subject{} = subject, operation, {_type, _id} = object) when is_atom(operation) do
     with {:ok, model} <- pinned(entry),
          request = check(entry, subject, operation, object, model),
          {:ok, allowed?} <- entry.client.check(entry.endpoint, entry.store, request) do
@@ -150,12 +149,12 @@ defmodule Turnstile.Fga.Decide do
   end
 
   @doc "The answers for a list of objects, one per object reference, in calls of at most fifty questions."
-  @spec many(entry(), Subject.t(), atom(), [Object.t()]) ::
-          {:ok, %{Object.ref() => Answer.t()}} | {:error, Error.Engine.t()}
+  @spec many(entry(), Subject.t(), atom(), [Turnstile.object()]) ::
+          {:ok, %{Turnstile.object() => Answer.t()}} | {:error, Error.Engine.t()}
   def many(entry, %Subject{} = subject, operation, objects) when is_atom(operation) and is_list(objects) do
     with {:ok, model} <- pinned(entry),
          {:ok, allowed} <- asked(entry, keyed(subject, operation, objects), model) do
-      {:ok, Map.new(objects, &{Object.ref(&1), answer(named(&1) in allowed, operation, model, entry.applied)})}
+      {:ok, Map.new(objects, &{&1, answer(named(&1) in allowed, operation, model, entry.applied)})}
     end
   end
 
@@ -186,9 +185,9 @@ defmodule Turnstile.Fga.Decide do
   end
 
   @doc "The denial a guard's refusal is for every object of a batch."
-  @spec refused_all(entry(), [Object.t()]) :: %{Object.ref() => Answer.t()}
+  @spec refused_all(entry(), [Turnstile.object()]) :: %{Turnstile.object() => Answer.t()}
   def refused_all(entry, objects) when is_list(objects) do
-    Map.new(objects, &{Object.ref(&1), refused(entry)})
+    Map.new(objects, &{&1, refused(entry)})
   end
 
   @doc "The scope a guard's refusal is: the rule no row satisfies, and the denial."
@@ -205,8 +204,8 @@ defmodule Turnstile.Fga.Decide do
   `Expand` and which of its branches hold from one `BatchCheck`, so an
   explanation is three calls and no walk of this module's own.
   """
-  @spec explained(entry(), Subject.t(), atom(), Object.t()) :: {:ok, Explanation.t()} | {:error, Error.Engine.t()}
-  def explained(entry, %Subject{} = subject, operation, %Object{} = object) when is_atom(operation) do
+  @spec explained(entry(), Subject.t(), atom(), Turnstile.object()) :: {:ok, Explanation.t()} | {:error, Error.Engine.t()}
+  def explained(entry, %Subject{} = subject, operation, {_type, _id} = object) when is_atom(operation) do
     with {:ok, %Answer{} = answer} <- one(entry, subject, operation, object) do
       matched(entry, subject, operation, object, answer)
     end
@@ -284,7 +283,7 @@ defmodule Turnstile.Fga.Decide do
     for object <- objects, do: {named(object), tuple(subject, operation, object)}
   end
 
-  defp check(entry, %Subject{} = subject, operation, %Object{} = object, model) do
+  defp check(entry, %Subject{} = subject, operation, {_type, _id} = object, model) do
     %Check{
       tuple_key: tuple(subject, operation, object),
       model: model,
@@ -304,7 +303,7 @@ defmodule Turnstile.Fga.Decide do
     }
   end
 
-  defp tuple(%Subject{} = subject, operation, %Object{} = object) do
+  defp tuple(%Subject{} = subject, operation, {_type, _id} = object) do
     %TupleKey{user: user(subject), relation: relation(operation), object: named(object)}
   end
 

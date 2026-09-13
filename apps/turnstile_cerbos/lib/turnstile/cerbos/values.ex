@@ -31,7 +31,6 @@ defmodule Turnstile.Cerbos.Values do
   alias Turnstile.Cerbos.Attributes
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Environment
-  alias Turnstile.Object
   alias Turnstile.Subject
 
   @exemption {:exempt, :library}
@@ -56,10 +55,10 @@ defmodule Turnstile.Cerbos.Values do
   end
 
   @doc "The attributes of each object of one type, by the object's id as text."
-  @spec resources(Binding.t(), Subject.t(), atom(), [Object.t()]) ::
+  @spec resources(Binding.t(), Subject.t(), atom(), [Turnstile.object()]) ::
           {:ok, %{String.t() => attributes()}} | {:error, String.t()}
   def resources(%Binding{} = binding, %Subject{} = subject, kind, objects) when is_atom(kind) and is_list(objects) do
-    of(binding, subject, kind, Enum.map(objects, & &1.id))
+    of(binding, subject, kind, Enum.map(objects, &elem(&1, 1)))
   end
 
   @doc "The attributes of the ids of one kind, every declared name present."

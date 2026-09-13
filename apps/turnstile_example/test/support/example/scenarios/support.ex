@@ -9,7 +9,6 @@ defmodule Example.Scenarios.Support do
   alias Example.Fixture
   alias Example.Sessions
   alias Turnstile.Error
-  alias Turnstile.Object
   alias Turnstile.Subject
 
   @stop [:turnstile, :user, :stop]
@@ -54,7 +53,7 @@ defmodule Example.Scenarios.Support do
   defdelegate settle(), to: Turnstile.Test
 
   @doc "The object reference of a portion."
-  @spec portion(Example.Portion.t()) :: Object.t()
+  @spec portion(Example.Portion.t()) :: Turnstile.object()
   def portion(%Example.Portion{id: id}), do: Documents.object(:portion, id)
 
   @doc """

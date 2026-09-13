@@ -26,7 +26,6 @@ defmodule Turnstile.Port do
   alias Turnstile.Error
   alias Turnstile.Explanation
   alias Turnstile.Id
-  alias Turnstile.Object
   alias Turnstile.Reason
   alias Turnstile.Scope
   alias Turnstile.Subject
@@ -43,10 +42,10 @@ defmodule Turnstile.Port do
   @type options :: [facts: %{atom() => term()}, operation_id: Id.t()]
 
   @typedoc "A batch's verdicts, one per object reference."
-  @type verdicts :: %{Object.ref() => Answer.verdict()}
+  @type verdicts :: %{Turnstile.object() => Answer.verdict()}
 
   @typedoc "A review's answer per subject: the rule over an object type, or the allowed references of a population."
-  @type reviewed :: %{Subject.t() => Ecto.Query.dynamic_expr() | [Object.ref()]}
+  @type reviewed :: %{Subject.t() => Ecto.Query.dynamic_expr() | [Turnstile.object()]}
 
   @doc "The span names the port emits, with their three suffixes."
   @spec events() :: [[atom()]]
@@ -59,34 +58,35 @@ defmodule Turnstile.Port do
   def options_schema, do: @options
 
   @doc "Decide for one object; the decision is the record and the value the seam takes."
-  @spec authorize(Subject.t(), atom(), Object.t(), options()) :: {:ok, Decision.t()} | {:error, Error.NotAuthorized.t()}
-  def authorize(%Subject{} = subject, operation, %Object{} = object, opts) when is_atom(operation) and is_list(opts) do
+  @spec authorize(Subject.t(), atom(), Turnstile.object(), options()) ::
+          {:ok, Decision.t()} | {:error, Error.NotAuthorized.t()}
+  def authorize(%Subject{} = subject, operation, {_type, _id} = object, opts) when is_atom(operation) and is_list(opts) do
     decision = one(:authorize, subject, operation, object, opts)
 
     case decision.verdict do
       :allow -> {:ok, decision}
-      :deny -> {:error, not_authorized(subject, operation, Object.ref(object), decision.reason)}
+      :deny -> {:error, not_authorized(subject, operation, object, decision.reason)}
     end
   end
 
   @doc "Decide for one object and answer the verdict alone."
-  @spec check(Subject.t(), atom(), Object.t(), options()) :: boolean()
-  def check(%Subject{} = subject, operation, %Object{} = object, opts) when is_atom(operation) and is_list(opts) do
+  @spec check(Subject.t(), atom(), Turnstile.object(), options()) :: boolean()
+  def check(%Subject{} = subject, operation, {_type, _id} = object, opts) when is_atom(operation) and is_list(opts) do
     one(:check, subject, operation, object, opts).verdict == :allow
   end
 
   @doc "Decide for many objects of one type; one record for all of them."
-  @spec batch(Subject.t(), atom(), [Object.t()], options()) :: verdicts()
+  @spec batch(Subject.t(), atom(), [Turnstile.object()], options()) :: verdicts()
   def batch(%Subject{} = subject, operation, objects, opts) when is_atom(operation) and is_list(objects) do
     {verdicts, _decision} = many(:batch, subject, operation, objects, opts)
     verdicts
   end
 
   @doc "The objects among `objects` the subject may perform the operation on, in the order given."
-  @spec filter(Subject.t(), atom(), [Object.t()], options()) :: [Object.t()]
+  @spec filter(Subject.t(), atom(), [Turnstile.object()], options()) :: [Turnstile.object()]
   def filter(%Subject{} = subject, operation, objects, opts) when is_atom(operation) and is_list(objects) do
     {verdicts, _decision} = many(:filter, subject, operation, objects, opts)
-    Enum.filter(objects, &(Map.fetch!(verdicts, Object.ref(&1)) == :allow))
+    Enum.filter(objects, &(Map.fetch!(verdicts, &1) == :allow))
   end
 
   @doc """
@@ -106,9 +106,9 @@ defmodule Turnstile.Port do
   end
 
   @doc "The answer with what produced it, where the adapter can say; unsupported otherwise."
-  @spec explain(Subject.t(), atom(), Object.t(), options()) ::
+  @spec explain(Subject.t(), atom(), Turnstile.object(), options()) ::
           {:ok, Explanation.t(), Decision.t()} | {:error, Error.Unsupported.t()}
-  def explain(%Subject{} = subject, operation, %Object{} = object, opts) when is_atom(operation) and is_list(opts) do
+  def explain(%Subject{} = subject, operation, {_type, _id} = object, opts) when is_atom(operation) and is_list(opts) do
     call = prepare(subject, opts)
 
     if function_exported?(call.adapter, :explain, 5) do
@@ -123,7 +123,7 @@ defmodule Turnstile.Port do
   Who can do what: `scope` per subject over an object type, or `batch` per
   subject over a population of objects, under one record for the reviewer.
   """
-  @spec review(Subject.t(), [Subject.t()], atom(), atom() | [Object.t()], options()) :: reviewed()
+  @spec review(Subject.t(), [Subject.t()], atom(), atom() | [Turnstile.object()], options()) :: reviewed()
   def review(%Subject{} = reviewer, subjects, operation, population, opts)
       when is_list(subjects) and is_atom(operation) and is_list(opts) do
     call = prepare(reviewer, opts)
@@ -145,13 +145,12 @@ defmodule Turnstile.Port do
   end
 
   # One object: authorize and check share this.
-  defp one(function, subject, operation, %Object{} = object, opts) do
+  defp one(function, subject, operation, {_type, _id} = object, opts) do
     call = prepare(subject, opts)
-    ref = Object.ref(object)
 
-    span(call, subject, operation, ref, fn ->
+    span(call, subject, operation, object, fn ->
       answer = ask(call, function, subject, operation, object)
-      decision = stamp(call, subject, operation, ref, answer, answer.verdict)
+      decision = stamp(call, subject, operation, object, answer, answer.verdict)
       {decision, decision, %{}}
     end)
   end
@@ -169,13 +168,11 @@ defmodule Turnstile.Port do
     end)
   end
 
-  defp explained(call, subject, operation, %Object{} = object) do
-    ref = Object.ref(object)
-
-    span(call, subject, operation, ref, fn ->
+  defp explained(call, subject, operation, {_type, _id} = object) do
+    span(call, subject, operation, object, fn ->
       case asked(call, :explain, subject, operation, object) do
         {:ok, %Explanation{answer: answer} = explanation} ->
-          decision = stamp(call, subject, operation, ref, answer, answer.verdict)
+          decision = stamp(call, subject, operation, object, answer, answer.verdict)
           {{:ok, explanation, decision}, decision, %{}}
 
         {:error, %Error.Unsupported{} = error} ->
@@ -183,7 +180,7 @@ defmodule Turnstile.Port do
 
         {:error, %Error.Engine{} = error} ->
           answer = closed(error)
-          decision = stamp(call, subject, operation, ref, answer, :deny)
+          decision = stamp(call, subject, operation, object, answer, :deny)
           {{:ok, %Explanation{answer: answer, matched: []}, decision}, decision, %{}}
       end
     end)
@@ -248,13 +245,13 @@ defmodule Turnstile.Port do
 
   defp verdicts(%{kind: :unknown}, _function, subject, _operation, objects) do
     verdict = unknown_kind(subject).verdict
-    Map.new(objects, &{Object.ref(&1), verdict})
+    Map.new(objects, &{&1, verdict})
   end
 
   defp verdicts(call, _function, subject, operation, objects) do
     case asked(call, :batch, subject, operation, objects) do
-      {:ok, answers} -> Map.new(objects, &{Object.ref(&1), Map.fetch!(answers, Object.ref(&1)).verdict})
-      {:error, %Error.Engine{}} -> Map.new(objects, &{Object.ref(&1), :deny})
+      {:ok, answers} -> Map.new(objects, &{&1, Map.fetch!(answers, &1).verdict})
+      {:error, %Error.Engine{}} -> Map.new(objects, &{&1, :deny})
     end
   end
 
@@ -276,8 +273,8 @@ defmodule Turnstile.Port do
   defp reviewed(call, subject, operation, objects) when is_list(objects) do
     %{call | kind: kind(subject)}
     |> verdicts(:batch, subject, operation, objects)
-    |> Enum.filter(fn {_ref, verdict} -> verdict == :allow end)
-    |> Enum.map(fn {ref, _verdict} -> ref end)
+    |> Enum.filter(fn {_object, verdict} -> verdict == :allow end)
+    |> Enum.map(fn {object, _verdict} -> object end)
     |> Enum.sort()
   end
 
@@ -296,20 +293,20 @@ defmodule Turnstile.Port do
 
   # A batch's one answer: allowed when every object is, denied otherwise.
   defp summary(verdicts) do
-    if map_size(verdicts) > 0 and Enum.all?(verdicts, fn {_ref, verdict} -> verdict == :allow end) do
+    if map_size(verdicts) > 0 and Enum.all?(verdicts, fn {_object, verdict} -> verdict == :allow end) do
       %Answer{verdict: :allow, reason: Reason.allowed("batch"), policy_version: nil, applied_position: nil}
     else
       %Answer{verdict: :deny, reason: Reason.deny_by_default(), policy_version: nil, applied_position: nil}
     end
   end
 
-  defp stamp(call, subject, operation, ref, %Answer{} = answer, verdict) do
+  defp stamp(call, subject, operation, object, %Answer{} = answer, verdict) do
     head = head_position(call.head)
 
     %Decision{
       id: Id.new(),
       subject: subject,
-      object: ref,
+      object: object,
       operation: operation,
       verdict: verdict,
       reason: answer.reason,
@@ -324,12 +321,12 @@ defmodule Turnstile.Port do
 
   # The span: the attempt at :start, the decision at :stop. `fun` returns
   # the call's result, the decision or nil, and extra metadata.
-  defp span(call, subject, operation, ref, fun) do
+  defp span(call, subject, operation, object, fun) do
     metadata = %{
       subject: Subject.to_map(subject),
       subject_kind: call.kind,
       operation: operation,
-      object: ref,
+      object: object,
       operation_id: call.operation_id,
       head_position: head_position(call.head),
       adapter: call.adapter
@@ -348,7 +345,7 @@ defmodule Turnstile.Port do
   defp decision_out(nil), do: nil
   defp decision_out(%Decision{} = decision), do: Decision.to_map(decision)
 
-  defp population_type([%Object{type: type} | _rest]), do: type
+  defp population_type([{type, _id} | _rest]), do: type
   defp population_type(type) when is_atom(type), do: type
   defp population_type([]), do: nil
 

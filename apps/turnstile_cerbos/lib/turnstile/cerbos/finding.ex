@@ -10,7 +10,6 @@ defmodule Turnstile.Cerbos.Finding do
   """
 
   alias Turnstile.Decision
-  alias Turnstile.Object
 
   @kinds [:unrecorded, :unlogged, :verdict]
 
@@ -45,7 +44,7 @@ defmodule Turnstile.Cerbos.Finding do
   end
 
   @doc "The reference of a decision's object as a finding names it: both parts as text, the id absent for a scope."
-  @spec reference(Object.ref()) :: {String.t(), String.t() | nil}
+  @spec reference(Turnstile.object()) :: {String.t(), String.t() | nil}
   def reference({type, nil}), do: {to_string(type), nil}
   def reference({type, id}), do: {to_string(type), to_string(id)}
 
