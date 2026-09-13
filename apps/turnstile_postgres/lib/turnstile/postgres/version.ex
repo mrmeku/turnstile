@@ -18,11 +18,9 @@ defmodule Turnstile.Postgres.Version do
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Policy
 
-  @telemetry [:turnstile, :postgres, :policy_version]
-
   @doc "The telemetry event `publish/2` emits in ledger mode none."
   @spec telemetry_event() :: [atom()]
-  def telemetry_event, do: @telemetry
+  def telemetry_event, do: Ledger.telemetry_event()
 
   @doc """
   The version a migration publishes, from the policies it read back.

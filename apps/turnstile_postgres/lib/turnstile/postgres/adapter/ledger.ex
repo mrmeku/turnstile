@@ -6,15 +6,20 @@ defmodule Turnstile.Postgres.Adapter.Ledger do
   # when the ledger offers one, so two migrations running at once append it
   # once. In ledger mode none the telemetry event is emitted and nothing is
   # appended. What a version is, and what it holds, is
-  # `Turnstile.Postgres.Version`'s.
+  # `Turnstile.Postgres.Version`'s, and the name of the event is here,
+  # beside the one place that emits it.
 
   alias Turnstile.Error
   alias Turnstile.FactEvent
   alias Turnstile.Id
   alias Turnstile.PolicyVersion
-  alias Turnstile.Postgres.Version
 
   @page 1_000
+  @telemetry [:turnstile, :postgres, :policy_version]
+
+  @doc "The event `publish/2` emits, which `Turnstile.Postgres.Version.telemetry_event/0` answers with."
+  @spec telemetry_event() :: [atom()]
+  def telemetry_event, do: @telemetry
 
   @doc """
   Append the version unless the ledger's latest for the adapter already
@@ -25,7 +30,7 @@ defmodule Turnstile.Postgres.Adapter.Ledger do
           {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
   def publish(%PolicyVersion{} = version, ledger) do
     result = appended(version, ledger)
-    :telemetry.execute(Version.telemetry_event(), %{}, %{version: version, result: elem(result, 1)})
+    :telemetry.execute(@telemetry, %{}, %{version: version, result: elem(result, 1)})
     result
   end
 
