@@ -1,6 +1,6 @@
 # The example under a policy sidecar
 
-The controlled-unclassified-information example of `turnstile_example`,
+The controlled-unclassified-information example of `example`,
 bound to the `Turnstile.Cerbos` adapter. This application is thin: it boots
 the configuration, binds the attribute declarations and the policy directory
 to the example's repo, declares what each rule of the example is enforced

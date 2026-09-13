@@ -16,7 +16,7 @@ migrations =
 # The repos are configured under the example's otp_app, where their
 # modules read their configuration from.
 Turnstile.Test.Cluster.start(
-  otp_app: :turnstile_example,
+  otp_app: :example,
   repos: [
     {Example.Repo, role: :app, database: :sandboxed, pool: Sandbox},
     {Example.OwnerRepo, role: :owner, database: :sandboxed, pool_size: 2}

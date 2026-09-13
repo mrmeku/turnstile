@@ -1,6 +1,6 @@
 # The example under row-level security
 
-The controlled-unclassified-information example of `turnstile_example`,
+The controlled-unclassified-information example of `example`,
 bound to the `Turnstile.Postgres` adapter. This application is thin: it
 boots the configuration, binds the example's schemas to the example's repo,
 declares what each rule of the example is enforced by, and carries the

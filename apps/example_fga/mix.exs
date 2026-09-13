@@ -54,7 +54,7 @@ defmodule ExampleFga.MixProject do
     [
       {:turnstile, in_umbrella: true},
       {:turnstile_dev, in_umbrella: true, only: :test},
-      {:turnstile_example, in_umbrella: true},
+      {:example, in_umbrella: true},
       {:turnstile_fga, in_umbrella: true},
       {:turnstile_ledger, in_umbrella: true},
       {:ecto, "3.14.2"},

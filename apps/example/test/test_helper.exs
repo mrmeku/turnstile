@@ -1,7 +1,7 @@
 alias Ecto.Adapters.SQL.Sandbox
 
 Turnstile.Test.Cluster.start(
-  otp_app: :turnstile_example,
+  otp_app: :example,
   repos: [
     {Example.Repo, role: :app, database: :sandboxed, pool: Sandbox},
     {Example.OwnerRepo, role: :owner, database: :committed, pool_size: 2}

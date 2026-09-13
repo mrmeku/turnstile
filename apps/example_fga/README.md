@@ -1,6 +1,6 @@
 # The example on a relationship graph
 
-The controlled-unclassified-information example of `turnstile_example`,
+The controlled-unclassified-information example of `example`,
 bound to the `Turnstile.Fga` adapter. This application is thin: it boots the
 configuration, binds the model file, the tuple mapping, and the guard to the
 example's repo, declares what each rule of the example is enforced by, starts

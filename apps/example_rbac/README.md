@@ -1,6 +1,6 @@
 # The example under RBAC in code
 
-The controlled-unclassified-information example of `turnstile_example`,
+The controlled-unclassified-information example of `example`,
 bound to the `Turnstile.Code` adapter. This application is thin: it boots
 the configuration, binds a policy module to the example's repo, declares
 what each rule of the example is enforced by, and carries the migrations.

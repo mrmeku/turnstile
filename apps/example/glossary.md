@@ -1,6 +1,6 @@
 # Example glossary
 
-The words `turnstile_example` owns. A word with a second meaning elsewhere is listed in `docs/glossary-index.md` with the place each meaning lives.
+The words `example` owns. A word with a second meaning elsewhere is listed in `docs/glossary-index.md` with the place each meaning lives.
 
 | Term | Meaning |
 |---|---|

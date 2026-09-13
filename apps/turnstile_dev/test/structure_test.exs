@@ -25,7 +25,7 @@ defmodule StructureTest do
   @umbrella Path.expand("../../..", __DIR__)
 
   @exceptions %{
-    "apps/turnstile_example/lib/example/document.ex" =>
+    "apps/example/lib/example/document.ex" =>
       "a document, its markings, its portions, and its proposals refer to one another"
   }
 

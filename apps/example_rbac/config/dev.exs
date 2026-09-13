@@ -5,7 +5,7 @@ import Config
 # test environment leaves the repos to the ephemeral cluster and configures
 # none of this.
 for {repo, role} <- [{Example.Repo, "turnstile_app"}, {Example.OwnerRepo, "turnstile_owner"}] do
-  config :turnstile_example, repo,
+  config :example, repo,
     hostname: "127.0.0.1",
     port: 5432,
     username: role,
