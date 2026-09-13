@@ -1,19 +1,24 @@
-defmodule Turnstile.Code.Decide do
-  @moduledoc """
-  The answers `check`, `authorize`, `batch`, and `explain` give: one query
-  per object type that selects every clause of the rule for the rows asked
-  about, through the bound repo as a library caller. A row that is not
-  there is denied by default, as is a subject no grant reaches; a row a
-  grant reaches that fails a predicate is denied by that predicate's name;
-  a row every clause allows is allowed by the first grant that held. A
-  failure is its detail; the adapter names the callback it failed in.
-  """
+defmodule Turnstile.Code.Adapter.Decide do
+  @moduledoc false
+  # The answers `check`, `authorize`, `batch`, and `explain` give: one query
+  # per object type that selects every clause of the rule for the rows asked
+  # about, through the bound repo as a library caller. A row that is not
+  # there is denied by default, as is a subject no grant reaches; a row a
+  # grant reaches that fails a predicate is denied by that predicate's name;
+  # a row every clause allows is allowed by the first grant that held. A
+  # predicate that answers with neither a `dynamic` nor a boolean is its
+  # detail, and the adapter names the callback it failed in.
+  #
+  # A repo that raises is left to raise. The port turns any exception a
+  # decider raises into a denial with `engine_unreachable`, so this package
+  # names no driver's error, and a driver it does not carry needs no clause
+  # of its own.
 
   import Ecto.Query, only: [dynamic: 2, from: 2]
 
   alias Turnstile.Answer
   alias Turnstile.Code.Binding
-  alias Turnstile.Code.Rule
+  alias Turnstile.Code.Core.Rule
 
   @doc "The answer for one object, with the clauses that held under `meta[:matched]`."
   @spec one(Binding.t(), Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment()) ::
@@ -54,9 +59,8 @@ defmodule Turnstile.Code.Decide do
   end
 
   defp queried(repo, %Rule{} = rule, objects) do
-    with {:ok, rows} <- rows(repo, rule, objects) do
-      {:ok, Map.new(objects, &{&1, explain(rule, Map.get(rows, key(&1)))})}
-    end
+    rows = rows(repo, rule, objects)
+    {:ok, Map.new(objects, &{&1, explain(rule, Map.get(rows, key(&1)))})}
   end
 
   defp rows(repo, %Rule{schema: schema} = rule, objects) do
@@ -65,9 +69,7 @@ defmodule Turnstile.Code.Decide do
     selected = Map.put(Rule.clauses(rule), :__key__, dynamic([row], field(row, ^key)))
     query = from(row in schema, where: field(row, ^key) in ^ids, select: ^selected)
 
-    {:ok, Map.new(repo.all(query, turnstile: {:exempt, :library}), &{to_string(&1.__key__), &1})}
-  rescue
-    error in [DBConnection.ConnectionError, Postgrex.Error] -> {:error, Exception.message(error)}
+    Map.new(repo.all(query, turnstile: {:exempt, :library}), &{to_string(&1.__key__), &1})
   end
 
   defp key({_type, id}), do: to_string(id)

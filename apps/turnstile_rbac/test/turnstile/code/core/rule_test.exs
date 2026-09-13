@@ -5,8 +5,8 @@ defmodule Turnstile.Code.RuleTest do
 
   alias Turnstile.Answer
   alias Turnstile.Code.Binding
+  alias Turnstile.Code.Core.Rule
   alias Turnstile.Code.Policy
-  alias Turnstile.Code.Rule
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership

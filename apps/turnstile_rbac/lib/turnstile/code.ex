@@ -26,28 +26,26 @@ defmodule Turnstile.Code do
     check: [apps: [:ecto_sql, :postgrex]],
     exports: [
       Binding,
+      Core.Clauses,
       Coverage,
-      Decide,
       Policy,
       Policy.Clause,
-      Policy.Clauses,
       Policy.Object,
       Policy.Role,
-      Rule,
       Version
     ]
 
   import Ecto.Query, only: [dynamic: 2]
 
   alias Turnstile.Answer
+  alias Turnstile.Code.Adapter.Decide
+  alias Turnstile.Code.Adapter.Version
   alias Turnstile.Code.Binding
-  alias Turnstile.Code.Decide
-  alias Turnstile.Code.Rule
-  alias Turnstile.Code.Version
+  alias Turnstile.Code.Core.Rule
   alias Turnstile.Error
   alias Turnstile.FactEvent
 
-  @doc "Append the bound policy's version to the ledger when its latest names an older one; see `Turnstile.Code.Version`."
+  @doc "Append the bound policy's version to the ledger when its latest names an older one; the version is `Turnstile.Code.Version`."
   @spec publish() :: {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
   def publish, do: Version.publish(__MODULE__)
 

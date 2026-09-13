@@ -3,9 +3,9 @@ defmodule Turnstile.Code.PolicyTest do
 
   alias Turnstile.Code.Conformance.Predicates
   alias Turnstile.Code.Conformance.Roles
+  alias Turnstile.Code.Core.Clauses
   alias Turnstile.Code.Policy
   alias Turnstile.Code.Policy.Clause
-  alias Turnstile.Code.Policy.Clauses
   alias Turnstile.Code.Policy.Object
   alias Turnstile.Code.Policy.Role
   alias Turnstile.Fixture.Folder

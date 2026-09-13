@@ -1,21 +1,20 @@
-defmodule Turnstile.Code.Rule do
-  @moduledoc """
-  A protected schema's rule for one subject and operation, built from the
-  policy's clauses as `dynamic` expressions over the protected row: each
-  grant is a membership test against a subquery of its relationship schema,
-  wrapped in one subquery per hop when the grant runs `through` other
-  schemas, each predicate that applies to the operation is the function's
-  result, and the whole is any grant and every predicate. Building runs no
-  query; `dynamic/1` is the rule `scope` returns and the clause map is what
-  `Turnstile.Code.Decide` selects.
-  """
+defmodule Turnstile.Code.Core.Rule do
+  # A protected schema's rule for one subject and operation, built from the
+  # policy's clauses as `dynamic` expressions over the protected row: each
+  # grant is a membership test against a subquery of its relationship schema,
+  # wrapped in one subquery per hop when the grant runs `through` other
+  # schemas, each predicate that applies to the operation is the function's
+  # result, and the whole is any grant and every predicate. Building runs no
+  # query: `dynamic/1` is the rule `scope` returns, and the clause map is what
+  # the decider selects for the rows asked about.
+  @moduledoc false
 
   import Ecto.Query, only: [dynamic: 2, from: 2]
 
   alias Turnstile.Answer
+  alias Turnstile.Code.Core.Clauses
   alias Turnstile.Code.Policy
   alias Turnstile.Code.Policy.Clause
-  alias Turnstile.Code.Policy.Clauses
   alias Turnstile.Code.Policy.Object
   alias Turnstile.Code.Version
   alias Turnstile.Schema

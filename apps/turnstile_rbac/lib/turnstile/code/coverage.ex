@@ -15,9 +15,9 @@ defmodule Turnstile.Code.Coverage do
 
   import Ecto.Query, only: [where: 2]
 
+  alias Turnstile.Code.Core.Rule
   alias Turnstile.Code.Policy
   alias Turnstile.Code.Policy.Object
-  alias Turnstile.Code.Rule
   alias Turnstile.Schema
   alias Turnstile.Schema.Fact
   alias Turnstile.Schema.Relationship

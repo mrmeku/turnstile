@@ -92,17 +92,16 @@ defmodule Turnstile.Code.Policy do
   `approval:` to `"unrecorded"`.
 
   The role table is data at compile time. The clauses are built when the
-  policy is read, by `Turnstile.Code.Policy.Clauses`, which checks each
-  against the schemas it names; a policy that names a schema without an
-  object type, a relationship the grant cannot read, or a predicate that is
-  not a named capture raises there, so a bad policy fails at boot, when
-  `Turnstile.Code.publish/0` reads it, and not on a request. Building at
-  read time keeps the policy module free of compile-time dependencies on
-  the schemas and predicates it names: a change to any of them recompiles
-  nothing but itself.
+  policy is read, and each is checked then against the schemas it names; a
+  policy that names a schema without an object type, a relationship the
+  grant cannot read, or a predicate that is not a named capture raises
+  there, so a bad policy fails at boot, when `Turnstile.Code.publish/0`
+  reads it, and not on a request. Building at read time keeps the policy
+  module free of compile-time dependencies on the schemas and predicates it
+  names: a change to any of them recompiles nothing but itself.
   """
 
-  alias Turnstile.Code.Policy.Clauses
+  alias Turnstile.Code.Core.Clauses
   alias Turnstile.Code.Policy.Object
   alias Turnstile.Code.Policy.Role
 
