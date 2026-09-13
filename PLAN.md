@@ -38,7 +38,7 @@ A package exists for one of two reasons: it carries a dependency that the librar
 
 | Package | Published | Why it exists |
 |---|---|---|
-| `turnstile` | Yes | The contract. Runtime dependencies: `ecto` and `telemetry`. |
+| `turnstile` | Yes | The contract. Runtime dependencies: `ecto`, `telemetry`, `nimble_options`, which validates the configuration and the `turnstile:` option, and `stream_data`, which the conformance templates in `lib` draw from. |
 | `turnstile_credo` | Yes | Two checks for adopters. It carries `credo`. |
 | `turnstile_rbac` | Yes | A decider: roles in Elixir. |
 | `turnstile_postgres` | Yes | A decider: row-level security. |
@@ -169,7 +169,7 @@ What it does not guarantee: that a record is stored, that a handler keeps runnin
 
 `StructureTest` reads the syntax tree and is a few hundred lines. The `boundary` library cannot see a call to Elixir's own modules or to Erlang, which is why the effect rule belongs to the test and not to a dependency list.
 
-Two numbers run in CI: the runtime dependency count of `turnstile`, which must stay at two, and the line coverage of every `core/` module, which must stay at one hundred percent.
+Two numbers run in CI: the runtime dependency count of `turnstile`, which must stay at four, and the line coverage of every `core/` module, which must stay at one hundred percent. Neither is wired yet. They go in at step 12, where the last package is placed and every `core/` exists; a partitioned test run measures coverage over a part of the suite, so the second number needs a run of its own.
 
 ## §6 What proves what
 
@@ -259,7 +259,7 @@ Each step is one merge, and `mix quality` passes at the end of each.
 9. **`turnstile_relay`.** Build the supervisor, the lock, the worker, the wake-up, and the job behaviour, with `JobCase` and the durability property. It has no consumer yet, so it is proved by its own tests.
 10. **`turnstile_fga`.** Build the marker outbox on the relay, take in the projection modules, and write the drain property and the codec property.
 11. **`example` and `ExampleWeb`.** Place the modules, divide the contexts from their queries, and move the banner property onto the pure module.
-12. **The thin applications.** Place, change configuration and migrations, and replace the capability declarations with test tags.
+12. **The thin applications.** Place, change configuration and migrations, replace the capability declarations with test tags, and wire the two numbers of §5.
 13. **Close.** Change the documents of §12, record this plan as a decision record, and delete Parts 2 and 3.
 
 Steps 1 to 5 change behaviour and the surface, and so do steps 9 and 10, which build the relay and move the projection onto it. Steps 6 to 8, 11, and 12 move code without changing behaviour. Keeping that line makes each review tractable.
