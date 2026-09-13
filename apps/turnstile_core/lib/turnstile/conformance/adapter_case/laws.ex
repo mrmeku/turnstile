@@ -371,7 +371,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   defp scoped_all(module, repo, subject, operation) do
     schema = module.scope_schema()
     type = Schema.object_type_of(schema)
-    handler = :telemetry_test.attach_event_handlers(self(), Turnstile.Port.events())
+    handler = :telemetry_test.attach_event_handlers(self(), [Turnstile.Port.event()])
 
     {rows, queries} =
       Turnstile.Test.queries(repo, fn ->
@@ -433,7 +433,11 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
 
   defp decisions(handler) do
     receive do
-      {[:turnstile, _kind, :stop], ^handler, _measurements, %{decision: %{}}} -> 1 + decisions(handler)
+      {[:turnstile, :decision], ^handler, _measurements, %{verdict: nil}} ->
+        decisions(handler)
+
+      {[:turnstile, :decision], ^handler, _measurements, _metadata} ->
+        1 + decisions(handler)
     after
       0 -> 0
     end

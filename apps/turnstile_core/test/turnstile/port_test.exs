@@ -1,6 +1,7 @@
 defmodule Turnstile.PortTest do
   use ExUnit.Case, async: true
 
+  alias Ecto.Query.DynamicExpr
   alias Turnstile.Adapter.Fake
   alias Turnstile.Answer
   alias Turnstile.Decision
@@ -91,6 +92,29 @@ defmodule Turnstile.PortTest do
       do: Fake.scope(subject, operation, type, environment, options)
   end
 
+  defmodule Raising do
+    @moduledoc false
+    @behaviour Turnstile.Adapter
+
+    @impl Turnstile.Adapter
+    def requires_ledger, do: false
+
+    @impl Turnstile.Adapter
+    def scope_cap, do: :none
+
+    @impl Turnstile.Adapter
+    def authorize(_subject, _operation, _object, _environment, _options), do: raise("the decider broke")
+
+    @impl Turnstile.Adapter
+    def check(_subject, _operation, _object, _environment, _options), do: raise("the decider broke")
+
+    @impl Turnstile.Adapter
+    def batch(_subject, _operation, _objects, _environment, _options), do: raise("the decider broke")
+
+    @impl Turnstile.Adapter
+    def scope(_subject, _operation, _type, _environment, _options), do: raise("the decider broke")
+  end
+
   @user {:user, "acct-a"}
   @service {:non_person_entity, "svc-a"}
   @robot {:robot, "r2"}
@@ -101,27 +125,33 @@ defmodule Turnstile.PortTest do
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})
     :ok = Fake.allow(rules, "acct-a", :read, {:folder, 1})
     :ok = Turnstile.Test.with_config(adapter: {Fake, rules: rules}, ledger: :none)
-    handler = :telemetry_test.attach_event_handlers(self(), Port.events())
+    handler = :telemetry_test.attach_event_handlers(self(), [Port.event()])
     on_exit(fn -> :telemetry.detach(handler) end)
     {:ok, rules: rules}
   end
 
-  test "events/0 names a span per subject kind and one for unknown kinds" do
-    assert [:turnstile, :user, :start] in Port.events()
-    assert [:turnstile, :unknown, :exception] in Port.events()
-    assert length(Port.events()) == 12
-  end
-
-  test "a call is one span named for the subject's kind, carrying the decision at stop" do
+  test "a call publishes one decision event carrying who asked, what was answered, and how long it took" do
     assert {:ok, %Decision{verdict: :allow, head_position: nil}} = Port.authorize(@user, :read, @folder, [])
-    assert_received {[:turnstile, :user, :start], _ref, _measurements, %{subject_kind: :user, object: {:folder, 1}}}
-    assert_received {[:turnstile, :user, :stop], _ref, _measurements, %{decision: %{verdict: "allow"}}}
 
-    assert Port.check(@service, :read, @folder, []) == false
-    assert_received {[:turnstile, :non_person_entity, :stop], _ref, _measurements, %{decision: %{verdict: "deny"}}}
+    assert_received {[:turnstile, :decision], _ref, %{duration: duration}, metadata}
+    assert duration >= 0
+    assert metadata.subject == @user
+    assert metadata.subject_kind == :user
+    assert metadata.operation == :read
+    assert metadata.object == {:folder, 1}
+    assert metadata.verdict == :allow
+    assert metadata.reason == :allowed
+    assert metadata.decider == Fake
+    assert metadata.env == %{}
+    assert metadata.exception == nil
+    assert %DateTime{} = metadata.time
+    assert is_binary(metadata.operation_id)
+
+    assert Port.check(@service, :read, @folder, env: %{shift: :night}) == false
+    assert_received {[:turnstile, :decision], _ref, _measurements, %{verdict: :deny, subject_kind: :non_person_entity}}
   end
 
-  test "an unknown subject kind is denied before the adapter is asked, under the unknown span" do
+  test "an unknown subject kind is denied before the adapter is asked, and its event says so" do
     assert {:error, %Error{reason: :unknown_subject_kind}} =
              Port.authorize(@robot, :read, @folder, [])
 
@@ -129,7 +159,8 @@ defmodule Turnstile.PortTest do
     assert Port.filter(@robot, :read, [@folder], []) == []
     assert {_rule, %Decision{verdict: :deny}} = Port.scope(@robot, :read, :folder, [])
 
-    assert_received {[:turnstile, :unknown, :stop], _ref, _measurements, %{decision: %{reason: "deny_by_default"}}}
+    assert_received {[:turnstile, :decision], _ref, _measurements,
+                     %{subject_kind: :unknown, verdict: :deny, reason: :unknown_subject_kind}}
   end
 
   test "an unreachable ledger head fails every call closed with engine_unreachable" do
@@ -141,7 +172,7 @@ defmodule Turnstile.PortTest do
 
     assert Port.batch(@user, :read, [@folder], []) == %{{:folder, 1} => :deny}
     assert {_rule, %Decision{verdict: :deny, head_position: nil}} = Port.scope(@user, :read, :folder, [])
-    assert_received {[:turnstile, :user, :start], _ref, _measurements, %{head_position: nil}}
+    assert_received {[:turnstile, :decision], _ref, _measurements, %{reason: :engine_unreachable}}
   end
 
   test "an engine error from the adapter denies with the detail as the reason", %{rules: rules} do
@@ -155,40 +186,32 @@ defmodule Turnstile.PortTest do
                "(#{inspect(Fake)} failed during authorize: engine down)"
   end
 
-  test "batch and filter share one record listing verdicts per object and the ids in order" do
+  test "batch and filter publish one event for the objects they were asked about" do
     assert Port.batch(@user, :read, [@folder, @other], []) == %{{:folder, 1} => :allow, {:folder, 2} => :deny}
-    assert_received {[:turnstile, :user, :stop], _ref, _measurements, %{ids: [1, 2], verdicts: verdicts}}
-    assert verdicts == %{{:folder, 1} => :allow, {:folder, 2} => :deny}
+    assert_received {[:turnstile, :decision], _ref, _measurements, %{verdict: :deny, object: {:folder, nil}}}
     assert Port.filter(@user, :read, [@other, @folder], []) == [@folder]
     assert Port.filter(@user, :read, [], []) == []
-    assert_received {[:turnstile, :user, :stop], _ref, _measurements, %{decision: %{verdict: "deny", object: %{id: nil}}}}
+    assert_received {[:turnstile, :decision], _ref, _measurements, %{object: {nil, nil}}}
   end
 
-  test "ids past the batch cap become a count and a hash" do
-    :ok = Turnstile.Test.with_config(caps: [batch_ids: 2])
-    objects = for id <- 1..3, do: {:folder, id}
-    assert map_size(Port.batch(@user, :read, objects, [])) == 3
-    assert_received {[:turnstile, :user, :stop], _ref, _measurements, %{ids: %{count: 3, sha256: hash}}}
-    assert String.length(hash) == 64
+  test "a narrowing call publishes the rule in the object's place" do
+    assert {_rule, %Decision{verdict: :scoped}} = Port.scope(@user, :read, :folder, [])
+    assert_received {[:turnstile, :decision], _ref, _measurements, %{verdict: :scoped, object: rule}}
+    assert %DynamicExpr{} = rule
   end
 
-  test "scope records the rule, truncated past the cap with a hash of the whole" do
-    assert {_rule, %Decision{verdict: :scoped}} = Port.scope(@user, :read, :folder, [])
-    assert_received {[:turnstile, :user, :stop], _ref, _measurements, %{rule: %{truncated: false, text: text}}}
-    assert text =~ "dynamic"
+  test "a decider that raises publishes the exception, and the call raises on" do
+    :ok = Turnstile.Test.with_config(adapter: Raising)
 
-    :ok = Turnstile.Test.with_config(caps: [rule_bytes: 8])
-    assert {_rule, %Decision{verdict: :scoped}} = Port.scope(@user, :read, :folder, [])
-    assert_received {[:turnstile, :user, :stop], _ref, _measurements, %{rule: %{truncated: true, text: short}}}
-    assert byte_size(short) == 8
+    assert_raise RuntimeError, fn -> Port.check(@user, :read, @folder, []) end
+    assert_received {[:turnstile, :decision], _ref, _measurements, %{exception: %RuntimeError{}, verdict: nil}}
   end
 
   test "review answers a rule per subject over a type and allowed references over a population" do
     reviewed = Port.review(@user, [@user, @service, @robot], :read, :folder, [])
     assert map_size(reviewed) == 3
-    assert Enum.all?(reviewed, fn {_subject, rule} -> match?(%Ecto.Query.DynamicExpr{}, rule) end)
-    assert_received {[:turnstile, :user, :stop], _ref, _measurements, %{decision: %{verdict: "scoped"}, reviewed: out}}
-    assert is_binary(out[{:user, "acct-a"}])
+    assert Enum.all?(reviewed, fn {_subject, rule} -> match?(%DynamicExpr{}, rule) end)
+    assert_received {[:turnstile, :decision], _ref, _measurements, %{verdict: :scoped, object: {:folder, nil}}}
 
     assert Port.review(@user, [@user, @robot], :read, [@folder, @other], []) ==
              %{@user => [{:folder, 1}], @robot => []}
@@ -219,7 +242,7 @@ defmodule Turnstile.PortTest do
   test "the operation id given is the one every record of the call carries" do
     id = Turnstile.Id.new()
     assert {:ok, %Decision{operation_id: ^id}} = Port.authorize(@user, :read, @folder, operation_id: id)
-    assert_received {[:turnstile, :user, :start], _ref, _measurements, %{operation_id: ^id}}
+    assert_received {[:turnstile, :decision], _ref, _measurements, %{operation_id: ^id}}
     assert_raise NimbleOptions.ValidationError, fn -> Port.check(@user, :read, @folder, operation_id: 1) end
   end
 end

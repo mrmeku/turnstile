@@ -25,10 +25,8 @@ defmodule Turnstile.Config.Schema do
             ],
             caps: [
               type: :keyword_list,
-              default: [batch_ids: 1_000, rule_bytes: 4_096, policy_content_bytes: 65_536],
+              default: [policy_content_bytes: 65_536],
               keys: [
-                batch_ids: [type: :pos_integer, default: 1_000, doc: "Ids listed in a record."],
-                rule_bytes: [type: :pos_integer, default: 4_096, doc: "Rule text kept in a record."],
                 policy_content_bytes: [type: :pos_integer, default: 65_536, doc: "Policy text kept by value."]
               ],
               doc: "The caps on what a record carries by value."

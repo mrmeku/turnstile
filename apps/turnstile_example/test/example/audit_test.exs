@@ -63,8 +63,8 @@ defmodule Example.AuditTest do
     {:ok, _document} = Documents.override_read(gil, document.id, "why", operation_id: "op-override")
     assert Turnstile.check(ann, :read, Documents.object(document.id), operation_id: "op-check")
     _sync = Store.chain(store)
-    assert [%Record{kind: :decision, payload: %{verdict: "allow", operation: "read"}}] = Store.records(store, "op-read")
-    assert [%Record{kind: :decision, payload: %{verdict: "deny"}}] = Store.records(store, "op-deny")
+    assert [%Record{kind: :decision, payload: %{verdict: :allow, operation: :read}}] = Store.records(store, "op-read")
+    assert [%Record{kind: :decision, payload: %{verdict: :deny}}] = Store.records(store, "op-deny")
 
     assert [%Record{kind: :override, payload: %{subject: %{id: "gil"}, document_id: id}}] =
              Store.records(store, "op-override")
@@ -73,15 +73,14 @@ defmodule Example.AuditTest do
     assert [%Record{kind: :decision}] = Store.records(store, "op-check")
     assert Store.verify(store) == :ok
 
-    assert Store.events() ==
-             [[:example, :override, :read] | Enum.filter(Turnstile.Port.events(), &(List.last(&1) == :stop))]
+    assert Store.events() == [[:example, :override, :read], [:turnstile, :decision]]
 
     :ok = stop_supervised!(Store)
   end
 
-  test "a stop span without a decision map records nothing" do
+  test "a decision event that carries no verdict records nothing" do
     store = start_supervised!({Store, []})
-    :ok = Store.handle_event([:turnstile, :user, :stop], %{}, %{operation_id: "op-x"}, store)
+    :ok = Store.handle_event([:turnstile, :decision], %{}, %{operation_id: "op-x", verdict: nil}, store)
     assert Store.records(store, "op-x") == []
   end
 

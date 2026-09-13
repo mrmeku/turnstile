@@ -176,20 +176,17 @@ defmodule Example.Audit.Store do
     |> Chain.verify()
   end
 
-  @doc "The events the store attaches to: the port's `:stop` spans and the override event."
+  @doc "The events the store attaches to: the port's decision event and the override event."
   @spec events() :: [[atom()]]
-  def events do
-    [Documents.override_event() | Enum.filter(Turnstile.Port.events(), &(List.last(&1) == :stop))]
-  end
+  def events, do: [Documents.override_event(), Turnstile.Port.event()]
 
   @doc false
   @spec handle_event([atom()], map(), map(), GenServer.server()) :: :ok
-  def handle_event([:turnstile, _kind, :stop], _measurements, %{decision: decision} = metadata, store)
-      when is_map(decision) do
-    record(store, :decision, metadata[:operation_id], decision)
-  end
+  def handle_event([:turnstile, :decision], _measurements, %{verdict: nil}, _store), do: :ok
 
-  def handle_event([:turnstile, _kind, :stop], _measurements, _metadata, _store), do: :ok
+  def handle_event([:turnstile, :decision], _measurements, %{verdict: _verdict} = metadata, store) do
+    record(store, :decision, metadata[:operation_id], metadata)
+  end
 
   def handle_event([:example, :override, :read], _measurements, %{report: report, subject: subject}, store) do
     payload = %{subject: subject, document_id: report.document_id, office_id: report.office_id}

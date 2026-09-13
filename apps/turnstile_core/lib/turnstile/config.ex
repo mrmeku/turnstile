@@ -18,7 +18,7 @@ defmodule Turnstile.Config do
   @type adapter :: module() | {module(), keyword()}
   @type clock :: (-> DateTime.t())
   @type ledger :: {module(), keyword()} | :none
-  @type caps :: [batch_ids: pos_integer(), rule_bytes: pos_integer(), policy_content_bytes: pos_integer()]
+  @type caps :: [policy_content_bytes: pos_integer()]
 
   @type t :: %__MODULE__{
           adapter: adapter(),

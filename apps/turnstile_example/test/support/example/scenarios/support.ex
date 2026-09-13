@@ -10,7 +10,7 @@ defmodule Example.Scenarios.Support do
   alias Example.Sessions
   alias Turnstile.Error
 
-  @stop [:turnstile, :user, :stop]
+  @decision [:turnstile, :decision]
 
   @doc "The world and the subject of an account."
   @spec subject(String.t()) :: Turnstile.subject()
@@ -118,23 +118,23 @@ defmodule Example.Scenarios.Support do
   def adapter_name, do: inspect(adapter())
 
   @doc """
-  Receive the decision records the port emits from here on, in the calling
-  process. `decisions/1` reads what has arrived.
+  Receive the decision events the port publishes from here on, in the
+  calling process. `decisions/1` reads what has arrived.
   """
   @spec watch_decisions() :: :ok
   def watch_decisions do
-    _ref = :telemetry_test.attach_event_handlers(self(), [@stop])
+    _ref = :telemetry_test.attach_event_handlers(self(), [@decision])
     :ok
   end
 
-  @doc "The decision records of one operation, from the stop events received so far."
+  @doc "What the port said about one operation, from the decision events received so far."
   @spec decisions(Turnstile.Id.t()) :: [map()]
   def decisions(operation_id) do
     receive do
-      {@stop, _ref, _measurements, %{operation_id: ^operation_id, decision: decision}} ->
-        [decision | decisions(operation_id)]
+      {@decision, _ref, _measurements, %{operation_id: ^operation_id} = said} ->
+        [said | decisions(operation_id)]
 
-      {@stop, _ref, _measurements, _metadata} ->
+      {@decision, _ref, _measurements, _other} ->
         decisions(operation_id)
     after
       0 -> []

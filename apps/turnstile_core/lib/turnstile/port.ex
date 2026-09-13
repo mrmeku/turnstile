@@ -3,18 +3,19 @@ defmodule Turnstile.Port do
   The mechanism behind `Turnstile`'s functions: resolve the configuration,
   build the environment from the caller's map and the clock, read the
   ledger head, ask the adapter, fail closed on an engine error, stamp a
-  `Turnstile.Decision`, and emit it as a telemetry span.
+  `Turnstile.Decision`, and publish it.
 
-  Every call is one span. Its name is `[:turnstile, kind]` where `kind` is
-  the subject's, `:user`, `:non_person_entity`, or `:privileged`, and
-  `:unknown` for any other, which is denied before the adapter is asked.
-  The `:start` event is the attempt: subject, operation, object or type,
-  `operation_id`, and the head position. The `:stop` event carries the
-  decision as `Turnstile.Decision.to_map/1` under `decision`, and for
-  `batch` and `filter` the verdicts per object and the ids, listed up to
-  `caps[:batch_ids]` and beyond that a count and a SHA-256 of the sorted
-  ids; for `scope` the rule inspected, truncated at `caps[:rule_bytes]`
-  with a hash of the full text. The `:exception` event is the failure.
+  Every call publishes one `[:turnstile, :decision]` event, whose metadata
+  is what PLAN §4 states: who asked and of what kind, the operation, the
+  object or the rule a narrowing call answered with, the verdict and the
+  reason, the decider and the version of its rules, the environment as the
+  caller gave it, the exception where the call raised, the moment, and the
+  operation id. A decision is a read, so it has no transaction. The one
+  measurement is the duration in microseconds, which is where a consumer
+  of telemetry looks for it.
+
+  A subject whose kind the port does not know is denied before the adapter
+  is asked, and its event says `:unknown`.
   """
 
   import Ecto.Query, only: [dynamic: 2]
@@ -22,7 +23,6 @@ defmodule Turnstile.Port do
   alias Turnstile.Answer
   alias Turnstile.Config
   alias Turnstile.Decision
-  alias Turnstile.Edge
   alias Turnstile.Error
   alias Turnstile.Id
 
@@ -32,7 +32,7 @@ defmodule Turnstile.Port do
            )
 
   @kinds [:user, :non_person_entity, :privileged]
-  @spans [:user, :non_person_entity, :privileged, :unknown]
+  @event [:turnstile, :decision]
 
   @typedoc "The options every port function takes."
   @type options :: [env: %{atom() => term()}, operation_id: Id.t()]
@@ -47,11 +47,9 @@ defmodule Turnstile.Port do
   @spec subject_kinds() :: [Turnstile.subject_kind()]
   def subject_kinds, do: @kinds
 
-  @doc "The span names the port emits, with their three suffixes."
-  @spec events() :: [[atom()]]
-  def events do
-    for kind <- @spans, suffix <- [:start, :stop, :exception], do: [:turnstile, kind, suffix]
-  end
+  @doc "The telemetry event each decision publishes, which is what a consumer attaches to."
+  @spec event() :: [atom()]
+  def event, do: @event
 
   @doc "The schema of the options."
   @spec options_schema() :: NimbleOptions.t()
@@ -101,10 +99,10 @@ defmodule Turnstile.Port do
   def scope({_kind, _account} = subject, operation, object_type, opts) when is_atom(operation) and is_atom(object_type) do
     call = prepare(subject, opts)
 
-    span(call, subject, operation, {object_type, nil}, fn ->
+    decided(call, subject, operation, {object_type, nil}, fn ->
       {rule, answer} = scoped(call, subject, operation, object_type)
       decision = stamp(call, subject, operation, {object_type, nil}, answer, scope_verdict(answer))
-      {{rule, decision}, decision, %{rule: rule_text(rule, call.config)}}
+      {{rule, decision}, decision, %{object: rule}}
     end)
   end
 
@@ -132,25 +130,21 @@ defmodule Turnstile.Port do
     call = prepare(reviewer, opts)
     type = population_type(population)
 
-    span(call, reviewer, operation, {type, nil}, fn ->
+    decided(call, reviewer, operation, {type, nil}, fn ->
       reviewed = Map.new(subjects, &{&1, reviewed(call, &1, operation, population)})
       decision = stamp(call, reviewer, operation, {type, nil}, review_answer(), :scoped)
-      {reviewed, decision, %{reviewed: review_out(reviewed)}}
+      {reviewed, decision, %{}}
     end)
   end
 
   defp review_answer, do: %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "review"}}
-
-  defp review_out(reviewed) when is_map(reviewed) do
-    Map.new(reviewed, fn {subject, value} -> {subject, review_value_out(value)} end)
-  end
 
   # One object: authorize and check share this. The answer travels beside
   # the decision, because a denial names what the record does not carry.
   defp one(function, subject, operation, {_type, _id} = object, opts) do
     call = prepare(subject, opts)
 
-    span(call, subject, operation, object, fn ->
+    decided(call, subject, operation, object, fn ->
       answer = ask(call, function, subject, operation, object)
       decision = stamp(call, subject, operation, object, answer, answer.verdict)
       {{decision, answer}, decision, %{}}
@@ -162,16 +156,16 @@ defmodule Turnstile.Port do
     call = prepare(subject, opts)
     type = population_type(objects)
 
-    span(call, subject, operation, {type, nil}, fn ->
+    decided(call, subject, operation, {type, nil}, fn ->
       verdicts = verdicts(call, function, subject, operation, objects)
       answer = summary(verdicts)
       decision = stamp(call, subject, operation, {type, nil}, answer, answer.verdict)
-      {{verdicts, decision}, decision, %{verdicts: verdicts, ids: ids(Map.keys(verdicts), call.config)}}
+      {{verdicts, decision}, decision, %{}}
     end)
   end
 
   defp explained(call, subject, operation, {_type, _id} = object) do
-    span(call, subject, operation, object, fn ->
+    decided(call, subject, operation, object, fn ->
       case asked(call, :explain, subject, operation, object) do
         {:ok, %Answer{} = answer} ->
           decision = stamp(call, subject, operation, object, answer, answer.verdict)
@@ -199,6 +193,7 @@ defmodule Turnstile.Port do
       adapter: adapter,
       options: options,
       kind: kind(subject),
+      env: validated[:env],
       environment: Map.put(validated[:env], :now, config.clock.()),
       operation_id: Keyword.get_lazy(validated, :operation_id, &Id.new/0),
       head: head(config)
@@ -326,65 +321,61 @@ defmodule Turnstile.Port do
     }
   end
 
-  # The span: the attempt at :start, the decision at :stop. `fun` returns
-  # the call's result, the decision or nil, and extra metadata.
-  defp span(call, subject, operation, object, fun) do
-    metadata = %{
-      subject: Edge.ref_out(subject),
-      subject_kind: call.kind,
-      operation: operation,
-      object: object,
-      operation_id: call.operation_id,
-      head_position: head_position(call.head),
-      adapter: call.adapter
-    }
+  # One decision, published after the call. `fun` returns the call's
+  # result, the decision or nil where the adapter answered none, and what
+  # the call knows only afterwards, which for a narrowing call is the rule
+  # in the object's place.
+  defp decided(call, subject, operation, object, fun) do
+    started = System.monotonic_time()
 
-    :telemetry.span([:turnstile, call.kind], metadata, fn ->
+    try do
       {result, decision, extra} = fun.()
-      stop = Map.put(metadata, :decision, decision_out(decision))
-      {result, Map.merge(stop, extra)}
-    end)
+      publish(call, subject, operation, object, started, Map.merge(extra, verdict_out(decision)))
+      result
+    rescue
+      exception ->
+        publish(call, subject, operation, object, started, %{exception: exception})
+        reraise exception, __STACKTRACE__
+    end
+  end
+
+  defp publish(call, subject, operation, object, started, said) do
+    duration = System.convert_time_unit(System.monotonic_time() - started, :native, :microsecond)
+
+    metadata =
+      Map.merge(
+        %{
+          subject: subject,
+          subject_kind: call.kind,
+          operation: operation,
+          object: object,
+          verdict: nil,
+          reason: nil,
+          decider: call.adapter,
+          version: nil,
+          env: call.env,
+          exception: nil,
+          time: call.environment.now,
+          operation_id: call.operation_id
+        },
+        said
+      )
+
+    :telemetry.execute(@event, %{duration: duration}, metadata)
+  end
+
+  defp verdict_out(nil), do: %{}
+
+  defp verdict_out(%Decision{} = decision) do
+    %{verdict: decision.verdict, reason: decision.reason, version: decision.policy_version}
   end
 
   defp head_position({:ok, head}), do: head
   defp head_position({:error, _error}), do: nil
 
-  defp decision_out(nil), do: nil
-  defp decision_out(%Decision{} = decision), do: Decision.to_map(decision)
-
   defp population_type([{type, _id} | _rest]), do: type
   defp population_type(type) when is_atom(type), do: type
   defp population_type([]), do: nil
-
-  defp ids(refs, %Config{caps: caps}) do
-    ids =
-      refs
-      |> Enum.map(fn {_type, id} -> id end)
-      |> Enum.sort()
-
-    if length(ids) > Keyword.fetch!(caps, :batch_ids) do
-      joined = Enum.map_join(ids, "\n", &to_string/1)
-      %{count: length(ids), sha256: sha256(joined)}
-    else
-      ids
-    end
-  end
-
-  defp rule_text(rule, %Config{caps: caps}) do
-    text = inspect(rule)
-    limit = Keyword.fetch!(caps, :rule_bytes)
-
-    if byte_size(text) > limit do
-      %{text: binary_part(text, 0, limit), truncated: true, sha256: sha256(text)}
-    else
-      %{text: text, truncated: false, sha256: sha256(text)}
-    end
-  end
-
-  defp review_value_out(refs) when is_list(refs), do: refs
-  defp review_value_out(rule), do: inspect(rule)
-
-  defp sha256(text), do: Base.encode16(:crypto.hash(:sha256, text), case: :lower)
 
   defp not_authorized(subject, operation, object, %Answer{} = answer) do
     Error.denied(subject, operation, object, answer.reason, Map.get(answer.meta, :detail))

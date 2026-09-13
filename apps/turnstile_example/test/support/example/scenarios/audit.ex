@@ -24,10 +24,11 @@ defmodule Example.Scenarios.Audit do
     settle()
     assert_read(subject("ann"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
-    assert decision.subject == %{id: "ann", type: "user"}
-    assert decision.object == %{type: "document", id: document.id}
-    assert decision.operation == "read"
-    assert decision.verdict == "allow"
+    assert decision.subject == subject("ann")
+    assert decision.subject_kind == :user
+    assert decision.object == {:document, document.id}
+    assert decision.operation == :read
+    assert decision.verdict == :allow
     assert decision.operation_id == operation_id
     assert_record_fields(decision)
   end
@@ -42,8 +43,8 @@ defmodule Example.Scenarios.Audit do
     settle()
     assert_denied(subject("frank"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
-    assert decision.verdict == "deny"
-    assert decision.reason in (reasons() -- ["allowed"])
+    assert decision.verdict == :deny
+    assert decision.reason in (Answer.reasons() -- [:allowed])
   end
 
   @spec aud_03() :: term()
@@ -117,14 +118,13 @@ defmodule Example.Scenarios.Audit do
     end
   end
 
-  defp assert_record_fields(decision) do
-    assert decision.reason in reasons()
-    assert is_binary(decision.policy_version)
-    assert Map.has_key?(decision, :head_position) and Map.has_key?(decision, :applied_position)
-  end
-
   # The reason a record carries is one word every decider shares.
-  defp reasons, do: Enum.map(Answer.reasons(), &Atom.to_string/1)
+  defp assert_record_fields(decision) do
+    assert decision.reason in Answer.reasons()
+    assert is_binary(decision.version)
+    assert decision.decider == adapter()
+    assert %DateTime{} = decision.time
+  end
 
   defp assert_section(section, agency, reads) do
     assert section =~ agency
@@ -148,7 +148,7 @@ defmodule Example.Scenarios.Audit do
     :ok = watch_decisions()
     assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end, propagation_deadline())
     assert_denied(subject("ann"), document, operation_id: operation_id)
-    assert [%{policy_version: recorded}] = decisions(operation_id)
+    assert [%{version: recorded}] = decisions(operation_id)
     assert recorded == expected
   end
 end

@@ -39,7 +39,7 @@ defmodule Turnstile.ConfigTest do
     assert config.ledger == :none
     assert config.ledger_counter == "default"
     assert %DateTime{time_zone: "Etc/UTC"} = config.clock.()
-    assert config.caps == [batch_ids: 1_000, rule_bytes: 4_096, policy_content_bytes: 65_536]
+    assert config.caps == [policy_content_bytes: 65_536]
   end
 
   test "new/1 accepts a bare adapter module and fills its option defaults" do

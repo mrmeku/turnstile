@@ -2,7 +2,7 @@
 
 The port and everything that is the same for every adapter.
 
-- `Turnstile`: the port. `authorize`, its raising form, `check`, `batch`, `filter`, `scope`, `explain`, and `review` delegate to `Turnstile.Port`, which resolves the configuration, reads the ledger head, asks the adapter, denies an unknown subject kind before asking and an unreachable engine after, stamps a `Turnstile.Decision`, and emits the call as one telemetry span named for the subject's kind.
+- `Turnstile`: the port. `authorize`, its raising form, `check`, `batch`, `filter`, `scope`, `explain`, and `review` delegate to `Turnstile.Port`, which resolves the configuration, reads the ledger head, asks the adapter, denies an unknown subject kind before asking and an unreachable engine after, stamps a `Turnstile.Decision`, and publishes the call as one `[:turnstile, :decision]` telemetry event.
 - `Turnstile.Adapter`: the behaviour an adapter implements: `authorize`, `check`, `batch`, `scope`, and the optional `explain` and `around_query`, plus `requires_ledger/0`, `scope_cap/0`, and an options schema.
 - The values that cross the port: a subject as a `{kind, id}` tuple, an object as a `{type, id}` tuple, an environment as a map of the caller's facts with `now` beside them, `Turnstile.Answer`, `Turnstile.Decision`, `Turnstile.PolicyVersion`, `Turnstile.FactEvent`, `Turnstile.Exemption`, and the one exception `%Turnstile.Error{reason, detail}`. A decider answers one `%Turnstile.Answer{verdict, reason, version, meta}`: a rule that narrows comes back as `{dynamic, answer}`, and an explanation is the answer with what matched on `meta`.
 - The values that cross the port share `Turnstile.Edge`: `to_map/1` and `from_map/1` on each struct, over one field specification per struct.

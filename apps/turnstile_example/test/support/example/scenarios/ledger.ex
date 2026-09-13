@@ -49,7 +49,7 @@ defmodule Example.Scenarios.Ledger do
   @bulk_start [:turnstile, :bulk, :start]
   @bulk_exception [:turnstile, :bulk, :exception]
   @reconcile [:turnstile, :ledger, :reconcile]
-  @user_stop [:turnstile, :user, :stop]
+  @decision [:turnstile, :decision]
 
   @spec rev_07() :: term()
   def rev_07 do
@@ -82,7 +82,7 @@ defmodule Example.Scenarios.Ledger do
     settle()
     assert {:ok, _marking} = Documents.change_marking(subject("dana"), document.id, marking, options)
     assert [decision] = decisions(operation_id)
-    assert decision.operation == "change_marking"
+    assert decision.operation == :change_marking
     assert_marking_events(under(operation_id), document)
   end
 
@@ -127,7 +127,7 @@ defmodule Example.Scenarios.Ledger do
     assert_receive {@bulk_start, _start_ref, _started, %{operation: :insert}}
     assert_receive {@bulk_exception, _exception_ref, _exception, %{operation: :insert}}
     refute_received {@bulk_stop, _stop_ref, _stopped, _stop_metadata}
-    refute_received {@user_stop, _user_ref, _user, _user_metadata}
+    refute_received {@decision, _decision_ref, _measured, _said}
     assert events() == recorded
   end
 
@@ -155,11 +155,13 @@ defmodule Example.Scenarios.Ledger do
     world = Fixture.world!()
     document = Fixture.document!(world)
     operation_id = Id.new()
-    :ok = watch_decisions()
 
     settle()
     assert_read(subject("ann"), document, operation_id: operation_id)
-    assert [decision] = decisions(operation_id)
+
+    assert {:ok, decision} =
+             Turnstile.authorize(subject("ann"), :read, Documents.object(document.id), operation_id: operation_id)
+
     grant = membership("ann", world.program)
     replay = assert_replays(decision, grant)
 
@@ -219,10 +221,10 @@ defmodule Example.Scenarios.Ledger do
 
     try do
       assert [published] = for(event <- events(), current?(event, next), do: event)
-      assert published.old == made_under_n.policy_version
+      assert published.old == made_under_n.version
       recorded = denied_under(document)
       assert recorded == next.version
-      assert recorded != made_under_n.policy_version
+      assert recorded != made_under_n.version
     after
       :ok = rules.restore()
     end
@@ -282,7 +284,7 @@ defmodule Example.Scenarios.Ledger do
   # hold now. What putting those two back costs is the binding's, and
   # `Example.Scenarios.Rules` is where a test asks for it.
   defp assert_reproduces(rules, replay, decision, document) do
-    assert decision.verdict == "allow"
+    assert decision.verdict == :allow
     refute reads?(subject("ann"), document)
     assert rules.replay(replay, fn -> reads?(subject("ann"), document) end)
   end
@@ -298,7 +300,7 @@ defmodule Example.Scenarios.Ledger do
     assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end, propagation_deadline())
     assert_denied(subject("ann"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
-    decision.policy_version
+    decision.version
   end
 
   # The readers of one account, as the review reports them.
