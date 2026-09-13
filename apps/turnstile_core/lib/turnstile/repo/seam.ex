@@ -2,7 +2,7 @@ defmodule Turnstile.Repo.Seam do
   @moduledoc """
   What every override `use Turnstile.Repo` defines calls. One function per
   bucket of `Turnstile.Repo.Surface`: `query/5` for the query bucket,
-  `bulk/6` for `update_all` and `delete_all`, `write/5` and `write_all/6`
+  `bulk/5` for `update_all` and `delete_all`, `write/5` and `write_all/5`
   for the write bucket, `raw/4` for raw SQL, and `prepare/4` behind
   `prepare_query/3`, where every query, including the ones `preload`
   generates, is judged.
@@ -40,12 +40,12 @@ defmodule Turnstile.Repo.Seam do
     around(repo, mediation, Source.to_query(target), fn -> continue.(opts) end)
   end
 
-  @doc "`update_all` and `delete_all`: the query bucket, plus the refusal of a plain bulk write to fact fields."
-  @spec bulk(module(), call(), term(), keyword() | nil, keyword(), continue()) :: term()
-  def bulk(repo, call, queryable, updates, opts, continue) when is_atom(repo) and is_list(opts) do
+  @doc "`update_all` and `delete_all`: the query bucket, plus the refusal of a bulk write to an audited schema."
+  @spec bulk(module(), call(), term(), keyword(), continue()) :: term()
+  def bulk(repo, call, queryable, opts, continue) when is_atom(repo) and is_list(opts) do
     root = Source.root(queryable)
     {mediation, opts} = Mediation.resolve(repo, call, root, opts)
-    :ok = refuse_bulk(repo, call, root, bulk_fields(root, updates), mediation)
+    :ok = refuse_bulk(repo, call, root, mediation)
     around(repo, mediation, Source.to_query(queryable), fn -> continue.(opts) end)
   end
 
@@ -63,14 +63,14 @@ defmodule Turnstile.Repo.Seam do
     end)
   end
 
-  @doc "`insert_all`: judge the root, refuse an upsert or a plain bulk insert on a fact schema, wrap."
-  @spec write_all(module(), call(), term(), [map() | keyword()] | Ecto.Query.t(), keyword(), continue()) :: term()
-  def write_all(repo, call, source, entries, opts, continue) when is_atom(repo) and is_list(opts) do
+  @doc "`insert_all`: judge the root, refuse an upsert or a bulk insert into an audited schema, wrap."
+  @spec write_all(module(), call(), term(), keyword(), continue()) :: term()
+  def write_all(repo, call, source, opts, continue) when is_atom(repo) and is_list(opts) do
     root = Source.root(source)
     {mediation, opts} = Mediation.resolve(repo, call, root, opts)
     :ok = Matching.admit(schema_of(root), mediation, repo)
     :ok = refuse_upsert(call, schema_of(root), opts)
-    :ok = refuse_bulk(repo, call, root, entry_fields(root, entries), mediation)
+    :ok = refuse_bulk(repo, call, root, mediation)
     around(repo, mediation, Source.to_query(source), fn -> continue.(opts) end)
   end
 
@@ -264,16 +264,18 @@ defmodule Turnstile.Repo.Seam do
     end
   end
 
-  # A plain bulk write to fact fields is refused when a ledger is configured
-  # and the caller is not the library, whose bulk API records what it writes.
-  defp refuse_bulk(repo, {name, arity}, root, fields, mediation) do
+  # A bulk write to an audited schema is refused: one statement changes many
+  # rows, and the change each row made cannot be read back from it. The
+  # library's own bulk API records what it writes, so a Turnstile.* caller
+  # passes, and so does the owner-role repo.
+  defp refuse_bulk(repo, {name, arity}, root, mediation) do
     schema = schema_of(root)
 
     cond do
-      repo.__turnstile__(:role) == :owner or fields == [] ->
+      repo.__turnstile__(:role) == :owner ->
         :ok
 
-      config!().ledger == :none ->
+      not Schema.audited?(schema) ->
         :ok
 
       Caller.library?(caller(mediation, repo)) ->
@@ -282,44 +284,14 @@ defmodule Turnstile.Repo.Seam do
       true ->
         raise Error.invalid(
                 :bulk_write,
-                "Repo.#{name}/#{arity} on #{inspect(schema)} touches fact fields #{inspect(fields)}; use " <> @bulk_api
+                "Repo.#{name}/#{arity} on #{inspect(schema)} is a bulk write to an audited schema; " <>
+                  "write the rows one at a time, or use " <> @bulk_api
               )
     end
   end
 
   defp caller(%Mediation{caller: caller}, _repo) when is_atom(caller) and not is_nil(caller), do: caller
   defp caller(_mediation, repo), do: Caller.module(repo)
-
-  # update_all: the fields its set and inc touch; delete_all: every fact
-  # column, because a deleted relationship row is a fact.
-  defp bulk_fields(root, nil), do: Facts.touched(schema_of(root) || Turnstile.Repo, all_columns(root))
-
-  defp bulk_fields(root, updates) when is_list(updates) do
-    fields =
-      updates
-      |> Enum.flat_map(fn {_operation, changes} -> Keyword.keys(List.wrap(changes)) end)
-      |> Enum.uniq()
-
-    Facts.touched(schema_of(root) || Turnstile.Repo, fields)
-  end
-
-  defp entry_fields(root, entries) when is_list(entries) do
-    fields =
-      entries
-      |> Enum.flat_map(&Map.keys(Map.new(&1)))
-      |> Enum.uniq()
-
-    Facts.touched(schema_of(root) || Turnstile.Repo, fields)
-  end
-
-  defp entry_fields(root, _query), do: Facts.touched(schema_of(root) || Turnstile.Repo, all_columns(root))
-
-  defp all_columns(root) do
-    case schema_of(root) do
-      nil -> []
-      schema -> schema.__schema__(:fields)
-    end
-  end
 
   defp schema_of(root) when is_atom(root), do: root
   defp schema_of(_root), do: nil

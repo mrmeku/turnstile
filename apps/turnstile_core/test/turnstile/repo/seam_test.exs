@@ -255,22 +255,31 @@ defmodule Turnstile.Repo.SeamTest do
       assert Exception.message(error) =~ "bulk_insert/3"
     end
 
-    test "a bulk write to fact fields is refused and pointed at the bulk API, exemption or not", %{folder: folder} do
-      assert_raise Error, ~r/bulk_update/, fn -> Sandboxed.update_all(Membership, set: [role: :editor]) end
-      assert_raise Error, ~r/bulk_delete/, fn -> Sandboxed.delete_all(Membership) end
+    test "a bulk write to an audited schema is refused, exemption or not, ledger or not", %{folder: folder} do
+      error = assert_raise(Error, fn -> Sandboxed.update_all(Membership, set: [role: :editor]) end)
+      assert %Error{reason: :invalid} = error
+      assert Exception.message(error) =~ "is a bulk write to an audited schema"
 
-      assert_raise Error, ~r/bulk_insert/, fn ->
+      assert_raise Error, ~r/audited schema/, fn -> Sandboxed.delete_all(Membership) end
+
+      assert_raise Error, ~r/audited schema/, fn ->
         Sandboxed.insert_all(Membership, [%{account_id: "a", role: :reader, folder_id: folder.id}])
       end
 
-      assert_raise Error, ~r/bulk_update/, fn ->
+      assert_raise Error, ~r/audited schema/, fn ->
         Sandboxed.update_all(Account, set: [clearance: "none"], turnstile: {:exempt, "unchanged"})
       end
+
+      Turnstile.Test.with_config(ledger: :none)
+      assert_raise Error, ~r/audited schema/, fn -> Sandboxed.update_all(Account, set: [clearance: "none"]) end
     end
 
-    test "in ledger mode none a bulk write to fact fields runs" do
-      Turnstile.Test.with_config(ledger: :none)
-      assert {0, nil} = Sandboxed.update_all(Account, set: [clearance: "none"])
+    test "a bulk write to a schema that declares no kind runs", %{folder: folder} do
+      assert {1, nil} = Sandboxed.update_all(Item, [set: [title: "renamed"]], turnstile: {:exempt, "rename"})
+      assert {1, nil} = Sandboxed.delete_all(Item, turnstile: {:exempt, "clear"})
+
+      assert {1, nil} =
+               Sandboxed.insert_all(Item, [%{title: "third", folder_id: folder.id}], turnstile: {:exempt, "seed"})
     end
   end
 

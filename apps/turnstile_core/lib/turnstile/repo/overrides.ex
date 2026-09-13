@@ -121,22 +121,9 @@ defmodule Turnstile.Repo.Overrides do
     end
   end
 
-  defp seam(:update_all, :query, call, [queryable, updates], opts, continue) do
+  defp seam(name, :query, call, [queryable | _rest], opts, continue) when name in [:update_all, :delete_all] do
     quote do
-      Seam.bulk(
-        __MODULE__,
-        unquote(call),
-        unquote(queryable),
-        unquote(updates),
-        unquote(opts),
-        unquote(continue)
-      )
-    end
-  end
-
-  defp seam(:delete_all, :query, call, [queryable], opts, continue) do
-    quote do
-      Seam.bulk(__MODULE__, unquote(call), unquote(queryable), nil, unquote(opts), unquote(continue))
+      Seam.bulk(__MODULE__, unquote(call), unquote(queryable), unquote(opts), unquote(continue))
     end
   end
 
@@ -146,16 +133,9 @@ defmodule Turnstile.Repo.Overrides do
     end
   end
 
-  defp seam(:insert_all, :write, call, [source, entries], opts, continue) do
+  defp seam(:insert_all, :write, call, [source, _entries], opts, continue) do
     quote do
-      Seam.write_all(
-        __MODULE__,
-        unquote(call),
-        unquote(source),
-        unquote(entries),
-        unquote(opts),
-        unquote(continue)
-      )
+      Seam.write_all(__MODULE__, unquote(call), unquote(source), unquote(opts), unquote(continue))
     end
   end
 
