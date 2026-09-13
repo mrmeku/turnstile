@@ -1,15 +1,3 @@
-defmodule Turnstile.Fga.Conformance do
-  @moduledoc """
-  The conformance artifact of this adapter: the tuple mapping for the neutral
-  fixture, which is what turns that fixture's fact events into tuples. The
-  model those tuples are read under sits beside this file as its own text,
-  which is what the server reads. The test run compiles the module; an
-  application never loads it.
-  """
-
-  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Fga], exports: [Mapping]
-end
-
 defmodule Turnstile.Fga.Conformance.Mapping do
   @moduledoc """
   The neutral fixture as tuples. A membership of an account on a folder is
@@ -35,14 +23,15 @@ defmodule Turnstile.Fga.Conformance.Mapping do
   alias Turnstile.FactEvent
   alias Turnstile.Fga.Condition
   alias Turnstile.Fga.TupleKey
+  alias Turnstile.Fga.TupleMapping
   alias Turnstile.Ledger.Fold
 
   @condition "while_cleared"
 
-  @impl Turnstile.Fga.TupleMapping
+  @impl TupleMapping
   def object_types, do: ["clearance", "folder"]
 
-  @impl Turnstile.Fga.TupleMapping
+  @impl TupleMapping
   def touched(%Fold{}, %FactEvent{kind: :relationship, object_ref: {:folder, id}}), do: ["folder:#{id}"]
 
   def touched(%Fold{} = fold, %FactEvent{kind: :subject_attribute, attribute: :clearance} = event) do
@@ -53,7 +42,7 @@ defmodule Turnstile.Fga.Conformance.Mapping do
 
   def touched(%Fold{}, %FactEvent{}), do: []
 
-  @impl Turnstile.Fga.TupleMapping
+  @impl TupleMapping
   def tuples(%Fold{} = fold, object) do
     case String.split(object, ":", parts: 2) do
       ["folder", id] -> folder_tuples(fold, id)

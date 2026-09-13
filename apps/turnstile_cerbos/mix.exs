@@ -32,10 +32,9 @@ defmodule Turnstile.Cerbos.MixProject do
     [extra_applications: [:logger, :inets]]
   end
 
-  # The conformance artifacts under priv/conformance are the policies the
-  # sidecar reads and the attribute module the test run compiles; an
-  # application never loads the module and never reads the policies.
-  defp elixirc_paths(:test), do: ["lib", "test/support", "priv/conformance"]
+  # `priv/conformance` holds the policies the sidecar reads and nothing the
+  # compiler sees; an application never reads them.
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]
 
   # lib depends on core, ecto, and telemetry alone; ecto_sql and postgrex

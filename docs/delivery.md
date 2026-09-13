@@ -101,13 +101,13 @@ $ mix test --only committed
 ### S3. RBAC in code: `turnstile_rbac`
 
 - **Entry.** S2b.
-- **Deliverables.** `apps/turnstile_rbac`: declared roles and permissions as data, attribute predicates, `explain` naming the clause, a policy-version event at boot when the ledger head names an older version, the adapter's domain-free declaration, `priv/conformance/` with the role table and predicates for the neutral fixture, and the declared-fact coverage case of `docs/reference.md` §14, walking the `dynamic` that `scope` returns and failing with the column's name on an undeclared one.
+- **Deliverables.** `apps/turnstile_rbac`: declared roles and permissions as data, attribute predicates, `explain` naming the clause, a policy-version event at boot when the ledger head names an older version, the adapter's domain-free declaration, `Turnstile.Code.Conformance` in `test/support` with the role table and predicates for the neutral fixture, and the declared-fact coverage case of `docs/reference.md` §14, walking the `dynamic` that `scope` returns and failing with the column's name on an undeclared one.
 - **Gate.** In `apps/turnstile_rbac`:
 
 ```
 $ mix quality
 <green>
-$ ls priv/conformance
+$ ls test/support/turnstile/code/conformance
 <the role table and predicate files>
 ```
 
@@ -168,13 +168,13 @@ In the Ecto run no scenario is skipped for `needs_ledger`; a test replays a deci
 ### S7a. `turnstile_postgres`
 
 - **Entry.** S6.
-- **Deliverables.** `apps/turnstile_postgres`: session settings through `set_config(name, value, true)` inside `around_query/3`, `check` for writes, policy-version events read from `pg_policy` and appended by migrations, the replica-lag component reported "not measured", the declaration, `priv/conformance/` with the RLS migration for the neutral fixture, and the declared-fact coverage case of `docs/reference.md` §14, reading the policy predicates from `pg_policy` and failing with the column's name on an undeclared one.
+- **Deliverables.** `apps/turnstile_postgres`: session settings through `set_config(name, value, true)` inside `around_query/3`, `check` for writes, policy-version events read from `pg_policy` and appended by migrations, the replica-lag component reported "not measured", the declaration, `Turnstile.Postgres.Conformance` in `test/support` with the RLS migration for the neutral fixture, and the declared-fact coverage case of `docs/reference.md` §14, reading the policy predicates from `pg_policy` and failing with the column's name on an undeclared one.
 - **Gate.** In `apps/turnstile_postgres`:
 
 ```
 $ mix quality
 <green>
-$ ls priv/conformance
+$ ls test/support/turnstile/postgres/conformance
 <the RLS migration>
 ```
 
@@ -228,7 +228,7 @@ If `origin` has been pushed to by then, the workflow is green on `main`; if not,
 ### S10a. `turnstile_cerbos`
 
 - **Entry.** S9.
-- **Deliverables.** `Turnstile.Dev.Cerbos.start_shared/1` under `MuonTrap.Daemon` in `apps/turnstile_dev` (`docs/testing.md` §4). `apps/turnstile_cerbos`: attribute declarations, the query plan to `dynamic` with the `filter` fallback recorded as `limited`, policy versions from the policy repository's commit, decision-log reconciliation, the `policy_propagation` latency component, the declaration, replay with a throwaway sidecar, `priv/conformance/` with the policies for the neutral fixture.
+- **Deliverables.** `Turnstile.Dev.Cerbos.start_shared/1` under `MuonTrap.Daemon` in `apps/turnstile_dev` (`docs/testing.md` §4). `apps/turnstile_cerbos`: attribute declarations, the query plan to `dynamic` with the `filter` fallback recorded as `limited`, policy versions from the policy repository's commit, decision-log reconciliation, the `policy_propagation` latency component, the declaration, replay with a throwaway sidecar, `Turnstile.Cerbos.Conformance` in `test/support` with the attribute declarations for the neutral fixture and `priv/conformance/` with the policies that read them.
 - **Gate.** In `apps/turnstile_cerbos`:
 
 ```
@@ -265,7 +265,7 @@ No test in this stage starts a server.
 ### S11b. `turnstile_fga`: the adapter
 
 - **Entry.** S11a.
-- **Deliverables.** `Turnstile.Dev.Fga.start_shared/1` under `MuonTrap.Daemon` in `apps/turnstile_dev` (`docs/testing.md` §6). `Check`, `BatchCheck`, `ListObjects` with `caps[:batch_ids]` and the `filter` fallback, `Expand`, consistency per operation, model publication as a policy version, the `projector_drain` latency component, the declaration, replay with a throwaway in-memory server, `priv/conformance/` with the model and a tuple mapping for the neutral fixture, the three projection cases on the committed repo driving `drain_once/1` against `openfga run --datastore-engine memory`.
+- **Deliverables.** `Turnstile.Dev.Fga.start_shared/1` under `MuonTrap.Daemon` in `apps/turnstile_dev` (`docs/testing.md` §6). `Check`, `BatchCheck`, `ListObjects` with `caps[:batch_ids]` and the `filter` fallback, `Expand`, consistency per operation, model publication as a policy version, the `projector_drain` latency component, the declaration, replay with a throwaway in-memory server, `Turnstile.Fga.Conformance` in `test/support` with the tuple mapping for the neutral fixture and `priv/conformance/model.fga` with the model those tuples are read under, the three projection cases on the committed repo driving `drain_once/1` against `openfga run --datastore-engine memory`.
 - **Gate.** In `apps/turnstile_fga`:
 
 ```

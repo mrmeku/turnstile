@@ -30,9 +30,7 @@ defmodule Turnstile.Rbac.MixProject do
     [extra_applications: [:logger]]
   end
 
-  # The conformance artifacts under priv/conformance are modules the test run
-  # compiles; an application never loads them.
-  defp elixirc_paths(:test), do: ["lib", "test/support", "priv/conformance"]
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]
 
   # lib depends on core, ecto, and telemetry alone; ecto_sql and postgrex

@@ -14,7 +14,6 @@
           "apps/*/lib/",
           "apps/*/test/",
           "apps/*/config/",
-          "apps/*/priv/conformance/",
           "mix.exs",
           "apps/*/mix.exs"
         ],

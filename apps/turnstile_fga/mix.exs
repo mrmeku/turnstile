@@ -30,10 +30,10 @@ defmodule Turnstile.Fga.MixProject do
     [extra_applications: [:logger]]
   end
 
-  # The fake client, the probe that appends fact events, and the checkpoint
-  # migration are test support; the tuple mapping over the neutral fixture is
-  # conformance, so a thin application reads it as the worked example.
-  defp elixirc_paths(:test), do: ["lib", "test/support", "priv/conformance"]
+  # The fake client, the probe that appends fact events, the checkpoint
+  # migration, and the tuple mapping over the neutral fixture are test
+  # support. `priv/conformance` holds the model that mapping is read under.
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]
 
   # The projector reads fact events through the ledger's reader, so the
