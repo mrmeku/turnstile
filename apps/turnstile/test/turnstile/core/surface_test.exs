@@ -35,6 +35,7 @@ end
 
 defmodule Turnstile.Core.SurfaceTest do
   use ExUnit.Case, async: true
+  use ExUnitProperties
 
   alias Turnstile.Conformance.RepoCase
   alias Turnstile.Core.Surface
@@ -109,8 +110,49 @@ defmodule Turnstile.Core.SurfaceTest do
     assert Surface.bucket(:extra, 1) == nil
   end
 
+  property "the classifier gives a function the surface lists one bucket, and a function it does not list none" do
+    listed = Map.new(Surface.all(), fn {name, arity, bucket} -> {{name, arity}, bucket} end)
+    arities = Enum.group_by(Map.keys(listed), &elem(&1, 0), &elem(&1, 1))
+
+    check all({name, arity} <- one_of([member_of(Map.keys(listed)), outside(arities)])) do
+      case Map.fetch(listed, {name, arity}) do
+        {:ok, bucket} ->
+          assert Surface.bucket(name, arity) == bucket
+          assert holding(name, arity) == [bucket]
+
+        :error ->
+          assert Surface.bucket(name, arity) == nil
+          assert holding(name, arity) == []
+      end
+    end
+  end
+
   test "the repos answer their role" do
     assert Sandboxed.__turnstile__(:role) == :app
     assert Owner.__turnstile__(:role) == :owner
+  end
+
+  # The buckets whose own reader holds this name and arity, which is one
+  # bucket for a function of the surface and none for anything else.
+  defp holding(name, arity) do
+    [query: Surface.query(), write: Surface.write(), raw: Surface.raw(), plumbing: Surface.plumbing()]
+    |> Enum.filter(fn {_bucket, entries} -> {name, arity} in entries end)
+    |> Enum.map(fn {bucket, _entries} -> bucket end)
+  end
+
+  # A name and arity the surface does not list: one of its names at an arity
+  # it does not list, or a name of its own.
+  defp outside(arities), do: one_of([wrong_arity(arities), unknown_name(arities)])
+
+  defp wrong_arity(arities) do
+    gen all(name <- member_of(Map.keys(arities)), arity <- integer(0..9), arity not in Map.fetch!(arities, name)) do
+      {name, arity}
+    end
+  end
+
+  defp unknown_name(arities) do
+    gen all(name <- atom(:alphanumeric), arity <- integer(0..9), not is_map_key(arities, name)) do
+      {name, arity}
+    end
   end
 end
