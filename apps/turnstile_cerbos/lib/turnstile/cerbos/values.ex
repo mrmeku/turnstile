@@ -31,7 +31,6 @@ defmodule Turnstile.Cerbos.Values do
   alias Turnstile.Cerbos.Attributes
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Environment
-  alias Turnstile.Subject
 
   @exemption {:exempt, :library}
 
@@ -39,9 +38,9 @@ defmodule Turnstile.Cerbos.Values do
   @type attributes :: %{atom() => term()}
 
   @doc "The subject's own attributes, from the declarations of its kind, with the request-time facts beside them."
-  @spec principal(Binding.t(), Subject.t(), Environment.t()) :: {:ok, attributes()} | {:error, String.t()}
-  def principal(%Binding{} = binding, %Subject{id: id} = subject, %Environment{} = request) do
-    with {:ok, by_id} <- of(binding, subject, subject.kind, [id]) do
+  @spec principal(Binding.t(), Turnstile.subject(), Environment.t()) :: {:ok, attributes()} | {:error, String.t()}
+  def principal(%Binding{} = binding, {kind, id} = subject, %Environment{} = request) do
+    with {:ok, by_id} <- of(binding, subject, kind, [id]) do
       own = Map.fetch!(by_id, to_string(id))
       {:ok, Map.put(own, Attribute.reserved(), environment(binding, request))}
     end
@@ -55,15 +54,17 @@ defmodule Turnstile.Cerbos.Values do
   end
 
   @doc "The attributes of each object of one type, by the object's id as text."
-  @spec resources(Binding.t(), Subject.t(), atom(), [Turnstile.object()]) ::
+  @spec resources(Binding.t(), Turnstile.subject(), atom(), [Turnstile.object()]) ::
           {:ok, %{String.t() => attributes()}} | {:error, String.t()}
-  def resources(%Binding{} = binding, %Subject{} = subject, kind, objects) when is_atom(kind) and is_list(objects) do
+  def resources(%Binding{} = binding, {_kind, _account} = subject, kind, objects)
+      when is_atom(kind) and is_list(objects) do
     of(binding, subject, kind, Enum.map(objects, &elem(&1, 1)))
   end
 
   @doc "The attributes of the ids of one kind, every declared name present."
-  @spec of(Binding.t(), Subject.t(), atom(), [term()]) :: {:ok, %{String.t() => attributes()}} | {:error, String.t()}
-  def of(%Binding{} = binding, %Subject{} = subject, kind, ids) when is_atom(kind) and is_list(ids) do
+  @spec of(Binding.t(), Turnstile.subject(), atom(), [term()]) ::
+          {:ok, %{String.t() => attributes()}} | {:error, String.t()}
+  def of(%Binding{} = binding, {_kind, _account} = subject, kind, ids) when is_atom(kind) and is_list(ids) do
     declared = Attributes.attributes_of(binding.attributes, kind)
 
     with {:ok, from_columns} <- columns(binding, kind, ids, declared),

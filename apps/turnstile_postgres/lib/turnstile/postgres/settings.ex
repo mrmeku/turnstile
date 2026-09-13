@@ -20,7 +20,6 @@ defmodule Turnstile.Postgres.Settings do
   """
 
   alias Turnstile.Environment
-  alias Turnstile.Subject
 
   @prefix "turnstile."
 
@@ -35,11 +34,11 @@ defmodule Turnstile.Postgres.Settings do
   the call or, where only a decision is at hand, the time it was made. The
   second form carries no supplied fact, so a policy that reads one denies.
   """
-  @spec of(Subject.t(), atom(), Environment.t() | DateTime.t()) :: t()
-  def of(%Subject{} = subject, operation, %Environment{} = environment) when is_atom(operation) do
+  @spec of(Turnstile.subject(), atom(), Environment.t() | DateTime.t()) :: t()
+  def of({kind, id}, operation, %Environment{} = environment) when is_atom(operation) do
     fixed = [
-      {"subject_id", subject.id},
-      {"subject_kind", subject.kind},
+      {"subject_id", id},
+      {"subject_kind", kind},
       {"operation", operation},
       {"now", environment.now}
     ]
@@ -47,7 +46,7 @@ defmodule Turnstile.Postgres.Settings do
     %__MODULE__{pairs: Enum.map(fixed ++ supplied(environment), &pair/1)}
   end
 
-  def of(%Subject{} = subject, operation, %DateTime{} = at) when is_atom(operation) do
+  def of({_kind, _account} = subject, operation, %DateTime{} = at) when is_atom(operation) do
     of(subject, operation, %Environment{now: at})
   end
 

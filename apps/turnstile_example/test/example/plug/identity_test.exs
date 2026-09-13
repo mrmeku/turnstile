@@ -16,13 +16,13 @@ defmodule Example.Plug.IdentityTest do
       |> Identity.call(Identity.init([]))
 
     refute conn.halted
-    assert conn.assigns.subject == %Turnstile.Subject{id: "gil", kind: :privileged, session_id: "s1"}
-    assert conn.assigns.facts == %{reauthenticated_at: ~U[2026-09-08 12:00:00Z]}
+    assert conn.assigns.subject == {:privileged, "gil"}
+    assert conn.assigns.facts == %{session_id: "s1", reauthenticated_at: ~U[2026-09-08 12:00:00Z]}
   end
 
   test "no session and no re-authentication header give a bare subject and no facts", %{} do
     conn = identified("ann")
-    assert conn.assigns.subject == %Turnstile.Subject{id: "ann", kind: :user, session_id: nil}
+    assert conn.assigns.subject == {:user, "ann"}
     assert conn.assigns.facts == %{}
 
     conn =

@@ -52,7 +52,7 @@ defmodule ExampleCerbos.CoverageTest do
       query = from(row in schema, where: ^rule)
 
       assert Coverage.check(Attributes, query) == :ok,
-             "#{subject.id} #{operation} #{kind} reads #{inspect(Coverage.undeclared(Attributes, query))}"
+             "#{elem(subject, 1)} #{operation} #{kind} reads #{inspect(Coverage.undeclared(Attributes, query))}"
     end
   end
 

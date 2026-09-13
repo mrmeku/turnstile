@@ -29,12 +29,12 @@ defmodule Turnstile.Facts do
   alias Turnstile.Config
   alias Turnstile.Decision
   alias Turnstile.Error
+  alias Turnstile.FactEvent
   alias Turnstile.Facts.Context
   alias Turnstile.Facts.Record
   alias Turnstile.Id
   alias Turnstile.Repo
   alias Turnstile.Schema
-  alias Turnstile.Subject
 
   @span [:turnstile, :bulk]
 
@@ -296,7 +296,7 @@ defmodule Turnstile.Facts do
   end
 
   defp stamp(config, {:exempt, _reason}) do
-    %{by: Subject.library(), operation_id: Id.new(), at: config.clock.()}
+    %{by: FactEvent.library(), operation_id: Id.new(), at: config.clock.()}
   end
 
   defp config! do

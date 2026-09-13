@@ -24,7 +24,6 @@ defmodule Turnstile.Conformance.World do
   """
 
   alias Turnstile.Ledger.Fold
-  alias Turnstile.Subject
 
   @typedoc "A population: a struct of the module that implements this behaviour."
   @type t :: struct()
@@ -69,10 +68,10 @@ defmodule Turnstile.Conformance.World do
   @callback layered() :: t()
 
   @doc "The subject the fixed worlds grant to, and what they grant it on."
-  @callback focus(t()) :: {Subject.t(), grantable()}
+  @callback focus(t()) :: {Turnstile.subject(), grantable()}
 
   @doc "Every subject the population knows."
-  @callback subjects(t()) :: [Subject.t()]
+  @callback subjects(t()) :: [Turnstile.subject()]
 
   @doc "Every object the population holds."
   @callback objects(t()) :: [Turnstile.object()]
@@ -81,7 +80,7 @@ defmodule Turnstile.Conformance.World do
   @callback grantables(t()) :: [grantable()]
 
   @doc "The rule: what the population says about one subject, operation, and object."
-  @callback allowed?(t(), Subject.t(), atom(), Turnstile.object()) :: boolean()
+  @callback allowed?(t(), Turnstile.subject(), atom(), Turnstile.object()) :: boolean()
 
   @doc "The fold a ledger of this population's writes reaches."
   @callback facts(t()) :: %{Fold.key() => term()}
@@ -96,13 +95,13 @@ defmodule Turnstile.Conformance.World do
   @callback read(module()) :: t()
 
   @doc "Give the subject a grant of that kind, through the seam, and answer the population it leaves."
-  @callback grant(module(), t(), Subject.t(), grantable(), atom()) :: t()
+  @callback grant(module(), t(), Turnstile.subject(), grantable(), atom()) :: t()
 
   @doc "Take the subject's grant away, through the seam, and answer the population it leaves."
-  @callback revoke(module(), t(), Subject.t(), grantable()) :: t()
+  @callback revoke(module(), t(), Turnstile.subject(), grantable()) :: t()
 
   @doc "Write one grant through the seam and nothing else, for the case that counts the queries a fact write costs."
-  @callback insert_grant(module(), Subject.t(), grantable(), atom()) :: :ok
+  @callback insert_grant(module(), Turnstile.subject(), grantable(), atom()) :: :ok
 
   @doc """
   Bring the scope schema up to that many rows, none of them granted, given

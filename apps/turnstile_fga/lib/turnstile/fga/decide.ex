@@ -61,7 +61,6 @@ defmodule Turnstile.Fga.Decide do
   alias Turnstile.Fga.TupleKey
   alias Turnstile.Reason
   alias Turnstile.Scope
-  alias Turnstile.Subject
 
   @fallback [:turnstile, :fga, :scope_fallback]
   @guard "guard"
@@ -105,12 +104,8 @@ defmodule Turnstile.Fga.Decide do
   def relation(operation) when is_atom(operation), do: "can_" <> Atom.to_string(operation)
 
   @doc "The user a subject is, whatever kind it carries."
-  @spec user(Subject.t()) :: String.t()
-  def user(%Subject{} = subject) do
-    {:user, id} = Subject.ref(subject)
-
-    "user:#{id}"
-  end
+  @spec user(Turnstile.subject()) :: String.t()
+  def user({_kind, id}), do: "user:#{id}"
 
   @doc "The object of the store an object is."
   @spec named(Turnstile.object()) :: String.t()
@@ -139,8 +134,8 @@ defmodule Turnstile.Fga.Decide do
   def applied(entry, position) when is_nil(position) or is_integer(position), do: %{entry | applied: position}
 
   @doc "The answer to one question: one `Check` under the pinned model."
-  @spec one(entry(), Subject.t(), atom(), Turnstile.object()) :: {:ok, Answer.t()} | {:error, Error.Engine.t()}
-  def one(entry, %Subject{} = subject, operation, {_type, _id} = object) when is_atom(operation) do
+  @spec one(entry(), Turnstile.subject(), atom(), Turnstile.object()) :: {:ok, Answer.t()} | {:error, Error.Engine.t()}
+  def one(entry, {_kind, _account} = subject, operation, {_type, _id} = object) when is_atom(operation) do
     with {:ok, model} <- pinned(entry),
          request = check(entry, subject, operation, object, model),
          {:ok, allowed?} <- entry.client.check(entry.endpoint, entry.store, request) do
@@ -149,9 +144,9 @@ defmodule Turnstile.Fga.Decide do
   end
 
   @doc "The answers for a list of objects, one per object reference, in calls of at most fifty questions."
-  @spec many(entry(), Subject.t(), atom(), [Turnstile.object()]) ::
+  @spec many(entry(), Turnstile.subject(), atom(), [Turnstile.object()]) ::
           {:ok, %{Turnstile.object() => Answer.t()}} | {:error, Error.Engine.t()}
-  def many(entry, %Subject{} = subject, operation, objects) when is_atom(operation) and is_list(objects) do
+  def many(entry, {_kind, _account} = subject, operation, objects) when is_atom(operation) and is_list(objects) do
     with {:ok, model} <- pinned(entry),
          {:ok, allowed} <- asked(entry, keyed(subject, operation, objects), model) do
       {:ok, Map.new(objects, &{&1, answer(named(&1) in allowed, operation, model, entry.applied)})}
@@ -164,8 +159,8 @@ defmodule Turnstile.Fga.Decide do
   emits `fallback_event/0` and fails, which is the scope the caller asks per
   page instead.
   """
-  @spec scoped(entry(), Subject.t(), atom(), atom()) :: {:ok, Scope.t()} | {:error, Error.Engine.t()}
-  def scoped(entry, %Subject{} = subject, operation, type) when is_atom(operation) and is_atom(type) do
+  @spec scoped(entry(), Turnstile.subject(), atom(), atom()) :: {:ok, Scope.t()} | {:error, Error.Engine.t()}
+  def scoped(entry, {_kind, _account} = subject, operation, type) when is_atom(operation) and is_atom(type) do
     with {:ok, model} <- pinned(entry),
          {:ok, objects} <- listed(entry, subject, operation, type, model),
          {:ok, ids} <- under_cap(objects, operation, type) do
@@ -204,14 +199,15 @@ defmodule Turnstile.Fga.Decide do
   `Expand` and which of its branches hold from one `BatchCheck`, so an
   explanation is three calls and no walk of this module's own.
   """
-  @spec explained(entry(), Subject.t(), atom(), Turnstile.object()) :: {:ok, Explanation.t()} | {:error, Error.Engine.t()}
-  def explained(entry, %Subject{} = subject, operation, {_type, _id} = object) when is_atom(operation) do
+  @spec explained(entry(), Turnstile.subject(), atom(), Turnstile.object()) ::
+          {:ok, Explanation.t()} | {:error, Error.Engine.t()}
+  def explained(entry, {_kind, _account} = subject, operation, {_type, _id} = object) when is_atom(operation) do
     with {:ok, %Answer{} = answer} <- one(entry, subject, operation, object) do
       matched(entry, subject, operation, object, answer)
     end
   end
 
-  defp listed(entry, %Subject{} = subject, operation, type, model) do
+  defp listed(entry, {_kind, _account} = subject, operation, type, model) do
     request = listing(entry, subject, operation, type, model)
 
     entry.client.list_objects(entry.endpoint, entry.store, request)
@@ -238,7 +234,7 @@ defmodule Turnstile.Fga.Decide do
   # holds that relation on that object. A branch names the relation it is
   # computed from, on this object or on another, and that name is what an
   # explanation reports.
-  defp branches(%Subject{} = subject, %Tree{} = tree) do
+  defp branches({_kind, _account} = subject, %Tree{} = tree) do
     for %Tree{object: object, relation: relation} <- tree.children do
       {"#{object}##{relation}", %TupleKey{user: user(subject), relation: relation, object: object}}
     end
@@ -279,11 +275,11 @@ defmodule Turnstile.Fga.Decide do
     for {{name, _tuple}, index} <- numbered, Map.get(answered, "c-#{index}") == true, do: name
   end
 
-  defp keyed(%Subject{} = subject, operation, objects) do
+  defp keyed({_kind, _account} = subject, operation, objects) do
     for object <- objects, do: {named(object), tuple(subject, operation, object)}
   end
 
-  defp check(entry, %Subject{} = subject, operation, {_type, _id} = object, model) do
+  defp check(entry, {_kind, _account} = subject, operation, {_type, _id} = object, model) do
     %Check{
       tuple_key: tuple(subject, operation, object),
       model: model,
@@ -292,7 +288,7 @@ defmodule Turnstile.Fga.Decide do
     }
   end
 
-  defp listing(entry, %Subject{} = subject, operation, type, model) do
+  defp listing(entry, {_kind, _account} = subject, operation, type, model) do
     %ListObjects{
       user: user(subject),
       relation: relation(operation),
@@ -303,7 +299,7 @@ defmodule Turnstile.Fga.Decide do
     }
   end
 
-  defp tuple(%Subject{} = subject, operation, {_type, _id} = object) do
+  defp tuple({_kind, _account} = subject, operation, {_type, _id} = object) do
     %TupleKey{user: user(subject), relation: relation(operation), object: named(object)}
   end
 

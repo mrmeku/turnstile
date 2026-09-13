@@ -13,13 +13,12 @@ defmodule Turnstile.Code.DecideTest do
   alias Turnstile.Fixture.World
   alias Turnstile.Reason
   alias Turnstile.Scope
-  alias Turnstile.Subject
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
   defmodule Broken do
     @moduledoc false
-    @spec garbage(Subject.t(), Environment.t()) :: term()
+    @spec garbage(Turnstile.subject(), Environment.t()) :: term()
     def garbage(_subject, _environment), do: :not_a_dynamic
   end
 
@@ -48,7 +47,7 @@ defmodule Turnstile.Code.DecideTest do
 
     :ok = World.insert(Sandboxed, world)
     environment = %Environment{now: DateTime.utc_now()}
-    {:ok, environment: environment, ann: %Subject{id: "ann", kind: :user}, bob: %Subject{id: "bob", kind: :user}}
+    {:ok, environment: environment, ann: {:user, "ann"}, bob: {:user, "bob"}}
   end
 
   test "explain names the clauses that held and the reason names the grant or the failing predicate", ctx do

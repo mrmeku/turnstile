@@ -22,7 +22,6 @@ defmodule Turnstile.Code.Rule do
   alias Turnstile.Reason
   alias Turnstile.Schema
   alias Turnstile.Schema.Relationship
-  alias Turnstile.Subject
 
   @enforce_keys [:policy, :schema, :operation, :roles, :grants, :predicates, :version]
   defstruct @enforce_keys
@@ -45,9 +44,9 @@ defmodule Turnstile.Code.Rule do
   type or no role permits the operation, or `{:error, detail}` when a
   predicate returned neither a `dynamic` nor a boolean.
   """
-  @spec build(Policy.t(), Subject.t(), atom(), atom(), Environment.t()) ::
+  @spec build(Policy.t(), Turnstile.subject(), atom(), atom(), Environment.t()) ::
           {:ok, t()} | {:error, Answer.t() | String.t()}
-  def build(policy, %Subject{} = subject, operation, type, %Environment{} = environment)
+  def build(policy, {_kind, _account} = subject, operation, type, %Environment{} = environment)
       when is_atom(policy) and is_atom(operation) and is_atom(type) do
     version = Version.ref(policy)
 
@@ -150,7 +149,7 @@ defmodule Turnstile.Code.Rule do
   # columns of the relationship rows that name the subject with a role that
   # permits the operation, or among the keys of the hop rows that reach
   # them, innermost hop first.
-  defp grant(%Clause{} = clause, schema, %Subject{id: subject_id}, roles) do
+  defp grant(%Clause{} = clause, schema, {_kind, subject_id}, roles) do
     on = clause.on || primary_key(schema)
 
     case members(clause, subject_id, roles) do

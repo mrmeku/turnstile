@@ -22,7 +22,6 @@ defmodule Turnstile.Code.Coverage do
   alias Turnstile.Schema
   alias Turnstile.Schema.Fact
   alias Turnstile.Schema.Relationship
-  alias Turnstile.Subject
 
   @typedoc "An undeclared read: the schema and the column, or a fragment's text."
   @type finding :: {module(), atom()} | {:fragment, String.t()}
@@ -60,7 +59,7 @@ defmodule Turnstile.Code.Coverage do
   @doc "Every read the policy's rules make, as findings before the declared ones are removed."
   @spec reads(Policy.t()) :: [finding()]
   def reads(policy) when is_atom(policy) do
-    subject = %Subject{id: "coverage", kind: :user, session_id: nil}
+    subject = {:user, "coverage"}
     environment = %Environment{now: DateTime.from_unix!(0), facts: %{}}
 
     for %Object{schema: schema} <- Policy.objects(policy),

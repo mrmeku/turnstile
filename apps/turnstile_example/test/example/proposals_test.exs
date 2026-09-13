@@ -8,8 +8,8 @@ defmodule Example.ProposalsTest do
   alias Example.Proposals
   alias Turnstile.Error
 
-  @dana %Turnstile.Subject{id: "dana", kind: :user}
-  @eve %Turnstile.Subject{id: "eve", kind: :user}
+  @dana {:user, "dana"}
+  @eve {:user, "eve"}
 
   setup %{world: world} do
     {:ok, document: Fixture.document!(world)}

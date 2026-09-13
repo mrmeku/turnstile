@@ -13,10 +13,9 @@ defmodule Turnstile.Fga.Probe do
   alias Turnstile.FactEvent
   alias Turnstile.Ledger.Memory
   alias Turnstile.PolicyVersion
-  alias Turnstile.Subject
 
   @at ~U[2026-09-09 00:00:00.000000Z]
-  @by %Subject{id: "probe", kind: :non_person_entity}
+  @by {:non_person_entity, "probe"}
 
   @doc "A ledger of its own, empty, as the projector takes it."
   @spec ledger() :: {module(), keyword()}

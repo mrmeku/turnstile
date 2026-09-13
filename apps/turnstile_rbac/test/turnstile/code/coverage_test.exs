@@ -11,27 +11,27 @@ defmodule Turnstile.Code.CoverageTest do
 
   defmodule Reads do
     @moduledoc false
-    @spec name(Turnstile.Subject.t(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
+    @spec name(Turnstile.subject(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
     def name(_subject, _environment), do: dynamic([row], row.name == "public")
 
-    @spec joined(Turnstile.Subject.t(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
-    def joined(%{id: id}, _environment) do
+    @spec joined(Turnstile.subject(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
+    def joined({_kind, id}, _environment) do
       dynamic([row], row.id in subquery(from(m in Membership, where: m.account_id == ^id, select: m.folder_id)))
     end
 
-    @spec raw(Turnstile.Subject.t(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
+    @spec raw(Turnstile.subject(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
     def raw(_subject, _environment), do: dynamic([row], fragment("? = 'public'", row.name))
 
-    @spec mapped(Turnstile.Subject.t(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
-    def mapped(%{id: id}, _environment) do
+    @spec mapped(Turnstile.subject(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
+    def mapped({_kind, id}, _environment) do
       members = from(m in Membership, where: m.account_id == ^id, select: %{folder: m.folder_id})
       dynamic([_row], exists(from(s in subquery(members), select: s.folder)))
     end
 
-    @spec parent(Turnstile.Subject.t(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
+    @spec parent(Turnstile.subject(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
     def parent(_subject, _environment), do: dynamic([row], not is_nil(row.folder_id))
 
-    @spec grandparent(Turnstile.Subject.t(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
+    @spec grandparent(Turnstile.subject(), Turnstile.Environment.t()) :: Ecto.Query.dynamic_expr()
     def grandparent(_subject, _environment) do
       notes = from(n in Turnstile.Code.CoverageTest.Note, where: not is_nil(n.folder_id), select: n.id)
       dynamic([row], row.note_id in subquery(notes))

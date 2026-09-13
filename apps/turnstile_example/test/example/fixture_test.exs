@@ -6,7 +6,7 @@ defmodule Example.FixtureTest do
   test "the world has its accounts, its two tenants, and its categories", %{world: world} do
     assert world.agency.nationality == "US" and world.foreign_agency.nationality == "FR"
     assert length(Fixture.subjects()) == 10
-    assert Fixture.subject("gil").kind == :privileged
+    assert Fixture.subject("gil") == {:privileged, "gil"}
     assert %Example.User{kind: :user, employment: :contractor} = Fixture.account!("zed", employment: :contractor)
     assert Fixture.account_ids() == ~w[ann bob carl dana eve frank gil gil-user hana ivan]
   end

@@ -17,7 +17,6 @@ defmodule Turnstile.Ledger.Ecto.Row do
   alias Turnstile.FactEvent
   alias Turnstile.Ledger.Ecto.Value
   alias Turnstile.PolicyVersion
-  alias Turnstile.Subject
 
   @type t :: %__MODULE__{}
 
@@ -47,7 +46,7 @@ defmodule Turnstile.Ledger.Ecto.Row do
       new: value_dump(event.new),
       operation_id: event.operation_id,
       at: event.at,
-      by: Subject.to_map(event.by)
+      by: Edge.ref_out(event.by)
     }
   end
 

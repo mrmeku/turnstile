@@ -4,7 +4,6 @@ defmodule Turnstile.Decision do
   alias Turnstile.Edge
   alias Turnstile.Error
   alias Turnstile.Reason
-  alias Turnstile.Subject
 
   @verdicts [:allow, :deny, :scoped]
 
@@ -34,7 +33,7 @@ defmodule Turnstile.Decision do
   """
   @type t :: %__MODULE__{
           id: Turnstile.Id.t(),
-          subject: Subject.t(),
+          subject: Turnstile.subject(),
           object: Turnstile.object(),
           operation: atom(),
           verdict: verdict(),
@@ -56,7 +55,7 @@ defmodule Turnstile.Decision do
   def to_map(%__MODULE__{} = decision) do
     %{
       id: decision.id,
-      subject: Subject.to_map(decision.subject),
+      subject: Edge.ref_out(decision.subject),
       object: Edge.ref_out(decision.object),
       operation: Atom.to_string(decision.operation),
       verdict: Atom.to_string(decision.verdict),
@@ -81,7 +80,7 @@ defmodule Turnstile.Decision do
   defp spec do
     [
       id: :string,
-      subject: {:struct, Subject},
+      subject: :ref,
       object: :ref,
       operation: :atom,
       verdict: {:in, @verdicts},

@@ -8,7 +8,6 @@ defmodule Turnstile.Ledger.EctoTest do
   alias Turnstile.Ledger.TestRepos
   alias Turnstile.Ledger.TestSupport.Boot
   alias Turnstile.PolicyVersion
-  alias Turnstile.Subject
   alias Turnstile.Test
 
   setup tags do
@@ -87,7 +86,7 @@ defmodule Turnstile.Ledger.EctoTest do
       position: nil,
       operation_id: "22222222-2222-2222-2222-222222222222",
       at: ~U[2026-09-08 00:00:00.000000Z],
-      by: Subject.library()
+      by: FactEvent.library()
     }
   end
 

@@ -12,13 +12,12 @@ defmodule Turnstile.FactsTest do
   alias Turnstile.Ledger.TestSupport.Boot
   alias Turnstile.Ledger.TestSupport.Population
   alias Turnstile.Ledger.TestSupport.Shape
-  alias Turnstile.Subject
   alias Turnstile.Test
 
   @repo TestRepos.App
   @exemption Population.exemption()
   @batch 2_000
-  @subject %Subject{id: "11111111-1111-1111-1111-111111111111", kind: :user}
+  @subject {:user, "11111111-1111-1111-1111-111111111111"}
 
   setup tags do
     :ok = Shape.listen()

@@ -11,11 +11,10 @@ defmodule Example.Proposals do
   alias Example.Documents
   alias Example.Proposal
   alias Example.Repo
-  alias Turnstile.Subject
 
   @doc "Propose a marking for a document; needs `propose_marking` on the document (C7)."
-  @spec propose(Subject.t(), integer(), map(), keyword()) :: {:ok, Proposal.t()} | {:error, Documents.refusal()}
-  def propose(%Subject{id: proposer} = subject, document_id, attrs, opts \\ [])
+  @spec propose(Turnstile.subject(), integer(), map(), keyword()) :: {:ok, Proposal.t()} | {:error, Documents.refusal()}
+  def propose({_kind, proposer} = subject, document_id, attrs, opts \\ [])
       when is_integer(document_id) and is_map(attrs) do
     with {:ok, decision} <- Turnstile.authorize(subject, :propose_marking, Documents.object(document_id), opts),
          {:ok, document} <- Documents.fetch(document_id, decision) do
@@ -29,9 +28,9 @@ defmodule Example.Proposals do
   end
 
   @doc "Approve a proposal; needs `approve_marking` on it, which C9 gives a different approver alone."
-  @spec approve(Subject.t(), integer(), keyword()) ::
+  @spec approve(Turnstile.subject(), integer(), keyword()) ::
           {:ok, Proposal.t()} | {:error, Documents.refusal() | Documents.BannerViolation.t()}
-  def approve(%Subject{id: approver} = subject, proposal_id, opts \\ []) when is_integer(proposal_id) do
+  def approve({_kind, approver} = subject, proposal_id, opts \\ []) when is_integer(proposal_id) do
     object = Documents.object(:proposal, proposal_id)
 
     with {:ok, decision} <- Turnstile.authorize(subject, :approve_marking, object, opts),

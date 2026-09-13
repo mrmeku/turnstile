@@ -3,10 +3,11 @@ defmodule Turnstile.ValuesTest do
 
   alias Turnstile.Environment
   alias Turnstile.Error
+  alias Turnstile.FactEvent
   alias Turnstile.Id
+  alias Turnstile.Port
   alias Turnstile.Projection.Drift
   alias Turnstile.Reason
-  alias Turnstile.Subject
 
   test "ids are UUIDs" do
     id = Id.new()
@@ -17,8 +18,8 @@ defmodule Turnstile.ValuesTest do
 
   test "subjects have refs and kinds" do
     id = Id.new()
-    assert Subject.ref(%Subject{id: id, kind: :user}) == {:user, id}
-    assert Subject.kinds() == [:user, :non_person_entity, :privileged]
+    assert FactEvent.subject_ref({:privileged, id}) == {:user, id}
+    assert Port.subject_kinds() == [:user, :non_person_entity, :privileged]
     assert %Environment{now: ~U[2026-09-08 00:00:00Z], facts: %{}} = %Environment{now: ~U[2026-09-08 00:00:00Z]}
   end
 
@@ -39,7 +40,7 @@ defmodule Turnstile.ValuesTest do
     assert Exception.message(%Error.Engine{adapter: Enum, operation: :check, detail: "x"}) =~ "failed during check"
     assert Exception.message(%Error.Invalid{what: :config, detail: "x"}) == "invalid config: x"
 
-    subject = %Subject{id: Id.new(), kind: :user}
+    subject = {:user, Id.new()}
 
     assert Exception.message(%Error.NotAuthorized{
              subject: subject,

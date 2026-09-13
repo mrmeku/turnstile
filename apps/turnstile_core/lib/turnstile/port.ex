@@ -22,13 +22,13 @@ defmodule Turnstile.Port do
   alias Turnstile.Answer
   alias Turnstile.Config
   alias Turnstile.Decision
+  alias Turnstile.Edge
   alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Explanation
   alias Turnstile.Id
   alias Turnstile.Reason
   alias Turnstile.Scope
-  alias Turnstile.Subject
 
   @options NimbleOptions.new!(
              facts: [type: {:map, :atom, :any}, default: %{}, doc: "Facts only the caller knows, by name."],
@@ -45,7 +45,11 @@ defmodule Turnstile.Port do
   @type verdicts :: %{Turnstile.object() => Answer.verdict()}
 
   @typedoc "A review's answer per subject: the rule over an object type, or the allowed references of a population."
-  @type reviewed :: %{Subject.t() => Ecto.Query.dynamic_expr() | [Turnstile.object()]}
+  @type reviewed :: %{Turnstile.subject() => Ecto.Query.dynamic_expr() | [Turnstile.object()]}
+
+  @doc "The three subject kinds the port knows, in the order the reference lists them."
+  @spec subject_kinds() :: [Turnstile.subject_kind()]
+  def subject_kinds, do: @kinds
 
   @doc "The span names the port emits, with their three suffixes."
   @spec events() :: [[atom()]]
@@ -58,9 +62,10 @@ defmodule Turnstile.Port do
   def options_schema, do: @options
 
   @doc "Decide for one object; the decision is the record and the value the seam takes."
-  @spec authorize(Subject.t(), atom(), Turnstile.object(), options()) ::
+  @spec authorize(Turnstile.subject(), atom(), Turnstile.object(), options()) ::
           {:ok, Decision.t()} | {:error, Error.NotAuthorized.t()}
-  def authorize(%Subject{} = subject, operation, {_type, _id} = object, opts) when is_atom(operation) and is_list(opts) do
+  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, opts)
+      when is_atom(operation) and is_list(opts) do
     decision = one(:authorize, subject, operation, object, opts)
 
     case decision.verdict do
@@ -70,21 +75,22 @@ defmodule Turnstile.Port do
   end
 
   @doc "Decide for one object and answer the verdict alone."
-  @spec check(Subject.t(), atom(), Turnstile.object(), options()) :: boolean()
-  def check(%Subject{} = subject, operation, {_type, _id} = object, opts) when is_atom(operation) and is_list(opts) do
+  @spec check(Turnstile.subject(), atom(), Turnstile.object(), options()) :: boolean()
+  def check({_kind, _account} = subject, operation, {_type, _id} = object, opts)
+      when is_atom(operation) and is_list(opts) do
     one(:check, subject, operation, object, opts).verdict == :allow
   end
 
   @doc "Decide for many objects of one type; one record for all of them."
-  @spec batch(Subject.t(), atom(), [Turnstile.object()], options()) :: verdicts()
-  def batch(%Subject{} = subject, operation, objects, opts) when is_atom(operation) and is_list(objects) do
+  @spec batch(Turnstile.subject(), atom(), [Turnstile.object()], options()) :: verdicts()
+  def batch({_kind, _account} = subject, operation, objects, opts) when is_atom(operation) and is_list(objects) do
     {verdicts, _decision} = many(:batch, subject, operation, objects, opts)
     verdicts
   end
 
   @doc "The objects among `objects` the subject may perform the operation on, in the order given."
-  @spec filter(Subject.t(), atom(), [Turnstile.object()], options()) :: [Turnstile.object()]
-  def filter(%Subject{} = subject, operation, objects, opts) when is_atom(operation) and is_list(objects) do
+  @spec filter(Turnstile.subject(), atom(), [Turnstile.object()], options()) :: [Turnstile.object()]
+  def filter({_kind, _account} = subject, operation, objects, opts) when is_atom(operation) and is_list(objects) do
     {verdicts, _decision} = many(:filter, subject, operation, objects, opts)
     Enum.filter(objects, &(Map.fetch!(verdicts, &1) == :allow))
   end
@@ -94,8 +100,8 @@ defmodule Turnstile.Port do
   query carries. Under a denied precondition or an unreachable engine the
   rule is one no row satisfies and the verdict is `:deny`.
   """
-  @spec scope(Subject.t(), atom(), atom(), options()) :: {Ecto.Query.dynamic_expr(), Decision.t()}
-  def scope(%Subject{} = subject, operation, object_type, opts) when is_atom(operation) and is_atom(object_type) do
+  @spec scope(Turnstile.subject(), atom(), atom(), options()) :: {Ecto.Query.dynamic_expr(), Decision.t()}
+  def scope({_kind, _account} = subject, operation, object_type, opts) when is_atom(operation) and is_atom(object_type) do
     call = prepare(subject, opts)
 
     span(call, subject, operation, {object_type, nil}, fn ->
@@ -106,9 +112,10 @@ defmodule Turnstile.Port do
   end
 
   @doc "The answer with what produced it, where the adapter can say; unsupported otherwise."
-  @spec explain(Subject.t(), atom(), Turnstile.object(), options()) ::
+  @spec explain(Turnstile.subject(), atom(), Turnstile.object(), options()) ::
           {:ok, Explanation.t(), Decision.t()} | {:error, Error.Unsupported.t()}
-  def explain(%Subject{} = subject, operation, {_type, _id} = object, opts) when is_atom(operation) and is_list(opts) do
+  def explain({_kind, _account} = subject, operation, {_type, _id} = object, opts)
+      when is_atom(operation) and is_list(opts) do
     call = prepare(subject, opts)
 
     if function_exported?(call.adapter, :explain, 5) do
@@ -123,8 +130,8 @@ defmodule Turnstile.Port do
   Who can do what: `scope` per subject over an object type, or `batch` per
   subject over a population of objects, under one record for the reviewer.
   """
-  @spec review(Subject.t(), [Subject.t()], atom(), atom() | [Turnstile.object()], options()) :: reviewed()
-  def review(%Subject{} = reviewer, subjects, operation, population, opts)
+  @spec review(Turnstile.subject(), [Turnstile.subject()], atom(), atom() | [Turnstile.object()], options()) :: reviewed()
+  def review({_kind, _account} = reviewer, subjects, operation, population, opts)
       when is_list(subjects) and is_atom(operation) and is_list(opts) do
     call = prepare(reviewer, opts)
     type = population_type(population)
@@ -141,7 +148,7 @@ defmodule Turnstile.Port do
   end
 
   defp review_out(reviewed) when is_map(reviewed) do
-    Map.new(reviewed, fn {subject, value} -> {Subject.ref(subject), review_value_out(value)} end)
+    Map.new(reviewed, fn {subject, value} -> {subject, review_value_out(value)} end)
   end
 
   # One object: authorize and check share this.
@@ -187,7 +194,7 @@ defmodule Turnstile.Port do
   end
 
   # Everything a call needs, resolved once.
-  defp prepare(%Subject{} = subject, opts) do
+  defp prepare({_kind, _account} = subject, opts) do
     validated = NimbleOptions.validate!(opts, @options)
     config = config!()
     {adapter, options} = Config.adapter(config)
@@ -203,8 +210,8 @@ defmodule Turnstile.Port do
     }
   end
 
-  defp kind(%Subject{kind: kind}) when kind in @kinds, do: kind
-  defp kind(%Subject{}), do: :unknown
+  defp kind({kind, _account}) when kind in @kinds, do: kind
+  defp kind({_kind, _account}), do: :unknown
 
   defp head(%Config{ledger: :none}), do: {:ok, nil}
   defp head(%Config{ledger: {ledger, options}}), do: ledger.head(options)
@@ -287,7 +294,7 @@ defmodule Turnstile.Port do
     %Answer{verdict: :deny, reason: Reason.engine_unreachable(detail), policy_version: nil, applied_position: nil}
   end
 
-  defp unknown_kind(%Subject{kind: kind}) do
+  defp unknown_kind({kind, _account}) do
     %Answer{verdict: :deny, reason: Reason.unknown_subject_kind(kind), policy_version: nil, applied_position: nil}
   end
 
@@ -323,7 +330,7 @@ defmodule Turnstile.Port do
   # the call's result, the decision or nil, and extra metadata.
   defp span(call, subject, operation, object, fun) do
     metadata = %{
-      subject: Subject.to_map(subject),
+      subject: Edge.ref_out(subject),
       subject_kind: call.kind,
       operation: operation,
       object: object,

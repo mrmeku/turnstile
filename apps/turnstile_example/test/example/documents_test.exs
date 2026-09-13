@@ -8,9 +8,9 @@ defmodule Example.DocumentsTest do
   alias Example.Portion
   alias Turnstile.Error
 
-  @ann %Turnstile.Subject{id: "ann", kind: :user}
-  @dana %Turnstile.Subject{id: "dana", kind: :user}
-  @gil %Turnstile.Subject{id: "gil", kind: :privileged}
+  @ann {:user, "ann"}
+  @dana {:user, "dana"}
+  @gil {:privileged, "gil"}
 
   setup %{world: world} do
     document = Fixture.document!(world, portions: [%{body: "open"}, %{body: "domestic", controls: [:no_foreign]}])
@@ -143,7 +143,7 @@ defmodule Example.DocumentsTest do
     id = ctx.document.id
     assert {:error, %Documents.OverrideRefused{reason: :not_privileged}} = Documents.override_read(@ann, id, "why")
     assert {:error, %Documents.OverrideRefused{reason: :no_justification}} = Documents.override_read(@gil, id, "")
-    hana = %Turnstile.Subject{id: "hana", kind: :privileged}
+    hana = {:privileged, "hana"}
     assert {:error, %Documents.OverrideRefused{reason: :no_permission}} = Documents.override_read(hana, id, "why")
     assert {:error, :not_found} = Documents.override_read(@gil, id + 1000, "why")
     _ref = :telemetry_test.attach_event_handlers(self(), [Documents.override_event()])

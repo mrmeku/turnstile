@@ -6,7 +6,6 @@ defmodule Turnstile.PortTest do
   alias Turnstile.Error
   alias Turnstile.Explanation
   alias Turnstile.Port
-  alias Turnstile.Subject
 
   defmodule DownLedger do
     @moduledoc false
@@ -89,9 +88,9 @@ defmodule Turnstile.PortTest do
       do: Fake.scope(subject, operation, type, environment, options)
   end
 
-  @user %Subject{id: "acct-a", kind: :user}
-  @service %Subject{id: "svc-a", kind: :non_person_entity}
-  @robot %Subject{id: "r2", kind: :robot}
+  @user {:user, "acct-a"}
+  @service {:non_person_entity, "svc-a"}
+  @robot {:robot, "r2"}
   @folder {:folder, 1}
   @other {:folder, 2}
 

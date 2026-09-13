@@ -3,10 +3,9 @@ defmodule Turnstile.Test.AroundAdapterTest do
 
   alias Turnstile.Adapter.Fake
   alias Turnstile.Environment
-  alias Turnstile.Subject
   alias Turnstile.Test.AroundAdapter
 
-  @subject %Subject{id: "11111111-1111-1111-1111-111111111111", kind: :user}
+  @subject {:user, "11111111-1111-1111-1111-111111111111"}
   @object {:thing, "22222222-2222-2222-2222-222222222222"}
   @environment %Environment{now: ~U[2026-09-08 00:00:00Z]}
 

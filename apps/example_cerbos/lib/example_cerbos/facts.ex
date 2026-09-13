@@ -32,11 +32,10 @@ defmodule ExampleCerbos.Facts do
   alias Example.Proposal
   alias Example.User
   alias Turnstile.Config
-  alias Turnstile.Subject
 
   @doc "The roles the subject holds through an open program, by document (C1)."
-  @spec program_roles(Subject.t()) :: Ecto.Query.t()
-  def program_roles(%Subject{id: id}) do
+  @spec program_roles(Turnstile.subject()) :: Ecto.Query.t()
+  def program_roles({_kind, id}) do
     from(a in Assignment,
       join: p in Program,
       on: p.id == a.program_id,
@@ -48,8 +47,8 @@ defmodule ExampleCerbos.Facts do
   end
 
   @doc "The roles the subject holds in a document's designating office, by document (C1)."
-  @spec office_roles(Subject.t()) :: Ecto.Query.t()
-  def office_roles(%Subject{id: id}) do
+  @spec office_roles(Turnstile.subject()) :: Ecto.Query.t()
+  def office_roles({_kind, id}) do
     from(r in OfficeRole,
       join: d in Document,
       on: d.designating_office_id == r.office_id,
@@ -59,14 +58,14 @@ defmodule ExampleCerbos.Facts do
   end
 
   @doc "The controls effective on a document's banner, declared or implied, by document (C2, C3)."
-  @spec effective_controls(Subject.t()) :: Ecto.Query.t()
-  def effective_controls(%Subject{}) do
+  @spec effective_controls(Turnstile.subject()) :: Ecto.Query.t()
+  def effective_controls({_kind, _account}) do
     union_of(&document_control/1)
   end
 
   @doc "The subject's nationality where a document's banner releases to it, by document (C2)."
-  @spec releasable_to(Subject.t()) :: Ecto.Query.t()
-  def releasable_to(%Subject{id: id}) do
+  @spec releasable_to(Turnstile.subject()) :: Ecto.Query.t()
+  def releasable_to({_kind, id}) do
     from(m in Marking,
       join: u in User,
       on: u.id == ^id,
@@ -76,8 +75,8 @@ defmodule ExampleCerbos.Facts do
   end
 
   @doc "The nationality of the agency a document's designating office belongs to, by document (C2)."
-  @spec agency_nationalities(Subject.t()) :: Ecto.Query.t()
-  def agency_nationalities(%Subject{}) do
+  @spec agency_nationalities(Turnstile.subject()) :: Ecto.Query.t()
+  def agency_nationalities({_kind, _account}) do
     from(d in Document,
       join: o in Office,
       on: o.id == d.designating_office_id,
@@ -88,8 +87,8 @@ defmodule ExampleCerbos.Facts do
   end
 
   @doc "The subject's own id where a document's banner lists it, by document (C6)."
-  @spec listed(Subject.t()) :: Ecto.Query.t()
-  def listed(%Subject{id: id}) do
+  @spec listed(Turnstile.subject()) :: Ecto.Query.t()
+  def listed({_kind, id}) do
     from(m in Marking,
       where: ^id in m.list,
       select: %{id: m.document_id, value: type(^id, :string)}
@@ -97,8 +96,8 @@ defmodule ExampleCerbos.Facts do
   end
 
   @doc "The roles the subject holds through an open program, by portion (C1)."
-  @spec portion_program_roles(Subject.t()) :: Ecto.Query.t()
-  def portion_program_roles(%Subject{id: id}) do
+  @spec portion_program_roles(Turnstile.subject()) :: Ecto.Query.t()
+  def portion_program_roles({_kind, id}) do
     from(a in Assignment,
       join: p in Program,
       on: p.id == a.program_id,
@@ -112,8 +111,8 @@ defmodule ExampleCerbos.Facts do
   end
 
   @doc "The roles the subject holds in the designating office of a portion's document, by portion (C1)."
-  @spec portion_office_roles(Subject.t()) :: Ecto.Query.t()
-  def portion_office_roles(%Subject{id: id}) do
+  @spec portion_office_roles(Turnstile.subject()) :: Ecto.Query.t()
+  def portion_office_roles({_kind, id}) do
     from(r in OfficeRole,
       join: d in Document,
       on: d.designating_office_id == r.office_id,
@@ -125,14 +124,14 @@ defmodule ExampleCerbos.Facts do
   end
 
   @doc "The controls effective on a portion's own marking while its document is controlled, by portion (C4, C5)."
-  @spec portion_effective_controls(Subject.t()) :: Ecto.Query.t()
-  def portion_effective_controls(%Subject{}) do
+  @spec portion_effective_controls(Turnstile.subject()) :: Ecto.Query.t()
+  def portion_effective_controls({_kind, _account}) do
     union_of(&portion_control/1)
   end
 
   @doc "The subject's nationality where a portion's marking releases to it, by portion (C2)."
-  @spec portion_releasable_to(Subject.t()) :: Ecto.Query.t()
-  def portion_releasable_to(%Subject{id: id}) do
+  @spec portion_releasable_to(Turnstile.subject()) :: Ecto.Query.t()
+  def portion_releasable_to({_kind, id}) do
     from(portion in Portion,
       join: u in User,
       on: u.id == ^id,
@@ -142,8 +141,8 @@ defmodule ExampleCerbos.Facts do
   end
 
   @doc "The nationality of the agency behind a portion's document, by portion (C2)."
-  @spec portion_agency_nationalities(Subject.t()) :: Ecto.Query.t()
-  def portion_agency_nationalities(%Subject{}) do
+  @spec portion_agency_nationalities(Turnstile.subject()) :: Ecto.Query.t()
+  def portion_agency_nationalities({_kind, _account}) do
     from(portion in Portion,
       join: d in Document,
       on: d.id == portion.document_id,
@@ -156,8 +155,8 @@ defmodule ExampleCerbos.Facts do
   end
 
   @doc "The subject's own id where the document of a portion lists it, by portion (C4, C6)."
-  @spec portion_listed(Subject.t()) :: Ecto.Query.t()
-  def portion_listed(%Subject{id: id}) do
+  @spec portion_listed(Turnstile.subject()) :: Ecto.Query.t()
+  def portion_listed({_kind, id}) do
     from(m in Marking,
       join: portion in Portion,
       on: portion.document_id == m.document_id,
@@ -167,8 +166,8 @@ defmodule ExampleCerbos.Facts do
   end
 
   @doc "The roles the subject holds in the designating office of a proposal's document, by proposal (C9)."
-  @spec proposal_office_roles(Subject.t()) :: Ecto.Query.t()
-  def proposal_office_roles(%Subject{id: id}) do
+  @spec proposal_office_roles(Turnstile.subject()) :: Ecto.Query.t()
+  def proposal_office_roles({_kind, id}) do
     from(r in OfficeRole,
       join: d in Document,
       on: d.designating_office_id == r.office_id,

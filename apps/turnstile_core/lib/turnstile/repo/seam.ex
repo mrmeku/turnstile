@@ -16,6 +16,7 @@ defmodule Turnstile.Repo.Seam do
   alias Turnstile.Config
   alias Turnstile.Decision
   alias Turnstile.Error
+  alias Turnstile.FactEvent
   alias Turnstile.Id
   alias Turnstile.Repo.Caller
   alias Turnstile.Repo.Facts
@@ -23,7 +24,6 @@ defmodule Turnstile.Repo.Seam do
   alias Turnstile.Repo.Mediation
   alias Turnstile.Repo.Source
   alias Turnstile.Schema
-  alias Turnstile.Subject
 
   @bulk_api "Turnstile.Facts.bulk_insert/3, Turnstile.Facts.bulk_update/3, or Turnstile.Facts.bulk_delete/2 in turnstile_ledger"
 
@@ -174,7 +174,7 @@ defmodule Turnstile.Repo.Seam do
     %{by: decision.subject, operation_id: decision.operation_id, at: config!().clock.()}
   end
 
-  defp stamp(_mediation), do: %{by: Subject.library(), operation_id: Id.new(), at: config!().clock.()}
+  defp stamp(_mediation), do: %{by: FactEvent.library(), operation_id: Id.new(), at: config!().clock.()}
 
   # A fact write runs inside a transaction so the re-read's lock, the write,
   # and the append commit together; a write that reports an error rolls it

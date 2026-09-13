@@ -81,7 +81,6 @@ defmodule Turnstile.Fga do
   alias Turnstile.Fga.Decide
   alias Turnstile.Fga.Projector
   alias Turnstile.Fga.Version
-  alias Turnstile.Subject
 
   @schema NimbleOptions.new!(
             endpoint: [
@@ -128,7 +127,7 @@ defmodule Turnstile.Fga do
   end
 
   @impl Turnstile.Adapter
-  def authorize(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     case entry(options, :authorize, operation, environment) do
       {:ok, entry} -> Decide.one(entry, subject, operation, object)
@@ -138,7 +137,7 @@ defmodule Turnstile.Fga do
   end
 
   @impl Turnstile.Adapter
-  def check(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def check({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     case entry(options, :check, operation, environment) do
       {:ok, entry} -> Decide.one(entry, subject, operation, object)
@@ -148,7 +147,7 @@ defmodule Turnstile.Fga do
   end
 
   @impl Turnstile.Adapter
-  def batch(%Subject{} = subject, operation, objects, %Environment{} = environment, options)
+  def batch({_kind, _account} = subject, operation, objects, %Environment{} = environment, options)
       when is_atom(operation) and is_list(objects) do
     case entry(options, :batch, operation, environment) do
       {:ok, entry} -> Decide.many(entry, subject, operation, objects)
@@ -158,7 +157,7 @@ defmodule Turnstile.Fga do
   end
 
   @impl Turnstile.Adapter
-  def scope(%Subject{} = subject, operation, object_type, %Environment{} = environment, options)
+  def scope({_kind, _account} = subject, operation, object_type, %Environment{} = environment, options)
       when is_atom(operation) and is_atom(object_type) do
     case entry(options, :scope, operation, environment) do
       {:ok, entry} -> Decide.scoped(entry, subject, operation, object_type)
@@ -168,7 +167,7 @@ defmodule Turnstile.Fga do
   end
 
   @impl Turnstile.Adapter
-  def explain(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def explain({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     case entry(options, :explain, operation, environment) do
       {:ok, entry} -> Decide.explained(entry, subject, operation, object)

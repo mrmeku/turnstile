@@ -17,7 +17,6 @@ defmodule Turnstile.Postgres.Version do
   alias Turnstile.PolicyVersion
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Policy
-  alias Turnstile.Subject
 
   @page 1_000
   @telemetry [:turnstile, :postgres, :policy_version]
@@ -97,7 +96,7 @@ defmodule Turnstile.Postgres.Version do
       position: nil,
       operation_id: Id.new(),
       at: version.at,
-      by: Subject.library()
+      by: FactEvent.library()
     }
 
     case ledger.append(options, [event]) do

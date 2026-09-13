@@ -109,7 +109,7 @@ defmodule Turnstile.Conformance.LedgerCase do
       position: nil,
       operation_id: "22222222-2222-2222-2222-222222222222",
       at: ~U[2026-09-08 00:00:00.000000Z],
-      by: %Turnstile.Subject{id: "11111111-1111-1111-1111-111111111111", kind: :non_person_entity}
+      by: {:non_person_entity, "11111111-1111-1111-1111-111111111111"}
     }
   end
 

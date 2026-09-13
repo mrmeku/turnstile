@@ -25,7 +25,6 @@ defmodule Turnstile.Repo.SeamTest do
   alias Turnstile.Id
   alias Turnstile.Ledger.Memory
   alias Turnstile.Reason
-  alias Turnstile.Subject
   alias Turnstile.Test.AroundAdapter
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Owner
@@ -276,7 +275,7 @@ defmodule Turnstile.Repo.SeamTest do
   describe "fact recording" do
     test "a relationship insert, update, and delete append events with old from the re-read row",
          %{folder: folder, agent: agent} do
-      subject = %Subject{id: "user-9", kind: :user}
+      subject = {:user, "user-9"}
       decision = %{decision(:folder, folder.id) | subject: subject}
 
       membership =
@@ -289,7 +288,7 @@ defmodule Turnstile.Repo.SeamTest do
 
       assert inserted.subject_ref == {:user, "acct-1"}
       assert inserted.object_ref == {:folder, folder.id}
-      assert inserted.by == Subject.library()
+      assert inserted.by == FactEvent.library()
 
       assert {:ok, _updated} =
                membership
@@ -413,7 +412,7 @@ defmodule Turnstile.Repo.SeamTest do
   defp decision(type, id) do
     %Decision{
       id: Id.new(),
-      subject: %Subject{id: "user-1", kind: :user},
+      subject: {:user, "user-1"},
       object: {type, id},
       operation: :read,
       verdict: :allow,

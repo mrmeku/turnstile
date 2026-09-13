@@ -112,7 +112,7 @@ defmodule Example.Scenarios.Privilege do
     world = Fixture.world!()
     document = Fixture.document!(world, controls: [:named_list], list: ["frank"])
     ordinary = subject("gil-user")
-    assert ordinary.kind == :user
+    assert {:user, _id} = ordinary
 
     settle()
     assert_denied(ordinary, document)

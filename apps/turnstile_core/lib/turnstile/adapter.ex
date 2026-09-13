@@ -20,27 +20,27 @@ defmodule Turnstile.Adapter do
   alias Turnstile.Error
   alias Turnstile.Explanation
   alias Turnstile.Scope
-  alias Turnstile.Subject
 
   @type options :: keyword()
   @type failure :: {:error, Error.Engine.t()}
 
   @doc "Decide, and let the port record the decision."
-  @callback authorize(Subject.t(), atom(), Turnstile.object(), Environment.t(), options()) ::
+  @callback authorize(Turnstile.subject(), atom(), Turnstile.object(), Environment.t(), options()) ::
               {:ok, Answer.t()} | failure()
 
   @doc "Decide without a record; the port records `check` as it records `authorize`, the adapter need not tell them apart."
-  @callback check(Subject.t(), atom(), Turnstile.object(), Environment.t(), options()) :: {:ok, Answer.t()} | failure()
+  @callback check(Turnstile.subject(), atom(), Turnstile.object(), Environment.t(), options()) ::
+              {:ok, Answer.t()} | failure()
 
   @doc "Decide for many objects of one type at once, one answer per object reference."
-  @callback batch(Subject.t(), atom(), [Turnstile.object()], Environment.t(), options()) ::
+  @callback batch(Turnstile.subject(), atom(), [Turnstile.object()], Environment.t(), options()) ::
               {:ok, %{Turnstile.object() => Answer.t()}} | failure()
 
   @doc "The rule that narrows a query over an object type to what the subject may see."
-  @callback scope(Subject.t(), atom(), atom(), Environment.t(), options()) :: {:ok, Scope.t()} | failure()
+  @callback scope(Turnstile.subject(), atom(), atom(), Environment.t(), options()) :: {:ok, Scope.t()} | failure()
 
   @doc "The answer with what produced it, where the adapter can say."
-  @callback explain(Subject.t(), atom(), Turnstile.object(), Environment.t(), options()) ::
+  @callback explain(Turnstile.subject(), atom(), Turnstile.object(), Environment.t(), options()) ::
               {:ok, Explanation.t()} | {:error, Error.Unsupported.t() | Error.Engine.t()}
 
   @doc """

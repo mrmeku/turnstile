@@ -16,11 +16,11 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   alias Turnstile.Conformance.World
   alias Turnstile.Decision
   alias Turnstile.Error
+  alias Turnstile.FactEvent
   alias Turnstile.Ledger.Fold
   alias Turnstile.Projection.Drain
   alias Turnstile.Projection.Drift
   alias Turnstile.Schema
-  alias Turnstile.Subject
   alias Turnstile.Test.Clock
 
   @base ~U[2026-01-01 00:00:00Z]
@@ -59,14 +59,14 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   def seed(%{case: %{seed: seed}}, world), do: seed.seed(world)
 
   @doc "The adapter answers `check` as the world's rule does."
-  @spec rule_agreement(context(), World.t(), Subject.t(), atom(), Turnstile.object()) :: true
+  @spec rule_agreement(context(), World.t(), Turnstile.subject(), atom(), Turnstile.object()) :: true
   def rule_agreement(context, world, subject, operation, object) do
     populate(context, world)
     assert Turnstile.check(subject, operation, object) == World.module(world).allowed?(world, subject, operation, object)
   end
 
   @doc "For each protected schema, the rows the scope admits are the objects `check` allows; a denied scope admits none."
-  @spec scope_fidelity(context(), World.t(), Subject.t(), atom()) :: :ok
+  @spec scope_fidelity(context(), World.t(), Turnstile.subject(), atom()) :: :ok
   def scope_fidelity(%{repo: repo} = context, world, subject, operation) do
     module = World.module(world)
     populate(context, world)
@@ -77,7 +77,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   @spec deny_by_default(
           context(),
           World.t(),
-          %{subject: Subject.t(), stranger: Subject.t(), nobody: Subject.t()},
+          %{subject: Turnstile.subject(), stranger: Turnstile.subject(), nobody: Turnstile.subject()},
           atom(),
           Turnstile.object()
         ) ::
@@ -95,7 +95,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   end
 
   @doc "`batch` and `filter` agree with `check`, object by object."
-  @spec batch_agreement(context(), World.t(), Subject.t(), atom(), [Turnstile.object()]) :: true
+  @spec batch_agreement(context(), World.t(), Turnstile.subject(), atom(), [Turnstile.object()]) :: true
   def batch_agreement(context, world, subject, operation, objects) do
     populate(context, world)
     verdicts = Map.new(objects, &{&1, verdict(Turnstile.check(subject, operation, &1))})
@@ -104,7 +104,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   end
 
   @doc "A grant written and taken away through the seam leaves two events, an empty fold, and a denial."
-  @spec record_then_erase(context(), World.t(), Subject.t(), World.grantable(), atom()) :: true
+  @spec record_then_erase(context(), World.t(), Turnstile.subject(), World.grantable(), atom()) :: true
   def record_then_erase(%{repo: repo} = context, world, subject, grantable, grant_type) do
     module = World.module(world)
     populate(context, world)
@@ -302,8 +302,8 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
 
   defp assert_erased(events, subject, object, grant_type) do
     assert [%{old: nil, new: ^grant_type}, %{old: ^grant_type, new: nil}] = events
-    assert Enum.all?(events, &(&1.subject_ref == Subject.ref(subject) and &1.object_ref == object))
-    assert Enum.all?(events, &(&1.by == Subject.library() and &1.attribute == nil and &1.kind == :relationship))
+    assert Enum.all?(events, &(&1.subject_ref == FactEvent.subject_ref(subject) and &1.object_ref == object))
+    assert Enum.all?(events, &(&1.by == FactEvent.library() and &1.attribute == nil and &1.kind == :relationship))
     assert Fold.fold(events).facts == %{}
   end
 

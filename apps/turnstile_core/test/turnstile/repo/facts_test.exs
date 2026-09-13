@@ -85,9 +85,8 @@ defmodule Turnstile.Repo.FactsTest do
   alias Turnstile.Repo.FactsTest.Seat
   alias Turnstile.Repo.FactsTest.Team
   alias Turnstile.Repo.FactsTest.Untyped
-  alias Turnstile.Subject
 
-  @stamp %{by: Subject.library(), operation_id: Id.new(), at: ~U[2026-09-08 00:00:00Z]}
+  @stamp %{by: FactEvent.library(), operation_id: Id.new(), at: ~U[2026-09-08 00:00:00Z]}
 
   test "a set-valued fact yields one event per element added or removed, with the element as subject" do
     team = %Team{id: "t1", members: ["a", "b"], label: "blue"}

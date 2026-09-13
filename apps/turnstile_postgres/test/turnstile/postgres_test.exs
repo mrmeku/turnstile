@@ -20,11 +20,10 @@ defmodule Turnstile.PostgresTest do
   alias Turnstile.Postgres.Settings
   alias Turnstile.Reason
   alias Turnstile.Scope
-  alias Turnstile.Subject
   alias Turnstile.TestRepos.Sandboxed
 
   @schemas [Account, Folder, Item, Membership]
-  @subject %Subject{id: "account-1", kind: :user}
+  @subject {:user, "account-1"}
   @object {:folder, 1}
 
   test "the declaration: no ledger, no scope cap, and a replica lag the adapter cannot measure" do
@@ -123,7 +122,7 @@ defmodule Turnstile.PostgresTest do
 
   test "a mediated call inside another leaves behind the settings of the call around it" do
     bind()
-    inner = %Subject{id: "account-2", kind: :user}
+    inner = {:user, "account-2"}
 
     read =
       Postgres.around_query(Folder, decision(), fn ->

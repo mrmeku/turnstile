@@ -7,7 +7,6 @@ defmodule Turnstile.Postgres.ReplayTest do
   alias Turnstile.Postgres.Replay
   alias Turnstile.Postgres.Session
   alias Turnstile.Postgres.Settings
-  alias Turnstile.Subject
   alias Turnstile.Test.Cluster
   alias Turnstile.TestRepos.Owner
 
@@ -82,7 +81,7 @@ defmodule Turnstile.Postgres.ReplayTest do
   # Whether the read policy of the version in force admits that folder to
   # that account, under the settings a decision sets.
   defp reads?(account, folder) do
-    settings = Settings.of(%Subject{id: account, kind: :user}, :read, @at)
+    settings = Settings.of({:user, account}, :read, @at)
 
     Session.around(Owner, settings, fn ->
       %{rows: rows} = statement!("SELECT id FROM turnstile_fixture_folders WHERE id = $1", [folder])

@@ -35,7 +35,6 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Ledger.Memory
   alias Turnstile.Reason
   alias Turnstile.Scope
-  alias Turnstile.Subject
   alias Turnstile.Test
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
@@ -206,7 +205,7 @@ defmodule Turnstile.FgaTest do
     {:ok, options}
   end
 
-  defp ann, do: %Subject{id: "ann", kind: :user}
+  defp ann, do: {:user, "ann"}
 
   defp environment, do: %Environment{now: @now}
 

@@ -33,7 +33,6 @@ defmodule Turnstile.Cerbos.Decide do
   alias Turnstile.Explanation
   alias Turnstile.Reason
   alias Turnstile.Scope
-  alias Turnstile.Subject
 
   @fallback [:turnstile, :cerbos, :scope_fallback]
 
@@ -42,9 +41,16 @@ defmodule Turnstile.Cerbos.Decide do
   def fallback_event, do: @fallback
 
   @doc "The explanation for one object: its answer and the policy the sidecar matched."
-  @spec one(Binding.t(), Client.address(), Subject.t(), atom(), Turnstile.object(), Environment.t()) ::
+  @spec one(Binding.t(), Client.address(), Turnstile.subject(), atom(), Turnstile.object(), Environment.t()) ::
           {:ok, Explanation.t()} | {:error, String.t()}
-  def one(%Binding{} = binding, address, %Subject{} = subject, operation, {_type, _id} = object, %Environment{} = request)
+  def one(
+        %Binding{} = binding,
+        address,
+        {_kind, _account} = subject,
+        operation,
+        {_type, _id} = object,
+        %Environment{} = request
+      )
       when is_binary(address) and is_atom(operation) do
     with {:ok, explained} <- explained(binding, address, subject, operation, [object], request) do
       {:ok, Map.fetch!(explained, object)}
@@ -52,9 +58,9 @@ defmodule Turnstile.Cerbos.Decide do
   end
 
   @doc "The answers for a list of objects, one per object reference."
-  @spec many(Binding.t(), Client.address(), Subject.t(), atom(), [Turnstile.object()], Environment.t()) ::
+  @spec many(Binding.t(), Client.address(), Turnstile.subject(), atom(), [Turnstile.object()], Environment.t()) ::
           {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
-  def many(%Binding{} = binding, address, %Subject{} = subject, operation, objects, %Environment{} = request)
+  def many(%Binding{} = binding, address, {_kind, _account} = subject, operation, objects, %Environment{} = request)
       when is_binary(address) and is_atom(operation) and is_list(objects) do
     with {:ok, explained} <- explained(binding, address, subject, operation, objects, request) do
       {:ok, Map.new(explained, fn {ref, %Explanation{answer: answer}} -> {ref, answer} end)}
@@ -67,9 +73,9 @@ defmodule Turnstile.Cerbos.Decide do
   rule that admits none, and a plan this adapter does not express emits
   `fallback_event/0` and fails, which is what a caller records as limited.
   """
-  @spec scoped(Binding.t(), Client.address(), Subject.t(), atom(), atom(), Environment.t()) ::
+  @spec scoped(Binding.t(), Client.address(), Turnstile.subject(), atom(), atom(), Environment.t()) ::
           {:ok, Scope.t()} | {:error, String.t()}
-  def scoped(%Binding{} = binding, address, %Subject{} = subject, operation, kind, %Environment{} = request)
+  def scoped(%Binding{} = binding, address, {_kind, _account} = subject, operation, kind, %Environment{} = request)
       when is_binary(address) and is_atom(operation) and is_atom(kind) do
     with {:ok, principal} <- Values.principal(binding, subject, request),
          body = Request.plan(subject, operation, kind, principal),

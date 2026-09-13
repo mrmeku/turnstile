@@ -21,7 +21,6 @@ defmodule Turnstile.Adapter.Fake do
   alias Turnstile.Error
   alias Turnstile.Reason
   alias Turnstile.Scope
-  alias Turnstile.Subject
 
   @version "fake"
 
@@ -81,7 +80,7 @@ defmodule Turnstile.Adapter.Fake do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize(%Subject{} = subject, operation, {_type, _id} = object, %Environment{}, options)
+  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{}, options)
       when is_atom(operation) do
     with {:ok, state} <- state(options, :authorize) do
       {:ok, decide(state, subject, operation, object)}
@@ -89,14 +88,15 @@ defmodule Turnstile.Adapter.Fake do
   end
 
   @impl Turnstile.Adapter
-  def check(%Subject{} = subject, operation, {_type, _id} = object, %Environment{}, options) when is_atom(operation) do
+  def check({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{}, options)
+      when is_atom(operation) do
     with {:ok, state} <- state(options, :check) do
       {:ok, decide(state, subject, operation, object)}
     end
   end
 
   @impl Turnstile.Adapter
-  def batch(%Subject{} = subject, operation, objects, %Environment{}, options)
+  def batch({_kind, _account} = subject, operation, objects, %Environment{}, options)
       when is_atom(operation) and is_list(objects) do
     with {:ok, state} <- state(options, :batch) do
       {:ok, Map.new(objects, fn {_type, _id} = object -> {object, decide(state, subject, operation, object)} end)}
@@ -104,7 +104,7 @@ defmodule Turnstile.Adapter.Fake do
   end
 
   @impl Turnstile.Adapter
-  def scope(%Subject{} = subject, operation, object_type, %Environment{}, options)
+  def scope({_kind, _account} = subject, operation, object_type, %Environment{}, options)
       when is_atom(operation) and is_atom(object_type) do
     with {:ok, state} <- state(options, :scope) do
       {:ok, scoped(state, subject, operation, object_type)}
@@ -112,7 +112,7 @@ defmodule Turnstile.Adapter.Fake do
   end
 
   @impl Turnstile.Adapter
-  def explain(%Subject{}, operation, {_type, _id}, %Environment{}, _options) when is_atom(operation) do
+  def explain({_kind, _account}, operation, {_type, _id}, %Environment{}, _options) when is_atom(operation) do
     {:error, %Error.Unsupported{adapter: __MODULE__, feature: :explain, note: "the fake names no rule"}}
   end
 
@@ -146,7 +146,7 @@ defmodule Turnstile.Adapter.Fake do
 
   defp decide(verdict, _subject, _operation, _object) when is_atom(verdict), do: answer_for(verdict)
 
-  defp decide(%{entries: entries}, %Subject{id: id}, operation, {type, object_id}) do
+  defp decide(%{entries: entries}, {_kind, id}, operation, {type, object_id}) do
     candidates = [
       {id, operation, {type, object_id}},
       {:any, operation, {type, object_id}},
@@ -160,7 +160,7 @@ defmodule Turnstile.Adapter.Fake do
   defp scoped(:allow, _subject, _operation, _type), do: %Scope{rule: dynamic([_row], true), answer: answer_for(:allow)}
   defp scoped(:deny, _subject, _operation, _type), do: %Scope{rule: dynamic([_row], false), answer: answer_for(:deny)}
 
-  defp scoped(%{entries: entries}, %Subject{id: id}, operation, type) do
+  defp scoped(%{entries: entries}, {_kind, id}, operation, type) do
     matching =
       Enum.filter(entries, fn
         {subject, ^operation, {^type, _object_id}} -> subject in [id, :any]

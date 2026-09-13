@@ -25,13 +25,12 @@ defmodule Turnstile.Code.Policy.Clause do
   """
 
   alias Turnstile.Environment
-  alias Turnstile.Subject
 
   @enforce_keys [:name, :kind]
   defstruct [:name, :kind, source: nil, on: nil, role: nil, as: nil, through: [], predicate: nil, only: nil]
 
   @type kind :: :grant | :predicate
-  @type predicate :: (Subject.t(), Environment.t() -> Ecto.Query.dynamic_expr() | boolean())
+  @type predicate :: (Turnstile.subject(), Environment.t() -> Ecto.Query.dynamic_expr() | boolean())
   @type hop :: {module(), atom(), [where: (-> Ecto.Query.dynamic_expr())]}
 
   @type t :: %__MODULE__{

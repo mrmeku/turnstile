@@ -18,7 +18,6 @@ defmodule Turnstile.Ledger.ReplayTest do
   alias Turnstile.Ledger.TestSupport.Boot
   alias Turnstile.Ledger.TestSupport.Population
   alias Turnstile.PolicyVersion
-  alias Turnstile.Subject
   alias Turnstile.Test
 
   @subject {:user, "11111111-1111-1111-1111-111111111111"}
@@ -126,7 +125,7 @@ defmodule Turnstile.Ledger.ReplayTest do
       position: nil,
       operation_id: "22222222-2222-2222-2222-222222222222",
       at: at,
-      by: Subject.library()
+      by: FactEvent.library()
     }
   end
 

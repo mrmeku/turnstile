@@ -9,7 +9,6 @@ defmodule Turnstile.Cerbos.VersionTest do
   alias Turnstile.FactEvent
   alias Turnstile.Ledger.Memory
   alias Turnstile.PolicyVersion
-  alias Turnstile.Subject
   alias Turnstile.Test
   alias Turnstile.TestRepos.Sandboxed
 
@@ -105,7 +104,7 @@ defmodule Turnstile.Cerbos.VersionTest do
     assert event.attribute == :version
     assert event.old == nil
     assert %PolicyVersion{version: "conformance"} = event.new
-    assert event.by == Subject.library()
+    assert event.by == FactEvent.library()
 
     assert_receive {:policy_version, %{version: %PolicyVersion{version: "conformance"}, result: %FactEvent{}}}
     refute_receive {:policy_version, _later}

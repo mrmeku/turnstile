@@ -49,7 +49,6 @@ defmodule Example.Documents do
   alias Turnstile.Error
   alias Turnstile.Facts
   alias Turnstile.Facts.Record
-  alias Turnstile.Subject
 
   @banner {:exempt, "banner invariant: the portions' markings are read to derive the banner"}
   @override {:exempt, "audited override: the read outside C1 that C10 permits, evented and reported"}
@@ -67,16 +66,16 @@ defmodule Example.Documents do
   def override_event, do: @override_event
 
   @doc "Read a document with its banner, under C1 and C2."
-  @spec read(Subject.t(), integer(), keyword()) :: {:ok, Document.t()} | {:error, refusal()}
-  def read(%Subject{} = subject, id, opts \\ []) when is_integer(id) and is_list(opts) do
+  @spec read(Turnstile.subject(), integer(), keyword()) :: {:ok, Document.t()} | {:error, refusal()}
+  def read({_kind, _account} = subject, id, opts \\ []) when is_integer(id) and is_list(opts) do
     with {:ok, decision} <- Turnstile.authorize(subject, :read, object(id), opts) do
       fetch(id, decision)
     end
   end
 
   @doc "Read a document under C1 alone, with the portions the subject may read and no other."
-  @spec read_redacted(Subject.t(), integer(), keyword()) :: {:ok, Document.t()} | {:error, refusal()}
-  def read_redacted(%Subject{} = subject, id, opts \\ []) when is_integer(id) and is_list(opts) do
+  @spec read_redacted(Turnstile.subject(), integer(), keyword()) :: {:ok, Document.t()} | {:error, refusal()}
+  def read_redacted({_kind, _account} = subject, id, opts \\ []) when is_integer(id) and is_list(opts) do
     with {:ok, decision} <- Turnstile.authorize(subject, :read_redacted, object(id), opts),
          {:ok, document} <- fetch(id, decision) do
       {:ok, %{document | portions: portions(document, subject, opts)}}
@@ -84,8 +83,8 @@ defmodule Example.Documents do
   end
 
   @doc "The documents the subject may read, under `scope`."
-  @spec list(Subject.t(), keyword()) :: [Document.t()]
-  def list(%Subject{} = subject, opts \\ []) when is_list(opts) do
+  @spec list(Turnstile.subject(), keyword()) :: [Document.t()]
+  def list({_kind, _account} = subject, opts \\ []) when is_list(opts) do
     case Turnstile.scope(subject, :read, :document, opts) do
       {_rule, %Decision{verdict: :deny}} ->
         []
@@ -97,9 +96,9 @@ defmodule Example.Documents do
   end
 
   @doc "Change a document's banner (C7, C8); refused when it would admit a subject a portion denies (C4)."
-  @spec change_marking(Subject.t(), integer(), map(), keyword()) ::
+  @spec change_marking(Turnstile.subject(), integer(), map(), keyword()) ::
           {:ok, Marking.t()} | {:error, refusal() | BannerViolation.t()}
-  def change_marking(%Subject{} = subject, id, attrs, opts \\ []) when is_integer(id) and is_map(attrs) do
+  def change_marking({_kind, _account} = subject, id, attrs, opts \\ []) when is_integer(id) and is_map(attrs) do
     with {:ok, decision} <- Turnstile.authorize(subject, :change_marking, object(id), opts) do
       apply_marking(id, attrs, decision)
     end
@@ -147,8 +146,9 @@ defmodule Example.Documents do
   end
 
   @doc "Set a document's decontrol date (C7, C8)."
-  @spec set_decontrol(Subject.t(), integer(), DateTime.t(), keyword()) :: {:ok, Document.t()} | {:error, refusal()}
-  def set_decontrol(%Subject{} = subject, id, %DateTime{} = at, opts \\ []) when is_integer(id) do
+  @spec set_decontrol(Turnstile.subject(), integer(), DateTime.t(), keyword()) ::
+          {:ok, Document.t()} | {:error, refusal()}
+  def set_decontrol({_kind, _account} = subject, id, %DateTime{} = at, opts \\ []) when is_integer(id) do
     with {:ok, decision} <- Turnstile.authorize(subject, :set_decontrol, object(id), opts),
          {:ok, document} <- fetch(id, decision) do
       {:ok, Repo.update!(Changeset.change(document, decontrol: DateTime.truncate(at, :second)), turnstile: decision)}
@@ -160,9 +160,9 @@ defmodule Example.Documents do
   bulk write under `scope`: one audit record for the operation and one fact
   event per document whose date changes, all sharing its operation id.
   """
-  @spec decontrol_all(Subject.t(), DateTime.t(), keyword()) ::
+  @spec decontrol_all(Turnstile.subject(), DateTime.t(), keyword()) ::
           {:ok, Record.t()} | {:error, refusal() | Error.Engine.t()}
-  def decontrol_all(%Subject{} = subject, %DateTime{} = at, opts \\ []) when is_list(opts) do
+  def decontrol_all({_kind, _account} = subject, %DateTime{} = at, opts \\ []) when is_list(opts) do
     case Turnstile.scope(subject, :set_decontrol, :document, opts) do
       {_rule, %Decision{verdict: :deny} = decision} ->
         {:error, refused(subject, :set_decontrol, decision)}
@@ -175,8 +175,8 @@ defmodule Example.Documents do
   end
 
   @doc "Decontrol a document now, by the port's clock (C5, C7, C8)."
-  @spec decontrol(Subject.t(), integer(), keyword()) :: {:ok, Document.t()} | {:error, refusal()}
-  def decontrol(%Subject{} = subject, id, opts \\ []) when is_integer(id) do
+  @spec decontrol(Turnstile.subject(), integer(), keyword()) :: {:ok, Document.t()} | {:error, refusal()}
+  def decontrol({_kind, _account} = subject, id, opts \\ []) when is_integer(id) do
     with {:ok, decision} <- Turnstile.authorize(subject, :decontrol, object(id), opts),
          {:ok, document} <- fetch(id, decision) do
       {:ok,
@@ -188,9 +188,9 @@ defmodule Example.Documents do
   Change a portion's marking (C7 on the portion and on its document) and
   recompute the document's banner in the same transaction (C4).
   """
-  @spec change_portion_marking(Subject.t(), integer(), map(), keyword()) ::
+  @spec change_portion_marking(Turnstile.subject(), integer(), map(), keyword()) ::
           {:ok, Portion.t()} | {:error, refusal()}
-  def change_portion_marking(%Subject{} = subject, portion_id, attrs, opts \\ [])
+  def change_portion_marking({_kind, _account} = subject, portion_id, attrs, opts \\ [])
       when is_integer(portion_id) and is_map(attrs) do
     with {:ok, portion_decision} <- Turnstile.authorize(subject, :change_marking, object(:portion, portion_id), opts),
          {:ok, portion} <- fetch_portion(portion_id, portion_decision),
@@ -209,14 +209,14 @@ defmodule Example.Documents do
   emits its own event and is reported to the designating office. Nothing
   else is reachable through it.
   """
-  @spec override_read(Subject.t(), integer(), String.t(), keyword()) ::
+  @spec override_read(Turnstile.subject(), integer(), String.t(), keyword()) ::
           {:ok, Document.t()} | {:error, OverrideRefused.t() | :not_found}
-  def override_read(%Subject{} = subject, id, justification, opts \\ []) when is_integer(id) and is_list(opts) do
+  def override_read({_kind, _account} = subject, id, justification, opts \\ []) when is_integer(id) and is_list(opts) do
     with :ok <- override_permitted(subject, justification),
          {:ok, document} <- fetch(id, @override) do
       operation_id = Keyword.get_lazy(opts, :operation_id, &Turnstile.Id.new/0)
       report = report_override(document, subject, justification, operation_id)
-      :telemetry.execute(@override_event, %{}, %{subject: Subject.to_map(subject), report: report})
+      :telemetry.execute(@override_event, %{}, %{subject: Turnstile.Edge.ref_out(subject), report: report})
       {:ok, document}
     end
   end
@@ -264,19 +264,19 @@ defmodule Example.Documents do
     :ok
   end
 
-  defp override_permitted(%Subject{kind: kind}, _justification) when kind != :privileged do
+  defp override_permitted({kind, _account}, _justification) when kind != :privileged do
     {:error, %OverrideRefused{reason: :not_privileged}}
   end
 
-  defp override_permitted(%Subject{}, justification) when not is_binary(justification) or justification == "" do
+  defp override_permitted({_kind, _account}, justification) when not is_binary(justification) or justification == "" do
     {:error, %OverrideRefused{reason: :no_justification}}
   end
 
-  defp override_permitted(%Subject{id: id}, _justification) do
+  defp override_permitted({_kind, id}, _justification) do
     if Example.Accounts.override_permitted?(id), do: :ok, else: {:error, %OverrideRefused{reason: :no_permission}}
   end
 
-  defp report_override(%Document{} = document, %Subject{id: user_id}, justification, operation_id) do
+  defp report_override(%Document{} = document, {_kind, user_id}, justification, operation_id) do
     Repo.insert!(%OverrideReport{
       document_id: document.id,
       office_id: document.designating_office_id,

@@ -57,7 +57,6 @@ defmodule Turnstile.Postgres do
   alias Turnstile.Postgres.Session
   alias Turnstile.Postgres.Settings
   alias Turnstile.Scope
-  alias Turnstile.Subject
 
   @doc """
   Read the policies and the version once, so no call on the request path
@@ -95,7 +94,7 @@ defmodule Turnstile.Postgres do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, _options)
+  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, _options)
       when is_atom(operation) do
     with {:ok, binding, catalog} <- ready(:authorize) do
       named(Decide.one(binding, catalog, subject, operation, object, environment), :authorize)
@@ -103,13 +102,13 @@ defmodule Turnstile.Postgres do
   end
 
   @impl Turnstile.Adapter
-  def check(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def check({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     authorize(subject, operation, object, environment, options)
   end
 
   @impl Turnstile.Adapter
-  def batch(%Subject{} = subject, operation, objects, %Environment{} = environment, _options)
+  def batch({_kind, _account} = subject, operation, objects, %Environment{} = environment, _options)
       when is_atom(operation) and is_list(objects) do
     with {:ok, binding, catalog} <- ready(:batch) do
       named(Decide.many(binding, catalog, subject, operation, objects, environment), :batch)
@@ -117,7 +116,7 @@ defmodule Turnstile.Postgres do
   end
 
   @impl Turnstile.Adapter
-  def scope(%Subject{} = subject, operation, object_type, %Environment{} = environment, _options)
+  def scope({_kind, _account} = subject, operation, object_type, %Environment{} = environment, _options)
       when is_atom(operation) and is_atom(object_type) do
     with {:ok, binding, catalog} <- ready(:scope) do
       settings = Settings.of(subject, operation, environment)
@@ -127,7 +126,7 @@ defmodule Turnstile.Postgres do
   end
 
   @impl Turnstile.Adapter
-  def explain(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def explain({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     with {:ok, %Answer{} = answer} <- authorize(subject, operation, object, environment, options) do
       {:ok, %Explanation{answer: answer, matched: []}}

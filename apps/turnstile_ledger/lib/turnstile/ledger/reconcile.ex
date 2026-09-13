@@ -23,11 +23,11 @@ defmodule Turnstile.Ledger.Reconcile do
   use Boundary, top_level?: true, deps: [Ecto, Turnstile, Turnstile.Ledger.Ecto, Turnstile.Ledger.Reader]
 
   alias Turnstile.Error
+  alias Turnstile.FactEvent
   alias Turnstile.Ledger
   alias Turnstile.Projection.Drift
   alias Turnstile.Repo
   alias Turnstile.Schema
-  alias Turnstile.Subject
 
   @exemption {:exempt, :library}
 
@@ -49,7 +49,7 @@ defmodule Turnstile.Ledger.Reconcile do
   @spec facts(keyword(), [module()]) :: %{Ledger.Fold.key() => term()}
   def facts(ledger_options, schemas) when is_list(ledger_options) and is_list(schemas) do
     repo = Ledger.Ecto.repo(ledger_options)
-    stamp = %{by: Subject.library(), operation_id: "reconcile", at: DateTime.from_unix!(0)}
+    stamp = %{by: FactEvent.library(), operation_id: "reconcile", at: DateTime.from_unix!(0)}
 
     events =
       Enum.flat_map(Enum.filter(schemas, &Schema.fact_schema?/1), fn schema ->

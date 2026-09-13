@@ -10,7 +10,6 @@ defmodule Turnstile.Cerbos.ReplayTest do
   alias Turnstile.Error
   alias Turnstile.Id
   alias Turnstile.Reason
-  alias Turnstile.Subject
 
   @cleared %{"clearance" => "cleared"}
   @reader %{"member_roles" => ["reader"]}
@@ -85,7 +84,7 @@ defmodule Turnstile.Cerbos.ReplayTest do
   defp decision(verdict) do
     %Decision{
       id: Id.new(),
-      subject: %Subject{id: "an-account", kind: :user},
+      subject: {:user, "an-account"},
       object: {:folder, 1},
       operation: :read,
       verdict: verdict,

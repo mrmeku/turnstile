@@ -10,17 +10,16 @@ defmodule Turnstile.Cerbos.Conformance.Memberships do
 
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
-  alias Turnstile.Subject
 
   @doc "The roles the subject holds, by folder."
-  @spec folder_roles_for(Subject.t()) :: Ecto.Query.t()
-  def folder_roles_for(%Subject{id: id}) do
+  @spec folder_roles_for(Turnstile.subject()) :: Ecto.Query.t()
+  def folder_roles_for({_kind, id}) do
     from(m in Membership, where: m.account_id == ^id, select: %{id: m.folder_id, value: type(m.role, :string)})
   end
 
   @doc "The roles the subject holds on each item's folder, by item."
-  @spec item_roles_for(Subject.t()) :: Ecto.Query.t()
-  def item_roles_for(%Subject{id: id}) do
+  @spec item_roles_for(Turnstile.subject()) :: Ecto.Query.t()
+  def item_roles_for({_kind, id}) do
     from(i in Item,
       join: m in Membership,
       on: m.folder_id == i.folder_id,

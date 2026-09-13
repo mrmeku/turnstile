@@ -37,26 +37,25 @@ defmodule Example.Review do
   alias Turnstile.Error
   alias Turnstile.Ledger.Replay
   alias Turnstile.Ledger.Review.Row
-  alias Turnstile.Subject
 
   @review {:exempt, "access review: the population the reviewer ranges over"}
 
-  @reviewer %Subject{id: "turnstile.review", kind: :privileged}
+  @reviewer {:privileged, "turnstile.review"}
 
   @typedoc "Per subject, per operation, the ids of the documents the subject may act on."
-  @type permissions :: %{Subject.t() => %{atom() => [integer()]}}
+  @type permissions :: %{Turnstile.subject() => %{atom() => [integer()]}}
 
   @doc "Who can read which documents of an agency, by subject, over every account."
-  @spec readers(Subject.t(), Agency.t(), keyword()) :: %{Subject.t() => [integer()]}
-  def readers(%Subject{} = reviewer, %Agency{id: agency_id}, opts \\ []) when is_list(opts) do
+  @spec readers(Turnstile.subject(), Agency.t(), keyword()) :: %{Turnstile.subject() => [integer()]}
+  def readers({_kind, _account} = reviewer, %Agency{id: agency_id}, opts \\ []) when is_list(opts) do
     reviewer
     |> Turnstile.review(subjects(), :read, documents(agency_id), opts)
     |> Map.new(fn {subject, refs} -> {subject, ids(refs)} end)
   end
 
   @doc "Every permission every account holds on the documents of an agency, by operation."
-  @spec permissions(Subject.t(), Agency.t(), keyword()) :: permissions()
-  def permissions(%Subject{} = reviewer, %Agency{id: agency_id}, opts \\ []) when is_list(opts) do
+  @spec permissions(Turnstile.subject(), Agency.t(), keyword()) :: permissions()
+  def permissions({_kind, _account} = reviewer, %Agency{id: agency_id}, opts \\ []) when is_list(opts) do
     subjects = subjects()
     documents = documents(agency_id)
 
@@ -70,8 +69,8 @@ defmodule Example.Review do
   The report: readers per agency, then every operation of each account
   that holds any permission, then privileged accounts.
   """
-  @spec report(Subject.t(), keyword()) :: String.t()
-  def report(%Subject{} = reviewer, opts \\ []) when is_list(opts) do
+  @spec report(Turnstile.subject(), keyword()) :: String.t()
+  def report({_kind, _account} = reviewer, opts \\ []) when is_list(opts) do
     agencies = Repo.all(agencies(), turnstile: @review)
 
     lines =
@@ -97,7 +96,7 @@ defmodule Example.Review do
   end
 
   @doc "The subject the task's review is recorded under: the reviewer names the record, not the reader."
-  @spec reviewer() :: Subject.t()
+  @spec reviewer() :: Turnstile.subject()
   def reviewer, do: @reviewer
 
   defp today do
@@ -110,15 +109,15 @@ defmodule Example.Review do
   defp agency_rows(agency, opts) do
     @reviewer
     |> permissions(agency, opts)
-    |> Enum.sort_by(fn {subject, _by_operation} -> subject.id end)
+    |> Enum.sort_by(fn {{_kind, id}, _by_operation} -> id end)
     |> Enum.flat_map(fn {subject, by_operation} -> subject_rows(subject, by_operation, agency) end)
   end
 
-  defp subject_rows(subject, by_operation, agency) do
+  defp subject_rows({kind, subject_id}, by_operation, agency) do
     for operation <- Documents.operations(), id <- by_operation[operation] || [] do
       %Row{
-        subject: subject.id,
-        kind: subject.kind,
+        subject: subject_id,
+        kind: kind,
         operation: operation,
         object: "document:#{id}",
         note: "agency #{agency.name}"
@@ -179,18 +178,18 @@ defmodule Example.Review do
   defp reader_lines(reviewer, agency, opts) do
     reviewer
     |> readers(agency, opts)
-    |> Enum.sort_by(fn {subject, _ids} -> subject.id end)
-    |> Enum.map(fn {subject, ids} -> "  #{subject.id} reads #{listed(ids)}" end)
+    |> Enum.sort_by(fn {{_kind, id}, _ids} -> id end)
+    |> Enum.map(fn {{_kind, id}, ids} -> "  #{id} reads #{listed(ids)}" end)
   end
 
   defp permission_lines(reviewer, agency, opts) do
     reviewer
     |> permissions(agency, opts)
     |> Enum.reject(fn {_subject, by_op} -> Enum.all?(by_op, fn {_operation, ids} -> ids == [] end) end)
-    |> Enum.sort_by(fn {subject, _by_op} -> subject.id end)
-    |> Enum.flat_map(fn {subject, by_op} ->
+    |> Enum.sort_by(fn {{_kind, id}, _by_op} -> id end)
+    |> Enum.flat_map(fn {{_kind, id}, by_op} ->
       for operation <- Documents.operations() do
-        "  #{subject.id} may #{operation} #{listed(by_op[operation] || [])}"
+        "  #{id} may #{operation} #{listed(by_op[operation] || [])}"
       end
     end)
   end
@@ -211,7 +210,7 @@ defmodule Example.Review do
 
     query
     |> Repo.all()
-    |> Enum.map(fn {id, kind} -> %Subject{id: id, kind: kind} end)
+    |> Enum.map(fn {id, kind} -> {kind, id} end)
   end
 
   defp documents(agency_id) do

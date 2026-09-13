@@ -5,11 +5,10 @@ defmodule Example.AccountsTest do
   alias Example.Assignment
   alias Example.OfficeRole
   alias Example.User
-  alias Turnstile.Subject
 
-  test "the subject of an account carries the account's kind and the session", %{} do
-    assert %Subject{id: "gil", kind: :privileged, session_id: "s1"} = Accounts.subject("gil", "s1")
-    assert %Subject{id: "ann", kind: :user, session_id: nil} = Accounts.subject("ann")
+  test "the subject of an account carries the account's kind", %{} do
+    assert Accounts.subject("gil") == {:privileged, "gil"}
+    assert Accounts.subject("ann") == {:user, "ann"}
     assert Accounts.subject("nobody") == nil
   end
 

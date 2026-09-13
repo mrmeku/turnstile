@@ -9,9 +9,8 @@ defmodule Turnstile.Adapter.FakeTest do
   alias Turnstile.Error
   alias Turnstile.Reason
   alias Turnstile.Scope
-  alias Turnstile.Subject
 
-  @subject %Subject{id: "11111111-1111-1111-1111-111111111111", kind: :user}
+  @subject {:user, "11111111-1111-1111-1111-111111111111"}
   @object {:thing, "22222222-2222-2222-2222-222222222222"}
   @environment %Environment{now: ~U[2026-09-08 00:00:00Z]}
 
@@ -69,10 +68,9 @@ defmodule Turnstile.Adapter.FakeTableTest do
   alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Scope
-  alias Turnstile.Subject
 
-  @user %Subject{id: "acct-a", kind: :user}
-  @other %Subject{id: "acct-b", kind: :user}
+  @user {:user, "acct-a"}
+  @other {:user, "acct-b"}
   @folder {:folder, 1}
   @environment %Environment{now: ~U[2026-09-08 00:00:00Z]}
 

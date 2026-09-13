@@ -21,15 +21,14 @@ defmodule Example.Accounts do
   alias Turnstile.Error
   alias Turnstile.Facts
   alias Turnstile.Facts.Record
-  alias Turnstile.Subject
 
   @administration {:exempt, "role administration: no rule of the example governs who grants roles"}
 
   @doc "The subject for an account id: its kind is the account's, or `nil` when there is no such account."
-  @spec subject(String.t(), String.t() | nil) :: Subject.t() | nil
-  def subject(user_id, session_id \\ nil) when is_binary(user_id) do
+  @spec subject(String.t()) :: Turnstile.subject() | nil
+  def subject(user_id) when is_binary(user_id) do
     case Repo.get(User, user_id) do
-      %User{kind: kind} -> %Subject{id: user_id, kind: kind, session_id: session_id}
+      %User{kind: kind} -> {kind, user_id}
       nil -> nil
     end
   end

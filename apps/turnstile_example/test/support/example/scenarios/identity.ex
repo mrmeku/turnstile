@@ -64,7 +64,7 @@ defmodule Example.Scenarios.Identity do
     assert {:ok, %Document{id: id}} = Documents.override_read(gil, document.id, "incident 12", operation_id: operation_id)
     assert id == document.id
     event = Documents.override_event()
-    assert_received {^event, _ref, %{}, %{subject: %{id: "gil", kind: "privileged"}, report: report}}
+    assert_received {^event, _ref, %{}, %{subject: %{id: "gil", type: "privileged"}, report: report}}
     assert report.operation_id == operation_id
     assert report.justification == "incident 12"
 

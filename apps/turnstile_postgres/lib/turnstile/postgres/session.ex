@@ -28,7 +28,6 @@ defmodule Turnstile.Postgres.Session do
   """
 
   alias Turnstile.Postgres.Settings
-  alias Turnstile.Subject
 
   @exemption {:exempt, :library}
   @stash {__MODULE__, :settings}
@@ -51,15 +50,15 @@ defmodule Turnstile.Postgres.Session do
   keyed by the subject and the operation, because a decision names those
   two and the next call overwrites the last.
   """
-  @spec remember(Subject.t(), atom(), Settings.t()) :: :ok
-  def remember(%Subject{} = subject, operation, %Settings{} = settings) when is_atom(operation) do
+  @spec remember(Turnstile.subject(), atom(), Settings.t()) :: :ok
+  def remember({_kind, _account} = subject, operation, %Settings{} = settings) when is_atom(operation) do
     Process.put(@stash, {key(subject, operation), settings})
     :ok
   end
 
   @doc "The kept settings for a subject and an operation, or `nil` when the slot holds another call's."
-  @spec recall(Subject.t(), atom()) :: Settings.t() | nil
-  def recall(%Subject{} = subject, operation) when is_atom(operation) do
+  @spec recall(Turnstile.subject(), atom()) :: Settings.t() | nil
+  def recall({_kind, _account} = subject, operation) when is_atom(operation) do
     wanted = key(subject, operation)
 
     case Process.get(@stash) do
@@ -68,7 +67,7 @@ defmodule Turnstile.Postgres.Session do
     end
   end
 
-  defp key(%Subject{id: id}, operation), do: {id, operation}
+  defp key({_kind, id}, operation), do: {id, operation}
 
   defp set(repo, settings, outer, fun) do
     {statement, params} = Settings.statement(settings)

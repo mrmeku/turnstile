@@ -21,5 +21,5 @@ The application every adapter is measured against: a document store under the ma
 | Header | Fact |
 |---|---|
 | `x-user-id` | The account; its row gives the subject's kind |
-| `x-session-id` | The session id the audit record names |
+| `x-session-id` | The session, passed to the port as the fact `session_id` |
 | `x-reauthenticated-at` | The re-authentication time (C8), passed to the port as the fact `reauthenticated_at` |

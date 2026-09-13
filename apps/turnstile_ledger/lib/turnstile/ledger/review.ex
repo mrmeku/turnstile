@@ -11,7 +11,7 @@ defmodule Turnstile.Ledger.Review.Row do
 
   @type t :: %__MODULE__{
           subject: String.t(),
-          kind: Turnstile.Subject.kind(),
+          kind: Turnstile.subject_kind(),
           operation: atom(),
           object: String.t(),
           note: String.t() | nil

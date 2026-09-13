@@ -11,7 +11,7 @@ defmodule Turnstile.Facts.Context do
           schema: module(),
           ledger: module() | :none,
           options: keyword(),
-          stamp: %{by: Turnstile.Subject.t(), operation_id: Turnstile.Id.t(), at: DateTime.t()},
+          stamp: %{by: Turnstile.subject(), operation_id: Turnstile.Id.t(), at: DateTime.t()},
           opts: keyword()
         }
 end

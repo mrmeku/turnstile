@@ -10,9 +10,9 @@ defmodule Turnstile.FactEvent do
   alias Turnstile.Edge
   alias Turnstile.Error
   alias Turnstile.PolicyVersion
-  alias Turnstile.Subject
 
   @kinds [:subject_attribute, :object_attribute, :relationship, :policy_version]
+  @library {:non_person_entity, "00000000-0000-0000-0000-000000000000"}
 
   @enforce_keys [:kind, :subject_ref, :object_ref, :attribute, :old, :new, :position, :operation_id, :at, :by]
   defstruct @enforce_keys
@@ -30,12 +30,27 @@ defmodule Turnstile.FactEvent do
           position: non_neg_integer() | nil,
           operation_id: Turnstile.Id.t(),
           at: DateTime.t(),
-          by: Subject.t()
+          by: Turnstile.subject()
         }
 
   @doc "The four kinds, in the order the reference lists them."
   @spec kinds() :: [kind()]
   def kinds, do: @kinds
+
+  @doc """
+  The writer of an event no decision names, which is the library itself: a
+  non-person entity with the nil identifier.
+  """
+  @spec library() :: Turnstile.subject()
+  def library, do: @library
+
+  @doc """
+  A subject as `subject_ref` names it. A fact about a subject is a fact
+  about the account, so the reference is `{:user, id}` whatever the kind of
+  the subject that asked.
+  """
+  @spec subject_ref(Turnstile.subject()) :: Turnstile.object()
+  def subject_ref({_kind, id}), do: {:user, id}
 
   @doc "The event as a map of plain values; a policy version in `new` becomes its own map."
   @spec to_map(t()) :: map()
@@ -50,7 +65,7 @@ defmodule Turnstile.FactEvent do
       position: event.position,
       operation_id: event.operation_id,
       at: Edge.time_out(event.at),
-      by: Subject.to_map(event.by)
+      by: Edge.ref_out(event.by)
     }
   end
 
@@ -75,7 +90,7 @@ defmodule Turnstile.FactEvent do
       position: {:integer, :nil_ok},
       operation_id: :string,
       at: :time,
-      by: {:struct, Subject}
+      by: :ref
     ]
   end
 

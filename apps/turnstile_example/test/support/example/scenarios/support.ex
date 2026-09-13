@@ -9,28 +9,28 @@ defmodule Example.Scenarios.Support do
   alias Example.Fixture
   alias Example.Sessions
   alias Turnstile.Error
-  alias Turnstile.Subject
 
   @stop [:turnstile, :user, :stop]
 
   @doc "The world and the subject of an account."
-  @spec subject(String.t()) :: Subject.t()
+  @spec subject(String.t()) :: Turnstile.subject()
   defdelegate subject(id), to: Fixture
 
   @doc "Whether the port allows `read` on the document."
-  @spec reads?(Subject.t(), Example.Document.t()) :: boolean()
-  def reads?(%Subject{} = subject, %Example.Document{id: id}), do: Turnstile.check(subject, :read, Documents.object(id))
+  @spec reads?(Turnstile.subject(), Example.Document.t()) :: boolean()
+  def reads?({_kind, _account} = subject, %Example.Document{id: id}),
+    do: Turnstile.check(subject, :read, Documents.object(id))
 
   @doc "Assert the context read the document."
-  @spec assert_read(Subject.t(), Example.Document.t(), keyword()) :: Example.Document.t()
-  def assert_read(%Subject{} = subject, %Example.Document{id: id}, opts \\ []) do
+  @spec assert_read(Turnstile.subject(), Example.Document.t(), keyword()) :: Example.Document.t()
+  def assert_read({_kind, _account} = subject, %Example.Document{id: id}, opts \\ []) do
     assert {:ok, %Example.Document{id: ^id} = read} = Documents.read(subject, id, opts)
     read
   end
 
   @doc "Assert the context refused the read with the port's error."
-  @spec assert_denied(Subject.t(), Example.Document.t(), keyword()) :: Error.NotAuthorized.t()
-  def assert_denied(%Subject{} = subject, %Example.Document{id: id}, opts \\ []) do
+  @spec assert_denied(Turnstile.subject(), Example.Document.t(), keyword()) :: Error.NotAuthorized.t()
+  def assert_denied({_kind, _account} = subject, %Example.Document{id: id}, opts \\ []) do
     assert {:error, %Error.NotAuthorized{} = error} = Documents.read(subject, id, opts)
     refute reads?(subject, %Example.Document{id: id})
     error

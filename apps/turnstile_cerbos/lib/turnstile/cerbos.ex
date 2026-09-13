@@ -57,7 +57,6 @@ defmodule Turnstile.Cerbos do
   alias Turnstile.Error
   alias Turnstile.Explanation
   alias Turnstile.FactEvent
-  alias Turnstile.Subject
 
   @schema NimbleOptions.new!(
             address: [
@@ -81,7 +80,7 @@ defmodule Turnstile.Cerbos do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     with {:ok, %Explanation{answer: answer}} <- explain(subject, operation, object, environment, options) do
       {:ok, answer}
@@ -89,13 +88,13 @@ defmodule Turnstile.Cerbos do
   end
 
   @impl Turnstile.Adapter
-  def check(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def check({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     authorize(subject, operation, object, environment, options)
   end
 
   @impl Turnstile.Adapter
-  def batch(%Subject{} = subject, operation, objects, %Environment{} = environment, options)
+  def batch({_kind, _account} = subject, operation, objects, %Environment{} = environment, options)
       when is_atom(operation) and is_list(objects) do
     with {:ok, binding, address} <- bound(:batch, options) do
       named(Decide.many(binding, address, subject, operation, objects, environment), :batch)
@@ -103,7 +102,7 @@ defmodule Turnstile.Cerbos do
   end
 
   @impl Turnstile.Adapter
-  def scope(%Subject{} = subject, operation, object_type, %Environment{} = environment, options)
+  def scope({_kind, _account} = subject, operation, object_type, %Environment{} = environment, options)
       when is_atom(operation) and is_atom(object_type) do
     with {:ok, binding, address} <- bound(:scope, options) do
       named(Decide.scoped(binding, address, subject, operation, object_type, environment), :scope)
@@ -111,7 +110,7 @@ defmodule Turnstile.Cerbos do
   end
 
   @impl Turnstile.Adapter
-  def explain(%Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def explain({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     with {:ok, binding, address} <- bound(:explain, options) do
       named(Decide.one(binding, address, subject, operation, object, environment), :explain)

@@ -15,12 +15,12 @@ defmodule Turnstile.Conformance.Gen do
   alias Turnstile.FactEvent
   alias Turnstile.Id
   alias Turnstile.PolicyVersion
+  alias Turnstile.Port
   alias Turnstile.Reason
-  alias Turnstile.Subject
 
   @unknown_operations [:teleport, :frobnicate, :launch]
   @unknown_kinds [:robot, :ghost, :service]
-  @adapters [Turnstile.Adapter.Fake, Turnstile.Port]
+  @adapters [Turnstile.Adapter.Fake, Port]
 
   # The round trips need operations to carry, not a rule that reads them, so
   # they take a fixed list rather than a world's.
@@ -31,15 +31,15 @@ defmodule Turnstile.Conformance.Gen do
   def world(module) when is_atom(module), do: module.generator()
 
   @doc "A subject the population knows, of any kind the port knows."
-  @spec subject(World.t()) :: StreamData.t(Subject.t())
+  @spec subject(World.t()) :: StreamData.t(Turnstile.subject())
   def subject(world) do
-    gen all(subject <- member_of(World.module(world).subjects(world)), kind <- member_of(Subject.kinds())) do
-      %{subject | kind: kind}
+    gen all({_kind, id} <- member_of(World.module(world).subjects(world)), kind <- member_of(Port.subject_kinds())) do
+      {kind, id}
     end
   end
 
   @doc "A subject the population knows, as the population knows it."
-  @spec grantee(World.t()) :: StreamData.t(Subject.t())
+  @spec grantee(World.t()) :: StreamData.t(Turnstile.subject())
   def grantee(world), do: member_of(World.module(world).subjects(world))
 
   @doc "Something in the population a grant can sit on."
@@ -71,32 +71,33 @@ defmodule Turnstile.Conformance.Gen do
   def unknown_operation, do: member_of(@unknown_operations)
 
   @doc "A known subject, one of an unknown kind, and one the population does not know, for deny by default."
-  @spec strangers(World.t()) :: StreamData.t(%{subject: Subject.t(), stranger: Subject.t(), nobody: Subject.t()})
+  @spec strangers(World.t()) ::
+          StreamData.t(%{subject: Turnstile.subject(), stranger: Turnstile.subject(), nobody: Turnstile.subject()})
   def strangers(world) do
     fixed_map(%{subject: subject(world), stranger: unknown_kind_subject(world), nobody: unknown_subject()})
   end
 
   @doc "A subject of a kind the port does not know."
-  @spec unknown_kind_subject(World.t()) :: StreamData.t(Subject.t())
+  @spec unknown_kind_subject(World.t()) :: StreamData.t(Turnstile.subject())
   def unknown_kind_subject(world) do
-    gen all(subject <- member_of(World.module(world).subjects(world)), kind <- member_of(@unknown_kinds)) do
-      %{subject | kind: kind}
+    gen all({_kind, id} <- member_of(World.module(world).subjects(world)), kind <- member_of(@unknown_kinds)) do
+      {kind, id}
     end
   end
 
   @doc "A subject the population does not know."
-  @spec unknown_subject() :: StreamData.t(Subject.t())
+  @spec unknown_subject() :: StreamData.t(Turnstile.subject())
   def unknown_subject do
-    gen all(suffix <- string(:alphanumeric, min_length: 1, max_length: 6), kind <- member_of(Subject.kinds())) do
-      %Subject{id: "nobody-" <> suffix, kind: kind}
+    gen all(suffix <- string(:alphanumeric, min_length: 1, max_length: 6), kind <- member_of(Port.subject_kinds())) do
+      {kind, "nobody-" <> suffix}
     end
   end
 
   @doc "A subject with a fresh id."
-  @spec subject() :: StreamData.t(Subject.t())
+  @spec subject() :: StreamData.t(Turnstile.subject())
   def subject do
-    gen all(id <- id(), kind <- member_of(Subject.kinds()), session <- one_of([constant(nil), id()])) do
-      %Subject{id: id, kind: kind, session_id: session}
+    gen all(id <- id(), kind <- member_of(Port.subject_kinds())) do
+      {kind, id}
     end
   end
 

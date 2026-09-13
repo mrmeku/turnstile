@@ -8,8 +8,6 @@ defmodule Turnstile.Facts.Record do
   telemetry handler.
   """
 
-  alias Turnstile.Subject
-
   @enforce_keys [:operation, :schema, :operation_id, :count, :min_position, :max_position, :by, :at]
   defstruct @enforce_keys
 
@@ -22,7 +20,7 @@ defmodule Turnstile.Facts.Record do
           count: non_neg_integer(),
           min_position: pos_integer() | nil,
           max_position: pos_integer() | nil,
-          by: Subject.t(),
+          by: Turnstile.subject(),
           at: DateTime.t()
         }
 end

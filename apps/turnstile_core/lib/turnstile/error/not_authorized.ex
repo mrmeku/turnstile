@@ -5,14 +5,14 @@ defmodule Turnstile.Error.NotAuthorized do
   defexception @enforce_keys
 
   @type t :: %__MODULE__{
-          subject: Turnstile.Subject.t(),
+          subject: Turnstile.subject(),
           operation: atom(),
           object: Turnstile.object() | atom(),
           reason: Turnstile.Reason.t()
         }
 
   @impl Exception
-  def message(%__MODULE__{subject: subject, operation: operation, object: object, reason: reason}) do
-    "#{subject.kind} #{subject.id} may not #{operation} #{inspect(object)}: #{reason.message}"
+  def message(%__MODULE__{subject: {kind, id}, operation: operation, object: object, reason: reason}) do
+    "#{kind} #{id} may not #{operation} #{inspect(object)}: #{reason.message}"
   end
 end

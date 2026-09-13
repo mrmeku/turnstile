@@ -8,7 +8,6 @@ defmodule Turnstile.Repo.MediationTest do
   alias Turnstile.Id
   alias Turnstile.Reason
   alias Turnstile.Repo.Mediation
-  alias Turnstile.Subject
   alias Turnstile.TestRepos.Sandboxed
 
   test "the option's schema is a NimbleOptions schema that admits a resolved mediation" do
@@ -40,7 +39,7 @@ defmodule Turnstile.Repo.MediationTest do
   defp decision(type, id) do
     %Decision{
       id: Id.new(),
-      subject: %Subject{id: "user-1", kind: :user},
+      subject: {:user, "user-1"},
       object: {type, id},
       operation: :read,
       verdict: :allow,

@@ -217,7 +217,7 @@ defmodule Example.Scenarios.Enforcement do
     for subject <- Enum.shuffle(Fixture.subjects()) do
       scoped = listed(subject)
       checked = for document <- documents, reads?(subject, document), do: document.id
-      assert scoped == checked, "subject #{subject.id}: scope #{inspect(scoped)}, check #{inspect(checked)}"
+      assert scoped == checked, "subject #{elem(subject, 1)}: scope #{inspect(scoped)}, check #{inspect(checked)}"
     end
   end
 
@@ -244,7 +244,7 @@ defmodule Example.Scenarios.Enforcement do
       query = from(p in Portion, where: ^rule, order_by: p.id, select: p.id)
       scoped = Repo.all(query, turnstile: decision)
       checked = for portion <- document.portions, Turnstile.check(subject, :read, portion(portion)), do: portion.id
-      assert scoped == checked, "subject #{subject.id}: scope #{inspect(scoped)}, check #{inspect(checked)}"
+      assert scoped == checked, "subject #{elem(subject, 1)}: scope #{inspect(scoped)}, check #{inspect(checked)}"
     end
   end
 

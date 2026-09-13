@@ -40,7 +40,7 @@ defmodule Turnstile.Cerbos.Attribute do
   defstruct [:name, :source]
 
   @typedoc "Where an attribute's value comes from."
-  @type source :: {:column, atom()} | {:subquery, (Turnstile.Subject.t() -> Ecto.Queryable.t())}
+  @type source :: {:column, atom()} | {:subquery, (Turnstile.subject() -> Ecto.Queryable.t())}
 
   @type t :: %__MODULE__{name: atom(), source: source()}
 

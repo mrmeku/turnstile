@@ -8,9 +8,8 @@ defmodule Example.ReviewTest do
   alias Turnstile.Error
   alias Turnstile.FactEvent
   alias Turnstile.Ledger.Memory
-  alias Turnstile.Subject
 
-  @eve %Subject{id: "eve", kind: :user}
+  @eve {:user, "eve"}
 
   test "readers and permissions come from the port per subject and operation", ctx do
     document = Fixture.document!(ctx.world)
@@ -88,8 +87,8 @@ defmodule Example.ReviewTest do
   end
 
   test "the reviewer names the record and no account" do
-    assert %Subject{id: "turnstile.review", kind: :privileged} = Review.reviewer()
-    refute Review.reviewer().id in Fixture.account_ids()
+    assert {:privileged, reviewer_id} = Review.reviewer()
+    refute reviewer_id in Fixture.account_ids()
     assert Accounts.privileged() != []
   end
 
@@ -104,7 +103,7 @@ defmodule Example.ReviewTest do
       position: nil,
       operation_id: "review-test",
       at: at,
-      by: Subject.library()
+      by: FactEvent.library()
     }
   end
 

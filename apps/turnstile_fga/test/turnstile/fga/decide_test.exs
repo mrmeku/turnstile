@@ -16,7 +16,6 @@ defmodule Turnstile.Fga.DecideTest do
   alias Turnstile.Fga.TupleKey
   alias Turnstile.Reason
   alias Turnstile.Scope
-  alias Turnstile.Subject
 
   @now ~U[2026-09-09 12:00:00.000000Z]
 
@@ -37,8 +36,8 @@ defmodule Turnstile.Fga.DecideTest do
   test "an operation is a relation, a subject is a user, and an object is one of the store" do
     assert Decide.relation(:read) == "can_read"
     assert Decide.relation(:edit) == "can_edit"
-    assert Decide.user(%Subject{id: "ann", kind: :user}) == "user:ann"
-    assert Decide.user(%Subject{id: "importer", kind: :non_person_entity}) == "user:importer"
+    assert Decide.user({:user, "ann"}) == "user:ann"
+    assert Decide.user({:non_person_entity, "importer"}) == "user:importer"
     assert Decide.named({:folder, 1}) == "folder:1"
     assert Decide.time_fact() == "current_time"
     assert Decide.scope_cap() == 1_000
@@ -193,7 +192,7 @@ defmodule Turnstile.Fga.DecideTest do
     assert {:error, %Error.Engine{operation: :check}} = Decide.explained(entry, ann(), :read, folder)
   end
 
-  defp ann, do: %Subject{id: "ann", kind: :user}
+  defp ann, do: {:user, "ann"}
 
   defp tuple(user, relation, object), do: %TupleKey{user: "user:#{user}", relation: relation, object: object}
 

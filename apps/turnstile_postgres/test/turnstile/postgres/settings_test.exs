@@ -3,7 +3,6 @@ defmodule Turnstile.Postgres.SettingsTest do
 
   alias Turnstile.Environment
   alias Turnstile.Postgres.Settings
-  alias Turnstile.Subject
 
   @at ~U[2026-09-08 12:00:00Z]
 
@@ -63,7 +62,7 @@ defmodule Turnstile.Postgres.SettingsTest do
 
   test "what a call puts back holds the outer call's values and empties the names only it set" do
     outer = Settings.of(subject(), :read, environment(%{}))
-    inner = Settings.of(%Subject{id: "acct-b", kind: :user}, :edit, environment(%{nationality: "fr"}))
+    inner = Settings.of({:user, "acct-b"}, :edit, environment(%{nationality: "fr"}))
 
     assert Settings.restored(inner, outer).pairs == [
              {"turnstile.nationality", ""},
@@ -74,7 +73,7 @@ defmodule Turnstile.Postgres.SettingsTest do
            ]
   end
 
-  defp subject, do: %Subject{id: "acct-a", kind: :user}
+  defp subject, do: {:user, "acct-a"}
 
   defp environment(facts), do: %Environment{now: @at, facts: facts}
 end

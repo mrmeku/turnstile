@@ -11,7 +11,6 @@ defmodule Turnstile.Cerbos.DecisionsTest do
   alias Turnstile.Error
   alias Turnstile.Id
   alias Turnstile.Reason
-  alias Turnstile.Subject
   alias Turnstile.Test
 
   @principal %{id: "an-account", roles: ["user"], attr: %{"clearance" => "cleared"}}
@@ -157,7 +156,7 @@ defmodule Turnstile.Cerbos.DecisionsTest do
   end
 
   defp plan_body do
-    Request.plan(%Subject{id: "an-account", kind: :user}, :read, :folder, %{"clearance" => "cleared"})
+    Request.plan({:user, "an-account"}, :read, :folder, %{"clearance" => "cleared"})
   end
 
   defp checked(subject, action, kind, id, effect) do
@@ -211,7 +210,7 @@ defmodule Turnstile.Cerbos.DecisionsTest do
   defp decision(verdict, object, operation) do
     %Decision{
       id: Id.new(),
-      subject: %Subject{id: "an-account", kind: :user},
+      subject: {:user, "an-account"},
       object: object,
       operation: operation,
       verdict: verdict,

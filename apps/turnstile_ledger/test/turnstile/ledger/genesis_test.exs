@@ -2,6 +2,7 @@ defmodule Turnstile.Ledger.GenesisTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Error
+  alias Turnstile.FactEvent
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
   alias Turnstile.Ledger
@@ -9,7 +10,6 @@ defmodule Turnstile.Ledger.GenesisTest do
   alias Turnstile.Ledger.TestRepos
   alias Turnstile.Ledger.TestSupport.Boot
   alias Turnstile.Ledger.TestSupport.Population
-  alias Turnstile.Subject
   alias Turnstile.Test
 
   @repo TestRepos.App
@@ -26,7 +26,7 @@ defmodule Turnstile.Ledger.GenesisTest do
 
     events = read(context)
     assert Enum.map(events, & &1.position) == [0, 0, 0]
-    assert Enum.map(events, & &1.by) == List.duplicate(Subject.library(), 3)
+    assert Enum.map(events, & &1.by) == List.duplicate(FactEvent.library(), 3)
     assert Enum.map(events, & &1.kind) == [:subject_attribute, :relationship, :relationship]
     assert Enum.uniq(Enum.map(events, & &1.operation_id)) == [Genesis.note(@migration, DateTime.utc_now())]
     assert {:ok, 0} = Ledger.Ecto.head(options(context))

@@ -41,10 +41,10 @@ defmodule Turnstile.Ledger.Genesis do
     deps: [Ecto, Turnstile, Turnstile.Ledger.Catalog, Turnstile.Ledger.Dialect, Turnstile.Ledger.Ecto]
 
   alias Turnstile.Error
+  alias Turnstile.FactEvent
   alias Turnstile.Ledger
   alias Turnstile.Repo
   alias Turnstile.Schema
-  alias Turnstile.Subject
 
   @exemption {:exempt, :library}
 
@@ -109,7 +109,7 @@ defmodule Turnstile.Ledger.Genesis do
   end
 
   defp stamp(options, at) do
-    %{by: Subject.library(), operation_id: note(options[:migration], at), at: at}
+    %{by: FactEvent.library(), operation_id: note(options[:migration], at), at: at}
   end
 
   defp empty!(repo) do

@@ -14,7 +14,6 @@ defmodule Turnstile.Cerbos.PlanTest do
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.World
   alias Turnstile.Scope
-  alias Turnstile.Subject
   alias Turnstile.Test
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
@@ -70,8 +69,8 @@ defmodule Turnstile.Cerbos.PlanTest do
     {:ok,
      binding: binding,
      address: sidecar.address,
-     ann: %Subject{id: "ann", kind: :user},
-     bob: %Subject{id: "bob", kind: :user},
+     ann: {:user, "ann"},
+     bob: {:user, "bob"},
      environment: %Environment{now: DateTime.utc_now()}}
   end
 

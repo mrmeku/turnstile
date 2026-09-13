@@ -71,7 +71,8 @@ defmodule Turnstile.Cerbos.Decisions do
 
   defp key(%Decision{} = decision) do
     {kind, id} = Finding.reference(decision.object)
-    {to_string(decision.subject.id), Atom.to_string(decision.operation), kind, id}
+    {_subject_kind, subject_id} = decision.subject
+    {to_string(subject_id), Atom.to_string(decision.operation), kind, id}
   end
 
   defp compared(%Line{} = line, remaining) do
@@ -116,7 +117,7 @@ defmodule Turnstile.Cerbos.Decisions do
 
       %Finding{
         kind: :unlogged,
-        subject: to_string(decision.subject.id),
+        subject: to_string(elem(decision.subject, 1)),
         operation: Atom.to_string(decision.operation),
         object: {kind, id},
         line: nil,

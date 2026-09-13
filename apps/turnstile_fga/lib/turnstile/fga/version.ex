@@ -27,7 +27,6 @@ defmodule Turnstile.Fga.Version do
   alias Turnstile.Fga.Client
   alias Turnstile.Id
   alias Turnstile.PolicyVersion
-  alias Turnstile.Subject
 
   @page 1_000
   @telemetry [:turnstile, :fga, :policy_version]
@@ -155,7 +154,7 @@ defmodule Turnstile.Fga.Version do
       position: nil,
       operation_id: Id.new(),
       at: version.at,
-      by: Subject.library()
+      by: FactEvent.library()
     }
 
     case ledger.append(options, [event]) do

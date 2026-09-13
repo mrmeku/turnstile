@@ -9,7 +9,6 @@ defmodule Turnstile.Postgres.VersionTest do
   alias Turnstile.Postgres.Policy
   alias Turnstile.Postgres.Version
   alias Turnstile.Postgres.VersionTest.Refusing
-  alias Turnstile.Subject
 
   @policies [
     %Policy{name: "turnstile_scope_read", table: "folders", command: :select, using: "true", with_check: nil},
@@ -56,7 +55,7 @@ defmodule Turnstile.Postgres.VersionTest do
     assert {event.kind, event.subject_ref, event.object_ref} == {:policy_version, nil, {:policy, Turnstile.Postgres}}
     assert {event.attribute, event.old, event.position} == {:version, nil, 1}
     assert %PolicyVersion{version: "20260101000001"} = event.new
-    assert event.by == Subject.library()
+    assert event.by == FactEvent.library()
 
     assert Version.publish(version(), ledger) == {:ok, :current}
   end

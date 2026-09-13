@@ -10,7 +10,6 @@ defmodule Turnstile.Cerbos.ValuesTest do
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
   alias Turnstile.Fixture.World
-  alias Turnstile.Subject
   alias Turnstile.Test
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
@@ -79,8 +78,8 @@ defmodule Turnstile.Cerbos.ValuesTest do
 
     {:ok,
      binding: binding,
-     ann: %Subject{id: "ann", kind: :user},
-     bob: %Subject{id: "bob", kind: :user},
+     ann: {:user, "ann"},
+     bob: {:user, "bob"},
      request: %Environment{now: ~U[2026-09-09 12:00:00.123456Z]}}
   end
 

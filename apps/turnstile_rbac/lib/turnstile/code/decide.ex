@@ -17,21 +17,26 @@ defmodule Turnstile.Code.Decide do
   alias Turnstile.Environment
   alias Turnstile.Explanation
   alias Turnstile.Reason
-  alias Turnstile.Subject
 
   @doc "The explanation for one object: its answer and the clauses that held."
-  @spec one(Binding.t(), Subject.t(), atom(), Turnstile.object(), Environment.t()) ::
+  @spec one(Binding.t(), Turnstile.subject(), atom(), Turnstile.object(), Environment.t()) ::
           {:ok, Explanation.t()} | {:error, String.t()}
-  def one(%Binding{} = binding, %Subject{} = subject, operation, {_type, _id} = object, %Environment{} = environment) do
+  def one(
+        %Binding{} = binding,
+        {_kind, _account} = subject,
+        operation,
+        {_type, _id} = object,
+        %Environment{} = environment
+      ) do
     with {:ok, [{^object, explanation}]} <- explained(binding, subject, operation, [object], environment) do
       {:ok, explanation}
     end
   end
 
   @doc "The answers for a list of objects, one per object reference."
-  @spec many(Binding.t(), Subject.t(), atom(), [Turnstile.object()], Environment.t()) ::
+  @spec many(Binding.t(), Turnstile.subject(), atom(), [Turnstile.object()], Environment.t()) ::
           {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
-  def many(%Binding{} = binding, %Subject{} = subject, operation, objects, %Environment{} = environment) do
+  def many(%Binding{} = binding, {_kind, _account} = subject, operation, objects, %Environment{} = environment) do
     with {:ok, explained} <- explained(binding, subject, operation, objects, environment) do
       {:ok, Map.new(explained, fn {object, %Explanation{answer: answer}} -> {object, answer} end)}
     end

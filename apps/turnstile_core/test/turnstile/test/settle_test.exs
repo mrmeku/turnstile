@@ -6,7 +6,6 @@ defmodule Turnstile.Test.SettleTest do
   alias Turnstile.FactEvent
   alias Turnstile.Id
   alias Turnstile.Ledger.Memory
-  alias Turnstile.Subject
   alias Turnstile.Test
   alias Turnstile.Test.LedgerAdapter
   alias Turnstile.Test.Projection
@@ -82,7 +81,7 @@ defmodule Turnstile.Test.SettleTest do
           position: nil,
           operation_id: Id.new(),
           at: @at,
-          by: %Subject{id: "ann", kind: :user}
+          by: {:user, "ann"}
         }
       end
 

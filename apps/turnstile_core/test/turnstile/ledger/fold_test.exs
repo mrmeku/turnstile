@@ -3,7 +3,6 @@ defmodule Turnstile.Ledger.FoldTest do
 
   alias Turnstile.FactEvent
   alias Turnstile.Ledger.Fold
-  alias Turnstile.Subject
 
   @user {:user, "acct-a"}
   @folder {:folder, 1}
@@ -20,7 +19,7 @@ defmodule Turnstile.Ledger.FoldTest do
         position: position,
         operation_id: "op-#{position}",
         at: DateTime.shift(~U[2026-01-01 00:00:00Z], second: position),
-        by: Subject.library()
+        by: FactEvent.library()
       },
       fields
     )

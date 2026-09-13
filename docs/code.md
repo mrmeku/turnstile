@@ -14,7 +14,7 @@
 | Do | Because |
 |---|---|
 | Model every domain value as a struct with `@enforce_keys` (§2) | The checker knows struct keys: `%Decision{}.verdict` is checked, `decision.verdcit` is a verified bug, `%Decision{d \| unknown: 1}` is a verified bug |
-| Put guards on every public function head: `is_struct(x, Subject)`, `is_atom/1`, `is_integer/1`, `is_binary/1` | Guards are the strongest source of inference; an unguarded head is `dynamic()` |
+| Put guards on every public function head: `is_struct(x, Decision)`, `is_atom/1`, `is_integer/1`, `is_binary/1` | Guards are the strongest source of inference; an unguarded head is `dynamic()` |
 | Pattern-match in function heads and `case` on tagged tuples and struct patterns | Occurrence typing narrows each branch; `if Map.get(...)` narrows nothing |
 | Enumerate with atom unions: `:allow \| :deny`, `:native \| :limited \| :unsupported` | The checker tracks atom sets and reports a missing or impossible clause |
 | Return `{:ok, t} \| {:error, %Error{}}`; never `nil` for "not found", never a bare string for a reason | A union of tuples with a struct payload is fully checkable; `nil` and strings are not distinguishable from anything |
@@ -42,7 +42,7 @@ defmodule Turnstile.Decision do
 
   @type verdict :: :allow | :deny | :scoped
   @type t :: %__MODULE__{
-          id: Turnstile.Id.t(), subject: Turnstile.Subject.t(), object: Turnstile.object(),
+          id: Turnstile.Id.t(), subject: Turnstile.subject(), object: Turnstile.object(),
           operation: atom(), verdict: verdict(), reason: Turnstile.Reason.t(), adapter: module(),
           policy_version: Turnstile.PolicyVersion.ref(),
           head_position: non_neg_integer() | nil, applied_position: non_neg_integer() | nil,
@@ -53,7 +53,7 @@ end
 
 Two positions, not one: the head at decision time and the position the adapter's state had applied, equal unless the adapter projects, both `nil` in ledger mode none (`docs/reference.md` §7).
 
-**Structs the reference names**, each defined this way: `%Turnstile.Decision{}`, `%Turnstile.FactEvent{}` (§8), `%Turnstile.PolicyVersion{}` (§5), `%Turnstile.Exemption{kind: :declared | :library}` (§6), `%Turnstile.Subject{kind: :user | :non_person_entity | :privileged}`, `%Turnstile.Config{}` (§15); the errors `Turnstile.Error.Unmediated`, `Turnstile.Error.Engine`, `Turnstile.Error.Unsupported`, `Turnstile.Error.NotAuthorized`, `Turnstile.Error.Invalid`; the behaviours `Turnstile.Adapter`, `Turnstile.Ledger`, `Turnstile.Ledger.Dialect` (seven questions, §11), `Turnstile.Projection` (`checkpoint/1`, `drain_once/1`, `rebuild/1`, `reconcile/1`), `Turnstile.Capabilities` (`capability/1`), `Turnstile.Fga.Client`, `Turnstile.Fga.TupleMapping`.
+**Structs the reference names**, each defined this way: `%Turnstile.Decision{}`, `%Turnstile.FactEvent{}` (§8), `%Turnstile.PolicyVersion{}` (§5), `%Turnstile.Exemption{kind: :declared | :library}` (§6), `%Turnstile.Config{}` (§15); the errors `Turnstile.Error.Unmediated`, `Turnstile.Error.Engine`, `Turnstile.Error.Unsupported`, `Turnstile.Error.NotAuthorized`, `Turnstile.Error.Invalid`; the behaviours `Turnstile.Adapter`, `Turnstile.Ledger`, `Turnstile.Ledger.Dialect` (seven questions, §11), `Turnstile.Projection` (`checkpoint/1`, `drain_once/1`, `rebuild/1`, `reconcile/1`), `Turnstile.Capabilities` (`capability/1`), `Turnstile.Fga.Client`, `Turnstile.Fga.TupleMapping`.
 
 **On structs, these are banned:** `Map.put/3`, `Map.merge/2`, `Map.update/4`, `Map.delete/2`, `Access` (`s[:k]`), `Map.from_struct/1` outside serializers. Update with `%S{s | field: v}`; the checker verifies the key. Build with the literal, or at an edge with the raising variant of `struct/2`, never the plain one, which drops unknown keys silently.
 

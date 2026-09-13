@@ -25,7 +25,6 @@ defmodule Turnstile.Cerbos.Version do
   alias Turnstile.FactEvent
   alias Turnstile.Id
   alias Turnstile.PolicyVersion
-  alias Turnstile.Subject
 
   @marker "# turnstile-policy: "
   @page 1_000
@@ -165,7 +164,7 @@ defmodule Turnstile.Cerbos.Version do
       position: nil,
       operation_id: Id.new(),
       at: version.at,
-      by: Subject.library()
+      by: FactEvent.library()
     }
 
     case ledger.append(options, [event]) do

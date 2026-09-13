@@ -25,14 +25,14 @@ defmodule Turnstile.Fixture.World do
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
-  alias Turnstile.Subject
 
   @accounts ~w(acct-a acct-b acct-c)
   @exemption {:exempt, "conformance fixture"}
   @operations [:read, :edit]
   @roles [:reader, :editor]
   @cleared "cleared"
-  @focus %Subject{id: "acct-a", kind: :user}
+  @focus_id "acct-a"
+  @focus {:user, @focus_id}
 
   defstruct accounts: %{}, folders: [], items: %{}, memberships: %{}
 
@@ -46,9 +46,9 @@ defmodule Turnstile.Fixture.World do
 
   @typedoc "One change: a grant, a revocation, or a clearance change."
   @type step ::
-          {:grant, Subject.t(), pos_integer(), :reader | :editor}
-          | {:revoke, Subject.t(), pos_integer()}
-          | {:clearance, Subject.t(), String.t() | nil}
+          {:grant, Turnstile.subject(), pos_integer(), :reader | :editor}
+          | {:revoke, Turnstile.subject(), pos_integer()}
+          | {:clearance, Turnstile.subject(), String.t() | nil}
 
   @doc "The two protected schemas the properties scope over."
   @impl World
@@ -99,7 +99,7 @@ defmodule Turnstile.Fixture.World do
   @impl World
   @spec granted() :: t()
   def granted do
-    %__MODULE__{accounts: %{@focus.id => @cleared}, folders: [1], memberships: %{{@focus.id, 1} => :editor}}
+    %__MODULE__{accounts: %{@focus_id => @cleared}, folders: [1], memberships: %{{@focus_id, 1} => :editor}}
   end
 
   @doc "`granted/0` with the membership taken out."
@@ -126,17 +126,17 @@ defmodule Turnstile.Fixture.World do
 
   @doc "The account the fixed worlds grant to, and the folder they grant it on."
   @impl World
-  @spec focus(t()) :: {Subject.t(), pos_integer()}
+  @spec focus(t()) :: {Turnstile.subject(), pos_integer()}
   def focus(%__MODULE__{}), do: {@focus, 1}
 
   @doc "The accounts, as subjects."
   @impl World
-  @spec subjects(t()) :: [Subject.t()]
+  @spec subjects(t()) :: [Turnstile.subject()]
   def subjects(%__MODULE__{accounts: accounts}) do
     accounts
     |> Map.keys()
     |> Enum.sort()
-    |> Enum.map(&%Subject{id: &1, kind: :user})
+    |> Enum.map(&{:user, &1})
   end
 
   @doc "Every folder and item as an object."
@@ -154,24 +154,24 @@ defmodule Turnstile.Fixture.World do
 
   @doc "The rule: what the world says about one subject, operation, and object."
   @impl World
-  @spec allowed?(t(), Subject.t(), atom(), Turnstile.object()) :: boolean()
-  def allowed?(%__MODULE__{} = world, %Subject{} = subject, operation, {:item, id}) do
+  @spec allowed?(t(), Turnstile.subject(), atom(), Turnstile.object()) :: boolean()
+  def allowed?(%__MODULE__{} = world, {_kind, _account} = subject, operation, {:item, id}) do
     case Map.fetch(world.items, id) do
       {:ok, folder} -> allowed?(world, subject, operation, {:folder, folder})
       :error -> false
     end
   end
 
-  def allowed?(%__MODULE__{} = world, %Subject{id: account}, operation, {:folder, id}) do
+  def allowed?(%__MODULE__{} = world, {_kind, account}, operation, {:folder, id}) do
     cleared? = Map.get(world.accounts, account) == @cleared
     role = Map.get(world.memberships, {account, id})
     role_allows?(role, operation) and cleared?
   end
 
-  def allowed?(%__MODULE__{}, %Subject{}, _operation, {_type, _id}), do: false
+  def allowed?(%__MODULE__{}, {_kind, _account}, _operation, {_type, _id}), do: false
 
   @doc "The subject, operation, object triples the rule allows."
-  @spec grants(t()) :: [{Subject.t(), atom(), Turnstile.object()}]
+  @spec grants(t()) :: [{Turnstile.subject(), atom(), Turnstile.object()}]
   def grants(%__MODULE__{} = world) do
     for subject <- subjects(world),
         operation <- @operations,
@@ -232,8 +232,8 @@ defmodule Turnstile.Fixture.World do
 
   @doc "Give the account a role on the folder, inserting or changing the membership, and return the world."
   @impl World
-  @spec grant(module(), t(), Subject.t(), pos_integer(), :reader | :editor) :: t()
-  def grant(repo, %__MODULE__{} = world, %Subject{id: account}, folder, role) when is_atom(repo) do
+  @spec grant(module(), t(), Turnstile.subject(), pos_integer(), :reader | :editor) :: t()
+  def grant(repo, %__MODULE__{} = world, {_kind, account}, folder, role) when is_atom(repo) do
     case repo.get_by(Membership, [account_id: account, folder_id: folder], turnstile: @exemption) do
       nil ->
         repo.insert!(%Membership{account_id: account, folder_id: folder, role: role}, turnstile: @exemption)
@@ -247,8 +247,8 @@ defmodule Turnstile.Fixture.World do
 
   @doc "Remove the account's membership on the folder, if any, and return the world."
   @impl World
-  @spec revoke(module(), t(), Subject.t(), pos_integer()) :: t()
-  def revoke(repo, %__MODULE__{} = world, %Subject{id: account}, folder) when is_atom(repo) do
+  @spec revoke(module(), t(), Turnstile.subject(), pos_integer()) :: t()
+  def revoke(repo, %__MODULE__{} = world, {_kind, account}, folder) when is_atom(repo) do
     case repo.get_by(Membership, [account_id: account, folder_id: folder], turnstile: @exemption) do
       nil -> :ok
       %Membership{} = membership -> repo.delete!(membership, turnstile: @exemption)
@@ -259,8 +259,8 @@ defmodule Turnstile.Fixture.World do
 
   @doc "Insert one membership through the seam and nothing else."
   @impl World
-  @spec insert_grant(module(), Subject.t(), pos_integer(), :reader | :editor) :: :ok
-  def insert_grant(repo, %Subject{id: account}, folder, role) when is_atom(repo) do
+  @spec insert_grant(module(), Turnstile.subject(), pos_integer(), :reader | :editor) :: :ok
+  def insert_grant(repo, {_kind, account}, folder, role) when is_atom(repo) do
     repo.insert!(%Membership{account_id: account, folder_id: folder, role: role}, turnstile: @exemption)
     :ok
   end
@@ -288,8 +288,8 @@ defmodule Turnstile.Fixture.World do
   def apply_step(repo, world, {:clearance, subject, value}), do: set_clearance(repo, world, subject, value)
 
   @doc "Set the account's clearance and return the world."
-  @spec set_clearance(module(), t(), Subject.t(), String.t() | nil) :: t()
-  def set_clearance(repo, %__MODULE__{} = world, %Subject{id: account}, clearance) when is_atom(repo) do
+  @spec set_clearance(module(), t(), Turnstile.subject(), String.t() | nil) :: t()
+  def set_clearance(repo, %__MODULE__{} = world, {_kind, account}, clearance) when is_atom(repo) do
     account_row = repo.get!(Account, account, turnstile: @exemption)
     repo.update!(Changeset.change(account_row, clearance: clearance), turnstile: @exemption)
     %{world | accounts: Map.put(world.accounts, account, clearance)}

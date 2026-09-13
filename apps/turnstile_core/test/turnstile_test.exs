@@ -4,9 +4,8 @@ defmodule TurnstileTest do
   alias Turnstile.Adapter.Fake
   alias Turnstile.Decision
   alias Turnstile.Error
-  alias Turnstile.Subject
 
-  @user %Subject{id: "acct-a", kind: :user}
+  @user {:user, "acct-a"}
   @folder {:folder, 1}
   @other {:folder, 2}
 

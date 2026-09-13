@@ -37,7 +37,6 @@ defmodule Example.Fixture do
   alias Example.Repo
   alias Example.User
   alias Turnstile.Ledger.Fold
-  alias Turnstile.Subject
 
   @exempt {:exempt, "fixture: the world a scenario starts from"}
 
@@ -154,14 +153,14 @@ defmodule Example.Fixture do
   end
 
   @doc "The subject for an account of the world."
-  @spec subject(String.t()) :: Subject.t()
+  @spec subject(String.t()) :: Turnstile.subject()
   def subject(id) when is_binary(id) do
     {^id, kind, _employment, _nationality, _person} = List.keyfind!(@accounts, id, 0)
-    %Subject{id: id, kind: kind}
+    {kind, id}
   end
 
   @doc "Every account's subject."
-  @spec subjects() :: [Subject.t()]
+  @spec subjects() :: [Turnstile.subject()]
   def subjects, do: Enum.map(account_ids(), &subject/1)
 
   @doc "Insert an account with a nationality and an employment, holding nothing."

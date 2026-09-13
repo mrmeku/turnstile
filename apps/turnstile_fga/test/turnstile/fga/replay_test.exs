@@ -13,7 +13,6 @@ defmodule Turnstile.Fga.ReplayTest do
   alias Turnstile.Fixture.World
   alias Turnstile.Id
   alias Turnstile.Reason
-  alias Turnstile.Subject
 
   @model "priv/conformance/model.fga"
 
@@ -119,7 +118,7 @@ defmodule Turnstile.Fga.ReplayTest do
   defp decision(verdict, applied) do
     %Decision{
       id: Id.new(),
-      subject: %Subject{id: "ann", kind: :user},
+      subject: {:user, "ann"},
       object: {:folder, 1},
       operation: :read,
       verdict: verdict,

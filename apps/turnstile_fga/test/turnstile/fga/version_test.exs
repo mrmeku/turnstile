@@ -11,7 +11,6 @@ defmodule Turnstile.Fga.VersionTest do
   alias Turnstile.Fga.Version
   alias Turnstile.Ledger.Memory
   alias Turnstile.PolicyVersion
-  alias Turnstile.Subject
   alias Turnstile.Test
   alias Turnstile.TestRepos.Sandboxed
 
@@ -80,7 +79,7 @@ defmodule Turnstile.Fga.VersionTest do
     assert event.attribute == :version
     assert event.old == nil
     assert %PolicyVersion{version: "model-1", adapter: Fga} = event.new
-    assert event.by == Subject.library()
+    assert event.by == FactEvent.library()
     assert models(context.agent) == [Model.read!(@model)]
 
     assert_receive {:policy_version, %{adapter: Fga, hash: hash, result: %FactEvent{}}}

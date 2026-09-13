@@ -10,7 +10,6 @@ defmodule Turnstile.Code.VersionTest do
   alias Turnstile.FactEvent
   alias Turnstile.Ledger.Memory
   alias Turnstile.PolicyVersion
-  alias Turnstile.Subject
   alias Turnstile.TestRepos.Sandboxed
 
   setup do
@@ -51,7 +50,7 @@ defmodule Turnstile.Code.VersionTest do
     assert event.attribute == :version
     assert event.old == nil
     assert %PolicyVersion{version: "conformance"} = event.new
-    assert event.by == Subject.library()
+    assert event.by == FactEvent.library()
     assert event.position == 1
 
     assert Turnstile.Code.publish() == {:ok, :current}

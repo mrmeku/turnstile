@@ -11,14 +11,13 @@ defmodule Turnstile.Cerbos.Request do
 
   alias Turnstile.Cerbos.Values
   alias Turnstile.Id
-  alias Turnstile.Subject
 
   @doc """
   A decision for one operation over objects, each with the attribute values
   read for it: the body of `POST /api/check/resources`.
   """
-  @spec check(Subject.t(), atom(), Values.attributes(), [{Turnstile.object(), Values.attributes()}]) :: map()
-  def check(%Subject{} = subject, operation, principal, objects)
+  @spec check(Turnstile.subject(), atom(), Values.attributes(), [{Turnstile.object(), Values.attributes()}]) :: map()
+  def check({_kind, _account} = subject, operation, principal, objects)
       when is_atom(operation) and is_map(principal) and is_list(objects) do
     %{
       requestId: Id.new(),
@@ -29,8 +28,8 @@ defmodule Turnstile.Cerbos.Request do
   end
 
   @doc "A query plan for one operation over an object type: the body of `POST /api/plan/resources`."
-  @spec plan(Subject.t(), atom(), atom(), Values.attributes()) :: map()
-  def plan(%Subject{} = subject, operation, kind, principal)
+  @spec plan(Turnstile.subject(), atom(), atom(), Values.attributes()) :: map()
+  def plan({_kind, _account} = subject, operation, kind, principal)
       when is_atom(operation) and is_atom(kind) and is_map(principal) do
     %{
       requestId: Id.new(),
@@ -51,8 +50,8 @@ defmodule Turnstile.Cerbos.Request do
   end
 
   @doc "The principal as the sidecar reads it: the subject's id, its kind as a role, and its attributes."
-  @spec principal(Subject.t(), Values.attributes()) :: map()
-  def principal(%Subject{id: id, kind: kind}, attributes) when is_map(attributes) do
+  @spec principal(Turnstile.subject(), Values.attributes()) :: map()
+  def principal({kind, id}, attributes) when is_map(attributes) do
     %{id: to_string(id), roles: [Atom.to_string(kind)], attr: attributes}
   end
 

@@ -21,10 +21,9 @@ defmodule Turnstile.Repo.Facts do
   alias Turnstile.Schema
   alias Turnstile.Schema.Fact
   alias Turnstile.Schema.Relationship
-  alias Turnstile.Subject
 
   @typedoc "What every event of one operation shares."
-  @type stamp :: %{by: Subject.t(), operation_id: Turnstile.Id.t(), at: DateTime.t()}
+  @type stamp :: %{by: Turnstile.subject(), operation_id: Turnstile.Id.t(), at: DateTime.t()}
 
   @doc "Re-read a row by its primary key under the lock clause, through the mediated repo."
   @spec reread(module(), struct(), String.t() | nil, keyword()) :: struct() | nil

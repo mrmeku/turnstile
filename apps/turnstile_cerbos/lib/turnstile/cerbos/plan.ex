@@ -31,13 +31,12 @@ defmodule Turnstile.Cerbos.Plan do
   alias Turnstile.Cerbos.Attribute
   alias Turnstile.Cerbos.Attributes
   alias Turnstile.Cerbos.Binding
-  alias Turnstile.Subject
 
   @enforce_keys [:subject, :attributes, :kind, :schema, :key]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
-          subject: Subject.t(),
+          subject: Turnstile.subject(),
           attributes: module(),
           kind: atom(),
           schema: module(),
@@ -49,9 +48,9 @@ defmodule Turnstile.Cerbos.Plan do
   object type is measured against, `:denied` for a plan that admits no row,
   and `{:error, detail}` for a plan this adapter does not express.
   """
-  @spec dynamic(Binding.t(), Subject.t(), atom(), map()) ::
+  @spec dynamic(Binding.t(), Turnstile.subject(), atom(), map()) ::
           {:ok, Ecto.Query.dynamic_expr()} | :denied | {:error, String.t()}
-  def dynamic(%Binding{} = binding, %Subject{} = subject, kind, filter) when is_atom(kind) and is_map(filter) do
+  def dynamic(%Binding{} = binding, {_kind, _account} = subject, kind, filter) when is_atom(kind) and is_map(filter) do
     case Binding.target(binding, kind) do
       {schema, key} -> filtered(new(binding, subject, kind, schema, key), filter)
       nil -> {:error, "the declarations name no schema with one primary key for #{kind}"}

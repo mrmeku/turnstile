@@ -11,7 +11,6 @@ defmodule Turnstile.Repo.MatchingTest do
   alias Turnstile.Reason
   alias Turnstile.Repo.Matching
   alias Turnstile.Repo.Mediation
-  alias Turnstile.Subject
   alias Turnstile.TestRepos.Sandboxed
 
   test "a query from a table name has no root schema and passes without a mediation" do
@@ -51,7 +50,7 @@ defmodule Turnstile.Repo.MatchingTest do
   defp mediation(type) do
     decision = %Decision{
       id: Id.new(),
-      subject: %Subject{id: "user-1", kind: :user},
+      subject: {:user, "user-1"},
       object: {type, 1},
       operation: :read,
       verdict: :allow,
