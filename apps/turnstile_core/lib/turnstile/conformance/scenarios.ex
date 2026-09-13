@@ -50,6 +50,8 @@ defmodule Turnstile.Conformance.Scenarios do
      false},
     {"enf-19", "A Document of another Agency is neither returned by `scope` nor readable by `check`", :enforcement,
      ~w[AC-3], [:c1, :c13], false},
+    {"enf-20", "A User one Portion releases to and another does not is denied the whole Document", :enforcement,
+     ~w[AC-3 AC-16*], [:c4, :c2], false},
     {"lp-01", "A Program member without an OfficeRole cannot change a Document's marking", :least_privilege,
      ~w[AC-6 AC-6(1)], [:c7], false},
     {"lp-02", "A designator of another Office cannot change the marking", :least_privilege, ~w[AC-6(1)], [:c7], false},

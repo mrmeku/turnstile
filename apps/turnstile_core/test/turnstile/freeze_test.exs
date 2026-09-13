@@ -70,7 +70,7 @@ defmodule Turnstile.FreezeTest do
 
   test "the scenario ids are the frozen list" do
     assert Scenarios.ids() ==
-             Enum.map(1..19, &"enf-#{pad(&1)}") ++
+             Enum.map(1..20, &"enf-#{pad(&1)}") ++
                Enum.map(1..8, &"lp-#{pad(&1)}") ++
                Enum.map(1..3, &"sod-#{pad(&1)}") ++
                Enum.map(1..7, &"rev-#{pad(&1)}") ++
