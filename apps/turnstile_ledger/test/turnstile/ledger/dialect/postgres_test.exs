@@ -24,7 +24,8 @@ defmodule Turnstile.Ledger.Dialect.PostgresTest do
   end
 
   test "a take against a counter row that does not exist answers an engine error", context do
-    assert {:error, %Error.Engine{operation: :take, detail: detail}} = Postgres.take(TestRepos.App, "absent", 1)
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} = Postgres.take(TestRepos.App, "absent", 1)
+    assert detail =~ "failed during take"
     assert detail =~ "no counter row named"
     assert {:ok, 1} = Postgres.take(TestRepos.App, context.counter, 1)
   end

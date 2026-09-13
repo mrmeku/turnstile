@@ -69,10 +69,11 @@ resourcePolicy:
 
   test "an entry with no address is an engine error naming the callback that failed", ctx do
     for {operation, call} <- callbacks(ctx, []) do
-      assert {:error, %Error.Engine{} = error} = call.()
-      assert error.adapter == Turnstile.Cerbos
-      assert error.operation == operation
-      assert error.detail == "the configuration entry names no address for the sidecar"
+      assert {:error, %Error{reason: :engine_unreachable} = error} = call.()
+
+      assert error.detail ==
+               "#{inspect(Turnstile.Cerbos)} failed during #{operation}: " <>
+                 "the configuration entry names no address for the sidecar"
     end
   end
 
@@ -80,8 +81,11 @@ resourcePolicy:
     :ok = Binding.override(attributes: Folder)
 
     for {operation, call} <- callbacks(ctx, address: ctx.address) do
-      assert {:error, %Error.Engine{operation: ^operation} = error} = call.()
-      assert error.detail == "Turnstile.Fixture.Folder did not use Turnstile.Cerbos.Attributes"
+      assert {:error, %Error{reason: :engine_unreachable} = error} = call.()
+
+      assert error.detail ==
+               "#{inspect(Turnstile.Cerbos)} failed during #{operation}: invalid binding: " <>
+                 "Turnstile.Fixture.Folder did not use Turnstile.Cerbos.Attributes"
     end
   end
 

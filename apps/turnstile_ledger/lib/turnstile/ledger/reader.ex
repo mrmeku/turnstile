@@ -18,7 +18,7 @@ defmodule Turnstile.Ledger.Reader do
   def page, do: @page
 
   @doc "Every event of the ledger, the origin first and then every page above it."
-  @spec all({module(), keyword()}) :: {:ok, [FactEvent.t()]} | {:error, Error.Engine.t()}
+  @spec all({module(), keyword()}) :: {:ok, [FactEvent.t()]} | {:error, Error.t()}
   def all({module, options}) when is_atom(module) and is_list(options) do
     with {:ok, origin} <- origin({module, options}),
          {:ok, above} <- pages({module, options}, 0, []) do

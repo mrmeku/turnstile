@@ -78,17 +78,16 @@ defmodule Turnstile.Fga.ReplayTest do
   end
 
   test "a store the throwaway server refuses to make is an engine error", context do
-    assert {:error, %Error.Engine{} = error} = build("127.0.0.1:1", context, context.cleared)
-    assert error.adapter == Turnstile.Fga
-    assert error.operation == :create_store
+    assert {:error, %Error{reason: :engine_unreachable} = error} = build("127.0.0.1:1", context, context.cleared)
+    assert error.detail =~ "Turnstile.Fga failed during create_store"
   end
 
   test "a model text that does not compile loads nothing", context do
     agent = start_supervised!(Fake)
     options = [client: Fake, endpoint: agent, model: "not a model", mapping: Mapping, ledger: context.ledger, to: 0]
 
-    assert {:error, %Error.Invalid{what: :model} = error} = Replay.build(options)
-    assert error.detail == "a model opens with a model line and a schema line"
+    assert {:error, %Error{reason: :invalid, detail: "invalid model: " <> detail}} = Replay.build(options)
+    assert detail == "a model opens with a model line and a schema line"
     assert Fake.calls(agent) == []
   end
 
@@ -99,7 +98,7 @@ defmodule Turnstile.Fga.ReplayTest do
     assert schema[:store_name][:default] == "turnstile-replay"
     refute schema[:batch][:required]
 
-    assert {:error, %Error.Invalid{what: :replay} = error} = Replay.build(client: Fake)
+    assert {:error, %Error{reason: :invalid, detail: "invalid replay: " <> _rest} = error} = Replay.build(client: Fake)
     assert error.detail =~ "required :endpoint option not found"
   end
 

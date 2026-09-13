@@ -70,7 +70,7 @@ defmodule Turnstile.FactEvent do
   end
 
   @doc "A map back to the event."
-  @spec from_map(map()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec from_map(map()) :: {:ok, t()} | {:error, Error.t()}
   def from_map(map) when is_map(map) do
     with {:ok, fields} <- Edge.convert(map, spec(), :fact_event),
          {:ok, old} <- value_in(fields[:kind], fields[:old]),

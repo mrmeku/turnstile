@@ -51,7 +51,7 @@ defmodule Turnstile.Ledger.Ecto.Row do
   end
 
   @doc "A row back to the event that was appended."
-  @spec load(t()) :: {:ok, FactEvent.t()} | {:error, Error.Invalid.t()}
+  @spec load(t()) :: {:ok, FactEvent.t()} | {:error, Error.t()}
   def load(%__MODULE__{} = row) do
     with {:ok, subject_ref} <- Value.ref_load(row.subject_ref),
          {:ok, object_ref} <- Value.ref_load(row.object_ref),

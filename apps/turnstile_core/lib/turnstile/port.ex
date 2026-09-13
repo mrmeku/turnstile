@@ -60,7 +60,7 @@ defmodule Turnstile.Port do
 
   @doc "Decide for one object; the decision is the record and the value the seam takes."
   @spec authorize(Turnstile.subject(), atom(), Turnstile.object(), options()) ::
-          {:ok, Decision.t()} | {:error, Error.NotAuthorized.t()}
+          {:ok, Decision.t()} | {:error, Error.t()}
   def authorize({_kind, _account} = subject, operation, {_type, _id} = object, opts)
       when is_atom(operation) and is_list(opts) do
     {decision, answer} = one(:authorize, subject, operation, object, opts)
@@ -111,7 +111,7 @@ defmodule Turnstile.Port do
 
   @doc "The answer with what produced it on `meta`, where the adapter can say; unsupported otherwise."
   @spec explain(Turnstile.subject(), atom(), Turnstile.object(), options()) ::
-          {:ok, Answer.t(), Decision.t()} | {:error, Error.Unsupported.t()}
+          {:ok, Answer.t(), Decision.t()} | {:error, Error.t()}
   def explain({_kind, _account} = subject, operation, {_type, _id} = object, opts)
       when is_atom(operation) and is_list(opts) do
     call = prepare(subject, opts)
@@ -119,8 +119,7 @@ defmodule Turnstile.Port do
     if function_exported?(call.adapter, :explain, 5) do
       explained(call, subject, operation, object)
     else
-      {:error,
-       %Error.Unsupported{adapter: call.adapter, feature: :explain, note: "the adapter does not define explain/5"}}
+      {:error, unsupported(call.adapter, "explain/5, which it does not define")}
     end
   end
 
@@ -179,10 +178,10 @@ defmodule Turnstile.Port do
           decision = stamp(call, subject, operation, object, answer, answer.verdict)
           {{:ok, answer, decision}, decision, %{}}
 
-        {:error, %Error.Unsupported{} = error} ->
+        {:error, %Error{reason: :unsupported} = error} ->
           {{:error, error}, nil, %{}}
 
-        {:error, %Error.Engine{} = error} ->
+        {:error, %Error{reason: :engine_unreachable} = error} ->
           answer = closed(error)
           decision = stamp(call, subject, operation, object, answer, :deny)
           {{:ok, answer, decision}, decision, %{}}
@@ -221,11 +220,12 @@ defmodule Turnstile.Port do
   defp ask(call, function, subject, operation, object) do
     case asked(call, function, subject, operation, object) do
       {:ok, %Answer{} = answer} -> answer
-      {:error, %Error.Engine{} = error} -> closed(error)
+      {:error, %Error{reason: :engine_unreachable} = error} -> closed(error)
     end
   end
 
-  defp asked(%{head: {:error, %Error.Engine{} = error}}, _function, _subject, _operation, _object), do: {:error, error}
+  defp asked(%{head: {:error, %Error{reason: :engine_unreachable} = error}}, _function, _subject, _operation, _object),
+    do: {:error, error}
 
   defp asked(%{adapter: adapter} = call, :authorize, subject, operation, object) do
     adapter.authorize(subject, operation, object, call.environment, call.options)
@@ -255,7 +255,7 @@ defmodule Turnstile.Port do
   defp verdicts(call, _function, subject, operation, objects) do
     case asked(call, :batch, subject, operation, objects) do
       {:ok, answers} -> Map.new(objects, &{&1, Map.fetch!(answers, &1).verdict})
-      {:error, %Error.Engine{}} -> Map.new(objects, &{&1, :deny})
+      {:error, %Error{reason: :engine_unreachable}} -> Map.new(objects, &{&1, :deny})
     end
   end
 
@@ -265,7 +265,7 @@ defmodule Turnstile.Port do
     case asked(call, :scope, subject, operation, type) do
       {:ok, {rule, %Answer{verdict: :allow} = answer}} -> {rule, answer}
       {:ok, {_rule, %Answer{verdict: :deny} = answer}} -> {refused(), answer}
-      {:error, %Error.Engine{} = error} -> {refused(), closed(error)}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {refused(), closed(error)}
     end
   end
 
@@ -287,7 +287,11 @@ defmodule Turnstile.Port do
   defp scope_verdict(%Answer{verdict: :allow}), do: :scoped
   defp scope_verdict(%Answer{verdict: :deny}), do: :deny
 
-  defp closed(%Error.Engine{detail: detail}) do
+  defp unsupported(adapter, feature) do
+    %Error{reason: :unsupported, detail: "#{inspect(adapter)} does not support #{feature}"}
+  end
+
+  defp closed(%Error{reason: :engine_unreachable, detail: detail}) do
     %Answer{verdict: :deny, reason: :engine_unreachable, meta: %{detail: detail}}
   end
 
@@ -384,13 +388,7 @@ defmodule Turnstile.Port do
   defp sha256(text), do: Base.encode16(:crypto.hash(:sha256, text), case: :lower)
 
   defp not_authorized(subject, operation, object, %Answer{} = answer) do
-    %Error.NotAuthorized{
-      subject: subject,
-      operation: operation,
-      object: object,
-      reason: answer.reason,
-      detail: Map.get(answer.meta, :detail)
-    }
+    Error.denied(subject, operation, object, answer.reason, Map.get(answer.meta, :detail))
   end
 
   defp config! do

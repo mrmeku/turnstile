@@ -90,7 +90,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     denied_everywhere(stranger, known, object)
     denied_or_scoped_to_nothing(context, module, nobody, known, object)
 
-    assert {:error, %Error.NotAuthorized{reason: :unknown_subject_kind}} =
+    assert {:error, %Error{reason: :unknown_subject_kind}} =
              Turnstile.authorize(stranger, known, object)
   end
 
@@ -177,7 +177,9 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   @spec mode_none_refused(context()) :: true
   def mode_none_refused(%{case: %{adapter: adapter}}) do
     Turnstile.Test.with_config([ledger: :none], fn ->
-      assert {:error, %Error.Unsupported{adapter: ^adapter, feature: :ledger_mode_none}} = Turnstile.Config.resolve()
+      assert {:error, %Error{reason: :unsupported, detail: detail}} = Turnstile.Config.resolve()
+      assert detail =~ inspect(adapter)
+      assert detail =~ "ledger"
     end)
   end
 
@@ -191,7 +193,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert Turnstile.batch(subject, operation, [object]) == %{object => :deny}
     assert Turnstile.filter(subject, operation, [object]) == []
 
-    assert {:error, %Error.NotAuthorized{reason: :engine_unreachable}} =
+    assert {:error, %Error{reason: :engine_unreachable}} =
              Turnstile.authorize(subject, operation, object)
 
     unreachable_scope(subject, operation, elem(object, 0))
@@ -254,7 +256,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     populate(context, module.layered())
     head = head(context)
     interrupted = projector.interrupt(projection)
-    assert {:error, %Error.Engine{}} = projector.drain_once(interrupted)
+    assert {:error, %Error{reason: :engine_unreachable}} = projector.drain_once(interrupted)
     assert {:ok, 0} = projector.checkpoint(projection)
     assert {:ok, %Drain{from: 0, to: ^head}} = projector.drain_once(projection)
     assert {:ok, ^head} = projector.checkpoint(projection)
@@ -296,7 +298,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
 
   defp assert_scope(repo, module, query, %Decision{verdict: :deny} = decision, allowed) do
     assert allowed == []
-    assert_raise Error.NotAuthorized, fn -> repo.all(query, turnstile: decision) end
+    assert_raise Error, ~r/may not/, fn -> repo.all(query, turnstile: decision) end
     assert repo.all(query, turnstile: module.exemption()) == []
   end
 
@@ -407,7 +409,9 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
 
   defp denied(subject, operation, object) do
     assert Turnstile.check(subject, operation, object) == false
-    assert {:error, %Error.NotAuthorized{}} = Turnstile.authorize(subject, operation, object)
+    assert {:error, %Error{reason: reason, detail: detail}} = Turnstile.authorize(subject, operation, object)
+    assert reason in Error.reasons()
+    assert detail =~ "may not #{operation}"
     assert Turnstile.batch(subject, operation, [object]) == %{object => :deny}
     assert Turnstile.filter(subject, operation, [object]) == []
   end

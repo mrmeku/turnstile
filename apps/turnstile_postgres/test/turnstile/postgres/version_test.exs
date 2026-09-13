@@ -95,7 +95,7 @@ defmodule Turnstile.Postgres.VersionTest do
   end
 
   defp engine(detail) do
-    %Error.Engine{adapter: Refusing, operation: :publish, detail: detail}
+    %Error{reason: :engine_unreachable, detail: "#{inspect(Refusing)} failed during publish: #{detail}"}
   end
 
   defmodule Refusing do
@@ -121,7 +121,11 @@ defmodule Turnstile.Postgres.VersionTest do
 
     defp refuse(options, call) do
       if Keyword.fetch!(options, :on) == call do
-        {:error, %Error.Engine{adapter: __MODULE__, operation: :publish, detail: "#{call} refused"}}
+        {:error,
+         %Error{
+           reason: :engine_unreachable,
+           detail: "#{inspect(__MODULE__)} failed during publish: #{call} refused"
+         }}
       end
     end
   end

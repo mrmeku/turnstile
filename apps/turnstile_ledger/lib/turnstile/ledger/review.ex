@@ -66,7 +66,7 @@ defmodule Turnstile.Ledger.Review do
 
   @doc """
   The review as text: the reporter named in the options, called for the date
-  in them, laid out as a table. Raises `Turnstile.Error.Invalid` when the
+  in them, laid out as a table. Raises `Turnstile.Error` when the
   options name no reporter.
   """
   @spec table(keyword()) :: String.t()
@@ -102,10 +102,10 @@ defmodule Turnstile.Ledger.Review do
 
   defp reporter!(options) do
     Keyword.get(options, :reporter) ||
-      raise Error.Invalid,
-        what: :review,
-        detail:
-          "no reporter: name the module answering the review in mix.exs, " <>
-            "turnstile: [review: [reporter: MyApp.Review]]"
+      raise Error.invalid(
+              :review,
+              "no reporter: name the module answering the review in mix.exs, " <>
+                "turnstile: [review: [reporter: MyApp.Review]]"
+            )
   end
 end

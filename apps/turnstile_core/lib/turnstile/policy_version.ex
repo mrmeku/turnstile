@@ -41,7 +41,7 @@ defmodule Turnstile.PolicyVersion do
   end
 
   @doc "A map back to the version."
-  @spec from_map(map()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec from_map(map()) :: {:ok, t()} | {:error, Error.t()}
   def from_map(map) when is_map(map) do
     with {:ok, fields} <- Edge.convert(map, spec(), :policy_version, [:content, :pointer]) do
       {:ok, struct!(__MODULE__, fields)}

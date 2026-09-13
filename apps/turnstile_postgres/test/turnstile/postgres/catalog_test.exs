@@ -53,7 +53,7 @@ defmodule Turnstile.Postgres.CatalogTest do
   test "a migrations table that holds no version is an invalid catalog" do
     binding = binding!(migrations_table: Probe.empty_versions())
 
-    assert %Error.Invalid{what: :catalog, detail: detail} = catch_error(Catalog.read!(binding))
+    assert %Error{reason: :invalid, detail: "invalid catalog: " <> detail} = catch_error(Catalog.read!(binding))
     assert detail == "#{Probe.empty_versions()} holds no migration version"
   end
 

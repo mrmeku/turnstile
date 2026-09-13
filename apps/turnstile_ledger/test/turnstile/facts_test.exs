@@ -112,7 +112,8 @@ defmodule Turnstile.FactsTest do
     [id] = Population.accounts!(@repo, 1)
     Test.with_config(ledger_counter: "missing")
 
-    assert {:error, %Error.Engine{operation: :take}} =
+    assert {:error,
+            %Error{reason: :engine_unreachable, detail: "Turnstile.Ledger.Dialect.Postgres failed during take" <> _rest}} =
              Facts.bulk_update(Account, [set: [clearance: "cleared"]], repo: @repo, turnstile: @exemption)
 
     assert @repo.get!(Account, id, turnstile: @exemption).clearance == nil
@@ -122,7 +123,7 @@ defmodule Turnstile.FactsTest do
     account = one_account()
     Test.with_config(ledger_counter: "missing")
 
-    assert_raise Error.Engine, fn ->
+    assert_raise Error, ~r/failed during take/, fn ->
       @repo.update!(Changeset.change(account, clearance: "cleared"), turnstile: @exemption)
     end
 
@@ -148,7 +149,7 @@ defmodule Turnstile.FactsTest do
     _accounts = Population.accounts!(@repo, 1)
     Test.with_config(ledger: {Ledger.Ecto, ledger_options(dialect: Turnstile.Ledger.TestSupport.Dialect)})
 
-    assert_raise Error.Unsupported, ~r/answers :select/, fn ->
+    assert_raise Error, ~r/answers :select/, fn ->
       Facts.bulk_update(Account, [set: [clearance: "cleared"]], repo: @repo, turnstile: @exemption)
     end
   end
@@ -156,13 +157,13 @@ defmodule Turnstile.FactsTest do
   test "a bulk write with no repo in the options and none in the ledger's says which option is missing" do
     Test.with_config(ledger: :none)
 
-    assert_raise Error.Invalid, ~r/needs repo: MyApp.Repo/, fn ->
+    assert_raise Error, ~r/needs repo: MyApp.Repo/, fn ->
       Facts.bulk_update(Account, [set: [clearance: "cleared"]], turnstile: @exemption)
     end
   end
 
   test "a bulk write on something that is not a schema or a query on one is refused" do
-    assert_raise Error.Invalid, ~r/needs a schema or a query on one/, fn ->
+    assert_raise Error, ~r/needs a schema or a query on one/, fn ->
       Facts.bulk_update("turnstile_fixture_accounts", [set: [clearance: "x"]], repo: @repo, turnstile: @exemption)
     end
   end

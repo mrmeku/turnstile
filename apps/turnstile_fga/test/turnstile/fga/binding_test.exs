@@ -46,19 +46,25 @@ defmodule Turnstile.Fga.BindingTest do
   end
 
   test "options the schema does not accept are an invalid binding" do
-    assert {:error, %Error.Invalid{what: :binding} = error} = Binding.new(Keyword.delete(@options, :model))
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: " <> _rest} = error} =
+             Binding.new(Keyword.delete(@options, :model))
+
     assert error.detail =~ "required :model option not found"
     assert Binding.options_schema().schema[:repo][:required]
   end
 
   test "a module that is no tuple mapping is an invalid binding" do
-    assert {:error, %Error.Invalid{what: :binding} = error} = Binding.new(put_in(@options[:mapping], Folder))
-    assert error.detail == "Turnstile.Fixture.Folder is no Turnstile.Fga.TupleMapping"
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: " <> detail}} =
+             Binding.new(put_in(@options[:mapping], Folder))
+
+    assert detail == "#{inspect(Folder)} is no Turnstile.Fga.TupleMapping"
   end
 
   test "a module that is no guard is an invalid binding" do
-    assert {:error, %Error.Invalid{what: :binding} = error} = Binding.new(put_in(@options[:guard], Folder))
-    assert error.detail == "Turnstile.Fixture.Folder is no Turnstile.Fga.Guard"
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: " <> detail}} =
+             Binding.new(put_in(@options[:guard], Folder))
+
+    assert detail == "#{inspect(Folder)} is no Turnstile.Fga.Guard"
   end
 
   test "what is bound at boot is what resolve answers, under the calling process's override" do
@@ -88,7 +94,8 @@ defmodule Turnstile.Fga.BindingTest do
   end
 
   test "nothing bound and no override is an invalid binding" do
-    assert Binding.resolve() == {:error, %Error.Invalid{what: :binding, detail: "nothing bound and no override"}}
+    assert Binding.resolve() ==
+             {:error, %Error{reason: :invalid, detail: "invalid binding: nothing bound and no override"}}
   end
 
   test "the model is the text of the file the binding names, and the body the server takes" do
@@ -104,13 +111,13 @@ defmodule Turnstile.Fga.BindingTest do
   test "a model file that is not there is an invalid binding rather than a raise" do
     {:ok, binding} = Binding.new(put_in(@options[:model], "priv/conformance/absent.fga"))
 
-    assert {:error, %Error.Invalid{what: :binding} = error} = Binding.text(binding)
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: " <> _rest} = error} = Binding.text(binding)
     assert error.detail =~ "priv/conformance/absent.fga could not be read"
-    assert {:error, %Error.Invalid{}} = Binding.compiled(binding)
+    assert {:error, %Error{reason: :invalid}} = Binding.compiled(binding)
   end
 
   test "a binding that cannot be validated cannot be bound" do
-    assert {:error, %Error.Invalid{}} = Binding.bind(Keyword.delete(@options, :repo))
-    assert_raise Error.Invalid, fn -> Binding.bind!(Keyword.delete(@options, :repo)) end
+    assert {:error, %Error{reason: :invalid}} = Binding.bind(Keyword.delete(@options, :repo))
+    assert_raise Error, fn -> Binding.bind!(Keyword.delete(@options, :repo)) end
   end
 end

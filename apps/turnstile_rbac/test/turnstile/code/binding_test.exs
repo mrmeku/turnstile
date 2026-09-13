@@ -5,7 +5,6 @@ defmodule Turnstile.Code.BindingTest do
   alias Turnstile.Code.Conformance.Roles
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Error.Engine
   alias Turnstile.TestRepos.Committed
   alias Turnstile.TestRepos.Sandboxed
 
@@ -20,11 +19,15 @@ defmodule Turnstile.Code.BindingTest do
   test "without a binding every call is an engine error, so the port fails closed" do
     ann = {:user, "ann"}
     environment = %Environment{now: DateTime.utc_now()}
-    assert {:error, %Engine{operation: :scope}} = Turnstile.Code.scope(ann, :read, :folder, environment, [])
+
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
+             Turnstile.Code.scope(ann, :read, :folder, environment, [])
+
+    assert detail =~ "Turnstile.Code failed during scope"
   end
 
   test "an override in the calling process resolves without a boot binding" do
-    assert {:error, %Error.Invalid{what: :binding}} = Binding.resolve()
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: " <> _rest}} = Binding.resolve()
     :ok = Binding.override(policy: Roles, repo: Sandboxed)
     assert Binding.resolve() == {:ok, %Binding{policy: Roles, repo: Sandboxed}}
   end
@@ -36,7 +39,7 @@ defmodule Turnstile.Code.BindingTest do
     :ok = Binding.override(repo: Committed)
     assert Binding.resolve() == {:ok, %Binding{policy: Roles, repo: Committed}}
     assert Binding.bind!(policy: Roles, repo: Committed) == %Binding{policy: Roles, repo: Committed}
-    assert_raise Error.Invalid, fn -> Binding.bind!(policy: Committed, repo: Committed) end
+    assert_raise Error, fn -> Binding.bind!(policy: Committed, repo: Committed) end
     assert %NimbleOptions{} = Binding.options_schema()
   end
 
@@ -51,7 +54,7 @@ defmodule Turnstile.Code.BindingTest do
     ref = Process.monitor(pid)
     assert_receive {:DOWN, ^ref, :process, ^pid, _reason}
     Process.put(:"$callers", [pid])
-    assert {:error, %Error.Invalid{}} = Binding.resolve()
+    assert {:error, %Error{reason: :invalid}} = Binding.resolve()
   after
     Process.delete(:"$callers")
   end
@@ -63,9 +66,9 @@ defmodule Turnstile.Code.BindingTest do
   end
 
   test "a policy that did not use Turnstile.Code.Policy is invalid" do
-    assert {:error, %Error.Invalid{detail: detail}} = Binding.new(policy: Sandboxed, repo: Sandboxed)
+    assert {:error, %Error{reason: :invalid, detail: detail}} = Binding.new(policy: Sandboxed, repo: Sandboxed)
     assert detail =~ "did not use Turnstile.Code.Policy"
-    assert {:error, %Error.Invalid{detail: detail}} = Binding.new(repo: Sandboxed)
+    assert {:error, %Error{reason: :invalid, detail: detail}} = Binding.new(repo: Sandboxed)
     assert detail =~ "policy"
   end
 end

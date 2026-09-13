@@ -109,7 +109,7 @@ defmodule Turnstile.Fga.Decide do
   def named({type, id}), do: "#{type}:#{id}"
 
   @doc "What the configuration entry names, or an engine error naming what it does not."
-  @spec entry(keyword(), atom(), Environment.t()) :: {:ok, entry()} | {:error, Error.Engine.t()}
+  @spec entry(keyword(), atom(), Environment.t()) :: {:ok, entry()} | {:error, Error.t()}
   def entry(options, callback, %Environment{} = environment) when is_list(options) and is_atom(callback) do
     with {:ok, endpoint} <- fetched(options, :endpoint, callback),
          {:ok, store} <- fetched(options, :store_id, callback) do
@@ -131,7 +131,7 @@ defmodule Turnstile.Fga.Decide do
   def applied(entry, position) when is_nil(position) or is_integer(position), do: %{entry | applied: position}
 
   @doc "The answer to one question: one `Check` under the pinned model."
-  @spec one(entry(), Turnstile.subject(), atom(), Turnstile.object()) :: {:ok, Answer.t()} | {:error, Error.Engine.t()}
+  @spec one(entry(), Turnstile.subject(), atom(), Turnstile.object()) :: {:ok, Answer.t()} | {:error, Error.t()}
   def one(entry, {_kind, _account} = subject, operation, {_type, _id} = object) when is_atom(operation) do
     with {:ok, model} <- pinned(entry),
          request = check(entry, subject, operation, object, model),
@@ -142,7 +142,7 @@ defmodule Turnstile.Fga.Decide do
 
   @doc "The answers for a list of objects, one per object reference, in calls of at most fifty questions."
   @spec many(entry(), Turnstile.subject(), atom(), [Turnstile.object()]) ::
-          {:ok, %{Turnstile.object() => Answer.t()}} | {:error, Error.Engine.t()}
+          {:ok, %{Turnstile.object() => Answer.t()}} | {:error, Error.t()}
   def many(entry, {_kind, _account} = subject, operation, objects) when is_atom(operation) and is_list(objects) do
     with {:ok, model} <- pinned(entry),
          {:ok, allowed} <- asked(entry, keyed(subject, operation, objects), model) do
@@ -157,7 +157,7 @@ defmodule Turnstile.Fga.Decide do
   page instead.
   """
   @spec scoped(entry(), Turnstile.subject(), atom(), atom()) ::
-          {:ok, Turnstile.Adapter.scoped()} | {:error, Error.Engine.t()}
+          {:ok, Turnstile.Adapter.scoped()} | {:error, Error.t()}
   def scoped(entry, {_kind, _account} = subject, operation, type) when is_atom(operation) and is_atom(type) do
     with {:ok, model} <- pinned(entry),
          {:ok, objects} <- listed(entry, subject, operation, type, model),
@@ -198,7 +198,7 @@ defmodule Turnstile.Fga.Decide do
   explanation is three calls and no walk of this module's own.
   """
   @spec explained(entry(), Turnstile.subject(), atom(), Turnstile.object()) ::
-          {:ok, Answer.t()} | {:error, Error.Engine.t()}
+          {:ok, Answer.t()} | {:error, Error.t()}
   def explained(entry, {_kind, _account} = subject, operation, {_type, _id} = object) when is_atom(operation) do
     with {:ok, %Answer{} = answer} <- one(entry, subject, operation, object) do
       explaining(entry, subject, operation, object, answer)
@@ -265,7 +265,7 @@ defmodule Turnstile.Fga.Decide do
 
     case entry.client.batch_check(entry.endpoint, entry.store, request) do
       {:ok, answered} -> {:cont, {:ok, holding ++ held(numbered, answered)}}
-      {:error, %Error.Engine{} = error} -> {:halt, {:error, error}}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {:halt, {:error, error}}
     end
   end
 

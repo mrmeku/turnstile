@@ -70,7 +70,7 @@ defmodule Turnstile.Decision do
   end
 
   @doc "A map back to the decision."
-  @spec from_map(map()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec from_map(map()) :: {:ok, t()} | {:error, Error.t()}
   def from_map(map) when is_map(map) do
     with {:ok, fields} <- Edge.convert(map, spec(), :decision) do
       {:ok, struct!(__MODULE__, fields)}

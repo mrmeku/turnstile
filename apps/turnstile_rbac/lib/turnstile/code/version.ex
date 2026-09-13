@@ -73,7 +73,7 @@ defmodule Turnstile.Code.Version do
   already names it, `{:ok, :telemetry}` in ledger mode none.
   """
   @spec publish(module()) ::
-          {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.Invalid.t() | Error.Engine.t()}
+          {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
   def publish(adapter) when is_atom(adapter) do
     with {:ok, %Binding{policy: policy}} <- Binding.resolve(),
          {:ok, %Config{} = config} <- Config.resolve() do
@@ -116,7 +116,7 @@ defmodule Turnstile.Code.Version do
 
     case ledger.append(options, [event]) do
       {:ok, [appended]} -> {:ok, appended}
-      {:error, %Error.Engine{} = error} -> {:error, error}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
     end
   end
 
@@ -127,7 +127,7 @@ defmodule Turnstile.Code.Version do
     case ledger.read(options, from, @page) do
       {:ok, []} -> {:ok, found}
       {:ok, events} -> latest(ledger, options, adapter, List.last(events).position, newest(events, adapter, found))
-      {:error, %Error.Engine{} = error} -> {:error, error}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
     end
   end
 

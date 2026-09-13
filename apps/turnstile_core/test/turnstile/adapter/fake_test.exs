@@ -42,8 +42,7 @@ defmodule Turnstile.Adapter.FakeTest do
   end
 
   test "explain is unsupported" do
-    assert {:error, %Error.Unsupported{adapter: Fake, feature: :explain} = error} =
-             Fake.explain(@subject, :read, @object, @environment, [])
+    assert {:error, %Error{reason: :unsupported} = error} = Fake.explain(@subject, :read, @object, @environment, [])
 
     assert Exception.message(error) =~ "does not support explain"
   end
@@ -119,16 +118,23 @@ defmodule Turnstile.Adapter.FakeTableTest do
     :ok = Fake.allow(rules, "acct-a", :read, {:folder, 1})
     :ok = Fake.fail(rules, "down")
 
-    assert {:error, %Error.Engine{adapter: Fake, operation: :check, detail: "down"}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: checked}} =
              Fake.check(@user, :read, @folder, @environment, options)
 
-    assert {:error, %Error.Engine{operation: :authorize}} = Fake.authorize(@user, :read, @folder, @environment, options)
-    assert {:error, %Error.Engine{operation: :batch}} = Fake.batch(@user, :read, [@folder], @environment, options)
-    assert {:error, %Error.Engine{operation: :scope}} = Fake.scope(@user, :read, :folder, @environment, options)
+    assert checked == "#{inspect(Fake)} failed during check: down"
+    assert_down(Fake.authorize(@user, :read, @folder, @environment, options), :authorize)
+    assert_down(Fake.batch(@user, :read, [@folder], @environment, options), :batch)
+    assert_down(Fake.scope(@user, :read, :folder, @environment, options), :scope)
     :ok = Fake.fail(rules, nil)
     assert {:ok, %Answer{verdict: :allow}} = Fake.check(@user, :read, @folder, @environment, options)
     :ok = Fake.reset(rules)
     assert Fake.entries(rules) == []
     assert {:ok, %Answer{verdict: :deny}} = Fake.check(@user, :read, @folder, @environment, options)
+  end
+
+  # Every callback of a failing table answers the same engine error, naming itself.
+  defp assert_down(result, operation) do
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} = result
+    assert detail =~ "during #{operation}"
   end
 end

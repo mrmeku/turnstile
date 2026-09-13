@@ -56,7 +56,7 @@ defmodule Turnstile.Fga.Projector.Scheduler do
   end
 
   @doc "Drain once now, emit what it applied, and answer it, without waiting for an interval."
-  @spec drain(module(), struct()) :: {:ok, Drain.t()} | {:error, Error.Engine.t()}
+  @spec drain(module(), struct()) :: {:ok, Drain.t()} | {:error, Error.t()}
   def drain(module, projector) when is_atom(module) do
     result = module.drain_once(projector)
     :ok = emit(result)

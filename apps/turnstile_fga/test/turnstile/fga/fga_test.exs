@@ -122,18 +122,17 @@ defmodule Turnstile.FgaTest do
     folder = {:folder, 1}
     detail = "nothing bound and no override"
 
-    assert {:error, %Error.Engine{operation: :authorize, detail: ^detail} = error} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: authorize}} =
              Fga.authorize(ann(), :read, folder, environment(), context.options)
 
-    assert error.adapter == Fga
-    assert {:error, %Error.Engine{operation: :check}} = Fga.check(ann(), :read, folder, environment(), context.options)
-    assert {:error, %Error.Engine{operation: :batch}} = Fga.batch(ann(), :read, [folder], environment(), context.options)
-    assert {:error, %Error.Engine{operation: :scope}} = Fga.scope(ann(), :read, :folder, environment(), context.options)
+    assert authorize == "#{inspect(Fga)} failed during authorize: invalid binding: #{detail}"
+    assert_down(Fga.check(ann(), :read, folder, environment(), context.options), :check)
+    assert_down(Fga.batch(ann(), :read, [folder], environment(), context.options), :batch)
+    assert_down(Fga.scope(ann(), :read, :folder, environment(), context.options), :scope)
+    assert_down(Fga.explain(ann(), :read, folder, environment(), context.options), :explain)
 
-    assert {:error, %Error.Engine{operation: :explain}} =
-             Fga.explain(ann(), :read, folder, environment(), context.options)
-
-    assert {:error, %Error.Invalid{what: :binding, detail: ^detail}} = Fga.projection()
+    assert {:error, %Error{reason: :invalid, detail: invalid}} = Fga.projection()
+    assert invalid == "invalid binding: #{detail}"
   end
 
   test "a guard the binding names is asked first, and what it refuses is denied by the guard", context do
@@ -168,7 +167,7 @@ defmodule Turnstile.FgaTest do
     folder = {:folder, 1}
 
     assert {:ok, %Answer{verdict: :deny, version: nil}} = Fga.check(ann(), :read, folder, environment(), options)
-    assert {:error, %Error.Engine{operation: :check}} = Fga.check(ann(), :read, folder, cleared(), options)
+    assert_down(Fga.check(ann(), :read, folder, cleared(), options), :check)
   end
 
   test "a scope above the cap records limited and matches filter", context do
@@ -232,5 +231,11 @@ defmodule Turnstile.FgaTest do
     {:ok, objects} = Fake.list_objects(context.agent, context.store, request)
 
     objects
+  end
+
+  # A callback that cannot reach the engine answers the same error, naming itself.
+  defp assert_down(result, operation) do
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} = result
+    assert detail =~ "during #{operation}"
   end
 end

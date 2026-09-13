@@ -20,7 +20,7 @@ defmodule Turnstile.Postgres.Name do
     if Regex.match?(@plain, name) and byte_size(name) <= @limit do
       name
     else
-      raise Error.Invalid, what: what, detail: "#{inspect(name)} is not a plain lowercase identifier"
+      raise Error.invalid(what, "#{inspect(name)} is not a plain lowercase identifier")
     end
   end
 end

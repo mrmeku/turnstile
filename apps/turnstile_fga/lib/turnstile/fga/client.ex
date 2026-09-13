@@ -51,7 +51,7 @@ defmodule Turnstile.Fga.Client do
   @typedoc "The id of a published model."
   @type model :: String.t()
 
-  @type failure :: {:error, Error.Engine.t()}
+  @type failure :: {:error, Error.t()}
 
   @doc "A store of the given name, answering the id the server gave it."
   @callback create_store(endpoint(), String.t()) :: {:ok, store()} | failure()
@@ -94,8 +94,8 @@ defmodule Turnstile.Fga.Client do
   def max_checks_per_batch, do: @max_checks_per_batch
 
   @doc "An engine error from this adapter, naming the call it came from."
-  @spec error(atom(), String.t()) :: Error.Engine.t()
+  @spec error(atom(), String.t()) :: Error.t()
   def error(operation, detail) when is_atom(operation) and is_binary(detail) do
-    %Error.Engine{adapter: @adapter, operation: operation, detail: detail}
+    %Error{reason: :engine_unreachable, detail: "#{inspect(@adapter)} failed during #{operation}: #{detail}"}
   end
 end

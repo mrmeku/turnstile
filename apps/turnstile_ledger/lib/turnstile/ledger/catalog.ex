@@ -17,7 +17,7 @@ defmodule Turnstile.Ledger.Catalog do
   alias Turnstile.Schema
 
   @doc "Answer `:ok`, or the constraint that would change a fact row with no event for it."
-  @spec check(module(), [module()], module()) :: :ok | {:error, Error.Invalid.t() | Error.Engine.t()}
+  @spec check(module(), [module()], module()) :: :ok | {:error, Error.t()}
   def check(owner_repo, schemas, dialect \\ Dialect.Postgres)
       when is_atom(owner_repo) and is_list(schemas) and is_atom(dialect) do
     with {:ok, cascades} <- dialect.cascades(owner_repo, tables(schemas)) do
@@ -36,7 +36,7 @@ defmodule Turnstile.Ledger.Catalog do
   defp refuse([]), do: :ok
 
   defp refuse(cascades) do
-    {:error, %Error.Invalid{what: :cascade, detail: Enum.map_join(cascades, "; ", &detail/1)}}
+    {:error, Error.invalid(:cascade, Enum.map_join(cascades, "; ", &detail/1))}
   end
 
   defp detail(%Cascade{} = cascade) do

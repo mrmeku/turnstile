@@ -60,14 +60,18 @@ defmodule Turnstile.Cerbos.BindingTest do
   end
 
   test "options the schema does not accept are an invalid binding" do
-    assert {:error, %Error.Invalid{what: :binding} = error} = Binding.new(Keyword.delete(@options, :commit))
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: " <> _rest} = error} =
+             Binding.new(Keyword.delete(@options, :commit))
+
     assert error.detail =~ "required :commit option not found"
     assert Binding.options_schema().schema[:repo][:required]
   end
 
   test "a module that did not declare attributes is an invalid binding" do
-    assert {:error, %Error.Invalid{what: :binding} = error} = Binding.new(put_in(@options[:attributes], Folder))
-    assert error.detail == "Turnstile.Fixture.Folder did not use Turnstile.Cerbos.Attributes"
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: " <> detail}} =
+             Binding.new(put_in(@options[:attributes], Folder))
+
+    assert detail == "#{inspect(Folder)} did not use Turnstile.Cerbos.Attributes"
   end
 
   test "what is bound at boot is what resolve answers, under the calling process's override" do
@@ -97,7 +101,8 @@ defmodule Turnstile.Cerbos.BindingTest do
   end
 
   test "nothing bound and no override is an invalid binding" do
-    assert Binding.resolve() == {:error, %Error.Invalid{what: :binding, detail: "nothing bound and no override"}}
+    assert Binding.resolve() ==
+             {:error, %Error{reason: :invalid, detail: "invalid binding: nothing bound and no override"}}
   end
 
   test "the target of a kind is its schema and its one primary key" do
@@ -109,7 +114,7 @@ defmodule Turnstile.Cerbos.BindingTest do
   end
 
   test "a binding that cannot be validated cannot be bound" do
-    assert {:error, %Error.Invalid{}} = Binding.bind(Keyword.delete(@options, :repo))
-    assert_raise Error.Invalid, fn -> Binding.bind!(Keyword.delete(@options, :repo)) end
+    assert {:error, %Error{reason: :invalid}} = Binding.bind(Keyword.delete(@options, :repo))
+    assert_raise Error, fn -> Binding.bind!(Keyword.delete(@options, :repo)) end
   end
 end

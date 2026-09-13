@@ -69,9 +69,10 @@ defmodule Turnstile.Cerbos.ReplayTest do
   end
 
   test "a sidecar out of reach is an engine error naming the replay" do
-    assert {:error, %Error.Engine{} = error} = Replay.ask("127.0.0.1:1", decision(:allow), @cleared, @reader)
-    assert error.adapter == Turnstile.Cerbos
-    assert error.operation == :replay
+    assert {:error, %Error{reason: :engine_unreachable} = error} =
+             Replay.ask("127.0.0.1:1", decision(:allow), @cleared, @reader)
+
+    assert error.detail =~ "Turnstile.Cerbos failed during replay"
     assert error.detail =~ "cerbos could not be reached"
   end
 

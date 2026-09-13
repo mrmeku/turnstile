@@ -81,6 +81,6 @@ defmodule Turnstile.Ledger.Dialect.Postgres do
   defp action("n"), do: :blank
 
   defp engine(operation, detail) do
-    %Error.Engine{adapter: __MODULE__, operation: operation, detail: detail}
+    %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{operation}: #{detail}"}
   end
 end

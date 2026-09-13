@@ -1,16 +1,13 @@
 defmodule Turnstile.ErrorTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Error
 
-  test "an engine failure names the adapter, the operation, and the detail" do
-    error = %Error.Engine{adapter: Fake, operation: :read, detail: "connection refused"}
-    assert Exception.message(error) == "Turnstile.Adapter.Fake failed during read: connection refused"
-  end
-
-  test "an unsupported feature names the adapter, the feature, and the note" do
-    error = %Error.Unsupported{adapter: Fake, feature: :scope, note: "no scope query"}
-    assert Exception.message(error) == "Turnstile.Adapter.Fake does not support scope: no scope query"
+  test "the one error carries a reason and a detail, and the detail is the message" do
+    error = %Error{reason: :unsupported, detail: "Turnstile.Adapter.Fake does not support scope"}
+    assert Exception.message(error) == "Turnstile.Adapter.Fake does not support scope"
+    refute :allowed in Error.reasons()
+    assert :unsupported in Error.reasons()
+    assert :rule_denied in Error.reasons()
   end
 end

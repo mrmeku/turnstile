@@ -13,7 +13,6 @@ defmodule Example.Scenarios.Privilege do
   alias Example.Documents
   alias Example.Fixture
   alias Example.Proposals
-  alias Turnstile.Error
 
   @noforn %{controls: [:no_foreign]}
 
@@ -24,7 +23,7 @@ defmodule Example.Scenarios.Privilege do
 
     settle()
     assert_read(subject("ann"), document)
-    assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("ann"), document.id, @noforn, fresh())
+    assert_refused(Documents.change_marking(subject("ann"), document.id, @noforn, fresh()), :change_marking)
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("ann"), document.id)
   end
 
@@ -34,11 +33,11 @@ defmodule Example.Scenarios.Privilege do
     foreign = Fixture.document!(world, program: world.foreign_program, office: world.foreign_office)
 
     settle()
-    assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("dana"), foreign.id, @noforn, fresh())
+    assert_refused(Documents.change_marking(subject("dana"), foreign.id, @noforn, fresh()), :change_marking)
     domestic = Fixture.document!(world)
 
     settle()
-    assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("hana"), domestic.id, @noforn, fresh())
+    assert_refused(Documents.change_marking(subject("hana"), domestic.id, @noforn, fresh()), :change_marking)
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), domestic.id)
   end
 
@@ -63,8 +62,8 @@ defmodule Example.Scenarios.Privilege do
     at = DateTime.shift(DateTime.utc_now(), minute: -1)
 
     settle()
-    assert {:error, %Error.NotAuthorized{}} = Documents.set_decontrol(subject("ann"), document.id, at, fresh())
-    assert {:error, %Error.NotAuthorized{}} = Documents.decontrol(subject("eve"), document.id, fresh())
+    assert_refused(Documents.set_decontrol(subject("ann"), document.id, at, fresh()), :set_decontrol)
+    assert_refused(Documents.decontrol(subject("eve"), document.id, fresh()), :decontrol)
     assert_denied(subject("bob"), document)
     assert {:ok, %Document{decontrol: %DateTime{}}} = Documents.set_decontrol(subject("dana"), document.id, at, fresh())
 
@@ -82,8 +81,7 @@ defmodule Example.Scenarios.Privilege do
     settle()
 
     for id <- ["ann", "eve", "hana"] do
-      assert {:error, %Error.NotAuthorized{}} =
-               Documents.change_portion_marking(subject(id), portion.id, tightened, fresh())
+      assert_refused(Documents.change_portion_marking(subject(id), portion.id, tightened, fresh()), :change_marking)
     end
 
     assert {:ok, %Example.Portion{controls: [:no_foreign]}} =
@@ -190,7 +188,7 @@ defmodule Example.Scenarios.Privilege do
     assert {:ok, proposal} = Proposals.propose(subject("dana"), document.id, @noforn, fresh())
 
     settle()
-    assert {:error, %Error.NotAuthorized{}} = Proposals.approve(subject("dana"), proposal.id, fresh())
+    assert_refused(Proposals.approve(subject("dana"), proposal.id, fresh()), :approve_marking)
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id)
   end
 

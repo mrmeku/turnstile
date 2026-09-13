@@ -7,7 +7,7 @@ defmodule Turnstile.Code.DecideTest do
   alias Turnstile.Code.Binding
   alias Turnstile.Code.Conformance.Roles
   alias Turnstile.Environment
-  alias Turnstile.Error.Engine
+  alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.World
   alias Turnstile.Test.Sandbox
@@ -104,9 +104,10 @@ defmodule Turnstile.Code.DecideTest do
   test "a predicate that returns neither a dynamic nor a boolean is an engine error", ctx do
     :ok = Binding.override(policy: BrokenPolicy)
 
-    assert {:error, %Engine{adapter: Turnstile.Code, operation: :authorize, detail: detail}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
              Turnstile.Code.authorize(ctx.ann, :read, {:folder, 1}, ctx.environment, [])
 
+    assert detail =~ "Turnstile.Code failed during authorize"
     assert detail =~ "predicate garbage returned :not_a_dynamic"
   end
 end

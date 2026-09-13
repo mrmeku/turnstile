@@ -12,7 +12,7 @@ defmodule Turnstile.Projection do
   alias Turnstile.Projection.Drain
   alias Turnstile.Projection.Drift
 
-  @type failure :: {:error, Error.Engine.t()}
+  @type failure :: {:error, Error.t()}
 
   @doc "The position the state has applied."
   @callback checkpoint(struct()) :: {:ok, non_neg_integer()} | failure()

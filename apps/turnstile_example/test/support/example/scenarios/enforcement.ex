@@ -22,7 +22,6 @@ defmodule Example.Scenarios.Enforcement do
   alias Example.Fixture
   alias Example.Portion
   alias Example.Repo
-  alias Turnstile.Error
   alias Turnstile.Test.Clock
 
   @spec enf_01() :: term()
@@ -142,7 +141,7 @@ defmodule Example.Scenarios.Enforcement do
     assert Enum.map(portions, & &1.id) == [open.id]
     assert {:ok, %Document{portions: portions}} = Documents.read_redacted(subject("ann"), document.id)
     assert Enum.map(portions, & &1.id) == [open.id, domestic.id]
-    assert {:error, %Error.NotAuthorized{}} = Documents.read_redacted(subject("frank"), document.id)
+    assert_refused(Documents.read_redacted(subject("frank"), document.id), :read_redacted)
   end
 
   @spec enf_12() :: term()

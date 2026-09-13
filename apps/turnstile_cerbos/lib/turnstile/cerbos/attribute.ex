@@ -53,7 +53,7 @@ defmodule Turnstile.Cerbos.Attribute do
   def options_schema, do: @schema
 
   @doc "The declaration, or the reason it is not one."
-  @spec new(atom(), keyword()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec new(atom(), keyword()) :: {:ok, t()} | {:error, Error.t()}
   def new(name, options) when is_atom(name) and is_list(options) do
     with :ok <- available(name),
          {:ok, validated} <- validate(name, options),
@@ -95,5 +95,5 @@ defmodule Turnstile.Cerbos.Attribute do
     end
   end
 
-  defp invalid(name, detail), do: %Error.Invalid{what: :attribute, detail: "attribute #{name} " <> detail}
+  defp invalid(name, detail), do: Error.invalid(:attribute, "attribute #{name} " <> detail)
 end

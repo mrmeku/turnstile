@@ -82,7 +82,7 @@ defmodule Turnstile.Fga.Replay do
   A store of its own on the throwaway server, the model published into it,
   and the fold to the position written in as tuples.
   """
-  @spec build(keyword()) :: {:ok, t()} | {:error, Error.Invalid.t() | Error.Engine.t()}
+  @spec build(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def build(options) when is_list(options) do
     with {:ok, valid} <- validated(options),
          {:ok, compiled} <- Model.compile(valid[:model]),
@@ -97,7 +97,7 @@ defmodule Turnstile.Fga.Replay do
   moment of the decision and no facts, which is what a question that reads no
   caller-supplied fact was asked under.
   """
-  @spec ask(t(), Decision.t(), Environment.t() | nil) :: {:ok, Answer.t()} | {:error, Error.Engine.t()}
+  @spec ask(t(), Decision.t(), Environment.t() | nil) :: {:ok, Answer.t()} | {:error, Error.t()}
   def ask(%__MODULE__{} = replay, %Decision{} = decision, environment \\ nil) do
     with {:ok, entry} <- entry(replay, environment || %Environment{now: decision.at}) do
       Decide.one(entry, decision.subject, decision.operation, decision.object)
@@ -126,7 +126,7 @@ defmodule Turnstile.Fga.Replay do
 
     case NimbleOptions.validate(filled, @schema) do
       {:ok, valid} -> {:ok, valid}
-      {:error, error} -> {:error, %Error.Invalid{what: :replay, detail: Exception.message(error)}}
+      {:error, error} -> {:error, Error.invalid(:replay, Exception.message(error))}
     end
   end
 

@@ -49,21 +49,25 @@ defmodule Turnstile.ConfigTest do
   end
 
   test "new/1 rejects a missing field, a wrong option, and a module that is not an adapter" do
-    assert {:error, %Error.Invalid{what: :config}} = Config.new(ledger: :none)
+    assert {:error, %Error{reason: :invalid, detail: "invalid config: " <> _rest}} = Config.new(ledger: :none)
 
-    assert {:error, %Error.Invalid{what: :adapter, detail: detail}} =
+    assert {:error, %Error{reason: :invalid, detail: "invalid adapter: " <> detail}} =
              Config.new(adapter: {Fake, verdict: :maybe}, ledger: :none)
 
     assert detail =~ "verdict"
-    assert {:error, %Error.Invalid{what: :adapter}} = Config.new(adapter: Enum, ledger: :none)
-    assert {:error, %Error.Invalid{what: :adapter}} = Config.new(adapter: Turnstile.NoSuchAdapter, ledger: :none)
+
+    assert {:error, %Error{reason: :invalid, detail: "invalid adapter: " <> _rest}} =
+             Config.new(adapter: Enum, ledger: :none)
+
+    assert {:error, %Error{reason: :invalid, detail: "invalid adapter: " <> _rest}} =
+             Config.new(adapter: Turnstile.NoSuchAdapter, ledger: :none)
   end
 
   test "new/1 rejects options for an adapter that declares no schema" do
     assert {:ok, %Config{adapter: {NeedsLedger, []}}} =
              Config.new(adapter: NeedsLedger, ledger: {Memory, agent: self()})
 
-    assert {:error, %Error.Invalid{what: :adapter, detail: detail}} =
+    assert {:error, %Error{reason: :invalid, detail: "invalid adapter: " <> detail}} =
              Config.new(adapter: {NeedsLedger, x: 1}, ledger: {Memory, agent: self()})
 
     assert detail =~ "takes no options"
@@ -72,23 +76,29 @@ defmodule Turnstile.ConfigTest do
   test "new/1 validates the ledger tuple through the ledger's schema" do
     assert {:ok, %Config{ledger: {Memory, options}}} = Config.new(adapter: Fake, ledger: {Memory, agent: self()})
     assert options[:agent] == self()
-    assert {:error, %Error.Invalid{what: :ledger}} = Config.new(adapter: Fake, ledger: {Memory, []})
-    assert {:error, %Error.Invalid{what: :ledger}} = Config.new(adapter: Fake, ledger: {Enum, []})
-    assert {:error, %Error.Invalid{what: :config}} = Config.new(adapter: Fake, ledger: :maybe)
+
+    assert {:error, %Error{reason: :invalid, detail: "invalid ledger: " <> _rest}} =
+             Config.new(adapter: Fake, ledger: {Memory, []})
+
+    assert {:error, %Error{reason: :invalid, detail: "invalid ledger: " <> _rest}} =
+             Config.new(adapter: Fake, ledger: {Enum, []})
+
+    assert {:error, %Error{reason: :invalid, detail: "invalid config: " <> _rest}} =
+             Config.new(adapter: Fake, ledger: :maybe)
   end
 
   test "new/1 refuses ledger mode none for an adapter that requires a ledger" do
-    assert {:error, %Error.Unsupported{adapter: NeedsLedger, feature: :ledger_mode_none}} =
-             Config.new(adapter: NeedsLedger, ledger: :none)
+    assert {:error, %Error{reason: :unsupported, detail: detail}} = Config.new(adapter: NeedsLedger, ledger: :none)
+    assert detail == "#{inspect(NeedsLedger)} requires a ledger, and the configuration names none"
   end
 
   test "new!/1 raises the error" do
-    assert_raise Error.Invalid, ~r/invalid config/, fn -> Config.new!([]) end
+    assert_raise Error, ~r/invalid config/, fn -> Config.new!([]) end
     assert %Config{} = Config.new!(adapter: Fake, ledger: :none)
   end
 
   test "resolve/0 fails when nothing is booted and nothing is overridden" do
-    assert {:error, %Error.Invalid{what: :config, detail: "nothing booted and no override"}} = Config.resolve()
+    assert {:error, %Error{reason: :invalid, detail: "invalid config: nothing booted and no override"}} = Config.resolve()
   end
 
   test "resolve/0 answers from the override alone" do
@@ -114,7 +124,8 @@ defmodule Turnstile.ConfigTest do
     assert {:ok, %Config{adapter: {Fake, verdict: :allow}}} =
              Task.await(Task.async(fn -> Task.await(Task.async(&Config.resolve/0)) end))
 
-    assert {:error, %Error.Invalid{}} = Task.await(Task.async(fn -> Process.delete(:"$callers") && Config.resolve() end))
+    assert {:error, %Error{reason: :invalid}} =
+             Task.await(Task.async(fn -> Process.delete(:"$callers") && Config.resolve() end))
   end
 
   test "with_config/2 restores the previous override even when the function raises" do

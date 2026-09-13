@@ -32,28 +32,20 @@ defmodule Turnstile.ValuesTest do
                 unknown_subject_kind)a
   end
 
-  test "errors have messages" do
-    assert Exception.message(%Error.Unmediated{function: :all, arity: 2, schema: nil}) =~ "Repo.all/2 carries no decision"
-    assert Exception.message(%Error.Unmediated{function: :all, arity: 2, schema: Enum}) =~ "on Enum"
-    assert Exception.message(%Error.Engine{adapter: Enum, operation: :check, detail: "x"}) =~ "failed during check"
-    assert Exception.message(%Error.Invalid{what: :config, detail: "x"}) == "invalid config: x"
+  test "an error is a reason and a detail, and the detail is the message" do
+    assert Error.reasons() ==
+             ~w(deny_by_default rule_denied engine_unreachable missing_fact unknown_operation unknown_subject_kind
+                unsupported invalid unmediated)a
+
+    assert Exception.message(%Error{reason: :engine_unreachable, detail: "x failed"}) == "x failed"
+    assert Exception.message(Error.invalid(:config, "x")) == "invalid config: x"
 
     subject = {:user, Id.new()}
 
-    assert Exception.message(%Error.NotAuthorized{
-             subject: subject,
-             operation: :read,
-             object: {:thing, "1"},
-             reason: :deny_by_default
-           }) =~ "may not read"
+    assert Exception.message(Error.denied(subject, :read, {:thing, "1"}, :deny_by_default)) =~ "may not read"
 
-    assert Exception.message(%Error.NotAuthorized{
-             subject: subject,
-             operation: :read,
-             object: {:thing, "1"},
-             reason: :engine_unreachable,
-             detail: "down"
-           }) =~ "engine_unreachable (down)"
+    assert Exception.message(Error.denied(subject, :read, {:thing, "1"}, :engine_unreachable, "down")) =~
+             "engine_unreachable (down)"
   end
 
   test "drift is clean when nothing is missing or extra" do

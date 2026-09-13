@@ -41,7 +41,7 @@ defmodule Turnstile.Ledger.Dialect do
   and the grant on it is `UPDATE`.
   """
   @callback take(repo :: module(), counter :: String.t(), count :: pos_integer()) ::
-              {:ok, pos_integer()} | {:error, Error.Engine.t()}
+              {:ok, pos_integer()} | {:error, Error.t()}
 
   @doc "The clause a fact row is re-read under before a write, or `nil` where the database has none."
   @callback lock_clause() :: String.t() | nil
@@ -50,7 +50,7 @@ defmodule Turnstile.Ledger.Dialect do
   @callback append_only_grant(events :: String.t(), app_role :: String.t()) :: [String.t()]
 
   @doc "The foreign keys into `tables` that delete or blank a row when their referenced row goes."
-  @callback cascades(repo :: module(), tables :: [String.t()]) :: {:ok, [Cascade.t()]} | {:error, Error.Engine.t()}
+  @callback cascades(repo :: module(), tables :: [String.t()]) :: {:ok, [Cascade.t()]} | {:error, Error.t()}
 end
 
 defmodule Turnstile.Ledger.Dialect.Cascade do

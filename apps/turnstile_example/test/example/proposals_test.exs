@@ -16,7 +16,7 @@ defmodule Example.ProposalsTest do
   end
 
   test "propose needs the document's operation and records a pending proposal", ctx do
-    assert {:error, %Error.NotAuthorized{operation: :propose_marking}} =
+    assert {:error, %Error{detail: "user dana may not propose_marking" <> _rest}} =
              Proposals.propose(@dana, ctx.document.id, %{controls: [:no_foreign]})
 
     allow(ctx.rules, "dana", :propose_marking, {:document, ctx.document.id})
@@ -30,7 +30,7 @@ defmodule Example.ProposalsTest do
   test "approve needs the proposal's operation, applies the marking, and closes the proposal", ctx do
     allow(ctx.rules, "dana", :propose_marking, {:document, ctx.document.id})
     {:ok, proposal} = Proposals.propose(@dana, ctx.document.id, %{controls: [:no_foreign]})
-    assert {:error, %Error.NotAuthorized{operation: :approve_marking}} = Proposals.approve(@eve, proposal.id)
+    assert {:error, %Error{detail: "user eve may not approve_marking" <> _rest}} = Proposals.approve(@eve, proposal.id)
     allow(ctx.rules, "eve", :approve_marking, {:proposal, proposal.id})
     assert {:ok, %Proposal{status: :approved, approver_id: "eve"}} = Proposals.approve(@eve, proposal.id)
     assert {:error, :not_found} = Proposals.approve(@eve, proposal.id)

@@ -4,7 +4,7 @@ defmodule Turnstile.Repo do
   function of `Turnstile.Repo.Surface` the repo defines, so each call passes
   the `turnstile:` option, a `Turnstile.Decision` or an exemption, to
   `Turnstile.Repo.Seam` before Ecto runs it. A query on a protected schema
-  without the option raises `Turnstile.Error.Unmediated` before any SQL.
+  without the option raises `Turnstile.Error` before any SQL.
 
       defmodule MyApp.Repo do
         use Ecto.Repo, otp_app: :my_app, adapter: Ecto.Adapters.Postgres

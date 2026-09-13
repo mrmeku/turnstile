@@ -49,7 +49,7 @@ defmodule Turnstile.Code do
   alias Turnstile.FactEvent
 
   @doc "Append the bound policy's version to the ledger when its latest names an older one; see `Turnstile.Code.Version`."
-  @spec publish() :: {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.Invalid.t() | Error.Engine.t()}
+  @spec publish() :: {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
   def publish, do: Version.publish(__MODULE__)
 
   @impl Turnstile.Adapter
@@ -102,7 +102,7 @@ defmodule Turnstile.Code do
 
   # A failure's detail becomes the engine error, naming the callback that failed.
   defp named({:error, detail}, callback) when is_binary(detail) do
-    {:error, %Error.Engine{adapter: __MODULE__, operation: callback, detail: detail}}
+    {:error, %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{callback}: #{detail}"}}
   end
 
   defp named(other, _callback), do: other
@@ -112,8 +112,9 @@ defmodule Turnstile.Code do
       {:ok, %Binding{} = binding} ->
         {:ok, binding}
 
-      {:error, %Error.Invalid{detail: detail}} ->
-        {:error, %Error.Engine{adapter: __MODULE__, operation: operation, detail: detail}}
+      {:error, %Error{reason: :invalid, detail: detail}} ->
+        {:error,
+         %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{operation}: #{detail}"}}
     end
   end
 end

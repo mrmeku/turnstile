@@ -70,7 +70,7 @@ defmodule Turnstile.Conformance.RepoCase do
   def assert_refused(repo, {name, arity}) when is_atom(repo) do
     args = RepoCase.Fixture.args(name, arity)
 
-    ExUnit.Assertions.assert_raise(Turnstile.Error.Unmediated, fn ->
+    ExUnit.Assertions.assert_raise(Turnstile.Error, fn ->
       case apply(repo, name, args) do
         %Stream{} = stream -> Enum.to_list(stream)
         stream when is_function(stream) -> Enum.to_list(stream)

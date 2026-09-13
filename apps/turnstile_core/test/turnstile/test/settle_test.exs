@@ -60,7 +60,7 @@ defmodule Turnstile.Test.SettleTest do
     :ok = bound(context, interrupt_after: 1)
     :ok = appended(context, 3)
 
-    assert_raise Error.Engine, ~r/interrupted after 1 of 3 events/, fn -> Test.settle() end
+    assert_raise Error, ~r/interrupted after 1 of 3 events/, fn -> Test.settle() end
   end
 
   defp bound(context, overrides \\ []) do

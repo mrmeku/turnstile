@@ -11,7 +11,7 @@ defmodule Turnstile.Facts do
   write returns the rows it touched, the fact mapping turns the values
   before and after into events, and one append takes their positions from
   the counter row in one statement. An append that fails rolls the write
-  back and comes out as `{:error, %Turnstile.Error.Engine{}}`.
+  back and comes out as an error with the reason `:engine_unreachable`.
 
   Each is also one span on `[:turnstile, :bulk, :start | :stop | :exception]`
   whose stop carries a `Turnstile.Facts.Record`, the audit record of the
@@ -77,21 +77,21 @@ defmodule Turnstile.Facts do
   value a row already holds is not a change; a computed set, `inc` among
   them, is a change on every row it reaches.
   """
-  @spec bulk_update(Ecto.Queryable.t(), keyword(), keyword()) :: {:ok, Record.t()} | {:error, Error.Engine.t()}
+  @spec bulk_update(Ecto.Queryable.t(), keyword(), keyword()) :: {:ok, Record.t()} | {:error, Error.t()}
   def bulk_update(queryable, updates, opts) when is_list(updates) and is_list(opts) do
     context = context!(queryable, opts)
     span(:update, context, fn -> update(context, queryable, updates) end)
   end
 
   @doc "Delete every row the queryable admits, as `Repo.delete_all/2` does, and append one event per fact that goes with it."
-  @spec bulk_delete(Ecto.Queryable.t(), keyword()) :: {:ok, Record.t()} | {:error, Error.Engine.t()}
+  @spec bulk_delete(Ecto.Queryable.t(), keyword()) :: {:ok, Record.t()} | {:error, Error.t()}
   def bulk_delete(queryable, opts) when is_list(opts) do
     context = context!(queryable, opts)
     span(:delete, context, fn -> delete(context, queryable) end)
   end
 
   @doc "Insert the entries, as `Repo.insert_all/3` does, and append one event per fact they state."
-  @spec bulk_insert(module(), [map() | keyword()], keyword()) :: {:ok, Record.t()} | {:error, Error.Engine.t()}
+  @spec bulk_insert(module(), [map() | keyword()], keyword()) :: {:ok, Record.t()} | {:error, Error.t()}
   def bulk_insert(schema, entries, opts) when is_atom(schema) and is_list(entries) and is_list(opts) do
     context = context!(schema, opts)
     span(:insert, context, fn -> insert(context, entries) end)
@@ -164,7 +164,7 @@ defmodule Turnstile.Facts do
   defp settle(context, operation, count, events) do
     case context.ledger.append(context.options, events) do
       {:ok, stamped} -> {:ok, record(context, operation, count, stamped)}
-      {:error, %Error.Engine{} = error} -> context.repo.rollback(error)
+      {:error, %Error{reason: :engine_unreachable} = error} -> context.repo.rollback(error)
     end
   end
 
@@ -214,10 +214,11 @@ defmodule Turnstile.Facts do
         :returning
 
       other ->
-        raise Error.Unsupported,
-          adapter: dialect,
-          feature: :bulk_write,
-          note: "the bulk API needs a dialect whose write returns its rows, and this one answers #{inspect(other)}"
+        raise Error,
+          reason: :unsupported,
+          detail:
+            "#{inspect(dialect)} does not support the bulk API, which needs a dialect whose write returns " <>
+              "its rows, and this one answers #{inspect(other)}"
     end
   end
 
@@ -249,7 +250,7 @@ defmodule Turnstile.Facts do
   defp transactional(context, fun) do
     case context.repo.transaction(fun) do
       {:ok, result} -> result
-      {:error, %Error.Engine{} = error} -> {:error, error}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
     end
   end
 
@@ -276,9 +277,7 @@ defmodule Turnstile.Facts do
 
   defp repo!(opts, options) do
     opts[:repo] || Keyword.get(options, :repo) ||
-      raise Error.Invalid,
-        what: :bulk_write,
-        detail: "no repo: the ledger's options name none, so the call needs repo: MyApp.Repo"
+      raise Error.invalid(:bulk_write, "no repo: the ledger's options name none, so the call needs repo: MyApp.Repo")
   end
 
   defp schema!(module) when is_atom(module) and not is_nil(module), do: module
@@ -286,9 +285,7 @@ defmodule Turnstile.Facts do
   defp schema!(%Ecto.Query{from: %{source: {_source, schema}}}) when is_atom(schema) and not is_nil(schema), do: schema
 
   defp schema!(other) do
-    raise Error.Invalid,
-      what: :bulk_write,
-      detail: "a bulk write needs a schema or a query on one, got: #{inspect(other)}"
+    raise Error.invalid(:bulk_write, "a bulk write needs a schema or a query on one, got: #{inspect(other)}")
   end
 
   defp stamp(config, %Decision{} = decision) do

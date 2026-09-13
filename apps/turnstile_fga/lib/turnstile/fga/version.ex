@@ -67,7 +67,7 @@ defmodule Turnstile.Fga.Version do
   """
   @spec publish(module()) ::
           {:ok, :current | FactEvent.t()}
-          | {:error, Error.Invalid.t() | Error.Unsupported.t() | Error.Engine.t()}
+          | {:error, Error.t()}
   def publish(adapter) when is_atom(adapter) do
     with {:ok, %Binding{} = binding} <- Binding.resolve(),
          {:ok, %Config{} = config} <- Config.resolve(),
@@ -95,7 +95,11 @@ defmodule Turnstile.Fga.Version do
   end
 
   defp ledger(adapter, %Config{ledger: :none}) do
-    {:error, %Error.Unsupported{adapter: adapter, feature: :ledger_mode_none, note: "there is nothing to publish into"}}
+    {:error,
+     %Error{
+       reason: :unsupported,
+       detail: "#{inspect(adapter)} has nothing to publish into: the configuration names no ledger"
+     }}
   end
 
   defp ledger(_adapter, %Config{ledger: {module, options}}), do: {:ok, {module, options}}
@@ -159,7 +163,7 @@ defmodule Turnstile.Fga.Version do
 
     case ledger.append(options, [event]) do
       {:ok, [appended]} -> {:ok, appended}
-      {:error, %Error.Engine{} = error} -> {:error, error}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
     end
   end
 
@@ -170,7 +174,7 @@ defmodule Turnstile.Fga.Version do
     case ledger.read(options, from, @page) do
       {:ok, []} -> {:ok, found}
       {:ok, events} -> latest(ledger, options, adapter, List.last(events).position, newest(events, adapter, found))
-      {:error, %Error.Engine{} = error} -> {:error, error}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
     end
   end
 
@@ -181,5 +185,5 @@ defmodule Turnstile.Fga.Version do
     end)
   end
 
-  defp invalid(detail), do: %Error.Invalid{what: :model, detail: detail}
+  defp invalid(detail), do: Error.invalid(:model, detail)
 end

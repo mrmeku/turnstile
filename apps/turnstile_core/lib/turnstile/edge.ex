@@ -3,13 +3,13 @@ defmodule Turnstile.Edge do
   The conversions every struct with an edge shares. `to_map/1` on a struct
   produces a map of plain values: atoms as strings, modules by name, object
   references as maps, times in ISO 8601; `from_map/1` reads that map back,
-  with atom or string keys, and answers `{:error, %Turnstile.Error.Invalid{}}`
+  with atom or string keys, and answers `{:error, %Turnstile.Error{reason: :invalid}}`
   on anything else.
   """
 
   alias Turnstile.Error
 
-  @type result(value) :: {:ok, value} | {:error, Error.Invalid.t()}
+  @type result(value) :: {:ok, value} | {:error, Error.t()}
 
   @typedoc """
   How one field converts: `:string` and `:integer` refuse `nil`, `{:string, :nil_ok}`
@@ -183,8 +183,8 @@ defmodule Turnstile.Edge do
   end
 
   @doc "The invalid error for an edge."
-  @spec invalid(atom(), String.t()) :: Error.Invalid.t()
-  def invalid(what, detail) when is_atom(what) and is_binary(detail), do: %Error.Invalid{what: what, detail: detail}
+  @spec invalid(atom(), String.t()) :: Error.t()
+  def invalid(what, detail) when is_atom(what) and is_binary(detail), do: Error.invalid(what, detail)
 
   defp field_in(map, field, kind, what, optional) do
     case fetch(map, field) do

@@ -43,7 +43,7 @@ defmodule Example.Accounts do
   Assign many accounts to a program with one role, as one write: one audit
   record and one fact event per assignment, sharing an operation id.
   """
-  @spec assign_all([String.t()], integer(), :lead | :member) :: {:ok, Record.t()} | {:error, Error.Engine.t()}
+  @spec assign_all([String.t()], integer(), :lead | :member) :: {:ok, Record.t()} | {:error, Error.t()}
   def assign_all(user_ids, program_id, role) when is_list(user_ids) and role in [:lead, :member] do
     entries = Enum.map(user_ids, &%{user_id: &1, program_id: program_id, role: role})
     Facts.bulk_insert(Assignment, entries, repo: Repo, turnstile: @administration)

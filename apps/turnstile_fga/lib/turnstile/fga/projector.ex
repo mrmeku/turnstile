@@ -103,7 +103,7 @@ defmodule Turnstile.Fga.Projector do
   def options_schema, do: @schema
 
   @doc "A projector from its configuration."
-  @spec new(keyword()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec new(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def new(options) when is_list(options) do
     # The default is read here rather than in the schema, so the limit of one
     # call stays the client's to state and this module compiles beside it.
@@ -111,7 +111,7 @@ defmodule Turnstile.Fga.Projector do
 
     case NimbleOptions.validate(filled, @schema) do
       {:ok, valid} -> {:ok, struct!(__MODULE__, valid)}
-      {:error, error} -> {:error, %Error.Invalid{what: :projector, detail: Exception.message(error)}}
+      {:error, error} -> {:error, Error.invalid(:projector, Exception.message(error))}
     end
   end
 
@@ -128,7 +128,7 @@ defmodule Turnstile.Fga.Projector do
   resolves to an error: the store this would drain into is not the one
   answering questions.
   """
-  @spec resolve(module()) :: {:ok, t()} | {:error, Error.Invalid.t() | Error.Unsupported.t()}
+  @spec resolve(module()) :: {:ok, t()} | {:error, Error.t()}
   def resolve(adapter) when is_atom(adapter) do
     with {:ok, %Binding{} = binding} <- Binding.resolve(),
          {:ok, %Config{} = config} <- Config.resolve(),
@@ -190,16 +190,15 @@ defmodule Turnstile.Fga.Projector do
 
   defp ledger(%Config{ledger: :none}, adapter) do
     {:error,
-     %Error.Unsupported{
-       adapter: adapter,
-       feature: :ledger_mode_none,
-       note: "a projection has nothing to drain without a ledger"
+     %Error{
+       reason: :unsupported,
+       detail: "#{inspect(adapter)} has nothing to drain: the configuration names no ledger"
      }}
   end
 
   defp ledger(%Config{ledger: {module, options}}, _adapter), do: {:ok, {module, options}}
 
-  defp invalid(detail), do: %Error.Invalid{what: :projector, detail: detail}
+  defp invalid(detail), do: Error.invalid(:projector, detail)
 
   # Genesis sits at position zero and a ledger read is exclusive of the
   # position it starts from, so a checkpoint of zero reads everything.

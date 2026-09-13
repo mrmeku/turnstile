@@ -127,10 +127,11 @@ defmodule ExampleCerbos.Rules do
         text
 
       %{version: commit, pointer: pointer} ->
-        raise %Error.Unsupported{
-          adapter: Turnstile.Cerbos,
-          feature: :replay,
-          note: "version #{commit} carries #{pointer} rather than its policies: start a sidecar on that directory"
+        raise %Error{
+          reason: :unsupported,
+          detail:
+            "Turnstile.Cerbos cannot replay version #{commit}, which carries #{pointer} rather than its " <>
+              "policies: start a sidecar on that directory"
         }
     end
   end

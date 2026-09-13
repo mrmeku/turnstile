@@ -27,14 +27,16 @@ defmodule Turnstile.Ledger.CatalogCommittedTest do
     _up = Ecto.Migrator.run(CommittedOwner, @migrations, :up, all: true, log: false)
     on_exit(fn -> _down = Ecto.Migrator.run(CommittedOwner, @migrations, :down, all: true, log: false) end)
 
-    assert {:error, %Error.Invalid{what: :cascade} = error} = Catalog.check(CommittedOwner, @schemas)
+    assert {:error, %Error{reason: :invalid, detail: "invalid cascade: " <> _rest} = error} =
+             Catalog.check(CommittedOwner, @schemas)
+
     assert error.detail =~ "memberships_folder_cascade on turnstile_fixture_memberships deletes a fact row"
     assert error.detail =~ "memberships_folder_blank on turnstile_fixture_memberships blanks a fact row"
     assert error.detail =~ "when a row of turnstile_fixture_folders goes, and no fact event would say so"
 
     {Ledger.Ecto, ledger_options} = Committed.ledger()
 
-    assert {:error, %Error.Invalid{what: :cascade}} =
+    assert {:error, %Error{reason: :invalid, detail: "invalid cascade: " <> _rest}} =
              Genesis.run(ledger_options, @schemas, migration: "the migration that would begin the ledger")
 
     _down = Ecto.Migrator.run(CommittedOwner, @migrations, :down, all: true, log: false)

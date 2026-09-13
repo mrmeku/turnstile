@@ -184,15 +184,14 @@ defmodule Turnstile.Cerbos.PlanTest do
   test "a plan this adapter cannot express emits the fallback event and fails", ctx do
     :telemetry.attach(inspect(self()), Decide.fallback_event(), &__MODULE__.forward/4, self())
 
-    assert {:error, %Error.Engine{} = error} =
+    assert {:error, %Error{reason: :engine_unreachable} = error} =
              Turnstile.Cerbos.scope(ctx.ann, :share, :folder, ctx.environment, address: ctx.address)
 
-    assert error.adapter == Turnstile.Cerbos
-    assert error.operation == :scope
+    assert error.detail =~ "Turnstile.Cerbos failed during scope"
     assert error.detail =~ "the plan compares against"
 
     assert_receive {:scope_fallback, %{operation: :share, kind: :folder, detail: detail}}
-    assert detail == error.detail
+    assert error.detail =~ detail
   after
     :telemetry.detach(inspect(self()))
   end

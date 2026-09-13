@@ -52,7 +52,7 @@ defmodule Turnstile.Postgres.Version do
   already there, `{:ok, :telemetry}` in ledger mode none.
   """
   @spec publish(PolicyVersion.t(), :none | {module(), keyword()}) ::
-          {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.Engine.t()}
+          {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
   def publish(%PolicyVersion{} = version, ledger) do
     result = appended(version, ledger)
     :telemetry.execute(@telemetry, %{}, %{version: version, result: elem(result, 1)})
@@ -101,7 +101,7 @@ defmodule Turnstile.Postgres.Version do
 
     case ledger.append(options, [event]) do
       {:ok, [appended]} -> {:ok, appended}
-      {:error, %Error.Engine{} = error} -> {:error, error}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
     end
   end
 
@@ -112,7 +112,7 @@ defmodule Turnstile.Postgres.Version do
     case ledger.read(options, from, @page) do
       {:ok, []} -> {:ok, found}
       {:ok, events} -> latest(ledger, options, adapter, List.last(events).position, newest(events, adapter, found))
-      {:error, %Error.Engine{} = error} -> {:error, error}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
     end
   end
 

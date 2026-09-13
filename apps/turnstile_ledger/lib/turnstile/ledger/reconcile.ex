@@ -35,7 +35,7 @@ defmodule Turnstile.Ledger.Reconcile do
   Compare the fold of the ledger with the facts the given schemas hold, and
   answer the drift. Schemas that declare no fact are ignored.
   """
-  @spec run(keyword(), [module()]) :: {:ok, Drift.t()} | {:error, Error.Engine.t()}
+  @spec run(keyword(), [module()]) :: {:ok, Drift.t()} | {:error, Error.t()}
   def run(ledger_options, schemas) when is_list(ledger_options) and is_list(schemas) do
     options = through_owner(ledger_options)
 

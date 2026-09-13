@@ -18,10 +18,10 @@ defmodule Example.DocumentsTest do
   end
 
   test "read returns the document with its marking under an allow, and the refusal under a deny", ctx do
-    assert {:error, %Error.NotAuthorized{operation: :read}} = Documents.read(@ann, ctx.document.id)
+    assert {:error, %Error{detail: "user ann may not read" <> _rest}} = Documents.read(@ann, ctx.document.id)
     allow(ctx.rules, "ann", :read, {:document, ctx.document.id})
     assert {:ok, %Document{marking: %Marking{controls: [:no_foreign]}}} = Documents.read(@ann, ctx.document.id)
-    assert {:error, %Error.NotAuthorized{}} = Documents.read(@ann, ctx.document.id + 1000)
+    assert {:error, %Error{detail: "user ann may not read" <> _rest}} = Documents.read(@ann, ctx.document.id + 1000)
     allow(ctx.rules, "ann", :read, {:document, :any})
     assert {:error, :not_found} = Documents.read(@ann, ctx.document.id + 1000)
   end
@@ -59,15 +59,20 @@ defmodule Example.DocumentsTest do
              })
 
     assert Enum.sort(controls) == [:federal_only, :no_foreign]
-    assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(@ann, ctx.document.id, %{controls: []})
+
+    assert {:error, %Error{detail: "user ann may not change_marking" <> _rest}} =
+             Documents.change_marking(@ann, ctx.document.id, %{controls: []})
   end
 
   test "set_decontrol and decontrol write the date under their own operations", ctx do
     at = ~U[2026-01-01 00:00:00.123456Z]
-    assert {:error, %Error.NotAuthorized{operation: :set_decontrol}} = Documents.set_decontrol(@dana, ctx.document.id, at)
+
+    assert {:error, %Error{detail: "user dana may not set_decontrol" <> _rest}} =
+             Documents.set_decontrol(@dana, ctx.document.id, at)
+
     allow(ctx.rules, "dana", :set_decontrol, {:document, ctx.document.id})
     assert {:ok, %Document{decontrol: ~U[2026-01-01 00:00:00Z]}} = Documents.set_decontrol(@dana, ctx.document.id, at)
-    assert {:error, %Error.NotAuthorized{operation: :decontrol}} = Documents.decontrol(@dana, ctx.document.id)
+    assert {:error, %Error{detail: "user dana may not decontrol" <> _rest}} = Documents.decontrol(@dana, ctx.document.id)
     allow(ctx.rules, "dana", :decontrol, {:document, ctx.document.id})
     assert {:ok, %Document{decontrol: %DateTime{} = now}} = Documents.decontrol(@dana, ctx.document.id)
     assert DateTime.diff(DateTime.utc_now(), now, :second) in 0..5
@@ -87,12 +92,12 @@ defmodule Example.DocumentsTest do
     [open, _domestic] = ctx.document.portions
     attrs = %{controls: [:federal_only]}
 
-    assert {:error, %Error.NotAuthorized{object: {:portion, _id}}} =
+    assert {:error, %Error{detail: "user dana may not change_marking {:portion," <> _rest}} =
              Documents.change_portion_marking(@dana, open.id, attrs)
 
     allow(ctx.rules, "dana", :change_marking, {:portion, open.id})
 
-    assert {:error, %Error.NotAuthorized{object: {:document, _id}}} =
+    assert {:error, %Error{detail: "user dana may not change_marking {:document," <> _rest}} =
              Documents.change_portion_marking(@dana, open.id, attrs)
 
     allow(ctx.rules, "dana", :change_marking, {:document, ctx.document.id})
@@ -173,7 +178,7 @@ defmodule Example.DocumentsTest do
   test "decontrol_all sets the date on every document the scope admits, or refuses under a denied scope", ctx do
     other = Fixture.document!(ctx.world, title: "other")
     at = DateTime.utc_now()
-    assert {:error, %Error.NotAuthorized{operation: :set_decontrol}} = Documents.decontrol_all(@dana, at)
+    assert {:error, %Error{detail: "user dana may not set_decontrol" <> _rest}} = Documents.decontrol_all(@dana, at)
     allow(ctx.rules, "dana", :set_decontrol, {:document, :any})
     assert {:ok, record} = Documents.decontrol_all(@dana, at)
     assert {record.operation, record.schema, record.count} == {:update, Document, 2}

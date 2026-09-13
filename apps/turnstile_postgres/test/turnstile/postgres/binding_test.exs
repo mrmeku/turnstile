@@ -24,14 +24,14 @@ defmodule Turnstile.Postgres.BindingTest do
   end
 
   test "a schema that did not use Turnstile.Schema is refused by name" do
-    assert {:error, %Error.Invalid{what: :binding, detail: detail}} =
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: " <> detail}} =
              Binding.new(repo: Sandboxed, schemas: [Folder, Undeclared])
 
     assert detail =~ "Undeclared"
   end
 
   test "a missing repo is refused" do
-    assert {:error, %Error.Invalid{what: :binding}} = Binding.new(schemas: [Folder])
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: " <> _rest}} = Binding.new(schemas: [Folder])
   end
 
   test "an override is read from the calling process and from its callers" do
@@ -52,7 +52,8 @@ defmodule Turnstile.Postgres.BindingTest do
   end
 
   test "with nothing bound and no override, resolve says so" do
-    assert {:error, %Error.Invalid{what: :binding, detail: "nothing bound and no override"}} = Binding.resolve()
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: nothing bound and no override"}} =
+             Binding.resolve()
   end
 
   test "an object type resolves to its schema, table, and primary key, and an unknown one to nothing" do

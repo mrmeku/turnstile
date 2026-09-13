@@ -42,19 +42,21 @@ defmodule Turnstile.Repo.SeamTest do
     test "all under a decision for the root's type runs, and for another type is refused", %{decision: decision} do
       assert [%Folder{}] = Sandboxed.all(Folder, turnstile: decision)
 
-      error = assert_raise(Error.Unmediated, fn -> Sandboxed.all(Item, turnstile: decision) end)
-      assert %Error.Unmediated{function: :all, arity: 2, schema: Item, object_type: :folder} = error
-      assert Exception.message(error) =~ "carries a decision for :folder, which does not cover it"
+      error = assert_raise(Error, fn -> Sandboxed.all(Item, turnstile: decision) end)
+      assert %Error{reason: :unmediated} = error
+
+      assert Exception.message(error) =~
+               "Repo.all/2 on #{inspect(Item)} carries a decision for :folder, which does not cover it"
     end
 
     test "a query without the option is refused naming the function and the caller" do
       error =
-        assert_raise(Error.Unmediated, fn ->
+        assert_raise(Error, fn ->
           returned = Sandboxed.one(Folder)
           flunk("returned " <> inspect(returned))
         end)
 
-      assert %Error.Unmediated{function: :one, arity: 2, schema: Folder, caller: __MODULE__} = error
+      assert %Error{reason: :unmediated} = error
 
       assert Exception.message(error) ==
                "Repo.one/2 on Turnstile.Fixture.Folder carries no decision and no exemption (from Turnstile.Repo.SeamTest)"
@@ -70,13 +72,13 @@ defmodule Turnstile.Repo.SeamTest do
       assert %Folder{items: [%Item{}]} = Sandboxed.preload(folder, :items, turnstile: decision)
       assert %Folder{memberships: []} = Sandboxed.preload(folder, :memberships, turnstile: decision)
 
-      assert_raise Error.Unmediated, ~r/on Turnstile.Fixture.Folder/, fn ->
+      assert_raise Error, ~r/on Turnstile.Fixture.Folder/, fn ->
         Sandboxed.preload(item, :folder, turnstile: decision(:item, item.id))
       end
     end
 
     test "preload without a decision is refused", %{folder: folder} do
-      assert_raise Error.Unmediated, ~r/Repo.preload\/3/, fn -> Sandboxed.preload(folder, :items) end
+      assert_raise Error, ~r/Repo.preload\/3/, fn -> Sandboxed.preload(folder, :items) end
     end
 
     test "a join with a carried source is allowed and with an uncarried protected source is refused",
@@ -86,12 +88,12 @@ defmodule Turnstile.Repo.SeamTest do
 
       uncarried = from(i in Item, join: f in assoc(i, :folder), select: f.name)
 
-      assert_raise Error.Unmediated, ~r/on Turnstile.Fixture.Folder/, fn ->
+      assert_raise Error, ~r/on Turnstile.Fixture.Folder/, fn ->
         Sandboxed.all(uncarried, turnstile: decision(:item, item.id))
       end
 
       by_source = from(i in Item, join: f in Folder, on: f.id == i.folder_id, select: f.name)
-      assert_raise Error.Unmediated, fn -> Sandboxed.all(by_source, turnstile: decision(:item, item.id)) end
+      assert_raise Error, ~r/does not cover it/, fn -> Sandboxed.all(by_source, turnstile: decision(:item, item.id)) end
     end
 
     test "aggregate, exists?, get, get_by, all_by, reload, and stream carry the decision",
@@ -109,21 +111,21 @@ defmodule Turnstile.Repo.SeamTest do
                |> Sandboxed.transaction()
                |> elem(1)
 
-      assert_raise Error.Unmediated, fn -> Sandboxed.aggregate(Folder, :count) end
-      assert_raise Error.Unmediated, fn -> Sandboxed.exists?(Folder) end
-      assert_raise Error.Unmediated, fn -> Sandboxed.reload(folder) end
-      assert_raise Error.Unmediated, fn -> Sandboxed.transaction(fn -> Sandboxed.stream(Folder) end) end
+      assert_raise Error, ~r/carries no decision/, fn -> Sandboxed.aggregate(Folder, :count) end
+      assert_raise Error, ~r/carries no decision/, fn -> Sandboxed.exists?(Folder) end
+      assert_raise Error, ~r/carries no decision/, fn -> Sandboxed.reload(folder) end
+      assert_raise Error, ~r/carries no decision/, fn -> Sandboxed.transaction(fn -> Sandboxed.stream(Folder) end) end
     end
 
     test "a subquery root is judged by its inner source", %{decision: decision} do
       query = from(s in subquery(from(f in Folder, select: %{id: f.id})), select: s.id)
       assert [_id] = Sandboxed.all(query, turnstile: decision)
-      assert_raise Error.Unmediated, fn -> Sandboxed.all(query) end
+      assert_raise Error, ~r/carries no decision/, fn -> Sandboxed.all(query) end
     end
 
-    test "a denied decision raises NotAuthorized before the query", %{folder: folder} do
+    test "a denied decision raises before the query", %{folder: folder} do
       denied = %{decision(:folder, folder.id) | verdict: :deny}
-      assert_raise Error.NotAuthorized, fn -> Sandboxed.all(Folder, turnstile: denied) end
+      assert_raise Error, ~r/may not/, fn -> Sandboxed.all(Folder, turnstile: denied) end
     end
 
     test "an unknown option shape is refused as invalid" do
@@ -137,9 +139,9 @@ defmodule Turnstile.Repo.SeamTest do
       assert [%Folder{}] = Sandboxed.all(Folder, turnstile: {:exempt, "report"})
 
       assert {:read, [%Folder{}]} = OutsideCaller.read(Sandboxed, {:exempt, "report"})
-      error = assert_raise(Error.Unmediated, fn -> OutsideCaller.read(Sandboxed, {:exempt, :library}) end)
-      assert error.caller == OutsideCaller
+      error = assert_raise(Error, fn -> OutsideCaller.read(Sandboxed, {:exempt, :library}) end)
       assert Exception.message(error) =~ "accepted only from a Turnstile.* caller"
+      assert Exception.message(error) =~ "(from #{inspect(OutsideCaller)})"
     end
 
     test "the owner-role repo needs no option", %{folder: folder} do
@@ -154,10 +156,10 @@ defmodule Turnstile.Repo.SeamTest do
     test "query/3 without an exemption is refused, with a decision is invalid, with an exemption runs", %{
       decision: decision
     } do
-      assert_raise Error.Unmediated, ~r/Repo.query\/3/, fn -> Sandboxed.query("SELECT 1", [], []) end
-      assert_raise Error.Unmediated, ~r/Repo.query\/3/, fn -> Sandboxed.query("SELECT 1") end
+      assert_raise Error, ~r/Repo.query\/3/, fn -> Sandboxed.query("SELECT 1", [], []) end
+      assert_raise Error, ~r/Repo.query\/3/, fn -> Sandboxed.query("SELECT 1") end
 
-      assert_raise Error.Invalid, ~r/takes an exemption, not a decision/, fn ->
+      assert_raise Error, ~r/takes an exemption, not a decision/, fn ->
         Sandboxed.query("SELECT 1", [], turnstile: decision)
       end
 
@@ -173,15 +175,15 @@ defmodule Turnstile.Repo.SeamTest do
                |> Changeset.change(name: "renamed")
                |> Sandboxed.update(turnstile: decision)
 
-      assert_raise Error.Unmediated, ~r/Repo.insert\/2 on Turnstile.Fixture.Folder/, fn ->
+      assert_raise Error, ~r/Repo.insert\/2 on Turnstile.Fixture.Folder/, fn ->
         Sandboxed.insert(%Folder{name: "other"})
       end
 
-      assert_raise Error.Unmediated, ~r/decision for :folder/, fn ->
+      assert_raise Error, ~r/decision for :folder/, fn ->
         Sandboxed.insert!(%Item{title: "x"}, turnstile: decision)
       end
 
-      assert_raise Error.Unmediated, fn -> Sandboxed.delete(folder) end
+      assert_raise Error, ~r/carries no decision/, fn -> Sandboxed.delete(folder) end
     end
 
     test "a nested write of a carried schema is allowed and of an uncarried protected schema is refused",
@@ -201,7 +203,7 @@ defmodule Turnstile.Repo.SeamTest do
         |> Changeset.change()
         |> Changeset.put_assoc(:folder, %Folder{name: "new parent"})
 
-      assert_raise Error.Unmediated, ~r/on Turnstile.Fixture.Folder/, fn ->
+      assert_raise Error, ~r/on Turnstile.Fixture.Folder/, fn ->
         Sandboxed.update(nested, turnstile: decision(:item, item.id))
       end
     end
@@ -212,23 +214,23 @@ defmodule Turnstile.Repo.SeamTest do
       assert {1, nil} = Sandboxed.insert_all(Item, [%{title: "bulk", folder_id: folder.id}], turnstile: items)
       source = from(i in Item, select: %{title: i.title, folder_id: i.folder_id})
       assert {2, nil} = Sandboxed.insert_all(Item, source, turnstile: items)
-      assert_raise Error.Unmediated, fn -> Sandboxed.insert_all(Item, [%{title: "bulk"}]) end
+      assert_raise Error, ~r/carries no decision/, fn -> Sandboxed.insert_all(Item, [%{title: "bulk"}]) end
 
-      assert_raise Error.Unmediated, ~r/carries a decision for :folder/, fn ->
+      assert_raise Error, ~r/carries a decision for :folder/, fn ->
         Sandboxed.insert_all(Item, [%{title: "bulk"}], turnstile: decision)
       end
     end
 
     test "update_all and delete_all on a protected schema carry the decision", %{item: item, decision: decision} do
       assert {1, nil} = Sandboxed.update_all(Folder, [set: [name: "all"]], turnstile: decision)
-      assert_raise Error.Unmediated, fn -> Sandboxed.update_all(Folder, set: [name: "none"]) end
+      assert_raise Error, ~r/carries no decision/, fn -> Sandboxed.update_all(Folder, set: [name: "none"]) end
       assert {1, nil} = Sandboxed.delete_all(Item, turnstile: decision(:item, item.id))
 
-      assert_raise Error.Unmediated, ~r/carries a decision for :folder/, fn ->
+      assert_raise Error, ~r/carries a decision for :folder/, fn ->
         Sandboxed.delete_all(Item, turnstile: decision)
       end
 
-      assert_raise Error.Unmediated, fn -> Sandboxed.delete_all(Folder) end
+      assert_raise Error, ~r/carries no decision/, fn -> Sandboxed.delete_all(Folder) end
     end
 
     test "an Ecto.Multi run through transaction carries each operation's own option",
@@ -241,26 +243,27 @@ defmodule Turnstile.Repo.SeamTest do
       assert {:ok, %{item: %Item{}, rename: {1, nil}}} = Sandboxed.transaction(multi)
 
       unmediated = Multi.insert(Multi.new(), :item, %Item{title: "no option"})
-      assert_raise Error.Unmediated, fn -> Sandboxed.transaction(unmediated) end
+      assert_raise Error, ~r/carries no decision/, fn -> Sandboxed.transaction(unmediated) end
     end
 
     test "an upsert on a fact schema is refused naming the schema", %{folder: folder} do
       membership = %Membership{account_id: "acct-1", role: :reader, folder_id: folder.id}
-      error = assert_raise(Error.Invalid, fn -> Sandboxed.insert(membership, on_conflict: :nothing) end)
-      assert error.what == :upsert
+      error = assert_raise(Error, fn -> Sandboxed.insert(membership, on_conflict: :nothing) end)
+      assert %Error{reason: :invalid} = error
+      assert Exception.message(error) =~ "invalid upsert: "
       assert Exception.message(error) =~ "on Turnstile.Fixture.Membership"
       assert Exception.message(error) =~ "bulk_insert/3"
     end
 
     test "a bulk write to fact fields is refused and pointed at the bulk API, exemption or not", %{folder: folder} do
-      assert_raise Error.Invalid, ~r/bulk_update/, fn -> Sandboxed.update_all(Membership, set: [role: :editor]) end
-      assert_raise Error.Invalid, ~r/bulk_delete/, fn -> Sandboxed.delete_all(Membership) end
+      assert_raise Error, ~r/bulk_update/, fn -> Sandboxed.update_all(Membership, set: [role: :editor]) end
+      assert_raise Error, ~r/bulk_delete/, fn -> Sandboxed.delete_all(Membership) end
 
-      assert_raise Error.Invalid, ~r/bulk_insert/, fn ->
+      assert_raise Error, ~r/bulk_insert/, fn ->
         Sandboxed.insert_all(Membership, [%{account_id: "a", role: :reader, folder_id: folder.id}])
       end
 
-      assert_raise Error.Invalid, ~r/bulk_update/, fn ->
+      assert_raise Error, ~r/bulk_update/, fn ->
         Sandboxed.update_all(Account, set: [clearance: "none"], turnstile: {:exempt, "unchanged"})
       end
     end
@@ -372,15 +375,16 @@ defmodule Turnstile.Repo.SeamTest do
       query = Ecto.Queryable.to_query(Folder)
 
       error =
-        assert_raise(Error.Unmediated, fn ->
+        assert_raise(Error, fn ->
           prepared = Sandboxed.prepare_query(:all, query, [])
           flunk("prepared " <> inspect(prepared))
         end)
 
-      assert %Error.Unmediated{function: :all, arity: 2, schema: Folder, caller: __MODULE__} = error
+      assert Exception.message(error) ==
+               "Repo.all/2 on #{inspect(Folder)} carries no decision and no exemption (from #{inspect(__MODULE__)})"
 
-      error = assert_raise(Error.Unmediated, fn -> Sandboxed.prepare_query(:update_all, query, []) end)
-      assert %Error.Unmediated{function: :update_all, arity: 3} = error
+      error = assert_raise(Error, fn -> Sandboxed.prepare_query(:update_all, query, []) end)
+      assert Exception.message(error) =~ "Repo.update_all/3"
 
       unprotected = Ecto.Queryable.to_query(Account)
       assert {^unprotected, []} = Sandboxed.prepare_query(:all, unprotected, [])

@@ -39,13 +39,13 @@ defmodule Turnstile.Fga.Client.FakeTest do
   end
 
   test "a call against a store that is not there is an engine error naming the call", context do
-    assert {:error, %Error.Engine{adapter: Turnstile.Fga, operation: :write_model}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during write_model" <> _rest}} =
              Fake.write_model(context.agent, "store-404", %{})
 
-    assert {:error, %Error.Engine{operation: :read}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during read" <> _rest}} =
              Fake.read(context.agent, "store-404", %Read{object_type: "folder"})
 
-    assert {:error, %Error.Engine{operation: :write}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during write" <> _rest}} =
              Fake.write(context.agent, "store-404", %Write{deletes: [], writes: []})
   end
 
@@ -63,7 +63,7 @@ defmodule Turnstile.Fga.Client.FakeTest do
     reader = tuple("user:ann", "reader", "folder:1")
     assert write!(context, [], [reader]) == {:ok, 1}
 
-    assert {:error, %Error.Engine{operation: :write, detail: detail}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
              write!(context, [], [tuple("user:ann", "editor", "folder:1"), reader])
 
     assert detail =~ "user:ann reader folder:1"
@@ -74,7 +74,7 @@ defmodule Turnstile.Fga.Client.FakeTest do
     reader = tuple("user:ann", "reader", "folder:1")
     assert write!(context, [], [reader]) == {:ok, 1}
 
-    assert {:error, %Error.Engine{operation: :write, detail: detail}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
              write!(context, [reader, tuple("user:bob", "reader", "folder:1")], [])
 
     assert detail =~ "user:bob reader folder:1"
@@ -85,7 +85,7 @@ defmodule Turnstile.Fga.Client.FakeTest do
     cleared = tuple("user:ann", "reader", "folder:1", %Condition{name: "while_cleared"})
     assert write!(context, [], [tuple("user:ann", "reader", "folder:1")]) == {:ok, 1}
 
-    assert {:error, %Error.Engine{detail: detail}} = write!(context, [cleared], [cleared])
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} = write!(context, [cleared], [cleared])
     assert detail =~ "deletes and writes user:ann reader folder:1"
   end
 
@@ -101,7 +101,7 @@ defmodule Turnstile.Fga.Client.FakeTest do
   test "a call carrying more changes than one call may is refused", context do
     writes = for id <- 1..(Client.max_tuples_per_write() + 1), do: tuple("user:ann", "reader", "folder:#{id}")
 
-    assert {:error, %Error.Engine{detail: detail}} = write!(context, [], writes)
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} = write!(context, [], writes)
     assert detail =~ "101 changes"
     assert Fake.tuples(context.agent, context.store) == []
   end
@@ -110,7 +110,8 @@ defmodule Turnstile.Fga.Client.FakeTest do
     :ok = Fake.fail_after(context.agent, 1)
 
     assert write!(context, [], [tuple("user:ann", "reader", "folder:1")]) == {:ok, 1}
-    assert {:error, %Error.Engine{detail: "the fake was asked to fail this write"}} = write!(context, [], [])
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} = write!(context, [], [])
+    assert detail =~ "the fake was asked to fail this write"
 
     :ok = Fake.fail_after(context.agent, nil)
     assert write!(context, [], [tuple("user:bob", "reader", "folder:1")]) == {:ok, 1}

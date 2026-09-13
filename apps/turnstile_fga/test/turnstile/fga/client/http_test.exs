@@ -1,6 +1,7 @@
 defmodule Turnstile.Fga.Client.HttpTest do
   use ExUnit.Case, async: true
 
+  alias Turnstile.Dev
   alias Turnstile.Error
   alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
@@ -19,7 +20,7 @@ defmodule Turnstile.Fga.Client.HttpTest do
   @moduletag :fga
 
   setup do
-    server = Turnstile.Dev.Fga.info()
+    server = Dev.Fga.info()
     {:ok, store} = Http.create_store(server.address, "conformance")
     {:ok, model} = Http.write_model(server.address, store, Model.read!("priv/conformance/model.fga"))
 
@@ -191,7 +192,7 @@ defmodule Turnstile.Fga.Client.HttpTest do
     old = role("ann", 1, "reader", World.cleared())
     new = role("ann", 1, "reader", "secret")
 
-    assert {:error, %Error.Engine{operation: :write}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during write" <> _rest}} =
              Http.write(context.endpoint, context.store, %Write{deletes: [old], writes: [new]})
 
     assert {:ok, 1} = Http.write(context.endpoint, context.store, %Write{deletes: [old], writes: []})
@@ -203,19 +204,21 @@ defmodule Turnstile.Fga.Client.HttpTest do
     written = world(context)
     duplicate = %Write{deletes: [], writes: [List.first(written)]}
 
-    assert {:error, %Error.Engine{operation: :write, detail: detail}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
              Http.write(context.endpoint, context.store, duplicate)
 
     assert detail =~ "already exists"
 
     absent = %Write{deletes: [member("zed", World.cleared())], writes: []}
-    assert {:error, %Error.Engine{operation: :write}} = Http.write(context.endpoint, context.store, absent)
+
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during write" <> _rest}} =
+             Http.write(context.endpoint, context.store, absent)
   end
 
   test "a tuple the model admits only under a condition is refused without one", context do
     plain = %TupleKey{user: "user:ann", relation: "reader", object: "folder:9"}
 
-    assert {:error, %Error.Engine{operation: :write, detail: detail}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
              Http.write(context.endpoint, context.store, %Write{deletes: [], writes: [plain]})
 
     assert detail =~ "condition is missing"
@@ -224,7 +227,7 @@ defmodule Turnstile.Fga.Client.HttpTest do
   test "a store the server does not know is an engine error naming the call", context do
     request = %Check{tuple_key: %TupleKey{user: "user:ann", relation: "can_read", object: "folder:1"}}
 
-    assert {:error, %Error.Engine{adapter: Turnstile.Fga, operation: :check, detail: detail}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
              Http.check(context.endpoint, "01ABSENTSTORE0000000000000", request)
 
     assert detail =~ "the server answered"
@@ -236,13 +239,14 @@ defmodule Turnstile.Fga.Client.HttpTest do
       model: "01ABSENTMODEL0000000000000"
     }
 
-    assert {:error, %Error.Engine{operation: :check}} = Http.check(context.endpoint, context.store, request)
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during check" <> _rest}} =
+             Http.check(context.endpoint, context.store, request)
   end
 
   test "an address nothing listens on is an engine error rather than a wait", _context do
     request = %Check{tuple_key: %TupleKey{user: "user:ann", relation: "can_read", object: "folder:1"}}
 
-    assert {:error, %Error.Engine{operation: :check, detail: detail}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
              Http.check("127.0.0.1:1", "store", request)
 
     assert detail =~ "could not be reached"
@@ -251,7 +255,7 @@ defmodule Turnstile.Fga.Client.HttpTest do
   test "an endpoint that is no address is an engine error rather than a crash", context do
     request = %Check{tuple_key: %TupleKey{user: "user:ann", relation: "can_read", object: "folder:1"}}
 
-    assert {:error, %Error.Engine{operation: :check, detail: detail}} = Http.check(self(), context.store, request)
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} = Http.check(self(), context.store, request)
     assert detail =~ "no address this client reaches"
   end
 

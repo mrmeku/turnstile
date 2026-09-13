@@ -168,9 +168,10 @@ defmodule Turnstile.Postgres do
   defp bound(operation) do
     case Binding.resolve() do
       {:ok, %Binding{} = binding} -> {:ok, binding}
-      {:error, %Error.Invalid{detail: detail}} -> {:error, engine(operation, detail)}
+      {:error, %Error{reason: :invalid, detail: detail}} -> {:error, engine(operation, detail)}
     end
   end
 
-  defp engine(operation, detail), do: %Error.Engine{adapter: __MODULE__, operation: operation, detail: detail}
+  defp engine(operation, detail),
+    do: %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{operation}: #{detail}"}
 end

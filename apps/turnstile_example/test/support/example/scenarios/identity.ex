@@ -11,7 +11,6 @@ defmodule Example.Scenarios.Identity do
   alias Example.Document
   alias Example.Documents
   alias Example.Fixture
-  alias Turnstile.Error
   alias Turnstile.Id
 
   @noforn %{controls: [:no_foreign]}
@@ -33,7 +32,7 @@ defmodule Example.Scenarios.Identity do
     document = Fixture.document!(world)
 
     settle()
-    assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("dana"), document.id, @noforn, stale())
+    assert_refused(Documents.change_marking(subject("dana"), document.id, @noforn, stale()), :change_marking)
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id, stale())
 
     assert {:ok, %Example.Marking{controls: [:no_foreign]}} =
@@ -46,8 +45,8 @@ defmodule Example.Scenarios.Identity do
     document = Fixture.document!(world)
 
     settle()
-    assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("dana"), document.id, @noforn)
-    assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(subject("dana"), document.id, @noforn, facts: %{})
+    assert_refused(Documents.change_marking(subject("dana"), document.id, @noforn), :change_marking)
+    assert_refused(Documents.change_marking(subject("dana"), document.id, @noforn, facts: %{}), :change_marking)
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id)
   end
 
@@ -97,8 +96,8 @@ defmodule Example.Scenarios.Identity do
 
     settle()
     assert {:ok, %Document{}} = Documents.override_read(gil, document.id, "incident 12")
-    assert {:error, %Error.NotAuthorized{}} = Documents.change_marking(gil, document.id, @noforn, fresh())
-    assert {:error, %Error.NotAuthorized{}} = Documents.decontrol(gil, document.id, fresh())
+    assert_refused(Documents.change_marking(gil, document.id, @noforn, fresh()), :change_marking)
+    assert_refused(Documents.decontrol(gil, document.id, fresh()), :decontrol)
     refute Turnstile.check(gil, :change_marking, Documents.object(document.id), fresh())
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id)
   end

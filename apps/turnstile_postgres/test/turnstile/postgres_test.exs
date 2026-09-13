@@ -30,13 +30,18 @@ defmodule Turnstile.PostgresTest do
   end
 
   test "with nothing bound every callback answers an engine error naming the callback" do
-    assert {:error, %Error.Engine{adapter: Postgres, operation: :authorize, detail: detail}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
              Postgres.authorize(@subject, :read, @object, environment(), [])
 
-    assert detail == "nothing bound and no override"
-    assert {:error, %Error.Engine{operation: :batch}} = Postgres.batch(@subject, :read, [@object], environment(), [])
-    assert {:error, %Error.Engine{operation: :scope}} = Postgres.scope(@subject, :read, :folder, environment(), [])
-    assert_raise Error.Invalid, fn -> Postgres.load!() end
+    assert detail == "#{inspect(Postgres)} failed during authorize: invalid binding: nothing bound and no override"
+
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Postgres failed during batch" <> _rest}} =
+             Postgres.batch(@subject, :read, [@object], environment(), [])
+
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Postgres failed during scope" <> _rest}} =
+             Postgres.scope(@subject, :read, :folder, environment(), [])
+
+    assert_raise Error, fn -> Postgres.load!() end
   end
 
   test "load! reads the catalog once, and a second call reads nothing" do
@@ -48,7 +53,7 @@ defmodule Turnstile.PostgresTest do
   end
 
   test "reload! reads the catalog again, for an application that ran a migration after boot" do
-    assert_raise Error.Invalid, fn -> Postgres.reload!() end
+    assert_raise Error, fn -> Postgres.reload!() end
 
     bind()
 
@@ -59,9 +64,10 @@ defmodule Turnstile.PostgresTest do
   test "a catalog the engine cannot read is an engine error naming the callback" do
     bind(migrations_table: "turnstile_no_such_table")
 
-    assert {:error, %Error.Engine{adapter: Postgres, operation: :authorize, detail: detail}} =
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
              Postgres.authorize(@subject, :read, @object, environment(), [])
 
+    assert detail =~ "Turnstile.Postgres failed during authorize"
     assert detail =~ "turnstile_no_such_table"
   end
 

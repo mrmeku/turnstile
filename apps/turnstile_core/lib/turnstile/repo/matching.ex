@@ -15,12 +15,11 @@ defmodule Turnstile.Repo.Matching do
   """
 
   alias Ecto.Query.JoinExpr
-  alias Turnstile.Error
   alias Turnstile.Repo.Caller
   alias Turnstile.Repo.Mediation
   alias Turnstile.Schema
 
-  @doc "Judge a query under a mediation; returns `:ok` or raises `Turnstile.Error.Unmediated`."
+  @doc "Judge a query under a mediation; returns `:ok` or raises `Turnstile.Error`."
   @spec judge(Ecto.Query.t(), Mediation.t() | nil, module()) :: :ok
   def judge(%Ecto.Query{} = query, mediation, repo) when is_atom(repo) do
     root = admit_source(query.from.source, mediation, repo)
@@ -28,7 +27,7 @@ defmodule Turnstile.Repo.Matching do
     :ok
   end
 
-  @doc "Admit one schema under a mediation; returns `:ok` or raises `Turnstile.Error.Unmediated`."
+  @doc "Admit one schema under a mediation; returns `:ok` or raises `Turnstile.Error`."
   @spec admit(module() | nil, Mediation.t() | nil, module()) :: :ok
   def admit(schema, mediation, repo) when is_atom(repo) do
     if admitted?(schema, mediation), do: :ok, else: refuse(schema, mediation, repo)
@@ -88,12 +87,13 @@ defmodule Turnstile.Repo.Matching do
   defp refuse(schema, mediation, repo) do
     {name, arity} = call(mediation)
 
-    raise Error.Unmediated,
-      function: name,
-      arity: arity,
-      schema: schema,
-      object_type: Mediation.object_type(mediation),
-      caller: caller(mediation, repo)
+    raise Mediation.unmediated(
+            function: name,
+            arity: arity,
+            schema: schema,
+            object_type: Mediation.object_type(mediation),
+            caller: caller(mediation, repo)
+          )
   end
 
   defp call(%Mediation{call: call}), do: call

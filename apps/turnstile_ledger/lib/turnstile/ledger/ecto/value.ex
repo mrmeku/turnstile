@@ -21,7 +21,7 @@ defmodule Turnstile.Ledger.Ecto.Value do
   def dump(value), do: %{"v" => out(value)}
 
   @doc "A column's value back to the term that was written."
-  @spec load(term()) :: {:ok, term()} | {:error, Error.Invalid.t()}
+  @spec load(term()) :: {:ok, term()} | {:error, Error.t()}
   def load(nil), do: {:ok, nil}
   def load(%{"v" => value}), do: back(value)
   def load(other), do: {:error, Edge.invalid(@what, "expected a value under \"v\", got: #{inspect(other)}")}
@@ -32,7 +32,7 @@ defmodule Turnstile.Ledger.Ecto.Value do
   def ref_dump({type, id}) when is_atom(type), do: %{"type" => Atom.to_string(type), "id" => out(id)}
 
   @doc "A column's reference back to `{type, id}`."
-  @spec ref_load(term()) :: {:ok, {atom(), term()} | nil} | {:error, Error.Invalid.t()}
+  @spec ref_load(term()) :: {:ok, {atom(), term()} | nil} | {:error, Error.t()}
   def ref_load(nil), do: {:ok, nil}
 
   def ref_load(%{"type" => type, "id" => id}) do
@@ -49,11 +49,11 @@ defmodule Turnstile.Ledger.Ecto.Value do
   defp out(%DateTime{} = value), do: %{"time" => DateTime.to_iso8601(value)}
 
   defp out(%module{}) do
-    raise Error.Invalid,
-      what: @what,
-      detail:
-        "no encoding for #{inspect(module)}; a fact value is a string, a number, a boolean, an atom, " <>
-          "a time, a list, or a map of them"
+    raise Error.invalid(
+            @what,
+            "no encoding for #{inspect(module)}; a fact value is a string, a number, a boolean, an atom, " <>
+              "a time, a list, or a map of them"
+          )
   end
 
   defp out(value) when is_atom(value), do: %{"atom" => Atom.to_string(value)}

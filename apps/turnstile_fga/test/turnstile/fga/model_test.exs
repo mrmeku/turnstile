@@ -113,38 +113,40 @@ defmodule Turnstile.Fga.ModelTest do
   end
 
   test "a definition that mixes operators without parentheses is an error, not a guess" do
-    assert {:error, %Error.Invalid{what: :model, detail: detail}} =
+    assert {:error, %Error{reason: :invalid, detail: "invalid model: " <> detail}} =
              Model.compile("model\nschema 1.1\n\ntype folder\n  relations\n    define a: b or c but not d\n")
 
     assert detail =~ "parentheses"
   end
 
   test "a model whose first lines are not the model and the schema is an error" do
-    assert {:error, %Error.Invalid{detail: detail}} = Model.compile("type user\n")
+    assert {:error, %Error{reason: :invalid, detail: detail}} = Model.compile("type user\n")
     assert detail =~ "opens with a model line"
   end
 
   test "a schema this module does not compile is an error naming both versions" do
-    assert {:error, %Error.Invalid{detail: detail}} = Model.compile("model\nschema 1.2\n")
+    assert {:error, %Error{reason: :invalid, detail: detail}} = Model.compile("model\nschema 1.2\n")
     assert detail =~ "1.2"
     assert detail =~ Model.schema_version()
   end
 
   test "a line outside a type and a condition, a define with no colon, and a stray line are errors" do
-    assert {:error, %Error.Invalid{detail: outside}} = Model.compile("model\nschema 1.1\nreader\n")
+    assert {:error, %Error{reason: :invalid, detail: outside}} = Model.compile("model\nschema 1.1\nreader\n")
     assert outside =~ "outside a type"
 
-    assert {:error, %Error.Invalid{detail: colon}} =
+    assert {:error, %Error{reason: :invalid, detail: colon}} =
              Model.compile("model\nschema 1.1\ntype folder\n  relations\n    define reader\n")
 
     assert colon =~ "no definition after a colon"
 
-    assert {:error, %Error.Invalid{detail: stray}} = Model.compile("model\nschema 1.1\ntype folder\n  reader: [user]\n")
+    assert {:error, %Error{reason: :invalid, detail: stray}} =
+             Model.compile("model\nschema 1.1\ntype folder\n  reader: [user]\n")
+
     assert stray =~ "neither relations nor a define"
   end
 
   test "a direct list that is not closed is an error" do
-    assert {:error, %Error.Invalid{detail: detail}} =
+    assert {:error, %Error{reason: :invalid, detail: detail}} =
              Model.compile("model\nschema 1.1\ntype folder\n  relations\n    define reader: [user\n")
 
     assert detail =~ "not closed by"
@@ -164,13 +166,17 @@ defmodule Turnstile.Fga.ModelTest do
   end
 
   test "a condition the regular shape does not fit, a parameter with no type, and an unknown type are errors" do
-    assert {:error, %Error.Invalid{detail: shape}} = Model.compile("model\nschema 1.1\ncondition c at < now }\n")
+    assert {:error, %Error{reason: :invalid, detail: shape}} =
+             Model.compile("model\nschema 1.1\ncondition c at < now }\n")
+
     assert shape =~ "a condition is a name"
 
-    assert {:error, %Error.Invalid{detail: untyped}} = Model.compile("model\nschema 1.1\ncondition c(at) { true }\n")
+    assert {:error, %Error{reason: :invalid, detail: untyped}} =
+             Model.compile("model\nschema 1.1\ncondition c(at) { true }\n")
+
     assert untyped =~ "names no type after a colon"
 
-    assert {:error, %Error.Invalid{detail: unknown}} =
+    assert {:error, %Error{reason: :invalid, detail: unknown}} =
              Model.compile("model\nschema 1.1\ncondition c(at: money) { true }\n")
 
     assert unknown =~ "not a parameter type"
@@ -182,12 +188,12 @@ defmodule Turnstile.Fga.ModelTest do
   end
 
   test "a file that is not there is an error naming it" do
-    assert {:error, %Error.Invalid{detail: detail}} = Model.read("priv/conformance/absent.fga")
+    assert {:error, %Error{reason: :invalid, detail: detail}} = Model.read("priv/conformance/absent.fga")
     assert detail =~ "priv/conformance/absent.fga"
   end
 
   test "compiling text that does not read raises the error" do
-    assert_raise Error.Invalid, fn -> Model.compile!("type user\n") end
-    assert_raise Error.Invalid, fn -> Model.read!("priv/conformance/absent.fga") end
+    assert_raise Error, fn -> Model.compile!("type user\n") end
+    assert_raise Error, fn -> Model.read!("priv/conformance/absent.fga") end
   end
 end

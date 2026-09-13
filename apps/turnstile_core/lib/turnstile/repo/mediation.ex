@@ -104,6 +104,18 @@ defmodule Turnstile.Repo.Mediation do
     end
   end
 
+  @doc """
+  The error a call the seam refuses makes: the function and its arity, the
+  root source, the decision's object type where one was given, the caller
+  where the seam could read it, and a detail where the reason is not the
+  plain one.
+  """
+  @spec unmediated(keyword()) :: Error.t()
+  def unmediated(parts) when is_list(parts) do
+    call = "Repo.#{parts[:function]}/#{parts[:arity]}"
+    %Error{reason: :unmediated, detail: call <> target(parts[:schema]) <> " " <> why(parts) <> from(parts[:caller])}
+  end
+
   @doc "A mediation with no decision and no exemption, so a refusal can name the call."
   @spec empty(call()) :: t()
   def empty(call), do: %__MODULE__{call: call, decision: nil, exemption: nil, caller: nil, carried: []}
@@ -136,11 +148,7 @@ defmodule Turnstile.Repo.Mediation do
   defp restore(%__MODULE__{} = previous), do: Process.put(__MODULE__, previous)
 
   defp resolved(_repo, _call, _root, _opts, %Decision{verdict: :deny} = decision) do
-    raise Error.NotAuthorized,
-      subject: decision.subject,
-      operation: decision.operation,
-      object: decision.object,
-      reason: decision.reason
+    raise Error.denied(decision.subject, decision.operation, decision.object, decision.reason)
   end
 
   defp resolved(_repo, call, root, opts, %Decision{} = decision) do
@@ -164,12 +172,13 @@ defmodule Turnstile.Repo.Mediation do
     else
       {name, arity} = call
 
-      raise Error.Unmediated,
-        function: name,
-        arity: arity,
-        schema: schema_of(root),
-        caller: caller,
-        detail: "{:exempt, :library} is accepted only from a Turnstile.* caller"
+      raise unmediated(
+              function: name,
+              arity: arity,
+              schema: schema_of(root),
+              caller: caller,
+              detail: "{:exempt, :library} is accepted only from a Turnstile.* caller"
+            )
     end
   end
 
@@ -208,6 +217,20 @@ defmodule Turnstile.Repo.Mediation do
   end
 
   defp carried(_root, _decision), do: []
+
+  defp target(nil), do: ""
+  defp target(schema), do: " on " <> inspect(schema)
+
+  defp why(parts) do
+    case {parts[:detail], parts[:object_type]} do
+      {detail, _type} when is_binary(detail) -> detail
+      {nil, nil} -> "carries no decision and no exemption"
+      {nil, type} -> "carries a decision for #{inspect(type)}, which does not cover it"
+    end
+  end
+
+  defp from(caller) when is_atom(caller) and caller not in [nil, :any], do: " (from #{inspect(caller)})"
+  defp from(_caller), do: ""
 
   defp schema_of(root) when is_atom(root), do: root
   defp schema_of(_root), do: nil

@@ -67,7 +67,7 @@ defmodule Turnstile.Cerbos.Binding do
   def options_schema, do: @schema
 
   @doc "Validate the options into the struct."
-  @spec new(keyword()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec new(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def new(options) when is_list(options) do
     with {:ok, validated} <- validate(options),
          :ok <- declares?(validated[:attributes]) do
@@ -76,7 +76,7 @@ defmodule Turnstile.Cerbos.Binding do
   end
 
   @doc "Validate once at boot and keep the binding for `resolve/0`."
-  @spec bind(keyword()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec bind(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def bind(options) when is_list(options) do
     with {:ok, %__MODULE__{} = binding} <- new(options) do
       :persistent_term.put(__MODULE__, binding)
@@ -115,7 +115,7 @@ defmodule Turnstile.Cerbos.Binding do
   end
 
   @doc "The boot binding under the calling process's overrides, or an error when neither exists."
-  @spec resolve() :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec resolve() :: {:ok, t()} | {:error, Error.t()}
   def resolve do
     overrides = overrides()
 
@@ -173,7 +173,7 @@ defmodule Turnstile.Cerbos.Binding do
     end
   end
 
-  defp invalid(detail), do: %Error.Invalid{what: :binding, detail: detail}
+  defp invalid(detail), do: Error.invalid(:binding, detail)
 
   # The override is read from the calling process, then from each process in
   # its `$callers` chain, nearest first; the first one found wins.

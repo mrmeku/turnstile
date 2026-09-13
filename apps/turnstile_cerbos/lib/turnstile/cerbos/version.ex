@@ -39,7 +39,7 @@ defmodule Turnstile.Cerbos.Version do
   def ref(%Binding{commit: commit}), do: commit
 
   @doc "The policy files of the bound directory, by path relative to it, sorted."
-  @spec files(Binding.t()) :: {:ok, [{Path.t(), String.t()}]} | {:error, Error.Invalid.t()}
+  @spec files(Binding.t()) :: {:ok, [{Path.t(), String.t()}]} | {:error, Error.t()}
   def files(%Binding{policies: directory}) do
     paths =
       directory
@@ -53,7 +53,7 @@ defmodule Turnstile.Cerbos.Version do
   end
 
   @doc "The policy files as one text, each preceded by its path."
-  @spec content(Binding.t()) :: {:ok, String.t()} | {:error, Error.Invalid.t()}
+  @spec content(Binding.t()) :: {:ok, String.t()} | {:error, Error.t()}
   def content(%Binding{} = binding) do
     with {:ok, files} <- files(binding), do: {:ok, to_text(files)}
   end
@@ -77,7 +77,7 @@ defmodule Turnstile.Cerbos.Version do
   def content_hash(text) when is_binary(text), do: Base.encode16(:crypto.hash(:sha256, text), case: :lower)
 
   @doc "The version as the ledger records it for `adapter`, with the content by value when under the cap."
-  @spec of(module(), Binding.t(), Config.t(), DateTime.t()) :: {:ok, PolicyVersion.t()} | {:error, Error.Invalid.t()}
+  @spec of(module(), Binding.t(), Config.t(), DateTime.t()) :: {:ok, PolicyVersion.t()} | {:error, Error.t()}
   def of(adapter, %Binding{} = binding, %Config{caps: caps}, %DateTime{} = at) when is_atom(adapter) do
     with {:ok, text} <- content(binding) do
       under_cap? = byte_size(text) <= caps[:policy_content_bytes]
@@ -102,7 +102,7 @@ defmodule Turnstile.Cerbos.Version do
   already names it, `{:ok, :telemetry}` in ledger mode none.
   """
   @spec publish(module()) ::
-          {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.Invalid.t() | Error.Engine.t()}
+          {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
   def publish(adapter) when is_atom(adapter) do
     with {:ok, %Binding{} = binding} <- Binding.resolve(),
          {:ok, %Config{} = config} <- Config.resolve(),
@@ -135,7 +135,7 @@ defmodule Turnstile.Cerbos.Version do
 
   defp pointer(%Binding{policies: directory, commit: commit}), do: "policies in #{directory} at #{commit}"
 
-  defp invalid(detail), do: %Error.Invalid{what: :policies, detail: detail}
+  defp invalid(detail), do: Error.invalid(:policies, detail)
 
   defp published(%PolicyVersion{}, :none), do: {:ok, :telemetry}
 
@@ -169,7 +169,7 @@ defmodule Turnstile.Cerbos.Version do
 
     case ledger.append(options, [event]) do
       {:ok, [appended]} -> {:ok, appended}
-      {:error, %Error.Engine{} = error} -> {:error, error}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
     end
   end
 
@@ -180,7 +180,7 @@ defmodule Turnstile.Cerbos.Version do
     case ledger.read(options, from, @page) do
       {:ok, []} -> {:ok, found}
       {:ok, events} -> latest(ledger, options, adapter, List.last(events).position, newest(events, adapter, found))
-      {:error, %Error.Engine{} = error} -> {:error, error}
+      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
     end
   end
 

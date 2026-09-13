@@ -4,8 +4,8 @@ defmodule Turnstile.Adapter do
   an operation, an object or object type, the environment, and the adapter's
   validated options; the adapter answers and never raises on the request
   path. `explain/5` and `around_query/3` are optional and answered at runtime:
-  the port checks whether the adapter exports them and returns
-  `Turnstile.Error.Unsupported` when it does not, so one build serves every
+  the port checks whether the adapter exports them and answers an error
+  with the reason `:unsupported` when it does not, so one build serves every
   adapter. A rule that narrows and an answer that explains are the same two
   values everywhere: `scope/5` answers the rule with its answer, and
   `explain/5` answers with what matched on the answer's `meta`.
@@ -22,7 +22,7 @@ defmodule Turnstile.Adapter do
   alias Turnstile.Error
 
   @type options :: keyword()
-  @type failure :: {:error, Error.Engine.t()}
+  @type failure :: {:error, Error.t()}
 
   @typedoc "What `scope/5` answers: the rule as a dynamic, and the answer that goes with it."
   @type scoped :: {Ecto.Query.dynamic_expr(), Answer.t()}
@@ -44,7 +44,7 @@ defmodule Turnstile.Adapter do
 
   @doc "The answer with what produced it under `meta[:matched]`, where the adapter can say."
   @callback explain(Turnstile.subject(), atom(), Turnstile.object(), Environment.t(), options()) ::
-              {:ok, Answer.t()} | {:error, Error.Unsupported.t() | Error.Engine.t()}
+              {:ok, Answer.t()} | {:error, Error.t() | Error.t()}
 
   @doc """
   Wrap a mediated call: the query or changeset, the decision in force, and
@@ -72,7 +72,7 @@ defmodule Turnstile.Adapter do
   callback undefined says. A caller with facts to settle drains this to the
   ledger's head; `Turnstile.Test.settle/0` is that caller in the suite.
   """
-  @callback projection() :: {:ok, {module(), struct()}} | :none | {:error, Error.Invalid.t() | Error.Unsupported.t()}
+  @callback projection() :: {:ok, {module(), struct()}} | :none | {:error, Error.t()}
 
   @optional_callbacks explain: 5, around_query: 3, options_schema: 0, projection: 0
 end

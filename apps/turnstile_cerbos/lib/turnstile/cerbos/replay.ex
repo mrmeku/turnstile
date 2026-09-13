@@ -75,7 +75,7 @@ defmodule Turnstile.Cerbos.Replay do
   decision holds, with the attribute values the caller folded: `principal`
   for the subject, `resource` for the object.
   """
-  @spec ask(Client.address(), Decision.t(), map(), map()) :: {:ok, Answer.t()} | {:error, Error.Engine.t()}
+  @spec ask(Client.address(), Decision.t(), map(), map()) :: {:ok, Answer.t()} | {:error, Error.t()}
   def ask(address, %Decision{} = decision, principal, resource)
       when is_binary(address) and is_map(principal) and is_map(resource) do
     body = Request.check(decision.subject, decision.operation, principal, [{decision.object, resource}])
@@ -86,7 +86,7 @@ defmodule Turnstile.Cerbos.Replay do
   The answer the sidecar at the address gives to the question one line of a
   decision log holds, sent as that line holds it.
   """
-  @spec ask(Client.address(), Line.t()) :: {:ok, Answer.t()} | {:error, Error.Engine.t()}
+  @spec ask(Client.address(), Line.t()) :: {:ok, Answer.t()} | {:error, Error.t()}
   def ask(address, %Line{} = line) when is_binary(address) do
     principal = %{id: line.subject, roles: line.roles, attr: line.principal}
     resource = %{kind: line.kind, id: line.id, attr: line.resource}
@@ -120,5 +120,7 @@ defmodule Turnstile.Cerbos.Replay do
     File.write!(full, text)
   end
 
-  defp engine(detail), do: %Error.Engine{adapter: Turnstile.Cerbos, operation: :replay, detail: detail}
+  defp engine(detail) do
+    %Error{reason: :engine_unreachable, detail: "#{inspect(Turnstile.Cerbos)} failed during replay: #{detail}"}
+  end
 end

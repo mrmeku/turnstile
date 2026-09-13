@@ -10,7 +10,7 @@ defmodule Turnstile.Ledger do
   alias Turnstile.FactEvent
 
   @type options :: keyword()
-  @type failure :: {:error, Error.Engine.t()}
+  @type failure :: {:error, Error.t()}
 
   @doc "Append events in order; the events come back with their positions stamped."
   @callback append(options(), [FactEvent.t()]) :: {:ok, [FactEvent.t()]} | failure()

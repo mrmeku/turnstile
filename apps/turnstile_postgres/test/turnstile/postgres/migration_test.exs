@@ -131,8 +131,11 @@ defmodule Turnstile.Postgres.MigrationTest do
   end
 
   test "a name that is not a plain identifier never reaches a statement" do
-    assert %Error.Invalid{what: :table} = catch_error(Migration.protect!(Owner, "rows; DROP TABLE #{@table}"))
-    assert %Error.Invalid{what: :role} = catch_error(Migration.grant!(Owner, table: @table, to: "a b", commands: []))
+    assert %Error{reason: :invalid, detail: "invalid table: " <> _rest} =
+             catch_error(Migration.protect!(Owner, "rows; DROP TABLE #{@table}"))
+
+    assert %Error{reason: :invalid, detail: "invalid role: " <> _rest} =
+             catch_error(Migration.grant!(Owner, table: @table, to: "a b", commands: []))
   end
 
   defp policies, do: Catalog.policies!(Owner, [@table])

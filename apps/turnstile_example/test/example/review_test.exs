@@ -83,7 +83,7 @@ defmodule Example.ReviewTest do
   end
 
   test "a past date with no ledger behind it raises rather than answering for today" do
-    assert_raise Error.Unsupported, ~r/point_in_time_review/, fn -> Review.rows(at: ~D[2026-03-05]) end
+    assert_raise Error, ~r/point-in-time review/, fn -> Review.rows(at: ~D[2026-03-05]) end
   end
 
   test "the reviewer names the record and no account" do

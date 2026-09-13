@@ -23,7 +23,9 @@ defmodule Turnstile.PortTest do
     @impl Turnstile.Ledger
     def head(_options), do: {:error, down(:head)}
 
-    defp down(operation), do: %Error.Engine{adapter: __MODULE__, operation: operation, detail: "ledger down"}
+    defp down(operation) do
+      %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{operation}: ledger down"}
+    end
   end
 
   defmodule Explaining do
@@ -120,7 +122,7 @@ defmodule Turnstile.PortTest do
   end
 
   test "an unknown subject kind is denied before the adapter is asked, under the unknown span" do
-    assert {:error, %Error.NotAuthorized{reason: :unknown_subject_kind}} =
+    assert {:error, %Error{reason: :unknown_subject_kind}} =
              Port.authorize(@robot, :read, @folder, [])
 
     assert Port.batch(@robot, :read, [@folder], []) == %{{:folder, 1} => :deny}
@@ -134,7 +136,7 @@ defmodule Turnstile.PortTest do
     :ok = Turnstile.Test.with_config(ledger: {DownLedger, []})
     assert Port.check(@user, :read, @folder, []) == false
 
-    assert {:error, %Error.NotAuthorized{reason: :engine_unreachable}} =
+    assert {:error, %Error{reason: :engine_unreachable}} =
              Port.authorize(@user, :read, @folder, [])
 
     assert Port.batch(@user, :read, [@folder], []) == %{{:folder, 1} => :deny}
@@ -145,11 +147,12 @@ defmodule Turnstile.PortTest do
   test "an engine error from the adapter denies with the detail as the reason", %{rules: rules} do
     :ok = Fake.fail(rules, "engine down")
 
-    assert {:error, %Error.NotAuthorized{reason: :engine_unreachable, detail: detail} = error} =
+    assert {:error, %Error{reason: :engine_unreachable} = error} =
              Port.authorize(@user, :read, @folder, [])
 
-    assert detail == "engine down"
-    assert Exception.message(error) =~ "engine down"
+    assert Exception.message(error) ==
+             "user acct-a may not read {:folder, 1}: engine_unreachable " <>
+               "(#{inspect(Fake)} failed during authorize: engine down)"
   end
 
   test "batch and filter share one record listing verdicts per object and the ids in order" do
@@ -194,10 +197,11 @@ defmodule Turnstile.PortTest do
   end
 
   test "explain answers unsupported from an adapter that says so or defines no explain" do
-    assert {:error, %Error.Unsupported{feature: :explain}} = Port.explain(@user, :read, @folder, [])
+    assert {:error, %Error{reason: :unsupported, detail: named}} = Port.explain(@user, :read, @folder, [])
+    assert named =~ "does not support explain"
     :ok = Turnstile.Test.with_config(adapter: Silent)
-    assert {:error, %Error.Unsupported{adapter: Silent, note: note}} = Port.explain(@user, :read, @folder, [])
-    assert note =~ "explain/5"
+    assert {:error, %Error{reason: :unsupported, detail: detail}} = Port.explain(@user, :read, @folder, [])
+    assert detail =~ "Silent does not support explain/5"
   end
 
   test "explain returns the answer with what matched and a decision, denied closed when it cannot reach" do

@@ -28,7 +28,7 @@ defmodule Turnstile.Cerbos.Decisions do
   alias Turnstile.Error
 
   @doc "Every answer the log at the path holds, in the order the file holds them."
-  @spec lines(Path.t()) :: {:ok, [Line.t()]} | {:error, Error.Invalid.t()}
+  @spec lines(Path.t()) :: {:ok, [Line.t()]} | {:error, Error.t()}
   def lines(path) when is_binary(path) do
     with {:ok, text} <- read(path) do
       parsed(text, path)
@@ -36,7 +36,7 @@ defmodule Turnstile.Cerbos.Decisions do
   end
 
   @doc "Every difference between the log at the path and the decisions the port recorded."
-  @spec reconcile(Path.t(), [Decision.t()]) :: {:ok, [Finding.t()]} | {:error, Error.Invalid.t()}
+  @spec reconcile(Path.t(), [Decision.t()]) :: {:ok, [Finding.t()]} | {:error, Error.t()}
   def reconcile(path, decisions) when is_binary(path) and is_list(decisions) do
     with {:ok, lines} <- lines(path) do
       {found, left} = Enum.map_reduce(lines, Enum.group_by(decisions, &key/1), &compared/2)
@@ -130,5 +130,5 @@ defmodule Turnstile.Cerbos.Decisions do
 
   defp message(reason), do: to_string(:file.format_error(reason))
 
-  defp invalid(detail), do: %Error.Invalid{what: :decision_log, detail: detail}
+  defp invalid(detail), do: Error.invalid(:decision_log, detail)
 end

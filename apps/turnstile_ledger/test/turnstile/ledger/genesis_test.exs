@@ -43,7 +43,7 @@ defmodule Turnstile.Ledger.GenesisTest do
   test "genesis backfills the tables once and never beside events it did not write", context do
     {:ok, 3} = Genesis.run(options(context), @schemas, migration: @migration)
 
-    assert {:error, %Error.Invalid{what: :genesis, detail: detail}} =
+    assert {:error, %Error{reason: :invalid, detail: "invalid genesis: " <> detail}} =
              Genesis.run(options(context), @schemas, migration: @migration)
 
     assert detail =~ "the ledger already holds 3 events"
@@ -56,7 +56,7 @@ defmodule Turnstile.Ledger.GenesisTest do
   test "genesis through a ledger that names no owner repo says why it cannot write", context do
     options = Keyword.delete(options(context), :owner_repo)
 
-    assert_raise Error.Invalid, ~r/name no owner_repo/, fn ->
+    assert_raise Error, ~r/name no owner_repo/, fn ->
       Genesis.run(options, @schemas, migration: @migration)
     end
   end

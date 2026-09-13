@@ -85,7 +85,9 @@ defmodule Turnstile.Fga.ProjectorTest do
     _events = granted_and_cleared(context)
     :ok = Fake.fail_after(context.agent, 1)
 
-    assert {:error, %Error.Engine{operation: :write}} = Projector.drain_once(context.projector)
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during write" <> _rest}} =
+             Projector.drain_once(context.projector)
+
     assert Projector.checkpoint(context.projector) == {:ok, 1}
     assert Fake.tuples(context.agent, context.store) == [reader(World.cleared())]
 
@@ -118,7 +120,9 @@ defmodule Turnstile.Fga.ProjectorTest do
     _changed = Probe.append(context.ledger, [Probe.clearance("ann", World.cleared(), "secret")])
     :ok = Fake.fail_after(context.agent, 3)
 
-    assert {:error, %Error.Engine{operation: :write}} = Projector.drain_once(context.projector)
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during write" <> _rest}} =
+             Projector.drain_once(context.projector)
+
     assert Projector.checkpoint(context.projector) == {:ok, 2}
     assert Fake.tuples(context.agent, context.store) == [member("secret")]
 
@@ -147,7 +151,8 @@ defmodule Turnstile.Fga.ProjectorTest do
     _events = Probe.append(context.ledger, cleared ++ grants)
     :ok = Fake.fail_after(context.agent, 1)
 
-    assert {:error, %Error.Engine{operation: :write}} = Projector.drain_once(projector)
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during write" <> _rest}} =
+             Projector.drain_once(projector)
 
     assert [%Write{deletes: [], writes: [_first, _second]}, %Write{deletes: [], writes: [_third]}] =
              Fake.writes(context.agent)
@@ -206,11 +211,12 @@ defmodule Turnstile.Fga.ProjectorTest do
     {:ok, projector} = projector(context.agent, "store-404", context.ledger, [])
     _events = granted_and_cleared(context)
 
-    assert {:error, %Error.Engine{operation: :read}} = Projector.drain_once(projector)
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during read" <> _rest}} =
+             Projector.drain_once(projector)
   end
 
   test "configuration that does not validate is an invalid error, and the schema is the projector's", context do
-    assert {:error, %Error.Invalid{what: :projector, detail: detail}} =
+    assert {:error, %Error{reason: :invalid, detail: "invalid projector: " <> detail}} =
              projector(context.agent, context.store, context.ledger, batch: 0)
 
     assert detail =~ "batch"

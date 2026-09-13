@@ -46,7 +46,7 @@ defmodule Turnstile.Ledger.Reconcile.Scheduler do
   end
 
   @doc "Run one pass now and answer what it found, without waiting for the interval."
-  @spec pass(keyword()) :: {:ok, Drift.t()} | {:error, Turnstile.Error.Engine.t()}
+  @spec pass(keyword()) :: {:ok, Drift.t()} | {:error, Turnstile.Error.t()}
   def pass(options) when is_list(options) do
     result = Reconcile.run(options[:ledger], options[:schemas])
     :ok = emit(result)

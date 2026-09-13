@@ -81,10 +81,11 @@ defmodule ExampleRbac.Rules do
     if running == version.version do
       :ok
     else
-      raise %Error.Unsupported{
-        adapter: Turnstile.Code,
-        feature: :replay,
-        note: "the running release is at #{running} and the replay names #{version.version}: check out that commit"
+      raise %Error{
+        reason: :unsupported,
+        detail:
+          "Turnstile.Code cannot replay: the running release is at #{running} and the replay names " <>
+            "#{version.version}, so check out that commit"
       }
     end
   end

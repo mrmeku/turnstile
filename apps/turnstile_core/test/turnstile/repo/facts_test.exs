@@ -153,12 +153,12 @@ defmodule Turnstile.Repo.FactsTest do
 
   test "an object column that names no object type is a mapping error" do
     error =
-      assert_raise(Error.Invalid, fn ->
+      assert_raise(Error, fn ->
         Facts.events(Untyped, nil, %Untyped{user_id: "u1", thing_id: "x"}, @stamp)
       end)
 
-    assert error.what == :fact_mapping
-    assert Exception.message(error) =~ "Untyped.thing_id names no object type"
+    assert %Error{reason: :invalid} = error
+    assert Exception.message(error) =~ "invalid fact_mapping: #{inspect(Untyped)}.thing_id names no object type"
   end
 
   test "touched/2 keeps the fields a bulk write names that are fact columns" do

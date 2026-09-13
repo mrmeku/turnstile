@@ -7,8 +7,8 @@ defmodule Turnstile.Adapter.Fake do
   allowed. Without a table the fake answers with the `verdict` option,
   `:deny` unless said otherwise. It returns a value of the real type
   everywhere the real adapters do: `scope` returns a real `dynamic`,
-  `explain` returns `Turnstile.Error.Unsupported`, and a table told to
-  `fail/2` answers every call with `Turnstile.Error.Engine`, so the port's
+  `explain` answers the reason `:unsupported`, and a table told to
+  `fail/2` answers every call with the reason `:engine_unreachable`, so the port's
   fail-closed path runs against it.
   """
 
@@ -111,7 +111,7 @@ defmodule Turnstile.Adapter.Fake do
 
   @impl Turnstile.Adapter
   def explain({_kind, _account}, operation, {_type, _id}, %Environment{}, _options) when is_atom(operation) do
-    {:error, %Error.Unsupported{adapter: __MODULE__, feature: :explain, note: "the fake names no rule"}}
+    {:error, %Error{reason: :unsupported, detail: "#{inspect(__MODULE__)} does not support explain: it names no rule"}}
   end
 
   @doc "The answer the fake gives with no table bound; the fake names no rule, so nothing explains it."
@@ -126,7 +126,7 @@ defmodule Turnstile.Adapter.Fake do
 
   # The table's state, the constant verdict as a table with one wildcard or
   # none, or the failure the table was told to give.
-  @spec state(keyword(), atom()) :: {:ok, state() | :allow | :deny} | {:error, Error.Engine.t()}
+  @spec state(keyword(), atom()) :: {:ok, state() | :allow | :deny} | {:error, Error.t()}
   defp state(options, operation) do
     case Keyword.fetch(options, :rules) do
       {:ok, rules} -> read(Agent.get(rules, & &1), operation)
@@ -137,7 +137,7 @@ defmodule Turnstile.Adapter.Fake do
   defp read(%{failure: nil} = state, _operation), do: {:ok, state}
 
   defp read(%{failure: detail}, operation) do
-    {:error, %Error.Engine{adapter: __MODULE__, operation: operation, detail: detail}}
+    {:error, %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{operation}: #{detail}"}}
   end
 
   defp decide(verdict, _subject, _operation, _object) when is_atom(verdict), do: answer_for(verdict)

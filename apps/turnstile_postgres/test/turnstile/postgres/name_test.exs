@@ -12,14 +12,14 @@ defmodule Turnstile.Postgres.NameTest do
 
   test "anything that would need quoting is refused, and the error names what was being named" do
     for refused <- ["Folders", "folders; drop table x", "folder-1", "1folder", "", "folders\"x"] do
-      assert_raise Error.Invalid, fn -> Name.check!(refused, :table) end
+      assert_raise Error, fn -> Name.check!(refused, :table) end
     end
 
-    assert %Error.Invalid{what: :policy} = catch_error(Name.check!("A", :policy))
+    assert %Error{reason: :invalid, detail: "invalid policy: " <> _rest} = catch_error(Name.check!("A", :policy))
   end
 
   test "a name longer than the identifier limit is refused" do
-    assert_raise Error.Invalid, fn -> Name.check!(String.duplicate("a", 64), :table) end
+    assert_raise Error, fn -> Name.check!(String.duplicate("a", 64), :table) end
     assert Name.check!(String.duplicate("a", 63), :table) == String.duplicate("a", 63)
   end
 end

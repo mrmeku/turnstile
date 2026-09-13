@@ -79,10 +79,10 @@ defmodule Turnstile.Repo.Seam do
         continue.(opts)
 
       {%Mediation{decision: %Decision{}}, _opts} ->
-        raise Error.Invalid, what: :turnstile, detail: "Repo.#{name}/#{arity} takes an exemption, not a decision"
+        raise Error.invalid(:turnstile, "Repo.#{name}/#{arity} takes an exemption, not a decision")
 
       {%Mediation{}, _opts} ->
-        raise Error.Unmediated, function: name, arity: arity, schema: nil, caller: Caller.module(repo)
+        raise Mediation.unmediated(function: name, arity: arity, schema: nil, caller: Caller.module(repo))
     end
   end
 
@@ -185,9 +185,16 @@ defmodule Turnstile.Repo.Seam do
 
   defp in_transaction(repo, fun) do
     case repo.transaction(fn -> settle(repo, fun.()) end) do
-      {:ok, result} -> result
-      {:error, {__MODULE__, result}} -> result
-      {:error, other} -> raise Error.Engine, adapter: repo, detail: "transaction failed: " <> inspect(other)
+      {:ok, result} ->
+        result
+
+      {:error, {__MODULE__, result}} ->
+        result
+
+      {:error, other} ->
+        raise Error,
+          reason: :engine_unreachable,
+          detail: "#{inspect(repo)} failed during a transaction: " <> inspect(other)
     end
   end
 
@@ -208,10 +215,11 @@ defmodule Turnstile.Repo.Seam do
 
   defp refuse_upsert({name, arity}, schema, opts) do
     if Schema.fact_schema?(schema) and Keyword.get(opts, :on_conflict, :raise) != :raise do
-      raise Error.Invalid,
-        what: :upsert,
-        detail:
-          "Repo.#{name}/#{arity} with on_conflict: on #{inspect(schema)} is an upsert of fact fields; use " <> @bulk_api
+      raise Error.invalid(
+              :upsert,
+              "Repo.#{name}/#{arity} with on_conflict: on #{inspect(schema)} is an upsert of fact fields; use " <>
+                @bulk_api
+            )
     else
       :ok
     end
@@ -233,9 +241,10 @@ defmodule Turnstile.Repo.Seam do
         :ok
 
       true ->
-        raise Error.Invalid,
-          what: :bulk_write,
-          detail: "Repo.#{name}/#{arity} on #{inspect(schema)} touches fact fields #{inspect(fields)}; use " <> @bulk_api
+        raise Error.invalid(
+                :bulk_write,
+                "Repo.#{name}/#{arity} on #{inspect(schema)} touches fact fields #{inspect(fields)}; use " <> @bulk_api
+              )
     end
   end
 

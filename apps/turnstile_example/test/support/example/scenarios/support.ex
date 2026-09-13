@@ -29,10 +29,18 @@ defmodule Example.Scenarios.Support do
   end
 
   @doc "Assert the context refused the read with the port's error."
-  @spec assert_denied(Turnstile.subject(), Example.Document.t(), keyword()) :: Error.NotAuthorized.t()
+  @spec assert_denied(Turnstile.subject(), Example.Document.t(), keyword()) :: Error.t()
   def assert_denied({_kind, _account} = subject, %Example.Document{id: id}, opts \\ []) do
-    assert {:error, %Error.NotAuthorized{} = error} = Documents.read(subject, id, opts)
+    error = assert_refused(Documents.read(subject, id, opts), :read)
     refute reads?(subject, %Example.Document{id: id})
+    error
+  end
+
+  @doc "Assert the port refused the call the result came from, naming the operation it refused."
+  @spec assert_refused(term(), atom()) :: Error.t()
+  def assert_refused(result, operation) when is_atom(operation) do
+    assert {:error, %Error{} = error} = result
+    assert Exception.message(error) =~ "may not #{operation}"
     error
   end
 

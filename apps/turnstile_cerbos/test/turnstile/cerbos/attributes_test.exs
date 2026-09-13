@@ -55,8 +55,10 @@ defmodule Turnstile.Cerbos.AttributesTest do
   test "the name the request-time facts travel under is not a name a declaration may take" do
     assert Attribute.reserved() == :environment
 
-    assert {:error, %Error.Invalid{what: :attribute} = error} = Attribute.new(:environment, column: :environment)
-    assert error.detail == "attribute environment is the name the request-time facts travel under"
+    assert {:error, %Error{reason: :invalid, detail: "invalid attribute: " <> detail}} =
+             Attribute.new(:environment, column: :environment)
+
+    assert detail == "attribute environment is the name the request-time facts travel under"
   end
 
   test "an environment block declares a fact and refuses anything else" do
@@ -95,20 +97,22 @@ defmodule Turnstile.Cerbos.AttributesTest do
     assert {:ok, %Attribute{} = subquery} = Attribute.new(:roles, subquery: &Memberships.folder_roles_for/1)
     refute Attribute.column?(subquery)
 
-    assert {:error, %Error.Invalid{what: :attribute} = neither} = Attribute.new(:nothing, [])
-    assert neither.detail == "attribute nothing names neither a column nor a subquery"
+    assert {:error, %Error{reason: :invalid, detail: "invalid attribute: " <> neither}} = Attribute.new(:nothing, [])
+    assert neither == "attribute nothing names neither a column nor a subquery"
 
     both = [column: :clearance, subquery: &Memberships.folder_roles_for/1]
-    assert {:error, %Error.Invalid{} = error} = Attribute.new(:both, both)
-    assert error.detail == "attribute both names both a column and a subquery"
+    assert {:error, %Error{reason: :invalid, detail: "invalid attribute: " <> detail}} = Attribute.new(:both, both)
+    assert detail == "attribute both names both a column and a subquery"
   end
 
   test "an option the schema does not accept is an error naming the attribute" do
-    assert {:error, %Error.Invalid{what: :attribute} = error} = Attribute.new(:clearance, column: "clearance")
+    assert {:error, %Error{reason: :invalid, detail: "invalid attribute: " <> _rest} = error} =
+             Attribute.new(:clearance, column: "clearance")
+
     assert error.detail =~ "attribute clearance invalid value for :column option"
     assert Attribute.options_schema().schema[:column][:type] == :atom
 
-    assert_raise Error.Invalid, fn -> Attribute.new!(:clearance, column: "clearance") end
+    assert_raise Error, fn -> Attribute.new!(:clearance, column: "clearance") end
     assert %Attribute{} = Attribute.new!(:clearance, column: :clearance)
   end
 end

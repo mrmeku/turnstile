@@ -66,7 +66,7 @@ defmodule Turnstile.Cerbos do
           )
 
   @doc "Append the bound policy directory's commit to the ledger; see `Turnstile.Cerbos.Version`."
-  @spec publish() :: {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.Invalid.t() | Error.Engine.t()}
+  @spec publish() :: {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
   def publish, do: Version.publish(__MODULE__)
 
   @impl Turnstile.Adapter
@@ -116,7 +116,7 @@ defmodule Turnstile.Cerbos do
 
   # A failure's detail becomes the engine error, naming the callback that failed.
   defp named({:error, detail}, callback) when is_binary(detail) do
-    {:error, %Error.Engine{adapter: __MODULE__, operation: callback, detail: detail}}
+    {:error, engine(callback, detail)}
   end
 
   defp named(other, _callback), do: other
@@ -131,7 +131,7 @@ defmodule Turnstile.Cerbos do
   defp resolved(operation) do
     case Binding.resolve() do
       {:ok, %Binding{} = binding} -> {:ok, binding}
-      {:error, %Error.Invalid{detail: detail}} -> {:error, engine(operation, detail)}
+      {:error, %Error{reason: :invalid, detail: detail}} -> {:error, engine(operation, detail)}
     end
   end
 
@@ -142,5 +142,7 @@ defmodule Turnstile.Cerbos do
     end
   end
 
-  defp engine(operation, detail), do: %Error.Engine{adapter: __MODULE__, operation: operation, detail: detail}
+  defp engine(operation, detail) do
+    %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{operation}: #{detail}"}
+  end
 end

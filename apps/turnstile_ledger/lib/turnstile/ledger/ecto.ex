@@ -97,7 +97,7 @@ defmodule Turnstile.Ledger.Ecto do
   origin is read on its own, in id order, by a reader that wants the whole
   ledger. A ledger with no genesis answers with nothing.
   """
-  @spec origin(keyword()) :: {:ok, [FactEvent.t()]} | {:error, Error.Engine.t()}
+  @spec origin(keyword()) :: {:ok, [FactEvent.t()]} | {:error, Error.t()}
   def origin(options) when is_list(options) do
     query = from(r in Row, where: r.position == 0, order_by: [asc: r.id])
 
@@ -205,8 +205,9 @@ defmodule Turnstile.Ledger.Ecto do
   end
 
   defp unwrap(_repo, {:ok, result}), do: result
-  defp unwrap(_repo, {:error, %Error.Engine{} = error}), do: {:error, error}
+  defp unwrap(_repo, {:error, %Error{reason: :engine_unreachable} = error}), do: {:error, error}
   defp unwrap(repo, {:error, reason}), do: {:error, engine(:append, "#{inspect(repo)} rolled back: #{inspect(reason)}")}
 
-  defp engine(operation, detail), do: %Error.Engine{adapter: __MODULE__, operation: operation, detail: detail}
+  defp engine(operation, detail),
+    do: %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{operation}: #{detail}"}
 end

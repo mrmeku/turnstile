@@ -181,9 +181,10 @@ defmodule Turnstile.Repo.Facts do
   defp object_ref(column, schema, row) do
     case object_type_of(schema, column) do
       nil ->
-        raise Error.Invalid,
-          what: :fact_mapping,
-          detail: "#{inspect(schema)}.#{column} names no object type: declare object_type on the schema it refers to"
+        raise Error.invalid(
+                :fact_mapping,
+                "#{inspect(schema)}.#{column} names no object type: declare object_type on the schema it refers to"
+              )
 
       type ->
         {type, value(row, column)}

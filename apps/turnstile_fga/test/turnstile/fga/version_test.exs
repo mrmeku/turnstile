@@ -115,28 +115,23 @@ defmodule Turnstile.Fga.VersionTest do
   test "a model file that is not there publishes nothing" do
     :ok = Binding.override(model: "priv/conformance/absent.fga")
 
-    assert {:error, %Error.Invalid{what: :binding} = error} = Fga.publish()
+    assert {:error, %Error{reason: :invalid, detail: "invalid binding: " <> _rest} = error} = Fga.publish()
     assert error.detail =~ "priv/conformance/absent.fga could not be read"
   end
 
   test "a configuration naming another adapter publishes nothing under this one", context do
     :ok = Test.with_config(adapter: Turnstile.Adapter.Fake)
 
-    assert {:error, %Error.Invalid{what: :model} = error} = Fga.publish()
-    assert error.detail == "Turnstile.Adapter.Fake is the configured adapter, not Turnstile.Fga"
+    assert {:error, %Error{reason: :invalid, detail: "invalid model: " <> detail}} = Fga.publish()
+    assert detail == "#{inspect(Turnstile.Adapter.Fake)} is the configured adapter, not #{inspect(Fga)}"
     assert models(context.agent) == []
   end
 
   test "in ledger mode none there is nothing to publish into" do
     :ok = Test.with_config(adapter: Turnstile.Adapter.Fake, ledger: :none)
 
-    assert Fga.publish() ==
-             {:error,
-              %Error.Unsupported{
-                adapter: Fga,
-                feature: :ledger_mode_none,
-                note: "there is nothing to publish into"
-              }}
+    assert {:error, %Error{reason: :unsupported, detail: detail}} = Fga.publish()
+    assert detail == "Turnstile.Fga has nothing to publish into: the configuration names no ledger"
   end
 
   @doc false

@@ -131,7 +131,7 @@ defmodule Turnstile.Postgres.Catalog do
   defp version!(repo, table) do
     case rows(repo, "SELECT max(version)::text FROM #{Name.check!(table, :migrations_table)}", []) do
       [[version]] when is_binary(version) -> version
-      _empty -> raise Error.Invalid, what: :catalog, detail: "#{table} holds no migration version"
+      _empty -> raise Error.invalid(:catalog, "#{table} holds no migration version")
     end
   end
 

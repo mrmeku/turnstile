@@ -128,10 +128,11 @@ defmodule ExampleFga.Rules do
   defp text(%Replay{policy_version: %PolicyVersion{content: content}}) when is_binary(content), do: content
 
   defp text(%Replay{policy_version: %PolicyVersion{} = version}) do
-    raise %Error.Unsupported{
-      adapter: Fga,
-      feature: :replay,
-      note: "version #{version.version} carries #{version.pointer} rather than its text"
+    raise %Error{
+      reason: :unsupported,
+      detail:
+        "Turnstile.Fga cannot replay version #{version.version}, which carries #{version.pointer} " <>
+          "rather than its text"
     }
   end
 

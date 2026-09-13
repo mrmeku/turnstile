@@ -65,8 +65,8 @@ defmodule Turnstile.Postgres.PolicyTest do
   end
 
   test "a name the statement cannot quote is refused rather than written" do
-    assert_raise Error.Invalid, ~r/invalid policy/, fn -> Policy.to_sql(%{policy(~s(a"b)) | using: "true"}) end
-    assert_raise Error.Invalid, ~r/invalid table/, fn -> Policy.to_sql(%{policy("p") | table: "Folders"}) end
+    assert_raise Error, ~r/invalid policy/, fn -> Policy.to_sql(%{policy(~s(a"b)) | using: "true"}) end
+    assert_raise Error, ~r/invalid table/, fn -> Policy.to_sql(%{policy("p") | table: "Folders"}) end
   end
 
   defp policy(name) do

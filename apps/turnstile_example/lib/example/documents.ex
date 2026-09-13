@@ -55,7 +55,7 @@ defmodule Example.Documents do
   @override_event [:example, :override, :read]
 
   @typedoc "What a context function returns when the port refuses."
-  @type refusal :: Error.NotAuthorized.t() | :not_found
+  @type refusal :: Error.t() | :not_found
 
   @doc "The operations on a document, in the order the review prints them."
   @spec operations() :: [atom()]
@@ -161,7 +161,7 @@ defmodule Example.Documents do
   event per document whose date changes, all sharing its operation id.
   """
   @spec decontrol_all(Turnstile.subject(), DateTime.t(), keyword()) ::
-          {:ok, Record.t()} | {:error, refusal() | Error.Engine.t()}
+          {:ok, Record.t()} | {:error, refusal() | Error.t()}
   def decontrol_all({_kind, _account} = subject, %DateTime{} = at, opts \\ []) when is_list(opts) do
     case Turnstile.scope(subject, :set_decontrol, :document, opts) do
       {_rule, %Decision{verdict: :deny} = decision} ->
@@ -237,7 +237,7 @@ defmodule Example.Documents do
   def object(type, id) when is_atom(type) and is_integer(id), do: {type, id}
 
   defp refused(subject, operation, %Decision{reason: reason}) do
-    %Error.NotAuthorized{subject: subject, operation: operation, object: :document, reason: reason}
+    Error.denied(subject, operation, :document, reason)
   end
 
   defp covered(document_id, attrs) do

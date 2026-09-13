@@ -69,7 +69,7 @@ defmodule Turnstile.Ledger.Genesis do
   Options: #{NimbleOptions.docs(@schema)}
   """
   @spec run(keyword(), [module()], keyword()) ::
-          {:ok, non_neg_integer()} | {:error, Error.Invalid.t() | Error.Engine.t()}
+          {:ok, non_neg_integer()} | {:error, Error.t()}
   def run(ledger_options, schemas, options \\ []) when is_list(ledger_options) and is_list(schemas) do
     options = NimbleOptions.validate!(Keyword.put_new(options, :clock, &DateTime.utc_now/0), @schema)
     repo = owner_repo!(ledger_options)
@@ -119,20 +119,20 @@ defmodule Turnstile.Ledger.Genesis do
 
       held ->
         {:error,
-         %Error.Invalid{
-           what: :genesis,
-           detail:
-             "the ledger already holds #{held} events; genesis backfills the tables once, " <>
-               "from the migration that creates the table, and never beside events it did not write"
-         }}
+         Error.invalid(
+           :genesis,
+           "the ledger already holds #{held} events; genesis backfills the tables once, " <>
+             "from the migration that creates the table, and never beside events it did not write"
+         )}
     end
   end
 
   defp owner_repo!(ledger_options) do
     Keyword.get(ledger_options, :owner_repo) ||
-      raise Error.Invalid,
-        what: :genesis,
-        detail: "the ledger's options name no owner_repo, and the application role may not write at position zero"
+      raise Error.invalid(
+              :genesis,
+              "the ledger's options name no owner_repo, and the application role may not write at position zero"
+            )
   end
 
   defp name(migration) when is_atom(migration), do: inspect(migration)
@@ -143,6 +143,8 @@ defmodule Turnstile.Ledger.Genesis do
   # Only `Turnstile.Ledger.Ecto.write/3` runs inside, and it raises rather
   # than answering an error, so a rollback here is the database refusing.
   defp unwrap({:error, reason}) do
-    raise Error.Engine, adapter: __MODULE__, operation: :genesis, detail: "the backfill rolled back: #{inspect(reason)}"
+    raise Error,
+      reason: :engine_unreachable,
+      detail: "#{inspect(__MODULE__)} failed during genesis: the backfill rolled back: #{inspect(reason)}"
   end
 end

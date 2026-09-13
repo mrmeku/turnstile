@@ -39,7 +39,7 @@ defmodule Turnstile.Ledger.Replay do
   policy version to one adapter's, which is what a decision record's
   position and adapter together ask for.
   """
-  @spec to({module(), keyword()}, non_neg_integer(), keyword()) :: {:ok, t()} | {:error, Error.Engine.t()}
+  @spec to({module(), keyword()}, non_neg_integer(), keyword()) :: {:ok, t()} | {:error, Error.t()}
   def to(ledger, position, options \\ []) when is_integer(position) and is_list(options) do
     with {:ok, events} <- Ledger.Reader.all(ledger) do
       kept = Enum.filter(events, &(is_integer(&1.position) and &1.position <= position))
@@ -48,7 +48,7 @@ defmodule Turnstile.Ledger.Replay do
   end
 
   @doc "Replay to a date: the fold of every event stamped at or before it, and the policy version in force then."
-  @spec at({module(), keyword()}, DateTime.t(), keyword()) :: {:ok, t()} | {:error, Error.Engine.t()}
+  @spec at({module(), keyword()}, DateTime.t(), keyword()) :: {:ok, t()} | {:error, Error.t()}
   def at(ledger, %DateTime{} = at, options \\ []) when is_list(options) do
     with {:ok, events} <- Ledger.Reader.all(ledger) do
       kept = Enum.filter(events, &(DateTime.compare(&1.at, at) != :gt))

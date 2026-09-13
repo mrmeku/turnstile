@@ -107,7 +107,7 @@ defmodule Turnstile.Fga do
           )
 
   @doc "Publish the bound model when the ledger's latest names another; see `Turnstile.Fga.Version`."
-  @spec publish() :: {:ok, :current | FactEvent.t()} | {:error, Error.Invalid.t() | Error.Engine.t()}
+  @spec publish() :: {:ok, :current | FactEvent.t()} | {:error, Error.t()}
   def publish, do: Version.publish(__MODULE__)
 
   @impl Turnstile.Adapter
@@ -197,9 +197,11 @@ defmodule Turnstile.Fga do
   defp bound(callback) do
     case Binding.resolve() do
       {:ok, %Binding{} = binding} -> {:ok, binding}
-      {:error, %Error.Invalid{detail: detail}} -> {:error, engine(callback, detail)}
+      {:error, %Error{reason: :invalid, detail: detail}} -> {:error, engine(callback, detail)}
     end
   end
 
-  defp engine(callback, detail), do: %Error.Engine{adapter: __MODULE__, operation: callback, detail: detail}
+  defp engine(callback, detail) do
+    %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{callback}: #{detail}"}
+  end
 end

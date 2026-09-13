@@ -44,6 +44,6 @@ defmodule Turnstile.Ledger.ReviewTest do
   end
 
   test "a review with no reporter says where the reporter is named" do
-    assert_raise Error.Invalid, ~r/name the module answering the review in mix.exs/, fn -> Review.table([]) end
+    assert_raise Error, ~r/name the module answering the review in mix.exs/, fn -> Review.table([]) end
   end
 end

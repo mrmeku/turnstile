@@ -22,11 +22,7 @@ defmodule Turnstile do
       Decision,
       Edge,
       Environment,
-      Error.Engine,
-      Error.Invalid,
-      Error.NotAuthorized,
-      Error.Unmediated,
-      Error.Unsupported,
+      Error,
       Exemption,
       FactEvent,
       Id,
@@ -70,10 +66,10 @@ defmodule Turnstile do
 
   @doc "Decide for one object: the decision to hand the seam, or why not."
   @spec authorize(subject(), atom(), object(), Port.options()) ::
-          {:ok, Decision.t()} | {:error, Error.NotAuthorized.t()}
+          {:ok, Decision.t()} | {:error, Error.t()}
   defdelegate authorize(subject, operation, object, opts \\ []), to: Port
 
-  @doc "`authorize/4`, raising `Turnstile.Error.NotAuthorized` on a denial."
+  @doc "`authorize/4`, raising `Turnstile.Error` on a denial."
   @spec authorize!(subject(), atom(), object(), Port.options()) :: Decision.t()
   def authorize!({_kind, _account} = subject, operation, {_type, _id} = object, opts \\ []) when is_atom(operation) do
     case Port.authorize(subject, operation, object, opts) do
@@ -100,7 +96,7 @@ defmodule Turnstile do
 
   @doc "The answer with what produced it on `meta`, where the adapter can say."
   @spec explain(subject(), atom(), object(), Port.options()) ::
-          {:ok, Turnstile.Answer.t(), Decision.t()} | {:error, Error.Unsupported.t()}
+          {:ok, Turnstile.Answer.t(), Decision.t()} | {:error, Error.t()}
   defdelegate explain(subject, operation, object, opts \\ []), to: Port
 
   @doc "Who can do what: a rule per subject over an object type, or the allowed references per subject over a population."

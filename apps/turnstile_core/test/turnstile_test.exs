@@ -23,11 +23,11 @@ defmodule TurnstileTest do
     assert Turnstile.batch(@user, :read, [@folder, @other]) == %{{:folder, 1} => :allow, {:folder, 2} => :deny}
     assert Turnstile.filter(@user, :read, [@folder, @other]) == [@folder]
     assert {_rule, %Decision{verdict: :scoped}} = Turnstile.scope(@user, :read, :folder)
-    assert {:error, %Error.Unsupported{}} = Turnstile.explain(@user, :read, @folder)
+    assert {:error, %Error{reason: :unsupported}} = Turnstile.explain(@user, :read, @folder)
     assert %{@user => [{:folder, 1}]} = Turnstile.review(@user, [@user], :read, [@folder, @other])
   end
 
   test "authorize! raises the not-authorized error on a denial" do
-    assert_raise Error.NotAuthorized, fn -> Turnstile.authorize!(@user, :edit, @folder) end
+    assert_raise Error, ~r/may not edit/, fn -> Turnstile.authorize!(@user, :edit, @folder) end
   end
 end

@@ -17,7 +17,8 @@ defmodule Turnstile.Ledger.EctoTest do
   test "the head of a ledger whose counter row does not exist is an engine error, not a zero", context do
     Test.with_config(ledger_counter: "missing")
 
-    assert {:error, %Error.Engine{operation: :head, detail: detail}} = Ledger.Ecto.head(options(context))
+    assert {:error, %Error{reason: :engine_unreachable, detail: detail}} = Ledger.Ecto.head(options(context))
+    assert detail =~ "failed during head"
     assert detail =~ "no counter row named"
   end
 

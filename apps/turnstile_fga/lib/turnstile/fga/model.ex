@@ -57,7 +57,7 @@ defmodule Turnstile.Fga.Model do
   def parameter_types, do: @parameter_types
 
   @doc "The model in a file, compiled."
-  @spec read(Path.t()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec read(Path.t()) :: {:ok, t()} | {:error, Error.t()}
   def read(path) when is_binary(path) do
     case File.read(path) do
       {:ok, text} -> compile(text)
@@ -66,7 +66,7 @@ defmodule Turnstile.Fga.Model do
   end
 
   @doc "The model language as text, compiled into the body the server takes."
-  @spec compile(String.t()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec compile(String.t()) :: {:ok, t()} | {:error, Error.t()}
   def compile(text) when is_binary(text) do
     with {:ok, body} <- header(lines(text)),
          {:ok, blocks} <- blocks(body) do
@@ -339,5 +339,5 @@ defmodule Turnstile.Fga.Model do
     %{"difference" => %{"base" => userset(base), "subtract" => userset(subtract)}}
   end
 
-  defp invalid(detail), do: %Error.Invalid{what: :model, detail: detail}
+  defp invalid(detail), do: Error.invalid(:model, detail)
 end

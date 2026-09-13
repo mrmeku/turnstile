@@ -60,7 +60,10 @@ defmodule Turnstile.Fga.Projector.SchedulerTest do
     _events = Probe.append(context.ledger, [Probe.granted("ann", 1, :reader)])
     {:ok, {module, projector}} = Fga.projection()
 
-    assert {:error, %Error.Engine{operation: :read} = error} = Scheduler.drain(module, %{projector | store: "store-404"})
+    assert {:error, %Error{reason: :engine_unreachable} = error} =
+             Scheduler.drain(module, %{projector | store: "store-404"})
+
+    assert Exception.message(error) =~ "during read"
     assert_received {[:turnstile, :fga, :drain], _ref, measurements, metadata}
     assert measurements == %{applied: 0, from: 0, to: 0}
     assert metadata == %{error: error}
@@ -79,7 +82,7 @@ defmodule Turnstile.Fga.Projector.SchedulerTest do
   test "a projection that cannot be resolved stops the process rather than drains nothing forever" do
     Process.delete(Binding)
 
-    assert {:stop, %Error.Invalid{what: :binding}} = Scheduler.init([])
+    assert {:stop, %Error{reason: :invalid, detail: "invalid binding: " <> _rest}} = Scheduler.init([])
   end
 
   test "the first drain waits, and every drain schedules the next", context do

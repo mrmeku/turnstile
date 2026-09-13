@@ -51,10 +51,10 @@ defmodule Turnstile.Fga.DecideTest do
     for field <- [:endpoint, :store_id] do
       thin = Keyword.delete(context.options, field)
 
-      assert {:error, %Error.Engine{} = error} = Decide.entry(thin, :check, %Environment{now: @now})
-      assert error.adapter == Turnstile.Fga
-      assert error.operation == :check
-      assert error.detail == "the configuration entry names no #{field}"
+      assert {:error, %Error{reason: :engine_unreachable} = error} = Decide.entry(thin, :check, %Environment{now: @now})
+
+      assert error.detail ==
+               "#{inspect(Turnstile.Fga)} failed during check: the configuration entry names no #{field}"
     end
   end
 
@@ -122,10 +122,11 @@ defmodule Turnstile.Fga.DecideTest do
     folder = {:folder, 1}
     detail = "the configuration entry pins no model, so no question can be asked under one"
 
-    assert {:error, %Error.Engine{operation: :authorize, detail: ^detail}} = Decide.one(entry, ann(), :read, folder)
-    assert {:error, %Error.Engine{detail: ^detail}} = Decide.many(entry, ann(), :read, [folder])
-    assert {:error, %Error.Engine{detail: ^detail}} = Decide.scoped(entry, ann(), :read, :folder)
-    assert {:error, %Error.Engine{detail: ^detail}} = Decide.explained(entry, ann(), :read, folder)
+    assert {:error, %Error{reason: :engine_unreachable, detail: asked}} = Decide.one(entry, ann(), :read, folder)
+    assert asked == "#{inspect(Turnstile.Fga)} failed during authorize: #{detail}"
+    assert_pinned(Decide.many(entry, ann(), :read, [folder]), detail)
+    assert_pinned(Decide.scoped(entry, ann(), :read, :folder), detail)
+    assert_pinned(Decide.explained(entry, ann(), :read, folder), detail)
     assert Fake.calls(context.agent) == [{:create_store, "decide"}, {:write_model, %{"schema_version" => "1.1"}}]
   end
 
@@ -185,10 +186,23 @@ defmodule Turnstile.Fga.DecideTest do
     {:ok, entry} = Decide.entry(absent, :batch, %Environment{now: @now})
     folder = {:folder, 1}
 
-    assert {:error, %Error.Engine{operation: :check}} = Decide.one(entry, ann(), :read, folder)
-    assert {:error, %Error.Engine{operation: :batch_check}} = Decide.many(entry, ann(), :read, [folder])
-    assert {:error, %Error.Engine{operation: :list_objects}} = Decide.scoped(entry, ann(), :read, :folder)
-    assert {:error, %Error.Engine{operation: :check}} = Decide.explained(entry, ann(), :read, folder)
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during check" <> _rest}} =
+             Decide.one(entry, ann(), :read, folder)
+
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during batch_check" <> _rest}} =
+             Decide.many(entry, ann(), :read, [folder])
+
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during list_objects" <> _rest}} =
+             Decide.scoped(entry, ann(), :read, :folder)
+
+    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during check" <> _rest}} =
+             Decide.explained(entry, ann(), :read, folder)
+  end
+
+  # Every callback refuses the same way when the entry pins no model.
+  defp assert_pinned(result, detail) do
+    assert {:error, %Error{reason: :engine_unreachable, detail: said}} = result
+    assert said =~ detail
   end
 
   defp ann, do: {:user, "ann"}

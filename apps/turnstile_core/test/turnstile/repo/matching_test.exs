@@ -22,19 +22,23 @@ defmodule Turnstile.Repo.MatchingTest do
     query = from(s in subquery(from(x in subquery(inner), select: x.id)), select: s.id)
 
     error =
-      assert_raise(Error.Unmediated, fn ->
+      assert_raise(Error, fn ->
         judged = Matching.judge(query, nil, Sandboxed)
         flunk("judged " <> inspect(judged))
       end)
 
-    assert %Error.Unmediated{function: :prepare_query, arity: 3, schema: Folder, caller: __MODULE__} = error
+    assert %Error{reason: :unmediated} = error
+
+    assert Exception.message(error) ==
+             "Repo.prepare_query/3 on #{inspect(Folder)} carries no decision and no exemption " <>
+               "(from #{inspect(__MODULE__)})"
 
     assert :ok = Matching.judge(query, mediation(:folder), Sandboxed)
   end
 
   test "a join to a subquery is judged, and a subquery over a table name admits nothing" do
     protected = from(a in "turnstile_fixture_accounts", join: f in subquery(from(f in Folder, select: f.id)), on: true)
-    assert_raise Error.Unmediated, fn -> Matching.judge(protected, nil, Sandboxed) end
+    assert_raise Error, ~r/carries no decision/, fn -> Matching.judge(protected, nil, Sandboxed) end
     assert :ok = Matching.judge(protected, mediation(:folder), Sandboxed)
 
     schemaless =

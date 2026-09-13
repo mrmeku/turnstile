@@ -50,7 +50,9 @@ defmodule Turnstile.Ledger.Reconcile.SchedulerTest do
        context do
     Test.with_config(ledger_counter: "missing")
 
-    assert {:error, %Error.Engine{operation: :head} = error} = Scheduler.pass(pass(context))
+    assert {:error,
+            %Error{reason: :engine_unreachable, detail: "Turnstile.Ledger.Ecto failed during head" <> _rest} = error} =
+             Scheduler.pass(pass(context))
 
     assert_received {[:turnstile, :ledger, :reconcile], _ref, measurements, metadata}
     assert measurements == %{missing: 0, extra: 0, checked_to: 0}

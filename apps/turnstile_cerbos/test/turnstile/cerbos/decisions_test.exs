@@ -117,14 +117,16 @@ defmodule Turnstile.Cerbos.DecisionsTest do
     path = Path.join(directory!(), "broken.log")
     File.write!(path, JSON.encode!(%{"callId" => "one"}) <> "\nnot json at all\n")
 
-    assert {:error, %Error.Invalid{what: :decision_log} = error} = Decisions.lines(path)
+    assert {:error, %Error{reason: :invalid, detail: "invalid decision_log: " <> _rest} = error} = Decisions.lines(path)
     assert error.detail =~ "line 2 of #{path} is no JSON object"
   end
 
   test "a log that is not there is an error naming the path" do
     path = Path.join(directory!(), "absent.log")
 
-    assert {:error, %Error.Invalid{what: :decision_log} = error} = Decisions.reconcile(path, [])
+    assert {:error, %Error{reason: :invalid, detail: "invalid decision_log: " <> _rest} = error} =
+             Decisions.reconcile(path, [])
+
     assert error.detail =~ "cannot read the decision log at #{path}"
     assert error.detail =~ "no such file or directory"
   end

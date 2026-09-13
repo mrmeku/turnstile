@@ -29,7 +29,7 @@ defmodule Turnstile.Config do
         }
 
   @doc "Validate a keyword list into the struct."
-  @spec new(keyword()) :: {:ok, t()} | {:error, Error.Invalid.t() | Error.Unsupported.t()}
+  @spec new(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def new(options) when is_list(options) do
     with {:ok, validated} <- validate(options),
          {:ok, adapter} <- validate_adapter(validated[:adapter]),
@@ -64,13 +64,13 @@ defmodule Turnstile.Config do
   end
 
   @doc "The boot struct under the calling process's overrides, or an error when neither exists."
-  @spec resolve() :: {:ok, t()} | {:error, Error.Invalid.t() | Error.Unsupported.t()}
+  @spec resolve() :: {:ok, t()} | {:error, Error.t()}
   def resolve do
     overrides = overrides()
 
     case :persistent_term.get(__MODULE__, nil) do
       %__MODULE__{} = base -> new(Keyword.merge(to_keyword(base), overrides))
-      nil when overrides == [] -> {:error, %Error.Invalid{what: :config, detail: "nothing booted and no override"}}
+      nil when overrides == [] -> {:error, Error.invalid(:config, "nothing booted and no override")}
       nil -> new(overrides)
     end
   end
@@ -123,7 +123,8 @@ defmodule Turnstile.Config do
 
   defp check_ledger_requirement({adapter, _options}, :none) do
     if adapter.requires_ledger() do
-      {:error, %Error.Unsupported{adapter: adapter, feature: :ledger_mode_none, note: "the adapter requires a ledger"}}
+      {:error,
+       %Error{reason: :unsupported, detail: "#{inspect(adapter)} requires a ledger, and the configuration names none"}}
     else
       :ok
     end
@@ -165,7 +166,7 @@ defmodule Turnstile.Config do
     end
   end
 
-  defp invalid(what, detail), do: %Error.Invalid{what: what, detail: detail}
+  defp invalid(what, detail), do: Error.invalid(what, detail)
 
   # The override is read from the calling process, then from each process in
   # its `$callers` chain, nearest first; the first one found wins.

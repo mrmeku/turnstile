@@ -11,13 +11,15 @@ defmodule Turnstile.Ledger.Ecto.ValueTest do
   end
 
   test "a struct the codec has no tag for is a mistake in a fact declaration, so it raises" do
-    assert_raise Error.Invalid, ~r/no encoding for Range/, fn -> Value.dump(1..2) end
+    assert_raise Error, ~r/no encoding for Range/, fn -> Value.dump(1..2) end
   end
 
   test "a column holding something other than a tagged value is refused" do
-    assert {:error, %Error.Invalid{what: :fact_value}} = Value.load(%{"other" => 1})
-    assert {:error, %Error.Invalid{what: :fact_value}} = Value.load("bare")
-    assert {:error, %Error.Invalid{what: :fact_value}} = Value.load(%{"v" => %{"unknown" => 1}})
+    assert {:error, %Error{reason: :invalid, detail: "invalid fact_value: " <> _rest}} = Value.load(%{"other" => 1})
+    assert {:error, %Error{reason: :invalid, detail: "invalid fact_value: " <> _rest}} = Value.load("bare")
+
+    assert {:error, %Error{reason: :invalid, detail: "invalid fact_value: " <> _rest}} =
+             Value.load(%{"v" => %{"unknown" => 1}})
   end
 
   test "a reference carries its type and its id, and comes back as the pair" do
@@ -28,6 +30,7 @@ defmodule Turnstile.Ledger.Ecto.ValueTest do
   end
 
   test "a column holding something other than a reference is refused" do
-    assert {:error, %Error.Invalid{what: :fact_value}} = Value.ref_load(%{"type" => "folder"})
+    assert {:error, %Error{reason: :invalid, detail: "invalid fact_value: " <> _rest}} =
+             Value.ref_load(%{"type" => "folder"})
   end
 end

@@ -84,8 +84,8 @@ defmodule Example.Review do
   @doc """
   The rows the task prints: today's from the port, a past date's from the
   fold of the ledger stopped at the end of that date. Raises
-  `Turnstile.Error.Unsupported` when a date is asked for and the
-  configuration names no ledger.
+  `Turnstile.Error` with the reason `:unsupported` when a date is asked for
+  and the configuration names no ledger.
   """
   @impl Turnstile.Ledger.Review
   def rows(options) when is_list(options) do
@@ -158,7 +158,7 @@ defmodule Example.Review do
 
   defp ledger!(date) do
     case Config.resolve() do
-      {:ok, %Config{ledger: :none} = config} -> raise Error.Unsupported, unsupported(config, date)
+      {:ok, %Config{ledger: :none} = config} -> raise Error, unsupported(config, date)
       {:ok, %Config{ledger: ledger}} -> ledger
     end
   end
@@ -167,11 +167,10 @@ defmodule Example.Review do
     {adapter, _options} = Config.adapter(config)
 
     [
-      adapter: adapter,
-      feature: :point_in_time_review,
-      note:
-        "the boot configuration names no ledger, and the review of #{Date.to_iso8601(date)} " <>
-          "is the fold of one; the tables hold today"
+      reason: :unsupported,
+      detail:
+        "#{inspect(adapter)} does not support a point-in-time review: the boot configuration names no ledger, " <>
+          "and the review of #{Date.to_iso8601(date)} is the fold of one; the tables hold today"
     ]
   end
 

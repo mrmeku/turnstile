@@ -99,10 +99,11 @@ defmodule Turnstile.Test.Projection do
     end)
 
     {:error,
-     %Error.Engine{
-       adapter: __MODULE__,
-       operation: :drain_once,
-       detail: "interrupted after #{length(applied)} of #{length(events)} events, before the checkpoint advanced"
+     %Error{
+       reason: :engine_unreachable,
+       detail:
+         "#{inspect(__MODULE__)} failed during drain_once: interrupted after #{length(applied)} of " <>
+           "#{length(events)} events, before the checkpoint advanced"
      }}
   end
 

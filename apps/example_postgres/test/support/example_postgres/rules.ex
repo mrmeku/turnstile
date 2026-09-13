@@ -115,11 +115,11 @@ defmodule ExamplePostgres.Rules do
         text
 
       %{version: number, pointer: pointer} ->
-        raise %Error.Unsupported{
-          adapter: Turnstile.Postgres,
-          feature: :replay,
-          note:
-            "version #{number} carries #{pointer} rather than its policies: apply that migration to a scratch database"
+        raise %Error{
+          reason: :unsupported,
+          detail:
+            "Turnstile.Postgres cannot replay version #{number}, which carries #{pointer} rather than its " <>
+              "policies: apply that migration to a scratch database"
         }
     end
   end

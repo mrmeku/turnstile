@@ -64,7 +64,7 @@ defmodule Turnstile.Fga.Binding do
   def options_schema, do: @schema
 
   @doc "Validate the options into the struct."
-  @spec new(keyword()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec new(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def new(options) when is_list(options) do
     with {:ok, validated} <- validate(options),
          :ok <- implements?(validated[:mapping], TupleMapping),
@@ -74,7 +74,7 @@ defmodule Turnstile.Fga.Binding do
   end
 
   @doc "Validate once at boot and keep the binding for `resolve/0`."
-  @spec bind(keyword()) :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec bind(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def bind(options) when is_list(options) do
     with {:ok, %__MODULE__{} = binding} <- new(options) do
       :persistent_term.put(__MODULE__, binding)
@@ -113,7 +113,7 @@ defmodule Turnstile.Fga.Binding do
   end
 
   @doc "The boot binding under the calling process's overrides, or an error when neither exists."
-  @spec resolve() :: {:ok, t()} | {:error, Error.Invalid.t()}
+  @spec resolve() :: {:ok, t()} | {:error, Error.t()}
   def resolve do
     overrides = overrides()
 
@@ -138,7 +138,7 @@ defmodule Turnstile.Fga.Binding do
   end
 
   @doc "The bound model as text, read from the file the binding names."
-  @spec text(t()) :: {:ok, String.t()} | {:error, Error.Invalid.t()}
+  @spec text(t()) :: {:ok, String.t()} | {:error, Error.t()}
   def text(%__MODULE__{model: path}) do
     case File.read(path) do
       {:ok, text} -> {:ok, text}
@@ -147,7 +147,7 @@ defmodule Turnstile.Fga.Binding do
   end
 
   @doc "The bound model as the server takes it."
-  @spec compiled(t()) :: {:ok, Model.t()} | {:error, Error.Invalid.t()}
+  @spec compiled(t()) :: {:ok, Model.t()} | {:error, Error.t()}
   def compiled(%__MODULE__{} = binding) do
     with {:ok, text} <- text(binding), do: Model.compile(text)
   end
@@ -177,7 +177,7 @@ defmodule Turnstile.Fga.Binding do
     end
   end
 
-  defp invalid(detail), do: %Error.Invalid{what: :binding, detail: detail}
+  defp invalid(detail), do: Error.invalid(:binding, detail)
 
   # The override is read from the calling process, then from each process in
   # its `$callers` chain, nearest first; the first one found wins.
