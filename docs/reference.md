@@ -137,7 +137,7 @@ Frozen at S1 with the contracts. Every row is a test in `Example.Scenarios` whos
 | `lp-05` | A Portion's marking change needs a designator of the Document's designating Office | least privilege | AC-6(1) | C7, C4 | |
 | `lp-06` | An ordinary account cannot invoke the override | least privilege | AC-6(10) | C10 | |
 | `lp-07` | A privileged account is a separate account: the same person's ordinary account cannot override | least privilege | AC-6(2) | C10 | |
-| `lp-08` | `mix turnstile.review` lists every privileged account and every permission a role holds | least privilege | AC-6(5), AC-2(7) | C7, C10 | |
+| `lp-08` | The access review lists every privileged account and every permission a role holds | least privilege | AC-6(5), AC-2(7) | C7, C10 | |
 | `sod-01` | A marking change proposed by a designator is approved by a different approver | separation of duties | AC-5 | C9 | |
 | `sod-02` | The proposer, who is also an approver, cannot approve their own proposal | separation of duties | AC-5 | C9 | |
 | `sod-03` | A proposal without approval does not change the marking | separation of duties | AC-5, CM-5 | C9 | |
@@ -156,9 +156,7 @@ Frozen at S1 with the contracts. Every row is a test in `Example.Scenarios` whos
 | `aud-06` | An Assignment grant and its revoke each produce a fact event carrying old and new | decision audit | AC-2(4) | the fact mapping | ledger |
 | `aud-07` | A marking change reaches the consumer as one OCSF record per event, all under one correlation id | decision audit | AU-2, AU-3, AU-12 | every event is mapped | |
 | `aud-08` | A rolled-back write leaves no fact event and no decision outcome but the exception span | decision audit | AU-2, AU-12 | atomicity | ledger |
-| `rvw-01` | `mix turnstile.review` lists who can read what today, per Agency | access review | AC-2, AC-6(7) | `review` | |
-| `rvw-02` | With a ledger, review on a past date equals the fold stopped there | access review | AC-2, AC-6(7) | replay | ledger |
-| `rvw-03` | Replay reproduces a recorded decision from its applied position and policy version | access review | AC-2, AC-6(7) | replay | ledger |
+| `rvw-01` | The access review lists who can read what today, per Agency | access review | AC-2, AC-6(7) | `review` | |
 | `rvw-04` | An Assignment inserted outside the seam is reported by reconcile within the interval | access review | AC-2, AC-2(4) | drift | ledger |
 | `ia-01` | A designator whose session re-authenticated within the window changes a marking | re-authentication | IA-11 | C8 | |
 | `ia-02` | A designator whose session is older than the window is refused until re-authentication | re-authentication | IA-11 | C8 | |

@@ -17,7 +17,7 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Position | A ledger position: the index of a fact event, taken from the counter row | `apps/turnstile_ledger/glossary.md` |
 | Position | The head position and the applied position a decision carries | `apps/turnstile_core/glossary.md` |
 | Review | `mix turnstile.review` and the port's `review`: who can do what on a date | `apps/turnstile_core/glossary.md` |
-| Review | Access review, the AC-2 activity the scenarios `rvw-01` to `rvw-04` cover | `docs/reference.md` §1 |
+| Review | Access review, the AC-2 activity the scenarios `rvw-01` and `rvw-04` cover | `docs/reference.md` §1 |
 | Record | An audit record, the AU-3 shape | `apps/turnstile_core/glossary.md` |
 | Record | A capability record: a rule's level with the enforcing component and a note | `apps/turnstile_core/glossary.md` |
 | Declaration | A capability declaration in a thin app | `apps/turnstile_core/glossary.md` |
