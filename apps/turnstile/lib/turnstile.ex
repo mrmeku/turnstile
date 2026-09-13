@@ -15,7 +15,6 @@ defmodule Turnstile do
     check: [apps: [:ecto_sql, :postgrex]],
     exports: [
       Adapter,
-      Adapter.Fake,
       Answer,
       Capabilities,
       Config,

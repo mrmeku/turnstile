@@ -12,7 +12,7 @@ defmodule Example.FakeCase do
 
   import ExUnit.Callbacks, only: [start_supervised!: 1]
 
-  alias Turnstile.Adapter.Fake
+  alias Turnstile.Test.Fake
   alias Turnstile.Test.Sandbox
 
   @doc false

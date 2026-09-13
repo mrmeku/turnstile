@@ -1,8 +1,8 @@
-defmodule Turnstile.Adapter.Fake do
+defmodule Turnstile.Test.Fake do
   @moduledoc """
   The adapter Tier 1 runs first and the seam's tests bind. Its rules are a
   table in an `Agent`, one per test, bound through the configuration override
-  as `{Turnstile.Adapter.Fake, rules: pid}`: an entry allows one subject, or
+  as `{Turnstile.Test.Fake, rules: pid}`: an entry allows one subject, or
   any, one operation, on one object, or any of a type, and nothing else is
   allowed. Without a table the fake answers with the `verdict` option,
   `:deny` unless said otherwise. It returns a value of the real type

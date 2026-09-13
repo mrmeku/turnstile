@@ -29,7 +29,7 @@ defmodule Turnstile.Ledger.EctoTest do
 
   test "a policy version reads back as the struct that was published", context do
     version = %PolicyVersion{
-      adapter: Turnstile.Adapter.Fake,
+      adapter: Turnstile.Test.Fake,
       version: "abc123",
       content_hash: "sha256-1",
       content: "allow nothing",

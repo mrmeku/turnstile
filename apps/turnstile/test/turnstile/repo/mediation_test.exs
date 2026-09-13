@@ -1,12 +1,12 @@
 defmodule Turnstile.Repo.MediationTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Decision
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Id
   alias Turnstile.Repo.Mediation
+  alias Turnstile.Test.Fake
   alias Turnstile.TestRepos.Sandboxed
 
   test "the option's schema is a NimbleOptions schema that admits a resolved mediation" do

@@ -20,7 +20,7 @@ defmodule Turnstile.Conformance.Gen do
 
   @unknown_operations [:teleport, :frobnicate, :launch]
   @unknown_kinds [:robot, :ghost, :service]
-  @adapters [Turnstile.Adapter.Fake, Port]
+  @adapters [Turnstile.Test.Fake, Port]
 
   # The round trips need operations to carry, not a rule that reads them, so
   # they take a fixed list rather than a world's.

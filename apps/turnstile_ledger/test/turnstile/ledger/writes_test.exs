@@ -84,7 +84,7 @@ defmodule Turnstile.Ledger.WritesTest do
   end
 
   defp decision(id) do
-    Test.with_config(adapter: {Turnstile.Adapter.Fake, verdict: :allow})
+    Test.with_config(adapter: {Turnstile.Test.Fake, verdict: :allow})
     {:ok, decision} = Turnstile.authorize(@subject, :edit, {:account, id})
     decision
   end

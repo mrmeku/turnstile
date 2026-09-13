@@ -23,7 +23,7 @@ defmodule Turnstile.Conformance.LedgerCase do
     the test runs. Omit it for a repo that needs none.
   - `adapter:` the adapter the configuration override names, since a
     configuration needs one even where no decision is asked for; default
-    `Turnstile.Adapter.Fake`.
+    `Turnstile.Test.Fake`.
   - `async:` default `true`.
   """
 
@@ -38,7 +38,7 @@ defmodule Turnstile.Conformance.LedgerCase do
       ledger: Keyword.get(opts, :ledger, :memory),
       repo: Keyword.get(opts, :repo),
       sandbox: Keyword.get(opts, :sandbox),
-      adapter: Keyword.get(opts, :adapter, Turnstile.Adapter.Fake)
+      adapter: Keyword.get(opts, :adapter, Turnstile.Test.Fake)
     }
 
     [preamble(config, Keyword.get(opts, :async, true)), laws(), transaction(config.ledger)]

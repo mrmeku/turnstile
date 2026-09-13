@@ -120,15 +120,15 @@ defmodule Turnstile.Fga.VersionTest do
   end
 
   test "a configuration naming another adapter publishes nothing under this one", context do
-    :ok = Test.with_config(adapter: Turnstile.Adapter.Fake)
+    :ok = Test.with_config(adapter: Turnstile.Test.Fake)
 
     assert {:error, %Error{reason: :invalid, detail: "invalid model: " <> detail}} = Fga.publish()
-    assert detail == "#{inspect(Turnstile.Adapter.Fake)} is the configured adapter, not #{inspect(Fga)}"
+    assert detail == "#{inspect(Turnstile.Test.Fake)} is the configured adapter, not #{inspect(Fga)}"
     assert models(context.agent) == []
   end
 
   test "in ledger mode none there is nothing to publish into" do
-    :ok = Test.with_config(adapter: Turnstile.Adapter.Fake, ledger: :none)
+    :ok = Test.with_config(adapter: Turnstile.Test.Fake, ledger: :none)
 
     assert {:error, %Error{reason: :unsupported, detail: detail}} = Fga.publish()
     assert detail == "Turnstile.Fga has nothing to publish into: the configuration names no ledger"

@@ -2,11 +2,11 @@ defmodule Turnstile.PortTest do
   use ExUnit.Case, async: true
 
   alias Ecto.Query.DynamicExpr
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Answer
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.Port
+  alias Turnstile.Test.Fake
 
   defmodule DownLedger do
     @moduledoc false

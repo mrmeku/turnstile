@@ -1,7 +1,7 @@
 defmodule Turnstile.Conformance.AdapterCaseTest do
   use Turnstile.Conformance.AdapterCase,
     async: false,
-    adapter: Turnstile.Adapter.Fake,
+    adapter: Turnstile.Test.Fake,
     repo: Turnstile.TestRepos.Sandboxed,
     world: Turnstile.Fixture.World,
     sandbox: Turnstile.Test.Sandbox,
@@ -16,9 +16,9 @@ defmodule Turnstile.Conformance.AdapterCaseTest do
     projection: Turnstile.Test.Projection
 
   alias Ecto.Adapters.SQL
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Config
   alias Turnstile.Ledger.Memory
+  alias Turnstile.Test.Fake
   alias Turnstile.Test.Projection
   alias Turnstile.TestRepos.Sandboxed
 
@@ -46,15 +46,15 @@ end
 defmodule Turnstile.Conformance.AdapterCaseNoLedgerTest do
   use Turnstile.Conformance.AdapterCase,
     async: true,
-    adapter: Turnstile.Adapter.Fake,
+    adapter: Turnstile.Test.Fake,
     repo: Turnstile.TestRepos.Sandboxed,
     world: Turnstile.Fixture.World,
     sandbox: Turnstile.Test.Sandbox,
     ledger: :none,
     seed: Turnstile.Test.FakeSeed
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Config
+  alias Turnstile.Test.Fake
 
   setup do
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})
@@ -63,13 +63,13 @@ defmodule Turnstile.Conformance.AdapterCaseNoLedgerTest do
   end
 
   test "the setup binds no ledger" do
+    # Not async: the worlds of this module and of the mode-none one are the
+    # same rows of the same tables, and two of them written at once deadlock.
     assert {:ok, %Config{ledger: :none}} = Config.resolve()
   end
 end
 
 defmodule Turnstile.Conformance.AdapterCaseLedgerTest do
-  # Not async: the worlds of this module and of the mode-none one are the
-  # same rows of the same tables, and two of them written at once deadlock.
   use Turnstile.Conformance.AdapterCase,
     async: false,
     adapter: Turnstile.Test.LedgerAdapter,
@@ -78,7 +78,7 @@ defmodule Turnstile.Conformance.AdapterCaseLedgerTest do
     sandbox: Turnstile.Test.Sandbox,
     seed: Turnstile.Test.FakeSeed
 
-  alias Turnstile.Adapter.Fake
+  alias Turnstile.Test.Fake
   alias Turnstile.Test.LedgerAdapter
 
   setup do

@@ -1,11 +1,11 @@
-defmodule Turnstile.Adapter.FakeTest do
+defmodule Turnstile.Test.FakeTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [from: 2, where: 2]
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Answer
   alias Turnstile.Error
+  alias Turnstile.Test.Fake
 
   @subject {:user, "11111111-1111-1111-1111-111111111111"}
   @object {:thing, "22222222-2222-2222-2222-222222222222"}
@@ -53,14 +53,14 @@ defmodule Turnstile.Adapter.FakeTest do
   end
 end
 
-defmodule Turnstile.Adapter.FakeTableTest do
+defmodule Turnstile.Test.FakeTableTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [from: 2, where: 2]
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Answer
   alias Turnstile.Error
+  alias Turnstile.Test.Fake
 
   @user {:user, "acct-a"}
   @other {:user, "acct-b"}

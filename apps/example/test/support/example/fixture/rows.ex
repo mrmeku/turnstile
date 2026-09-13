@@ -16,8 +16,8 @@ defmodule Example.Fixture.Rows do
   alias Example.Office
   alias Example.Program
   alias Example.Repo
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Conformance.RepoCase.Rows
+  alias Turnstile.Test.Fake
   alias Turnstile.Test.Sandbox
 
   @decontrolled ~U[2030-01-01 00:00:00Z]

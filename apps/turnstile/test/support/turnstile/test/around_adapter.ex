@@ -9,7 +9,7 @@ defmodule Turnstile.Test.AroundAdapter do
 
   use Boundary, top_level?: true, deps: [Turnstile]
 
-  alias Turnstile.Adapter.Fake
+  alias Turnstile.Test.Fake
 
   @impl Turnstile.Adapter
   defdelegate options_schema, to: Fake

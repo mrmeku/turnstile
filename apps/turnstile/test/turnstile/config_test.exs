@@ -1,10 +1,10 @@
 defmodule Turnstile.ConfigTest do
   use ExUnit.Case, async: false
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Config
   alias Turnstile.Error
   alias Turnstile.Ledger.Memory
+  alias Turnstile.Test.Fake
 
   defmodule NeedsLedger do
     @moduledoc false

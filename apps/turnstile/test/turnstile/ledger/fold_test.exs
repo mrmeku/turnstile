@@ -61,7 +61,7 @@ defmodule Turnstile.Ledger.FoldTest do
     inserted = event(1, [])
 
     version = %Turnstile.PolicyVersion{
-      adapter: Turnstile.Adapter.Fake,
+      adapter: Turnstile.Test.Fake,
       version: "abc123",
       content_hash: "sha256-1",
       author: "an author",

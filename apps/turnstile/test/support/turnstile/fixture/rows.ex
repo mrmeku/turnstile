@@ -9,9 +9,9 @@ defmodule Turnstile.Fixture.Rows do
   @behaviour Turnstile.Conformance.RepoCase.Rows
 
   alias Ecto.Changeset
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Conformance.RepoCase.Rows
   alias Turnstile.Fixture.Membership
+  alias Turnstile.Test.Fake
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 

@@ -15,7 +15,7 @@ defmodule Turnstile.Test.LedgerAdapter do
 
   use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Test.Projection]
 
-  alias Turnstile.Adapter.Fake
+  alias Turnstile.Test.Fake
   alias Turnstile.Test.Projection
 
   @impl Turnstile.Adapter

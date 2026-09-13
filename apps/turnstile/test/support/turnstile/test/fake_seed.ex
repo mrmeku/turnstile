@@ -11,10 +11,10 @@ defmodule Turnstile.Test.FakeSeed do
 
   use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Conformance, Turnstile.Fixture]
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Config
   alias Turnstile.Conformance.Seed
   alias Turnstile.Fixture.World
+  alias Turnstile.Test.Fake
 
   @impl Seed
   def seed(%World{} = world) do

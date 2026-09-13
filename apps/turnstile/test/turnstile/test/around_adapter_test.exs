@@ -1,8 +1,8 @@
 defmodule Turnstile.Test.AroundAdapterTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Test.AroundAdapter
+  alias Turnstile.Test.Fake
 
   @subject {:user, "11111111-1111-1111-1111-111111111111"}
   @object {:thing, "22222222-2222-2222-2222-222222222222"}

@@ -6,7 +6,7 @@ defmodule Turnstile.Test do
   Shipped in core so Tier 1 can run outside this repository.
   """
 
-  use Boundary, top_level?: true, deps: [Turnstile, Ecto, NimbleOptions], exports: [Clock, Cluster]
+  use Boundary, top_level?: true, deps: [Turnstile, Ecto, NimbleOptions], exports: [Clock, Cluster, Fake]
 
   alias Turnstile.Config
   alias Turnstile.Projection.Drain

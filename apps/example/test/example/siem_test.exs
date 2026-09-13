@@ -29,7 +29,7 @@ defmodule Example.SiemTest do
     object: {:document, 4},
     verdict: :allow,
     reason: :allowed,
-    decider: Turnstile.Adapter.Fake,
+    decider: Turnstile.Test.Fake,
     version: "fake",
     env: %{},
     exception: nil,
@@ -78,7 +78,7 @@ defmodule Example.SiemTest do
     assert record.actor == %{user: %{uid: "ann", type_id: 1, type: "User"}}
     assert record.resource == %{type: "document", uid: "4"}
     assert record.api == %{operation: "read", response: %{message: "allowed"}}
-    assert record.unmapped.decider == "Turnstile.Adapter.Fake"
+    assert record.unmapped.decider == "Turnstile.Test.Fake"
     assert record.unmapped.policy_version == "fake"
   end
 

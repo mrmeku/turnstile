@@ -14,7 +14,6 @@ defmodule Turnstile.Repo.SeamTest do
 
   alias Ecto.Changeset
   alias Ecto.Multi
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.FactEvent
@@ -25,6 +24,7 @@ defmodule Turnstile.Repo.SeamTest do
   alias Turnstile.Id
   alias Turnstile.Ledger.Memory
   alias Turnstile.Test.AroundAdapter
+  alias Turnstile.Test.Fake
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Owner
   alias Turnstile.TestRepos.Sandboxed

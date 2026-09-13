@@ -1,12 +1,12 @@
 defmodule Turnstile.Test.SettleTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Error
   alias Turnstile.FactEvent
   alias Turnstile.Id
   alias Turnstile.Ledger.Memory
   alias Turnstile.Test
+  alias Turnstile.Test.Fake
   alias Turnstile.Test.LedgerAdapter
   alias Turnstile.Test.Projection
 

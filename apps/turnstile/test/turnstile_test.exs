@@ -1,9 +1,9 @@
 defmodule TurnstileTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Decision
   alias Turnstile.Error
+  alias Turnstile.Test.Fake
 
   @user {:user, "acct-a"}
   @folder {:folder, 1}

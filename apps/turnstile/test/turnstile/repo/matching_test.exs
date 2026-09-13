@@ -3,13 +3,13 @@ defmodule Turnstile.Repo.MatchingTest do
 
   import Ecto.Query, only: [from: 2, subquery: 1]
 
-  alias Turnstile.Adapter.Fake
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.Id
   alias Turnstile.Repo.Matching
   alias Turnstile.Repo.Mediation
+  alias Turnstile.Test.Fake
   alias Turnstile.TestRepos.Sandboxed
 
   test "a query from a table name has no root schema and passes without a mediation" do
