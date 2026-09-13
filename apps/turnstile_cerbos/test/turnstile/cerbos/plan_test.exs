@@ -13,7 +13,6 @@ defmodule Turnstile.Cerbos.PlanTest do
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.World
-  alias Turnstile.Scope
   alias Turnstile.Test
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
@@ -175,10 +174,11 @@ defmodule Turnstile.Cerbos.PlanTest do
   end
 
   test "a scope the sidecar denies outright is a denial with the rule that admits no row", ctx do
-    assert {:ok, %Scope{} = scope} = Decide.scoped(ctx.binding, ctx.address, ctx.bob, :read, :folder, ctx.environment)
-    assert %Answer{verdict: :deny} = scope.answer
-    assert scope.answer.policy_version == "conformance"
-    assert ids(scope.rule) == []
+    assert {:ok, {rule, %Answer{verdict: :deny} = answer}} =
+             Decide.scoped(ctx.binding, ctx.address, ctx.bob, :read, :folder, ctx.environment)
+
+    assert answer.version == "conformance"
+    assert ids(rule) == []
   end
 
   test "a plan this adapter cannot express emits the fallback event and fails", ctx do

@@ -9,7 +9,6 @@ defmodule Turnstile.Cerbos.ReplayTest do
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.Id
-  alias Turnstile.Reason
 
   @cleared %{"clearance" => "cleared"}
   @reader %{"member_roles" => ["reader"]}
@@ -28,14 +27,14 @@ defmodule Turnstile.Cerbos.ReplayTest do
 
     assert {:ok, %Answer{} = allowed} = Replay.ask(sidecar.address, decision(:allow), @cleared, @reader)
     assert allowed.verdict == :allow
-    assert allowed.policy_version == "conformance"
-    assert allowed.reason.code == :allowed
-    assert allowed.reason.rule =~ "folder"
-    assert allowed.applied_position == nil
+    assert allowed.version == "conformance"
+    assert allowed.reason == :allowed
+    assert allowed.meta.rule =~ "folder"
+    assert allowed.meta[:applied] == nil
 
     assert {:ok, %Answer{} = denied} = Replay.ask(sidecar.address, decision(:allow), %{"clearance" => nil}, @reader)
     assert denied.verdict == :deny
-    assert denied.reason.code == :deny_by_default
+    assert denied.reason == :deny_by_default
 
     line = %Line{
       number: 1,
@@ -49,7 +48,7 @@ defmodule Turnstile.Cerbos.ReplayTest do
       resource: @reader
     }
 
-    assert {:ok, %Answer{verdict: :allow, policy_version: nil}} = Replay.ask(sidecar.address, line)
+    assert {:ok, %Answer{verdict: :allow, version: nil}} = Replay.ask(sidecar.address, line)
     assert {:ok, %Answer{verdict: :deny}} = Replay.ask(sidecar.address, %{line | roles: ["stranger"]})
   end
 
@@ -88,7 +87,7 @@ defmodule Turnstile.Cerbos.ReplayTest do
       object: {:folder, 1},
       operation: :read,
       verdict: verdict,
-      reason: Reason.allowed("folder.default"),
+      reason: :allowed,
       adapter: Turnstile.Cerbos,
       policy_version: "conformance",
       head_position: nil,

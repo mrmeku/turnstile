@@ -55,7 +55,6 @@ defmodule Turnstile.Cerbos do
   alias Turnstile.Cerbos.Version
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Explanation
   alias Turnstile.FactEvent
 
   @schema NimbleOptions.new!(
@@ -82,9 +81,7 @@ defmodule Turnstile.Cerbos do
   @impl Turnstile.Adapter
   def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
-    with {:ok, %Explanation{answer: answer}} <- explain(subject, operation, object, environment, options) do
-      {:ok, answer}
-    end
+    explain(subject, operation, object, environment, options)
   end
 
   @impl Turnstile.Adapter

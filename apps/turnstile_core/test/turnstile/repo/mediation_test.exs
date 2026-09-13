@@ -6,7 +6,6 @@ defmodule Turnstile.Repo.MediationTest do
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Id
-  alias Turnstile.Reason
   alias Turnstile.Repo.Mediation
   alias Turnstile.TestRepos.Sandboxed
 
@@ -43,7 +42,7 @@ defmodule Turnstile.Repo.MediationTest do
       object: {type, id},
       operation: :read,
       verdict: :allow,
-      reason: %Reason{code: :allowed, message: "allowed by the fake adapter"},
+      reason: :allowed,
       adapter: Fake,
       policy_version: nil,
       head_position: nil,

@@ -30,9 +30,6 @@ defmodule Turnstile.Cerbos.Decide do
   alias Turnstile.Cerbos.Request
   alias Turnstile.Cerbos.Values
   alias Turnstile.Environment
-  alias Turnstile.Explanation
-  alias Turnstile.Reason
-  alias Turnstile.Scope
 
   @fallback [:turnstile, :cerbos, :scope_fallback]
 
@@ -40,9 +37,9 @@ defmodule Turnstile.Cerbos.Decide do
   @spec fallback_event() :: [atom()]
   def fallback_event, do: @fallback
 
-  @doc "The explanation for one object: its answer and the policy the sidecar matched."
+  @doc "The answer for one object, with the policy the sidecar matched under `meta[:matched]`."
   @spec one(Binding.t(), Client.address(), Turnstile.subject(), atom(), Turnstile.object(), Environment.t()) ::
-          {:ok, Explanation.t()} | {:error, String.t()}
+          {:ok, Answer.t()} | {:error, String.t()}
   def one(
         %Binding{} = binding,
         address,
@@ -62,9 +59,7 @@ defmodule Turnstile.Cerbos.Decide do
           {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
   def many(%Binding{} = binding, address, {_kind, _account} = subject, operation, objects, %Environment{} = request)
       when is_binary(address) and is_atom(operation) and is_list(objects) do
-    with {:ok, explained} <- explained(binding, address, subject, operation, objects, request) do
-      {:ok, Map.new(explained, fn {ref, %Explanation{answer: answer}} -> {ref, answer} end)}
-    end
+    explained(binding, address, subject, operation, objects, request)
   end
 
   @doc """
@@ -74,7 +69,7 @@ defmodule Turnstile.Cerbos.Decide do
   `fallback_event/0` and fails, which is what a caller records as limited.
   """
   @spec scoped(Binding.t(), Client.address(), Turnstile.subject(), atom(), atom(), Environment.t()) ::
-          {:ok, Scope.t()} | {:error, String.t()}
+          {:ok, Turnstile.Adapter.scoped()} | {:error, String.t()}
   def scoped(%Binding{} = binding, address, {_kind, _account} = subject, operation, kind, %Environment{} = request)
       when is_binary(address) and is_atom(operation) and is_atom(kind) do
     with {:ok, principal} <- Values.principal(binding, subject, request),
@@ -99,18 +94,17 @@ defmodule Turnstile.Cerbos.Decide do
   """
   @spec answer(String.t() | nil, String.t() | nil, String.t() | nil) :: Answer.t()
   def answer("EFFECT_ALLOW", policy, version) do
-    %Answer{verdict: :allow, reason: Reason.allowed(policy), policy_version: version, applied_position: nil}
+    %Answer{verdict: :allow, reason: :allowed, version: version, meta: %{rule: policy}}
   end
 
   def answer(_effect, policy, version) do
-    reason = %{Reason.deny_by_default() | rule: policy}
-    %Answer{verdict: :deny, reason: reason, policy_version: version, applied_position: nil}
+    %Answer{verdict: :deny, reason: :deny_by_default, version: version, meta: %{rule: policy}}
   end
 
   defp compiled(binding, subject, operation, kind, answered) do
     case Plan.dynamic(binding, subject, kind, Map.get(answered, "filter", %{})) do
-      {:ok, rule} -> {:ok, %Scope{rule: rule, answer: allowed(binding, nil)}}
-      :denied -> {:ok, %Scope{rule: dynamic([_row], false), answer: denied(binding, nil)}}
+      {:ok, rule} -> {:ok, {rule, allowed(binding, nil)}}
+      :denied -> {:ok, {dynamic([_row], false), denied(binding, nil)}}
       {:error, detail} -> fallback(operation, kind, detail)
     end
   end
@@ -165,12 +159,11 @@ defmodule Turnstile.Cerbos.Decide do
 
   defp key({type, id}), do: {Atom.to_string(type), to_string(id)}
 
-  defp explanation(binding, {"EFFECT_ALLOW", policy}) do
-    %Explanation{answer: allowed(binding, policy), matched: List.wrap(policy)}
-  end
+  defp explanation(binding, {"EFFECT_ALLOW", policy}), do: explaining(allowed(binding, policy), List.wrap(policy))
+  defp explanation(binding, {_effect, policy}), do: explaining(denied(binding, policy), [])
+  defp explanation(binding, nil), do: explaining(denied(binding, nil), [])
 
-  defp explanation(binding, {_effect, policy}), do: %Explanation{answer: denied(binding, policy), matched: []}
-  defp explanation(binding, nil), do: %Explanation{answer: denied(binding, nil), matched: []}
+  defp explaining(%Answer{} = answer, policies), do: %{answer | meta: Map.put(answer.meta, :matched, policies)}
 
   defp allowed(%Binding{commit: commit}, policy), do: answer("EFFECT_ALLOW", policy, commit)
 

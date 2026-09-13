@@ -6,7 +6,9 @@ defmodule Turnstile.Adapter do
   path. `explain/5` and `around_query/3` are optional and answered at runtime:
   the port checks whether the adapter exports them and returns
   `Turnstile.Error.Unsupported` when it does not, so one build serves every
-  adapter.
+  adapter. A rule that narrows and an answer that explains are the same two
+  values everywhere: `scope/5` answers the rule with its answer, and
+  `explain/5` answers with what matched on the answer's `meta`.
 
   Three declarations are true of an adapter in any domain: whether it
   requires a ledger, the cap on the number of objects `scope` can return,
@@ -18,11 +20,12 @@ defmodule Turnstile.Adapter do
   alias Turnstile.Decision
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Explanation
-  alias Turnstile.Scope
 
   @type options :: keyword()
   @type failure :: {:error, Error.Engine.t()}
+
+  @typedoc "What `scope/5` answers: the rule as a dynamic, and the answer that goes with it."
+  @type scoped :: {Ecto.Query.dynamic_expr(), Answer.t()}
 
   @doc "Decide, and let the port record the decision."
   @callback authorize(Turnstile.subject(), atom(), Turnstile.object(), Environment.t(), options()) ::
@@ -37,11 +40,11 @@ defmodule Turnstile.Adapter do
               {:ok, %{Turnstile.object() => Answer.t()}} | failure()
 
   @doc "The rule that narrows a query over an object type to what the subject may see."
-  @callback scope(Turnstile.subject(), atom(), atom(), Environment.t(), options()) :: {:ok, Scope.t()} | failure()
+  @callback scope(Turnstile.subject(), atom(), atom(), Environment.t(), options()) :: {:ok, scoped()} | failure()
 
-  @doc "The answer with what produced it, where the adapter can say."
+  @doc "The answer with what produced it under `meta[:matched]`, where the adapter can say."
   @callback explain(Turnstile.subject(), atom(), Turnstile.object(), Environment.t(), options()) ::
-              {:ok, Explanation.t()} | {:error, Error.Unsupported.t() | Error.Engine.t()}
+              {:ok, Answer.t()} | {:error, Error.Unsupported.t() | Error.Engine.t()}
 
   @doc """
   Wrap a mediated call: the query or changeset, the decision in force, and

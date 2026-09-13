@@ -8,7 +8,6 @@ defmodule Turnstile.Repo.MatchingTest do
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.Id
-  alias Turnstile.Reason
   alias Turnstile.Repo.Matching
   alias Turnstile.Repo.Mediation
   alias Turnstile.TestRepos.Sandboxed
@@ -54,7 +53,7 @@ defmodule Turnstile.Repo.MatchingTest do
       object: {type, 1},
       operation: :read,
       verdict: :allow,
-      reason: %Reason{code: :allowed, message: "allowed by the fake adapter"},
+      reason: :allowed,
       adapter: Fake,
       policy_version: nil,
       head_position: nil,

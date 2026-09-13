@@ -4,7 +4,7 @@ Every word that carries more than one meaning in this repository, and the one pl
 
 | Word | Meaning | Where it lives |
 |---|---|---|
-| Scope | The port operation that narrows a query, and the `%Turnstile.Scope{}` it returns | `apps/turnstile_core/glossary.md` |
+| Scope | The port operation that narrows a query, and the `{dynamic, answer}` it returns | `apps/turnstile_core/glossary.md` |
 | Scope | A Postgres row-level security policy's reach over a table | `apps/turnstile_postgres/glossary.md` |
 | Plan | A query plan from a Cerbos sidecar compiled into a `dynamic` over an object type's rows | `apps/turnstile_cerbos/glossary.md` |
 | Plan | The project's plan of record | `PLAN.md` |

@@ -3,7 +3,6 @@ defmodule Turnstile.EdgeTest do
 
   alias Turnstile.Edge
   alias Turnstile.Error
-  alias Turnstile.Reason
 
   test "convert reads each field of the spec, by atom or string key, in order" do
     spec = [name: :string, count: {:integer, :nil_ok}, kind: {:in, [:a, :b]}, note: {:string, :nil_ok}]
@@ -51,15 +50,6 @@ defmodule Turnstile.EdgeTest do
     assert {:error, %Error.Invalid{detail: "bad time" <> _rest}} = Edge.value_in("yesterday", :time, :thing)
     assert {:error, %Error.Invalid{}} = Edge.value_in(1, :time, :thing)
     assert Edge.time_out(nil) == nil
-  end
-
-  test "a struct field takes the struct or the map its module reads, and refuses the rest" do
-    reason = Reason.allowed("r")
-    assert {:ok, ^reason} = Edge.value_in(reason, {:struct, Reason}, :thing)
-    assert {:ok, ^reason} = Edge.value_in(Reason.to_map(reason), {:struct, Reason}, :thing)
-    assert {:error, %Error.Invalid{what: :reason}} = Edge.value_in(%{code: "allowed"}, {:struct, Reason}, :thing)
-    assert {:error, %Error.Invalid{what: :thing, detail: detail}} = Edge.value_in("no", {:struct, Reason}, :thing)
-    assert detail =~ "expected Turnstile.Reason"
   end
 
   test "fetch_all names the first missing key" do

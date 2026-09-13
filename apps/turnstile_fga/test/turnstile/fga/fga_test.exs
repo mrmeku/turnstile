@@ -19,7 +19,6 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Decision
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Explanation
   alias Turnstile.Fga
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Checkpoint
@@ -33,8 +32,6 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Fga.TupleKey
   alias Turnstile.FgaTest.Guard
   alias Turnstile.Ledger.Memory
-  alias Turnstile.Reason
-  alias Turnstile.Scope
   alias Turnstile.Test
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
@@ -86,8 +83,9 @@ defmodule Turnstile.FgaTest do
     assert {:ok, %Answer{verdict: :allow} = allowed} =
              Fga.authorize(ann(), :read, folder, environment(), context.options)
 
-    assert allowed.reason == Reason.allowed("can_read")
-    assert allowed.policy_version == context.model
+    assert allowed.reason == :allowed
+    assert allowed.meta.rule == "can_read"
+    assert allowed.version == context.model
 
     assert {:ok, %Answer{verdict: :allow}} = Fga.check(ann(), :read, folder, environment(), context.options)
     assert {:ok, %Answer{verdict: :deny}} = Fga.check(ann(), :edit, folder, environment(), context.options)
@@ -100,23 +98,23 @@ defmodule Turnstile.FgaTest do
     assert {:ok, answers} = Fga.batch(ann(), :read, objects, environment(), context.options)
     assert Enum.map(objects, &answers[&1].verdict) == [:allow, :deny]
 
-    assert {:ok, %Scope{rule: rule}} = Fga.scope(ann(), :read, :folder, environment(), context.options)
+    assert {:ok, {rule, _answer}} = Fga.scope(ann(), :read, :folder, environment(), context.options)
     assert inspect(rule) == inspect(dynamic([row], row.id in ^["1"]))
 
-    assert {:ok, %Explanation{answer: %Answer{verdict: :allow}}} =
+    assert {:ok, %Answer{verdict: :allow}} =
              Fga.explain(ann(), :read, {:folder, 1}, environment(), context.options)
   end
 
   test "every answer carries the position the store has been drained to", context do
     folder = {:folder, 1}
 
-    assert {:ok, %Answer{applied_position: 0}} = Fga.check(ann(), :read, folder, environment(), context.options)
+    assert {:ok, %Answer{meta: %{applied: 0}}} = Fga.check(ann(), :read, folder, environment(), context.options)
 
     :ok = Checkpoint.advance(Sandboxed, context.store, 12)
 
-    assert {:ok, %Answer{applied_position: 12}} = Fga.check(ann(), :read, folder, environment(), context.options)
+    assert {:ok, %Answer{meta: %{applied: 12}}} = Fga.check(ann(), :read, folder, environment(), context.options)
     assert {:ok, answers} = Fga.batch(ann(), :read, [folder], environment(), context.options)
-    assert answers[{:folder, 1}].applied_position == 12
+    assert answers[{:folder, 1}].meta.applied == 12
   end
 
   test "with nothing bound no callback asks anything", context do
@@ -146,20 +144,21 @@ defmodule Turnstile.FgaTest do
     assert {:ok, %Answer{verdict: :allow}} = Fga.check(ann(), :read, folder, cleared(), context.options)
 
     assert {:ok, %Answer{verdict: :deny} = denied} = Fga.check(ann(), :read, folder, environment(), context.options)
-    assert denied.reason == Reason.rule_denied(Decide.guard_rule())
-    assert denied.policy_version == context.model
-    assert denied.applied_position == 0
+    assert denied.reason == :rule_denied
+    assert denied.meta.rule == Decide.guard_rule()
+    assert denied.version == context.model
+    assert denied.meta.applied == 0
 
     assert {:ok, %Answer{verdict: :deny}} = Fga.authorize(ann(), :read, folder, environment(), context.options)
     assert {:ok, answers} = Fga.batch(ann(), :read, [folder], environment(), context.options)
     assert answers[{:folder, 1}].verdict == :deny
 
-    assert {:ok, %Scope{rule: rule, answer: %Answer{verdict: :deny}}} =
+    assert {:ok, {rule, %Answer{verdict: :deny}}} =
              Fga.scope(ann(), :read, :folder, environment(), context.options)
 
     assert inspect(rule) == inspect(dynamic([_row], false))
 
-    assert {:ok, %Explanation{answer: %Answer{verdict: :deny}, matched: []}} =
+    assert {:ok, %Answer{verdict: :deny, meta: %{matched: []}}} =
              Fga.explain(ann(), :read, folder, environment(), context.options)
   end
 
@@ -168,7 +167,7 @@ defmodule Turnstile.FgaTest do
     options = Keyword.delete(context.options, :model_id)
     folder = {:folder, 1}
 
-    assert {:ok, %Answer{verdict: :deny, policy_version: nil}} = Fga.check(ann(), :read, folder, environment(), options)
+    assert {:ok, %Answer{verdict: :deny, version: nil}} = Fga.check(ann(), :read, folder, environment(), options)
     assert {:error, %Error.Engine{operation: :check}} = Fga.check(ann(), :read, folder, cleared(), options)
   end
 
@@ -180,7 +179,7 @@ defmodule Turnstile.FgaTest do
 
     assert inspect(rule) == inspect(dynamic([_row], false))
     assert decision.verdict == :deny
-    assert decision.reason.code == :engine_unreachable
+    assert decision.reason == :engine_unreachable
     assert_receive {:scope_fallback, %{count: 1_000}, %{operation: :read, type: :folder, level: :limited}}
 
     kept = Turnstile.filter(ann(), :read, for(id <- 1..1_000, do: {:folder, id}))

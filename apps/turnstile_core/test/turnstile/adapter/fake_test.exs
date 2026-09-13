@@ -7,23 +7,21 @@ defmodule Turnstile.Adapter.FakeTest do
   alias Turnstile.Answer
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Reason
-  alias Turnstile.Scope
 
   @subject {:user, "11111111-1111-1111-1111-111111111111"}
   @object {:thing, "22222222-2222-2222-2222-222222222222"}
   @environment %Environment{now: ~U[2026-09-08 00:00:00Z]}
 
   test "it denies by default with a deny-by-default reason and the fake policy version" do
-    assert {:ok, %Answer{verdict: :deny, reason: %Reason{code: :deny_by_default}, policy_version: "fake"} = answer} =
+    assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default, version: "fake"} = answer} =
              Fake.authorize(@subject, :read, @object, @environment, [])
 
-    assert answer.applied_position == nil
+    assert answer.meta == %{}
     assert {:ok, ^answer} = Fake.check(@subject, :read, @object, @environment, [])
   end
 
   test "it allows under verdict: :allow with an allowed reason naming the fake rule" do
-    assert {:ok, %Answer{verdict: :allow, reason: %Reason{code: :allowed, rule: "fake"}}} =
+    assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "fake"}}} =
              Fake.check(@subject, :read, @object, @environment, verdict: :allow)
   end
 
@@ -35,12 +33,11 @@ defmodule Turnstile.Adapter.FakeTest do
   end
 
   test "scope returns a real dynamic that composes into a query" do
-    assert {:ok, %Scope{rule: rule, answer: %Answer{verdict: :allow}}} =
-             Fake.scope(@subject, :read, :thing, @environment, verdict: :allow)
+    assert {:ok, {rule, %Answer{verdict: :allow}}} = Fake.scope(@subject, :read, :thing, @environment, verdict: :allow)
 
     query = where(from(row in "things", select: row.id), ^rule)
     assert %Ecto.Query{} = query
-    assert {:ok, %Scope{rule: denied}} = Fake.scope(@subject, :read, :thing, @environment, [])
+    assert {:ok, {denied, %Answer{}}} = Fake.scope(@subject, :read, :thing, @environment, [])
     assert %Ecto.Query{} = where(from(row in "things", select: row.id), ^denied)
   end
 
@@ -67,7 +64,6 @@ defmodule Turnstile.Adapter.FakeTableTest do
   alias Turnstile.Answer
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Scope
 
   @user {:user, "acct-a"}
   @other {:user, "acct-b"}
@@ -102,22 +98,19 @@ defmodule Turnstile.Adapter.FakeTableTest do
   test "scope narrows to the ids allowed, everything under a wildcard, nothing without", %{rules: rules, options: options} do
     query = from(row in "folders", select: row.id)
 
-    assert {:ok, %Scope{answer: %Answer{verdict: :deny}, rule: none}} =
-             Fake.scope(@user, :read, :folder, @environment, options)
+    assert {:ok, {none, %Answer{verdict: :deny}}} = Fake.scope(@user, :read, :folder, @environment, options)
 
     assert %Ecto.Query{} = where(query, ^none)
 
     :ok = Fake.allow(rules, "acct-a", :read, {:folder, 1})
 
-    assert {:ok, %Scope{answer: %Answer{verdict: :allow}, rule: some}} =
-             Fake.scope(@user, :read, :folder, @environment, options)
+    assert {:ok, {some, %Answer{verdict: :allow}}} = Fake.scope(@user, :read, :folder, @environment, options)
 
     assert inspect(some) =~ "row.id in"
 
     :ok = Fake.allow(rules, :any, :read, {:folder, :any})
 
-    assert {:ok, %Scope{answer: %Answer{verdict: :allow}, rule: all}} =
-             Fake.scope(@other, :read, :folder, @environment, options)
+    assert {:ok, {all, %Answer{verdict: :allow}}} = Fake.scope(@other, :read, :folder, @environment, options)
 
     assert inspect(all) =~ "true"
   end

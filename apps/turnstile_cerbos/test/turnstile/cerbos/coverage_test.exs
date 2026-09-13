@@ -13,7 +13,6 @@ defmodule Turnstile.Cerbos.CoverageTest do
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
   alias Turnstile.Fixture.World
-  alias Turnstile.Scope
   alias Turnstile.Test
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
@@ -40,11 +39,11 @@ defmodule Turnstile.Cerbos.CoverageTest do
   end
 
   test "the query the sidecar's own plan compiles to reads declared facts alone", ctx do
-    assert {:ok, %Scope{} = folders} = Decide.scoped(ctx.binding, ctx.address, ctx.ann, :read, :folder, ctx.request)
-    assert Coverage.check(Attributes, from(f in Folder, where: ^folders.rule)) == :ok
+    assert {:ok, {folders, _answer}} = Decide.scoped(ctx.binding, ctx.address, ctx.ann, :read, :folder, ctx.request)
+    assert Coverage.check(Attributes, from(f in Folder, where: ^folders)) == :ok
 
-    assert {:ok, %Scope{} = items} = Decide.scoped(ctx.binding, ctx.address, ctx.ann, :edit, :item, ctx.request)
-    assert Coverage.check!(Attributes, from(i in Item, where: ^items.rule)) == :ok
+    assert {:ok, {items, _answer}} = Decide.scoped(ctx.binding, ctx.address, ctx.ann, :edit, :item, ctx.request)
+    assert Coverage.check!(Attributes, from(i in Item, where: ^items)) == :ok
   end
 
   test "a column no declaration covers is a finding naming the schema" do

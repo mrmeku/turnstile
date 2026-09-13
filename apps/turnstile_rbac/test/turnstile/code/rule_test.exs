@@ -12,7 +12,6 @@ defmodule Turnstile.Code.RuleTest do
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
   alias Turnstile.Fixture.World
-  alias Turnstile.Reason
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
@@ -111,12 +110,10 @@ defmodule Turnstile.Code.RuleTest do
     :ok = Binding.override(policy: FixedRole, repo: Sandboxed)
     folder = {:folder, 1}
 
-    assert {:ok, %Answer{verdict: :allow, reason: reason}} =
+    assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "any_membership"}}} =
              Turnstile.Code.check(ctx.ann, :read, folder, ctx.environment, [])
 
-    assert reason == Reason.allowed("any_membership")
-
-    assert {:ok, %Answer{verdict: :deny, reason: %Reason{code: :deny_by_default}}} =
+    assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
              Turnstile.Code.check(ctx.ann, :edit, folder, ctx.environment, [])
   end
 
@@ -125,7 +122,7 @@ defmodule Turnstile.Code.RuleTest do
     folder = {:folder, 1}
     assert {:ok, %Answer{verdict: :allow}} = Turnstile.Code.check(ctx.ann, :read, folder, ctx.environment, [])
 
-    assert {:ok, %Answer{verdict: :deny, reason: %Reason{code: :deny_by_default}}} =
+    assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
              Turnstile.Code.check(ctx.ann, :edit, folder, ctx.environment, [])
   end
 
@@ -133,10 +130,9 @@ defmodule Turnstile.Code.RuleTest do
     :ok = Binding.override(policy: NamedRole, repo: Sandboxed)
     folder = {:folder, 1}
 
-    assert {:ok, %Answer{verdict: :deny, reason: reason}} =
+    assert {:ok, %Answer{verdict: :deny, reason: :rule_denied, meta: %{rule: "no"}}} =
              Turnstile.Code.check(ctx.ann, :read, folder, ctx.environment, [])
 
-    assert reason == Reason.rule_denied("no")
     assert {:ok, %Rule{predicates: [no: expression]}} = Rule.build(NamedRole, ctx.ann, :read, :folder, ctx.environment)
     assert %Ecto.Query.DynamicExpr{} = expression
   end
@@ -146,24 +142,22 @@ defmodule Turnstile.Code.RuleTest do
     :ok = Binding.override(policy: Hopped, repo: Sandboxed)
     item = {:item, 1}
 
-    assert {:ok, %Answer{verdict: :allow, reason: reason}} =
+    assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "folder_membership"}}} =
              Turnstile.Code.check(ctx.ann, :read, item, ctx.environment, [])
 
-    assert reason == Reason.allowed("folder_membership")
-
-    assert {:ok, %Answer{verdict: :deny, reason: %Reason{code: :rule_denied}}} =
+    assert {:ok, %Answer{verdict: :deny, reason: :rule_denied}} =
              Turnstile.Code.check(ctx.ann, :edit, item, ctx.environment, [])
 
     closed = where(Folder, id: 1)
     {1, nil} = Sandboxed.update_all(closed, [set: [name: "closed"]], turnstile: World.exemption())
 
-    assert {:ok, %Answer{verdict: :deny, reason: %Reason{code: :deny_by_default}}} =
+    assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
              Turnstile.Code.check(ctx.ann, :read, item, ctx.environment, [])
   end
 
   test "the scope answer names every clause and the rule needs a one-column primary key", ctx do
     assert {:ok, %Rule{} = rule} = Rule.build(FixedRole, ctx.ann, :read, :folder, ctx.environment)
-    assert Rule.answer(rule).reason == Reason.allowed("any_membership, yes")
+    assert %Answer{reason: :allowed, meta: %{rule: "any_membership, yes"}} = Rule.answer(rule)
     clauses = Rule.clauses(rule)
     assert Enum.sort(Map.keys(clauses)) == [:any_membership, :yes]
     assert Rule.primary_key(Folder) == :id

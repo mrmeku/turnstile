@@ -50,13 +50,11 @@ defmodule Turnstile.Postgres do
   alias Turnstile.Decision
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Explanation
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Decide
   alias Turnstile.Postgres.Session
   alias Turnstile.Postgres.Settings
-  alias Turnstile.Scope
 
   @doc """
   Read the policies and the version once, so no call on the request path
@@ -129,7 +127,7 @@ defmodule Turnstile.Postgres do
   def explain({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
       when is_atom(operation) do
     with {:ok, %Answer{} = answer} <- authorize(subject, operation, object, environment, options) do
-      {:ok, %Explanation{answer: answer, matched: []}}
+      {:ok, %{answer | meta: Map.put(answer.meta, :matched, [])}}
     end
   end
 
@@ -141,8 +139,8 @@ defmodule Turnstile.Postgres do
     end
   end
 
-  defp scoped(%Answer{verdict: :allow} = answer), do: %Scope{rule: dynamic([_row], true), answer: answer}
-  defp scoped(%Answer{verdict: :deny} = answer), do: %Scope{rule: dynamic([_row], false), answer: answer}
+  defp scoped(%Answer{verdict: :allow} = answer), do: {dynamic([_row], true), answer}
+  defp scoped(%Answer{verdict: :deny} = answer), do: {dynamic([_row], false), answer}
 
   # The settings the call that produced the decision ran under, or, where
   # that call is out of reach, the ones the decision alone determines: no

@@ -25,10 +25,7 @@ defmodule Turnstile.Port do
   alias Turnstile.Edge
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Explanation
   alias Turnstile.Id
-  alias Turnstile.Reason
-  alias Turnstile.Scope
 
   @options NimbleOptions.new!(
              facts: [type: {:map, :atom, :any}, default: %{}, doc: "Facts only the caller knows, by name."],
@@ -66,11 +63,11 @@ defmodule Turnstile.Port do
           {:ok, Decision.t()} | {:error, Error.NotAuthorized.t()}
   def authorize({_kind, _account} = subject, operation, {_type, _id} = object, opts)
       when is_atom(operation) and is_list(opts) do
-    decision = one(:authorize, subject, operation, object, opts)
+    {decision, answer} = one(:authorize, subject, operation, object, opts)
 
     case decision.verdict do
       :allow -> {:ok, decision}
-      :deny -> {:error, not_authorized(subject, operation, object, decision.reason)}
+      :deny -> {:error, not_authorized(subject, operation, object, answer)}
     end
   end
 
@@ -78,7 +75,8 @@ defmodule Turnstile.Port do
   @spec check(Turnstile.subject(), atom(), Turnstile.object(), options()) :: boolean()
   def check({_kind, _account} = subject, operation, {_type, _id} = object, opts)
       when is_atom(operation) and is_list(opts) do
-    one(:check, subject, operation, object, opts).verdict == :allow
+    {decision, _answer} = one(:check, subject, operation, object, opts)
+    decision.verdict == :allow
   end
 
   @doc "Decide for many objects of one type; one record for all of them."
@@ -111,9 +109,9 @@ defmodule Turnstile.Port do
     end)
   end
 
-  @doc "The answer with what produced it, where the adapter can say; unsupported otherwise."
+  @doc "The answer with what produced it on `meta`, where the adapter can say; unsupported otherwise."
   @spec explain(Turnstile.subject(), atom(), Turnstile.object(), options()) ::
-          {:ok, Explanation.t(), Decision.t()} | {:error, Error.Unsupported.t()}
+          {:ok, Answer.t(), Decision.t()} | {:error, Error.Unsupported.t()}
   def explain({_kind, _account} = subject, operation, {_type, _id} = object, opts)
       when is_atom(operation) and is_list(opts) do
     call = prepare(subject, opts)
@@ -143,22 +141,21 @@ defmodule Turnstile.Port do
     end)
   end
 
-  defp review_answer do
-    %Answer{verdict: :allow, reason: Reason.allowed("review"), policy_version: nil, applied_position: nil}
-  end
+  defp review_answer, do: %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "review"}}
 
   defp review_out(reviewed) when is_map(reviewed) do
     Map.new(reviewed, fn {subject, value} -> {subject, review_value_out(value)} end)
   end
 
-  # One object: authorize and check share this.
+  # One object: authorize and check share this. The answer travels beside
+  # the decision, because a denial names what the record does not carry.
   defp one(function, subject, operation, {_type, _id} = object, opts) do
     call = prepare(subject, opts)
 
     span(call, subject, operation, object, fn ->
       answer = ask(call, function, subject, operation, object)
       decision = stamp(call, subject, operation, object, answer, answer.verdict)
-      {decision, decision, %{}}
+      {{decision, answer}, decision, %{}}
     end)
   end
 
@@ -178,9 +175,9 @@ defmodule Turnstile.Port do
   defp explained(call, subject, operation, {_type, _id} = object) do
     span(call, subject, operation, object, fn ->
       case asked(call, :explain, subject, operation, object) do
-        {:ok, %Explanation{answer: answer} = explanation} ->
+        {:ok, %Answer{} = answer} ->
           decision = stamp(call, subject, operation, object, answer, answer.verdict)
-          {{:ok, explanation, decision}, decision, %{}}
+          {{:ok, answer, decision}, decision, %{}}
 
         {:error, %Error.Unsupported{} = error} ->
           {{:error, error}, nil, %{}}
@@ -188,7 +185,7 @@ defmodule Turnstile.Port do
         {:error, %Error.Engine{} = error} ->
           answer = closed(error)
           decision = stamp(call, subject, operation, object, answer, :deny)
-          {{:ok, %Explanation{answer: answer, matched: []}, decision}, decision, %{}}
+          {{:ok, answer, decision}, decision, %{}}
       end
     end)
   end
@@ -266,8 +263,8 @@ defmodule Turnstile.Port do
 
   defp scoped(call, subject, operation, type) do
     case asked(call, :scope, subject, operation, type) do
-      {:ok, %Scope{rule: rule, answer: %Answer{verdict: :allow} = answer}} -> {rule, answer}
-      {:ok, %Scope{answer: %Answer{verdict: :deny} = answer}} -> {refused(), answer}
+      {:ok, {rule, %Answer{verdict: :allow} = answer}} -> {rule, answer}
+      {:ok, {_rule, %Answer{verdict: :deny} = answer}} -> {refused(), answer}
       {:error, %Error.Engine{} = error} -> {refused(), closed(error)}
     end
   end
@@ -291,19 +288,19 @@ defmodule Turnstile.Port do
   defp scope_verdict(%Answer{verdict: :deny}), do: :deny
 
   defp closed(%Error.Engine{detail: detail}) do
-    %Answer{verdict: :deny, reason: Reason.engine_unreachable(detail), policy_version: nil, applied_position: nil}
+    %Answer{verdict: :deny, reason: :engine_unreachable, meta: %{detail: detail}}
   end
 
   defp unknown_kind({kind, _account}) do
-    %Answer{verdict: :deny, reason: Reason.unknown_subject_kind(kind), policy_version: nil, applied_position: nil}
+    %Answer{verdict: :deny, reason: :unknown_subject_kind, meta: %{kind: kind}}
   end
 
   # A batch's one answer: allowed when every object is, denied otherwise.
   defp summary(verdicts) do
     if map_size(verdicts) > 0 and Enum.all?(verdicts, fn {_object, verdict} -> verdict == :allow end) do
-      %Answer{verdict: :allow, reason: Reason.allowed("batch"), policy_version: nil, applied_position: nil}
+      %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "batch"}}
     else
-      %Answer{verdict: :deny, reason: Reason.deny_by_default(), policy_version: nil, applied_position: nil}
+      %Answer{verdict: :deny, reason: :deny_by_default}
     end
   end
 
@@ -318,9 +315,9 @@ defmodule Turnstile.Port do
       verdict: verdict,
       reason: answer.reason,
       adapter: call.adapter,
-      policy_version: answer.policy_version,
+      policy_version: answer.version,
       head_position: head,
-      applied_position: answer.applied_position || head,
+      applied_position: Map.get(answer.meta, :applied) || head,
       operation_id: call.operation_id,
       at: call.environment.now
     }
@@ -386,8 +383,14 @@ defmodule Turnstile.Port do
 
   defp sha256(text), do: Base.encode16(:crypto.hash(:sha256, text), case: :lower)
 
-  defp not_authorized(subject, operation, object, reason) do
-    %Error.NotAuthorized{subject: subject, operation: operation, object: object, reason: reason}
+  defp not_authorized(subject, operation, object, %Answer{} = answer) do
+    %Error.NotAuthorized{
+      subject: subject,
+      operation: operation,
+      object: object,
+      reason: answer.reason,
+      detail: Map.get(answer.meta, :detail)
+    }
   end
 
   defp config! do

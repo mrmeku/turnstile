@@ -2,9 +2,9 @@ defmodule Turnstile.PortTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Adapter.Fake
+  alias Turnstile.Answer
   alias Turnstile.Decision
   alias Turnstile.Error
-  alias Turnstile.Explanation
   alias Turnstile.Port
 
   defmodule DownLedger do
@@ -57,7 +57,8 @@ defmodule Turnstile.PortTest do
 
     @impl Turnstile.Adapter
     def explain(_subject, _operation, _object, _environment, options) do
-      {:ok, %Explanation{answer: Fake.answer(options), matched: ["rule one"]}}
+      answer = Fake.answer(options)
+      {:ok, %{answer | meta: Map.put(answer.meta, :matched, ["rule one"])}}
     end
   end
 
@@ -119,22 +120,21 @@ defmodule Turnstile.PortTest do
   end
 
   test "an unknown subject kind is denied before the adapter is asked, under the unknown span" do
-    assert {:error, %Error.NotAuthorized{reason: %{code: :unknown_subject_kind}}} =
+    assert {:error, %Error.NotAuthorized{reason: :unknown_subject_kind}} =
              Port.authorize(@robot, :read, @folder, [])
 
     assert Port.batch(@robot, :read, [@folder], []) == %{{:folder, 1} => :deny}
     assert Port.filter(@robot, :read, [@folder], []) == []
     assert {_rule, %Decision{verdict: :deny}} = Port.scope(@robot, :read, :folder, [])
 
-    assert_received {[:turnstile, :unknown, :stop], _ref, _measurements,
-                     %{decision: %{reason: %{code: "deny_by_default"}}}}
+    assert_received {[:turnstile, :unknown, :stop], _ref, _measurements, %{decision: %{reason: "deny_by_default"}}}
   end
 
   test "an unreachable ledger head fails every call closed with engine_unreachable" do
     :ok = Turnstile.Test.with_config(ledger: {DownLedger, []})
     assert Port.check(@user, :read, @folder, []) == false
 
-    assert {:error, %Error.NotAuthorized{reason: %{code: :engine_unreachable}}} =
+    assert {:error, %Error.NotAuthorized{reason: :engine_unreachable}} =
              Port.authorize(@user, :read, @folder, [])
 
     assert Port.batch(@user, :read, [@folder], []) == %{{:folder, 1} => :deny}
@@ -145,10 +145,11 @@ defmodule Turnstile.PortTest do
   test "an engine error from the adapter denies with the detail as the reason", %{rules: rules} do
     :ok = Fake.fail(rules, "engine down")
 
-    assert {:error, %Error.NotAuthorized{reason: %{code: :engine_unreachable, message: message}}} =
+    assert {:error, %Error.NotAuthorized{reason: :engine_unreachable, detail: detail} = error} =
              Port.authorize(@user, :read, @folder, [])
 
-    assert message =~ "engine down"
+    assert detail == "engine down"
+    assert Exception.message(error) =~ "engine down"
   end
 
   test "batch and filter share one record listing verdicts per object and the ids in order" do
@@ -199,15 +200,15 @@ defmodule Turnstile.PortTest do
     assert note =~ "explain/5"
   end
 
-  test "explain returns the explanation and a decision where the adapter can say, denied closed when it cannot reach" do
+  test "explain returns the answer with what matched and a decision, denied closed when it cannot reach" do
     :ok = Turnstile.Test.with_config(adapter: {Explaining, verdict: :allow})
 
-    assert {:ok, %Explanation{matched: ["rule one"]}, %Decision{verdict: :allow, adapter: Explaining}} =
+    assert {:ok, %Answer{meta: %{matched: ["rule one"]}}, %Decision{verdict: :allow, adapter: Explaining}} =
              Port.explain(@user, :read, @folder, [])
 
     :ok = Turnstile.Test.with_config(ledger: {DownLedger, []})
 
-    assert {:ok, %Explanation{matched: [], answer: %{verdict: :deny}}, %Decision{verdict: :deny}} =
+    assert {:ok, %Answer{verdict: :deny, reason: :engine_unreachable}, %Decision{verdict: :deny}} =
              Port.explain(@user, :read, @folder, [])
   end
 

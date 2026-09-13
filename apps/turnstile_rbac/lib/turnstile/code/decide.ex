@@ -15,12 +15,10 @@ defmodule Turnstile.Code.Decide do
   alias Turnstile.Code.Binding
   alias Turnstile.Code.Rule
   alias Turnstile.Environment
-  alias Turnstile.Explanation
-  alias Turnstile.Reason
 
-  @doc "The explanation for one object: its answer and the clauses that held."
+  @doc "The answer for one object, with the clauses that held under `meta[:matched]`."
   @spec one(Binding.t(), Turnstile.subject(), atom(), Turnstile.object(), Environment.t()) ::
-          {:ok, Explanation.t()} | {:error, String.t()}
+          {:ok, Answer.t()} | {:error, String.t()}
   def one(
         %Binding{} = binding,
         {_kind, _account} = subject,
@@ -28,8 +26,8 @@ defmodule Turnstile.Code.Decide do
         {_type, _id} = object,
         %Environment{} = environment
       ) do
-    with {:ok, [{^object, explanation}]} <- explained(binding, subject, operation, [object], environment) do
-      {:ok, explanation}
+    with {:ok, [{^object, answer}]} <- explained(binding, subject, operation, [object], environment) do
+      {:ok, answer}
     end
   end
 
@@ -38,7 +36,7 @@ defmodule Turnstile.Code.Decide do
           {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
   def many(%Binding{} = binding, {_kind, _account} = subject, operation, objects, %Environment{} = environment) do
     with {:ok, explained} <- explained(binding, subject, operation, objects, environment) do
-      {:ok, Map.new(explained, fn {object, %Explanation{answer: answer}} -> {object, answer} end)}
+      {:ok, Map.new(explained)}
     end
   end
 
@@ -57,7 +55,7 @@ defmodule Turnstile.Code.Decide do
   defp of_type(binding, subject, operation, type, objects, environment) do
     case Rule.build(binding.policy, subject, operation, type, environment) do
       {:ok, %Rule{} = rule} -> queried(binding.repo, rule, objects)
-      {:error, %Answer{} = answer} -> {:ok, Map.new(objects, &{&1, %Explanation{answer: answer, matched: []}})}
+      {:error, %Answer{} = answer} -> {:ok, Map.new(objects, &{&1, matched(answer, [])})}
       {:error, detail} when is_binary(detail) -> {:error, detail}
     end
   end
@@ -81,26 +79,25 @@ defmodule Turnstile.Code.Decide do
 
   defp key({_type, id}), do: to_string(id)
 
-  defp explain(%Rule{version: version}, nil) do
-    %Explanation{answer: Rule.deny(Reason.deny_by_default(), version), matched: []}
-  end
+  defp explain(%Rule{version: version}, nil), do: matched(Rule.deny(:deny_by_default, version), [])
 
   defp explain(%Rule{grants: grants, predicates: predicates, version: version}, row) do
     held = fn {name, _expression} -> row[name] == true end
-    matched = for {name, _expression} = clause <- grants ++ predicates, held.(clause), do: name
+    held_names = for {name, _expression} = clause <- grants ++ predicates, held.(clause), do: name
     answer = answer(Enum.find(grants, held), Enum.reject(predicates, held), version)
-    %Explanation{answer: answer, matched: matched}
+    matched(answer, held_names)
   end
 
-  defp answer(nil, _failed, version), do: Rule.deny(Reason.deny_by_default(), version)
+  defp answer(nil, _failed, version), do: Rule.deny(:deny_by_default, version)
 
   defp answer(_granted, [{name, _expression} | _rest], version) do
-    reason = Reason.rule_denied(Atom.to_string(name))
-    Rule.deny(reason, version)
+    Rule.deny(:rule_denied, version, %{rule: Atom.to_string(name)})
   end
 
   defp answer({name, _expression}, [], version) do
-    reason = Reason.allowed(Atom.to_string(name))
-    %Answer{verdict: :allow, reason: reason, policy_version: version, applied_position: nil}
+    %Answer{verdict: :allow, reason: :allowed, version: version, meta: %{rule: Atom.to_string(name)}}
   end
+
+  # What held, on the answer the decider gives back.
+  defp matched(%Answer{} = answer, names), do: %{answer | meta: Map.put(answer.meta, :matched, names)}
 end

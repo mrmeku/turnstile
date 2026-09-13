@@ -42,6 +42,7 @@ The words `turnstile_core` owns. A word with a second meaning elsewhere is liste
 | `review` | Who can do what, today or on a date |
 | Configuration override | The keyword list `Turnstile.Test.with_config/1,2` puts in a process's dictionary, read by the resolver from the caller and its `$callers` chain over the boot struct |
 | Counter name | The `ledger_counter` field of the configuration: which row of `turnstile_ledger_counter` a transaction takes positions from; `default` in production, a per-test row in the sandbox |
+| Answer / `meta` | What a decider says about one question: a verdict, a reason in one word, the version of the rules, and `meta` / the decider's own map beside the reason, where what only one decider can say travels |
 | Edge | A struct's map form: `to_map/1` and `from_map/1`, atoms as strings, modules by name, references as maps, times in ISO 8601 |
 | Span | One port call as telemetry: `[:turnstile, kind]` with `:start`, `:stop` carrying the decision, and `:exception`, where `kind` is the subject's or `:unknown` |
 | Rule table | The fake adapter's `Agent`: entries allowing one subject, or any, one operation, on one object, or any of a type |

@@ -10,7 +10,6 @@ defmodule Turnstile.Cerbos.DecisionsTest do
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.Id
-  alias Turnstile.Reason
   alias Turnstile.Test
 
   @principal %{id: "an-account", roles: ["user"], attr: %{"clearance" => "cleared"}}
@@ -214,7 +213,7 @@ defmodule Turnstile.Cerbos.DecisionsTest do
       object: object,
       operation: operation,
       verdict: verdict,
-      reason: Reason.deny_by_default(),
+      reason: :deny_by_default,
       adapter: Turnstile.Cerbos,
       policy_version: "conformance",
       head_position: nil,

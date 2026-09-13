@@ -6,7 +6,6 @@ defmodule Turnstile.Fga.DecideTest do
   alias Turnstile.Answer
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Explanation
   alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
   alias Turnstile.Fga.Client.Fake
@@ -14,8 +13,6 @@ defmodule Turnstile.Fga.DecideTest do
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.Decide
   alias Turnstile.Fga.TupleKey
-  alias Turnstile.Reason
-  alias Turnstile.Scope
 
   @now ~U[2026-09-09 12:00:00.000000Z]
 
@@ -97,7 +94,7 @@ defmodule Turnstile.Fga.DecideTest do
     assert model == context.model
 
     {:ok, listing} = Decide.entry(context.options, :scope, %Environment{now: @now})
-    assert {:ok, %Scope{}} = Decide.scoped(listing, ann(), :read, :folder)
+    assert {:ok, {_rule, %Answer{}}} = Decide.scoped(listing, ann(), :read, :folder)
 
     assert [%ListObjects{consistency: :minimize_latency, user: "user:ann", relation: "can_read", type: "folder"}] =
              requests(context.agent, :list_objects)
@@ -108,15 +105,16 @@ defmodule Turnstile.Fga.DecideTest do
 
     assert {:ok, %Answer{} = allowed} = Decide.one(context.entry, ann(), :read, {:folder, 1})
     assert allowed.verdict == :allow
-    assert allowed.reason == Reason.allowed("can_read")
-    assert allowed.policy_version == context.model
-    assert allowed.applied_position == 7
+    assert allowed.reason == :allowed
+    assert allowed.meta.rule == "can_read"
+    assert allowed.version == context.model
+    assert allowed.meta.applied == 7
 
     assert {:ok, %Answer{} = denied} = Decide.one(context.entry, ann(), :read, {:folder, 2})
     assert denied.verdict == :deny
-    assert denied.reason == Reason.deny_by_default()
-    assert denied.policy_version == context.model
-    assert denied.applied_position == 7
+    assert denied.reason == :deny_by_default
+    assert denied.version == context.model
+    assert denied.meta.applied == 7
   end
 
   test "an entry that pins no model asks nothing at all", context do
@@ -140,7 +138,7 @@ defmodule Turnstile.Fga.DecideTest do
     assert answers[{:folder, 7}].verdict == :allow
     assert answers[{:folder, 55}].verdict == :allow
     assert answers[{:folder, 8}].verdict == :deny
-    assert answers[{:folder, 7}].policy_version == context.model
+    assert answers[{:folder, 7}].version == context.model
 
     assert [%BatchCheck{} = first, %BatchCheck{} = second] = requests(context.agent, :batch_check)
     assert Enum.map(first.checks, &elem(&1, 0)) == for(index <- 0..49, do: "c-#{index}")
@@ -152,17 +150,18 @@ defmodule Turnstile.Fga.DecideTest do
     {:ok, entry} = Decide.entry(context.options, :scope, %Environment{now: @now})
     :ok = write(context, [tuple("ann", "can_read", "folder:1"), tuple("ann", "can_read", "folder:2")])
 
-    assert {:ok, %Scope{rule: rule, answer: %Answer{} = answer}} = Decide.scoped(entry, ann(), :read, :folder)
+    assert {:ok, {rule, %Answer{} = answer}} = Decide.scoped(entry, ann(), :read, :folder)
     assert inspect(rule) == inspect(dynamic([row], row.id in ^["1", "2"]))
     assert answer.verdict == :allow
-    assert answer.reason == Reason.allowed("can_read")
-    assert answer.policy_version == context.model
+    assert answer.reason == :allowed
+    assert answer.meta.rule == "can_read"
+    assert answer.version == context.model
   end
 
   test "an explanation of a denial names nothing that held", context do
     folder = {:folder, 1}
 
-    assert {:ok, %Explanation{answer: %Answer{verdict: :deny}, matched: []}} =
+    assert {:ok, %Answer{verdict: :deny, meta: %{matched: []}}} =
              Decide.explained(context.entry, ann(), :read, folder)
 
     assert requests(context.agent, :expand) == []
@@ -172,7 +171,7 @@ defmodule Turnstile.Fga.DecideTest do
     :ok = write(context, [tuple("ann", "can_read", "folder:1")])
     folder = {:folder, 1}
 
-    assert {:ok, %Explanation{answer: %Answer{verdict: :allow}, matched: []}} =
+    assert {:ok, %Answer{verdict: :allow, meta: %{matched: []}}} =
              Decide.explained(context.entry, ann(), :read, folder)
 
     assert [request] = requests(context.agent, :expand)

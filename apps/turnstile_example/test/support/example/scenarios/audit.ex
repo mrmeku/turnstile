@@ -10,6 +10,7 @@ defmodule Example.Scenarios.Audit do
 
   alias Example.Audit.Chain
   alias Example.Fixture
+  alias Turnstile.Answer
   alias Turnstile.Id
   alias Turnstile.PolicyVersion
 
@@ -42,8 +43,7 @@ defmodule Example.Scenarios.Audit do
     assert_denied(subject("frank"), document, operation_id: operation_id)
     assert [decision] = decisions(operation_id)
     assert decision.verdict == "deny"
-    assert %{code: code, message: message} = decision.reason
-    assert code != "" and message != ""
+    assert decision.reason in (reasons() -- ["allowed"])
   end
 
   @spec aud_03() :: term()
@@ -118,11 +118,13 @@ defmodule Example.Scenarios.Audit do
   end
 
   defp assert_record_fields(decision) do
-    assert %{code: code, message: message} = decision.reason
-    assert is_binary(code) and is_binary(message)
+    assert decision.reason in reasons()
     assert is_binary(decision.policy_version)
     assert Map.has_key?(decision, :head_position) and Map.has_key?(decision, :applied_position)
   end
+
+  # The reason a record carries is one word every decider shares.
+  defp reasons, do: Enum.map(Answer.reasons(), &Atom.to_string/1)
 
   defp assert_section(section, agency, reads) do
     assert section =~ agency

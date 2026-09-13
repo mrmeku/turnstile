@@ -1,9 +1,9 @@
 defmodule Turnstile.Decision do
   @moduledoc "What the port said, when, from what state, under which rules."
 
+  alias Turnstile.Answer
   alias Turnstile.Edge
   alias Turnstile.Error
-  alias Turnstile.Reason
 
   @verdicts [:allow, :deny, :scoped]
 
@@ -37,7 +37,7 @@ defmodule Turnstile.Decision do
           object: Turnstile.object(),
           operation: atom(),
           verdict: verdict(),
-          reason: Reason.t(),
+          reason: Answer.reason(),
           adapter: module(),
           policy_version: Turnstile.PolicyVersion.ref() | nil,
           head_position: non_neg_integer() | nil,
@@ -59,7 +59,7 @@ defmodule Turnstile.Decision do
       object: Edge.ref_out(decision.object),
       operation: Atom.to_string(decision.operation),
       verdict: Atom.to_string(decision.verdict),
-      reason: Reason.to_map(decision.reason),
+      reason: Atom.to_string(decision.reason),
       adapter: Edge.module_out(decision.adapter),
       policy_version: decision.policy_version,
       head_position: decision.head_position,
@@ -84,7 +84,7 @@ defmodule Turnstile.Decision do
       object: :ref,
       operation: :atom,
       verdict: {:in, @verdicts},
-      reason: {:struct, Reason},
+      reason: {:in, Answer.reasons()},
       adapter: :module,
       policy_version: {:string, :nil_ok},
       head_position: {:integer, :nil_ok},

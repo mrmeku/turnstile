@@ -19,8 +19,6 @@ defmodule Turnstile.Adapter.Fake do
   alias Turnstile.Answer
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Reason
-  alias Turnstile.Scope
 
   @version "fake"
 
@@ -116,17 +114,15 @@ defmodule Turnstile.Adapter.Fake do
     {:error, %Error.Unsupported{adapter: __MODULE__, feature: :explain, note: "the fake names no rule"}}
   end
 
-  @doc "The answer the fake gives with no table bound; `Turnstile.Explanation` is never built from it."
+  @doc "The answer the fake gives with no table bound; the fake names no rule, so nothing explains it."
   @spec answer(keyword()) :: Answer.t()
   def answer(options) when is_list(options), do: answer_for(Keyword.get(options, :verdict, :deny))
 
   defp answer_for(:allow) do
-    %Answer{verdict: :allow, reason: Reason.allowed("fake"), policy_version: @version, applied_position: nil}
+    %Answer{verdict: :allow, reason: :allowed, version: @version, meta: %{rule: "fake"}}
   end
 
-  defp answer_for(:deny) do
-    %Answer{verdict: :deny, reason: Reason.deny_by_default(), policy_version: @version, applied_position: nil}
-  end
+  defp answer_for(:deny), do: %Answer{verdict: :deny, reason: :deny_by_default, version: @version}
 
   # The table's state, the constant verdict as a table with one wildcard or
   # none, or the failure the table was told to give.
@@ -157,8 +153,8 @@ defmodule Turnstile.Adapter.Fake do
     if Enum.any?(candidates, &MapSet.member?(entries, &1)), do: answer_for(:allow), else: answer_for(:deny)
   end
 
-  defp scoped(:allow, _subject, _operation, _type), do: %Scope{rule: dynamic([_row], true), answer: answer_for(:allow)}
-  defp scoped(:deny, _subject, _operation, _type), do: %Scope{rule: dynamic([_row], false), answer: answer_for(:deny)}
+  defp scoped(:allow, _subject, _operation, _type), do: {dynamic([_row], true), answer_for(:allow)}
+  defp scoped(:deny, _subject, _operation, _type), do: {dynamic([_row], false), answer_for(:deny)}
 
   defp scoped(%{entries: entries}, {_kind, id}, operation, type) do
     matching =
@@ -170,9 +166,9 @@ defmodule Turnstile.Adapter.Fake do
     ids = Enum.map(matching, fn {_subject, _operation, {_type, object_id}} -> object_id end)
 
     cond do
-      :any in ids -> %Scope{rule: dynamic([_row], true), answer: answer_for(:allow)}
-      ids == [] -> %Scope{rule: dynamic([_row], false), answer: answer_for(:deny)}
-      true -> %Scope{rule: dynamic([row], row.id in ^ids), answer: answer_for(:allow)}
+      :any in ids -> {dynamic([_row], true), answer_for(:allow)}
+      ids == [] -> {dynamic([_row], false), answer_for(:deny)}
+      true -> {dynamic([row], row.id in ^ids), answer_for(:allow)}
     end
   end
 end

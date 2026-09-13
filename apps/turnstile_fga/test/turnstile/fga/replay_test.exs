@@ -12,7 +12,6 @@ defmodule Turnstile.Fga.ReplayTest do
   alias Turnstile.Fga.Replay
   alias Turnstile.Fixture.World
   alias Turnstile.Id
-  alias Turnstile.Reason
 
   @model "priv/conformance/model.fga"
 
@@ -40,19 +39,20 @@ defmodule Turnstile.Fga.ReplayTest do
     assert {:ok, replay} = build(server.address, context, context.cleared)
     assert {:ok, %Answer{} = answer} = Replay.ask(replay, stored)
     assert answer.verdict == stored.verdict
-    assert answer.reason == Reason.allowed("can_read")
-    assert answer.applied_position == context.cleared
+    assert answer.reason == :allowed
+    assert answer.meta.rule == "can_read"
+    assert answer.meta.applied == context.cleared
 
     # The id belongs to the store that issued it, so what the two share is the
     # text the version event carries rather than the id.
-    assert is_binary(answer.policy_version)
-    refute answer.policy_version == stored.policy_version
+    assert is_binary(answer.version)
+    refute answer.version == stored.policy_version
 
     assert {:ok, present} = build(server.address, context, context.revoked)
     assert {:ok, %Answer{} = denied} = Replay.ask(present, stored)
     assert denied.verdict == :deny
-    assert denied.reason == Reason.deny_by_default()
-    assert denied.applied_position == context.revoked
+    assert denied.reason == :deny_by_default
+    assert denied.meta.applied == context.revoked
   end
 
   test "the fold is written into the throwaway store in calls of the size the caller states", context do
@@ -122,7 +122,7 @@ defmodule Turnstile.Fga.ReplayTest do
       object: {:folder, 1},
       operation: :read,
       verdict: verdict,
-      reason: Reason.allowed("can_read"),
+      reason: :allowed,
       adapter: Turnstile.Fga,
       policy_version: "the model of another store",
       head_position: applied,

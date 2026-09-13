@@ -48,6 +48,7 @@ defmodule Turnstile.FreezeTest do
     assert fields(Turnstile.FactEvent) ==
              ~w(at attribute by kind new object_ref old operation_id position subject_ref)a
 
+    assert fields(Turnstile.Answer) == ~w(meta reason verdict version)a
     assert fields(Turnstile.Exemption) == ~w(caller kind on reason)a
     assert Turnstile.Exemption.kinds() == [:declared, :library]
 

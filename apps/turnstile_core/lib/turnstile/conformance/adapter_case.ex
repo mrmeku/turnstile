@@ -222,8 +222,7 @@ defmodule Turnstile.Conformance.AdapterCase do
       [
         {"decision", Turnstile.Decision, :decision},
         {"fact event", Turnstile.FactEvent, :fact_event},
-        {"policy version", Turnstile.PolicyVersion, :policy_version},
-        {"reason", Turnstile.Reason, :reason}
+        {"policy version", Turnstile.PolicyVersion, :policy_version}
       ],
       &round_trip/1
     )

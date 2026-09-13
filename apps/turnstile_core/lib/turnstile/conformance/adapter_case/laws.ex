@@ -90,7 +90,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     denied_everywhere(stranger, known, object)
     denied_or_scoped_to_nothing(context, module, nobody, known, object)
 
-    assert {:error, %Error.NotAuthorized{reason: %{code: :unknown_subject_kind}}} =
+    assert {:error, %Error.NotAuthorized{reason: :unknown_subject_kind}} =
              Turnstile.authorize(stranger, known, object)
   end
 
@@ -191,7 +191,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert Turnstile.batch(subject, operation, [object]) == %{object => :deny}
     assert Turnstile.filter(subject, operation, [object]) == []
 
-    assert {:error, %Error.NotAuthorized{reason: %{code: :engine_unreachable}}} =
+    assert {:error, %Error.NotAuthorized{reason: :engine_unreachable}} =
              Turnstile.authorize(subject, operation, object)
 
     unreachable_scope(subject, operation, elem(object, 0))
@@ -350,7 +350,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   defp unreachable_scope(subject, operation, type) do
     {_rule, %Decision{} = decision} = Turnstile.scope(subject, operation, type)
     assert decision.verdict == :deny
-    assert decision.reason.code == :engine_unreachable
+    assert decision.reason == :engine_unreachable
     assert decision.policy_version == nil
   end
 

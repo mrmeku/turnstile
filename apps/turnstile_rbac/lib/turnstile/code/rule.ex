@@ -19,7 +19,6 @@ defmodule Turnstile.Code.Rule do
   alias Turnstile.Code.Policy.Object
   alias Turnstile.Code.Version
   alias Turnstile.Environment
-  alias Turnstile.Reason
   alias Turnstile.Schema
   alias Turnstile.Schema.Relationship
 
@@ -72,13 +71,13 @@ defmodule Turnstile.Code.Rule do
   @spec answer(t()) :: Answer.t()
   def answer(%__MODULE__{grants: grants, predicates: predicates, version: version}) do
     names = Enum.map_join(grants ++ predicates, ", ", fn {name, _expression} -> Atom.to_string(name) end)
-    %Answer{verdict: :allow, reason: Reason.allowed(names), policy_version: version, applied_position: nil}
+    %Answer{verdict: :allow, reason: :allowed, version: version, meta: %{rule: names}}
   end
 
-  @doc "The deny answer for a reason."
-  @spec deny(Reason.t(), String.t()) :: Answer.t()
-  def deny(%Reason{} = reason, version) when is_binary(version) do
-    %Answer{verdict: :deny, reason: reason, policy_version: version, applied_position: nil}
+  @doc "The deny answer for a reason, with what the decider can name on `meta`."
+  @spec deny(Answer.reason(), String.t(), map()) :: Answer.t()
+  def deny(reason, version, meta \\ %{}) when is_atom(reason) and is_binary(version) and is_map(meta) do
+    %Answer{verdict: :deny, reason: reason, version: version, meta: meta}
   end
 
   @doc "The one column of a schema's primary key."
@@ -109,13 +108,13 @@ defmodule Turnstile.Code.Rule do
   defp object(policy, type, version) do
     case Clauses.object_of(policy, type) do
       %Object{} = object -> {:ok, object}
-      nil -> {:error, deny(Reason.deny_by_default(), version)}
+      nil -> {:error, deny(:deny_by_default, version)}
     end
   end
 
   defp roles(policy, operation, version) do
     case Policy.roles_for(policy, operation) do
-      [] -> {:error, deny(Reason.unknown_operation(operation), version)}
+      [] -> {:error, deny(:unknown_operation, version)}
       roles -> {:ok, roles}
     end
   end

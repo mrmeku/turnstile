@@ -28,7 +28,6 @@ defmodule Turnstile do
       Error.Unmediated,
       Error.Unsupported,
       Exemption,
-      Explanation,
       FactEvent,
       Id,
       Ledger,
@@ -39,7 +38,6 @@ defmodule Turnstile do
       Projection,
       Projection.Drain,
       Projection.Drift,
-      Reason,
       Repo,
       Repo.Facts,
       Repo.Mediation,
@@ -48,8 +46,7 @@ defmodule Turnstile do
       Repo.Surface,
       Schema,
       Schema.Fact,
-      Schema.Relationship,
-      Scope
+      Schema.Relationship
     ]
 
   alias Turnstile.Decision
@@ -101,9 +98,9 @@ defmodule Turnstile do
   @spec scope(subject(), atom(), atom(), Port.options()) :: {Ecto.Query.dynamic_expr(), Decision.t()}
   defdelegate scope(subject, operation, object_type, opts \\ []), to: Port
 
-  @doc "What matched, where the adapter can say."
+  @doc "The answer with what produced it on `meta`, where the adapter can say."
   @spec explain(subject(), atom(), object(), Port.options()) ::
-          {:ok, Turnstile.Explanation.t(), Decision.t()} | {:error, Error.Unsupported.t()}
+          {:ok, Turnstile.Answer.t(), Decision.t()} | {:error, Error.Unsupported.t()}
   defdelegate explain(subject, operation, object, opts \\ []), to: Port
 
   @doc "Who can do what: a rule per subject over an object type, or the allowed references per subject over a population."

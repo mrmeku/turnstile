@@ -43,7 +43,7 @@ defmodule Turnstile.Decision do
   @type verdict :: :allow | :deny | :scoped
   @type t :: %__MODULE__{
           id: Turnstile.Id.t(), subject: Turnstile.subject(), object: Turnstile.object(),
-          operation: atom(), verdict: verdict(), reason: Turnstile.Reason.t(), adapter: module(),
+          operation: atom(), verdict: verdict(), reason: Turnstile.Answer.reason(), adapter: module(),
           policy_version: Turnstile.PolicyVersion.ref(),
           head_position: non_neg_integer() | nil, applied_position: non_neg_integer() | nil,
           operation_id: Turnstile.Id.t(), at: DateTime.t()
@@ -57,8 +57,9 @@ Two positions, not one: the head at decision time and the position the adapter's
 
 **On structs, these are banned:** `Map.put/3`, `Map.merge/2`, `Map.update/4`, `Map.delete/2`, `Access` (`s[:k]`), `Map.from_struct/1` outside serializers. Update with `%S{s | field: v}`; the checker verifies the key. Build with the literal, or at an edge with the raising variant of `struct/2`, never the plain one, which drops unknown keys silently.
 
-**Two things that are not records, and stay maps.**
+**Three things that are not records, and stay maps.**
 - *Dictionaries*: a map keyed by data, not by field name: `%{user_id => [permission]}`, `%{position => event}`. Typed by the checker since 1.20. Prefer `MapSet` for sets.
+- *Decider meta*: the `meta` of `%Turnstile.Answer{}`. Which keys it carries is the decider's to choose, so the set is open and no field list can stand for it. `Turnstile.Answer`'s moduledoc fixes what a key means where a decider sets one, and the reason beside it stays a word every decider shares.
 - *Edges*: the top-level telemetry metadata and measurements maps (telemetry's contract), Ecto changeset params, decoded JSON and YAML, Cerbos request payloads, OpenFGA request and response bodies, `.credo.exs`-style config. Each edge has exactly one function that converts map to struct (`from_map/1`, validating, returning `{:ok, t} | {:error, %Turnstile.Error.Invalid{}}`) or struct to map (`to_map/1`, `Jason.Encoder` derived with `only:`). The struct is what travels; inside telemetry metadata the payload is `%{event: %Turnstile.Decision{}}`, a struct inside the contract map.
 
 **Options are schemas, not maps or free keyword lists.** Every function that takes options declares a `NimbleOptions` schema: compile-time documentation, runtime validation with a precise error, and a generated typespec. `Keyword.validate/2` is acceptable for two or three boolean flags. `opts[:foo]` without a schema is a Credo failure. The seam's `turnstile:` option is a schema accepting `%Turnstile.Decision{}`, `{:exempt, reason}` with a non-empty string, or `{:exempt, :library}`, the last accepted only from a `Turnstile.*` caller, which the seam checks.

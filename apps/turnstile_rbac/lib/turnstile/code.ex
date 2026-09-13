@@ -46,9 +46,7 @@ defmodule Turnstile.Code do
   alias Turnstile.Code.Version
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Explanation
   alias Turnstile.FactEvent
-  alias Turnstile.Scope
 
   @doc "Append the bound policy's version to the ledger when its latest names an older one; see `Turnstile.Code.Version`."
   @spec publish() :: {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.Invalid.t() | Error.Engine.t()}
@@ -63,10 +61,8 @@ defmodule Turnstile.Code do
   @impl Turnstile.Adapter
   def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, _options)
       when is_atom(operation) do
-    with {:ok, %Binding{} = binding} <- bound(:authorize),
-         {:ok, %Explanation{answer: answer}} <-
-           named(Decide.one(binding, subject, operation, object, environment), :authorize) do
-      {:ok, answer}
+    with {:ok, %Binding{} = binding} <- bound(:authorize) do
+      named(Decide.one(binding, subject, operation, object, environment), :authorize)
     end
   end
 
@@ -100,8 +96,8 @@ defmodule Turnstile.Code do
     end
   end
 
-  defp scoped({:ok, %Rule{} = rule}), do: {:ok, %Scope{rule: Rule.dynamic(rule), answer: Rule.answer(rule)}}
-  defp scoped({:error, %Answer{verdict: :deny} = answer}), do: {:ok, %Scope{rule: dynamic([_row], false), answer: answer}}
+  defp scoped({:ok, %Rule{} = rule}), do: {:ok, {Rule.dynamic(rule), Rule.answer(rule)}}
+  defp scoped({:error, %Answer{verdict: :deny} = answer}), do: {:ok, {dynamic([_row], false), answer}}
   defp scoped({:error, detail}) when is_binary(detail), do: named({:error, detail}, :scope)
 
   # A failure's detail becomes the engine error, naming the callback that failed.

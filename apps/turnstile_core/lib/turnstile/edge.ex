@@ -14,8 +14,7 @@ defmodule Turnstile.Edge do
   @typedoc """
   How one field converts: `:string` and `:integer` refuse `nil`, `{:string, :nil_ok}`
   and `{:integer, :nil_ok}` keep it, `:atom`, `:module`, `:ref` and `:time` keep
-  `nil`, `{:in, atoms}` is an atom from a fixed list, `{:struct, module}` is
-  that module's struct or a map its `from_map/1` reads, and `:any` is kept as is.
+  `nil`, `{:in, atoms}` is an atom from a fixed list, and `:any` is kept as is.
   """
   @type field_spec ::
           :string
@@ -28,7 +27,6 @@ defmodule Turnstile.Edge do
           | {:string, :nil_ok}
           | {:integer, :nil_ok}
           | {:in, [atom()]}
-          | {:struct, module()}
 
   @doc "The value under `key`, given as an atom, or under its string form."
   @spec fetch(map(), atom()) :: {:ok, term()} | :error
@@ -183,12 +181,6 @@ defmodule Turnstile.Edge do
       end
     end
   end
-
-  def value_in(%{__struct__: module} = value, {:struct, module}, _what), do: {:ok, value}
-  def value_in(value, {:struct, module}, _what) when is_map(value), do: module.from_map(value)
-
-  def value_in(other, {:struct, module}, what),
-    do: {:error, invalid(what, "expected #{inspect(module)}, got: #{inspect(other)}")}
 
   @doc "The invalid error for an edge."
   @spec invalid(atom(), String.t()) :: Error.Invalid.t()

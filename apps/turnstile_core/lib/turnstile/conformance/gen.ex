@@ -10,13 +10,13 @@ defmodule Turnstile.Conformance.Gen do
 
   use ExUnitProperties
 
+  alias Turnstile.Answer
   alias Turnstile.Conformance.World
   alias Turnstile.Decision
   alias Turnstile.FactEvent
   alias Turnstile.Id
   alias Turnstile.PolicyVersion
   alias Turnstile.Port
-  alias Turnstile.Reason
 
   @unknown_operations [:teleport, :frobnicate, :launch]
   @unknown_kinds [:robot, :ghost, :service]
@@ -101,17 +101,9 @@ defmodule Turnstile.Conformance.Gen do
     end
   end
 
-  @doc "A reason with any code."
-  @spec reason() :: StreamData.t(Reason.t())
-  def reason do
-    gen all(
-          code <- member_of(Reason.codes()),
-          message <- string(:printable, min_length: 1, max_length: 40),
-          rule <- one_of([constant(nil), string(:alphanumeric, min_length: 1, max_length: 12)])
-        ) do
-      %Reason{code: code, message: message, rule: rule}
-    end
-  end
+  @doc "Any reason an answer can carry."
+  @spec reason() :: StreamData.t(Answer.reason())
+  def reason, do: member_of(Answer.reasons())
 
   @doc "A policy version, with content by value or by pointer."
   @spec policy_version() :: StreamData.t(PolicyVersion.t())

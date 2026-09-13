@@ -8,11 +8,8 @@ defmodule Turnstile.Code.DecideTest do
   alias Turnstile.Code.Conformance.Roles
   alias Turnstile.Environment
   alias Turnstile.Error.Engine
-  alias Turnstile.Explanation
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.World
-  alias Turnstile.Reason
-  alias Turnstile.Scope
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
@@ -53,20 +50,20 @@ defmodule Turnstile.Code.DecideTest do
   test "explain names the clauses that held and the reason names the grant or the failing predicate", ctx do
     folder = {:folder, 1}
 
-    assert {:ok, %Explanation{answer: %Answer{verdict: :allow, reason: reason}, matched: [:membership, :cleared]}} =
+    allowed = %{rule: "membership", matched: [:membership, :cleared]}
+
+    assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: ^allowed}} =
              Turnstile.Code.explain(ctx.ann, :read, folder, ctx.environment, [])
 
-    assert reason == Reason.allowed("membership")
+    denied = %{rule: "cleared", matched: [:membership]}
 
-    assert {:ok, %Explanation{answer: %Answer{verdict: :deny, reason: denied}, matched: [:membership]}} =
+    assert {:ok, %Answer{verdict: :deny, reason: :rule_denied, meta: ^denied}} =
              Turnstile.Code.explain(ctx.bob, :edit, folder, ctx.environment, [])
 
-    assert denied == Reason.rule_denied("cleared")
-
-    assert {:ok, %Explanation{answer: %Answer{reason: %Reason{code: :deny_by_default}}, matched: [:cleared]}} =
+    assert {:ok, %Answer{reason: :deny_by_default, meta: %{matched: [:cleared]}}} =
              Turnstile.Code.explain(ctx.ann, :edit, folder, ctx.environment, [])
 
-    assert {:ok, %Explanation{answer: %Answer{reason: %Reason{code: :deny_by_default}}, matched: []}} =
+    assert {:ok, %Answer{reason: :deny_by_default, meta: %{matched: []}}} =
              Turnstile.Code.explain(ctx.ann, :read, {:folder, 404}, ctx.environment, [])
   end
 
@@ -79,13 +76,13 @@ defmodule Turnstile.Code.DecideTest do
   test "an unknown operation and an unknown object type are denied with their reasons", ctx do
     folder = {:folder, 1}
 
-    assert {:ok, %Answer{verdict: :deny, reason: %Reason{code: :unknown_operation}}} =
+    assert {:ok, %Answer{verdict: :deny, reason: :unknown_operation}} =
              Turnstile.Code.check(ctx.ann, :delete, folder, ctx.environment, [])
 
-    assert {:ok, %Answer{verdict: :deny, reason: %Reason{code: :deny_by_default}}} =
+    assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
              Turnstile.Code.check(ctx.ann, :read, {:document, 1}, ctx.environment, [])
 
-    assert {:ok, %Scope{rule: rule, answer: %Answer{verdict: :deny}}} =
+    assert {:ok, {rule, %Answer{verdict: :deny}}} =
              Turnstile.Code.scope(ctx.ann, :delete, :folder, ctx.environment, [])
 
     assert inspect(rule) == inspect(dynamic([_row], false))

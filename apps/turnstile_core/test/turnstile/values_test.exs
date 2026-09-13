@@ -1,13 +1,13 @@
 defmodule Turnstile.ValuesTest do
   use ExUnit.Case, async: true
 
+  alias Turnstile.Answer
   alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.FactEvent
   alias Turnstile.Id
   alias Turnstile.Port
   alias Turnstile.Projection.Drift
-  alias Turnstile.Reason
 
   test "ids are UUIDs" do
     id = Id.new()
@@ -23,15 +23,13 @@ defmodule Turnstile.ValuesTest do
     assert %Environment{now: ~U[2026-09-08 00:00:00Z], facts: %{}} = %Environment{now: ~U[2026-09-08 00:00:00Z]}
   end
 
-  test "reasons carry a code, a message, and the rule where one applies" do
-    assert %Reason{code: :allowed, rule: "r"} = Reason.allowed("r")
-    assert %Reason{code: :allowed, rule: nil} = Reason.allowed()
-    assert %Reason{code: :deny_by_default} = Reason.deny_by_default()
-    assert %Reason{code: :rule_denied, rule: "r"} = Reason.rule_denied("r")
-    assert %Reason{code: :engine_unreachable, message: message} = Reason.engine_unreachable("down")
-    assert message =~ "down"
-    assert %Reason{code: :missing_fact, message: message} = Reason.missing_fact(:nationality)
-    assert message =~ "nationality"
+  test "an answer carries a verdict, a reason, a version, and the decider's own meta" do
+    assert %Answer{version: nil, meta: %{}} = %Answer{verdict: :deny, reason: :deny_by_default}
+    assert %Answer{meta: %{rule: "r"}} = %Answer{verdict: :allow, reason: :allowed, version: "v", meta: %{rule: "r"}}
+
+    assert Answer.reasons() ==
+             ~w(allowed deny_by_default rule_denied engine_unreachable missing_fact unknown_operation
+                unknown_subject_kind)a
   end
 
   test "errors have messages" do
@@ -46,8 +44,16 @@ defmodule Turnstile.ValuesTest do
              subject: subject,
              operation: :read,
              object: {:thing, "1"},
-             reason: Reason.deny_by_default()
+             reason: :deny_by_default
            }) =~ "may not read"
+
+    assert Exception.message(%Error.NotAuthorized{
+             subject: subject,
+             operation: :read,
+             object: {:thing, "1"},
+             reason: :engine_unreachable,
+             detail: "down"
+           }) =~ "engine_unreachable (down)"
   end
 
   test "drift is clean when nothing is missing or extra" do

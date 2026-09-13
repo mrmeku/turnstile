@@ -30,7 +30,6 @@ defmodule Turnstile.Postgres.Decide do
   alias Turnstile.Postgres.Policy
   alias Turnstile.Postgres.Session
   alias Turnstile.Postgres.Settings
-  alias Turnstile.Reason
 
   @exemption {:exempt, :library}
 
@@ -78,9 +77,9 @@ defmodule Turnstile.Postgres.Decide do
       when is_atom(operation) and is_atom(object_type) do
     with {_schema, table, _key} <- Binding.target(binding, object_type),
          %Policy{} = policy <- Catalog.scope(catalog, table, operation) do
-      verdict(catalog, :allow, Reason.allowed("#{policy.name} settings sha256:#{Settings.hash(settings)}"))
+      verdict(catalog, :allow, :allowed, %{rule: "#{policy.name} settings sha256:#{Settings.hash(settings)}"})
     else
-      _no_policy -> verdict(catalog, :deny, Reason.unknown_operation(operation))
+      _no_policy -> verdict(catalog, :deny, :unknown_operation)
     end
   end
 
@@ -103,14 +102,14 @@ defmodule Turnstile.Postgres.Decide do
   defp of_type(binding, catalog, operation, type, objects) do
     case Binding.target(binding, type) do
       {_schema, table, key} -> against(binding, catalog, operation, {table, key}, objects)
-      nil -> denied(catalog, objects, Reason.deny_by_default())
+      nil -> denied(catalog, objects, :deny_by_default)
     end
   end
 
   defp against(binding, catalog, operation, {table, _key} = target, objects) do
     case Catalog.scope(catalog, table, operation) do
       %Policy{} = scope -> answered(binding, catalog, operation, target, scope, objects)
-      nil -> denied(catalog, objects, Reason.unknown_operation(operation))
+      nil -> denied(catalog, objects, :unknown_operation)
     end
   end
 
@@ -133,9 +132,9 @@ defmodule Turnstile.Postgres.Decide do
 
   defp answer(catalog, scope, gate, rows, {_type, id}) do
     case Map.fetch(rows, to_string(id)) do
-      {:ok, true} -> verdict(catalog, :allow, Reason.allowed(scope.name))
-      {:ok, _refused} -> verdict(catalog, :deny, Reason.rule_denied(refusing(gate, scope)))
-      :error -> verdict(catalog, :deny, Reason.rule_denied(scope.name))
+      {:ok, true} -> verdict(catalog, :allow, :allowed, %{rule: scope.name})
+      {:ok, _refused} -> verdict(catalog, :deny, :rule_denied, %{rule: refusing(gate, scope)})
+      :error -> verdict(catalog, :deny, :rule_denied, %{rule: scope.name})
     end
   end
 
@@ -146,7 +145,7 @@ defmodule Turnstile.Postgres.Decide do
     Map.new(objects, &{&1, verdict(catalog, :deny, reason)})
   end
 
-  defp verdict(%Catalog{version: version}, verdict, reason) do
-    %Answer{verdict: verdict, reason: reason, policy_version: version, applied_position: nil}
+  defp verdict(%Catalog{version: version}, verdict, reason, meta \\ %{}) do
+    %Answer{verdict: verdict, reason: reason, version: version, meta: meta}
   end
 end

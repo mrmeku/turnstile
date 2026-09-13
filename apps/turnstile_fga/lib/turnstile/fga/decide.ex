@@ -50,7 +50,6 @@ defmodule Turnstile.Fga.Decide do
   alias Turnstile.Answer
   alias Turnstile.Environment
   alias Turnstile.Error
-  alias Turnstile.Explanation
   alias Turnstile.Fga.Client
   alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
@@ -59,8 +58,6 @@ defmodule Turnstile.Fga.Decide do
   alias Turnstile.Fga.Client.Tree
   alias Turnstile.Fga.Consistency
   alias Turnstile.Fga.TupleKey
-  alias Turnstile.Reason
-  alias Turnstile.Scope
 
   @fallback [:turnstile, :fga, :scope_fallback]
   @guard "guard"
@@ -159,7 +156,8 @@ defmodule Turnstile.Fga.Decide do
   emits `fallback_event/0` and fails, which is the scope the caller asks per
   page instead.
   """
-  @spec scoped(entry(), Turnstile.subject(), atom(), atom()) :: {:ok, Scope.t()} | {:error, Error.Engine.t()}
+  @spec scoped(entry(), Turnstile.subject(), atom(), atom()) ::
+          {:ok, Turnstile.Adapter.scoped()} | {:error, Error.Engine.t()}
   def scoped(entry, {_kind, _account} = subject, operation, type) when is_atom(operation) and is_atom(type) do
     with {:ok, model} <- pinned(entry),
          {:ok, objects} <- listed(entry, subject, operation, type, model),
@@ -173,9 +171,9 @@ defmodule Turnstile.Fga.Decide do
   def refused(entry) do
     %Answer{
       verdict: :deny,
-      reason: Reason.rule_denied(@guard),
-      policy_version: entry.model,
-      applied_position: entry.applied
+      reason: :rule_denied,
+      version: entry.model,
+      meta: %{rule: @guard, applied: entry.applied}
     }
   end
 
@@ -186,24 +184,24 @@ defmodule Turnstile.Fga.Decide do
   end
 
   @doc "The scope a guard's refusal is: the rule no row satisfies, and the denial."
-  @spec refused_scope(entry()) :: Scope.t()
-  def refused_scope(entry), do: %Scope{rule: dynamic([_row], false), answer: refused(entry)}
+  @spec refused_scope(entry()) :: Turnstile.Adapter.scoped()
+  def refused_scope(entry), do: {dynamic([_row], false), refused(entry)}
 
   @doc "The explanation a guard's refusal is: the denial, and no relation that holds."
-  @spec refused_explanation(entry()) :: Explanation.t()
-  def refused_explanation(entry), do: %Explanation{answer: refused(entry), matched: []}
+  @spec refused_explanation(entry()) :: Answer.t()
+  def refused_explanation(entry), do: matched(refused(entry), [])
 
   @doc """
-  The explanation for one object: the answer, and where it is allowed the
-  relations the operation is computed from that hold. The tree comes from one
+  The answer for one object with, where it is allowed, the relations the
+  operation is computed from that hold, under `meta[:matched]`. The tree comes from one
   `Expand` and which of its branches hold from one `BatchCheck`, so an
   explanation is three calls and no walk of this module's own.
   """
   @spec explained(entry(), Turnstile.subject(), atom(), Turnstile.object()) ::
-          {:ok, Explanation.t()} | {:error, Error.Engine.t()}
+          {:ok, Answer.t()} | {:error, Error.Engine.t()}
   def explained(entry, {_kind, _account} = subject, operation, {_type, _id} = object) when is_atom(operation) do
     with {:ok, %Answer{} = answer} <- one(entry, subject, operation, object) do
-      matched(entry, subject, operation, object, answer)
+      explaining(entry, subject, operation, object, answer)
     end
   end
 
@@ -214,21 +212,23 @@ defmodule Turnstile.Fga.Decide do
   end
 
   defp scope(ids, operation, model, applied) do
-    %Scope{rule: dynamic([row], row.id in ^ids), answer: answer(true, operation, model, applied)}
+    {dynamic([row], row.id in ^ids), answer(true, operation, model, applied)}
   end
 
-  defp matched(_entry, _subject, _operation, _object, %Answer{verdict: :deny} = answer) do
-    {:ok, %Explanation{answer: answer, matched: []}}
+  defp explaining(_entry, _subject, _operation, _object, %Answer{verdict: :deny} = answer) do
+    {:ok, matched(answer, [])}
   end
 
-  defp matched(entry, subject, operation, object, %Answer{} = answer) do
-    request = %Expand{relation: relation(operation), object: named(object), model: answer.policy_version}
+  defp explaining(entry, subject, operation, object, %Answer{} = answer) do
+    request = %Expand{relation: relation(operation), object: named(object), model: answer.version}
 
     with {:ok, %Tree{} = tree} <- entry.client.expand(entry.endpoint, entry.store, request),
-         {:ok, holding} <- asked(entry, branches(subject, tree), answer.policy_version) do
-      {:ok, %Explanation{answer: answer, matched: Enum.sort(holding)}}
+         {:ok, holding} <- asked(entry, branches(subject, tree), answer.version) do
+      {:ok, matched(answer, Enum.sort(holding))}
     end
   end
+
+  defp matched(%Answer{} = answer, relations), do: %{answer | meta: Map.put(answer.meta, :matched, relations)}
 
   # Each branch of the tree as a question of its own: whether the subject
   # holds that relation on that object. A branch names the relation it is
@@ -336,16 +336,11 @@ defmodule Turnstile.Fga.Decide do
   defp value(value), do: value
 
   defp answer(true, operation, model, applied) do
-    %Answer{
-      verdict: :allow,
-      reason: Reason.allowed(relation(operation)),
-      policy_version: model,
-      applied_position: applied
-    }
+    %Answer{verdict: :allow, reason: :allowed, version: model, meta: %{rule: relation(operation), applied: applied}}
   end
 
   defp answer(false, _operation, model, applied) do
-    %Answer{verdict: :deny, reason: Reason.deny_by_default(), policy_version: model, applied_position: applied}
+    %Answer{verdict: :deny, reason: :deny_by_default, version: model, meta: %{applied: applied}}
   end
 
   defp pinned(%{model: nil, callback: callback}) do

@@ -24,7 +24,6 @@ defmodule Turnstile.Repo.SeamTest do
   alias Turnstile.Fixture.Membership
   alias Turnstile.Id
   alias Turnstile.Ledger.Memory
-  alias Turnstile.Reason
   alias Turnstile.Test.AroundAdapter
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Owner
@@ -416,7 +415,7 @@ defmodule Turnstile.Repo.SeamTest do
       object: {type, id},
       operation: :read,
       verdict: :allow,
-      reason: %Reason{code: :allowed, message: "allowed by the fake adapter"},
+      reason: :allowed,
       adapter: Fake,
       policy_version: nil,
       head_position: nil,
