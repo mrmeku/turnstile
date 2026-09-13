@@ -31,10 +31,10 @@ defmodule Turnstile.Ledger.TestSupport.Boot do
   inside the sandbox with a counter row of its own.
   """
 
-  alias Turnstile.Adapter
   alias Turnstile.Ledger
   alias Turnstile.Ledger.TestRepos
   alias Turnstile.Ledger.TestSupport.Committed
+  alias Turnstile.Test.Fake
   alias Turnstile.Test.Sandbox
 
   @doc """
@@ -47,7 +47,7 @@ defmodule Turnstile.Ledger.TestSupport.Boot do
     repo = repo(tags)
     ledger = ledger || ledger(tags)
     :ok = connect(tags, repo)
-    :ok = Turnstile.Test.with_config(adapter: Adapter.Fake, ledger: ledger, clock: &DateTime.utc_now/0)
+    :ok = Turnstile.Test.with_config(adapter: Fake, ledger: ledger, clock: &DateTime.utc_now/0)
     {:ok, ledger: ledger, repo: repo, counter: Ledger.Ecto.counter!()}
   end
 
