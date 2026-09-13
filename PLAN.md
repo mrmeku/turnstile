@@ -60,14 +60,14 @@ Three places, not six.
 | Place | Holds | Documented | Who may name it |
 |---|---|---|---|
 | The root | The public modules: the functions an adopter calls, the types they receive, and the behaviours they implement | `@moduledoc` | Anyone |
-| `core/` | Modules that decide. They hold nothing and call nothing outside their own package. | `@moduledoc false` | The root and `core/` |
+| `core/` | Modules that decide. They hold nothing and call nothing outside their own package. | `@moduledoc false` | The root, `core/`, and `adapter/` |
 | `adapter/` | Modules that touch a database, an engine, a file, the clock, or a process | `@moduledoc false` | The root and `adapter/` |
 
 Rules:
 
 - The path names a module the file defines, and every other module the file defines is named under that one. Two gates of the repository forbid the flatter reading, one module to a file and nothing else. `mix xref --label compile-connected --fail-above 0` holds a `use`d module to being a leaf, so the structs a declaration macro builds stay in the file that builds them. `mix xref --format cycles --fail-above 0` refuses a cycle between files, so schemas whose associations refer to one another share one. `StructureTest` names each file of the second kind with its reason.
 - A function that decides and also touches the world is divided until no function does both.
-- A module in `core/` calls no other package's interior, and no adapter.
+- A module in `core/` calls no other package's interior, and no adapter. Inside a package the calls run one way: the root reaches `adapter/` and `core/`, and `adapter/` reaches `core/` to have something decided. A decision that needs the world is divided until the half that decides needs none of it.
 - An adapter may call another adapter in its own package. At this size, a boundary for each adapter costs more than the isolation returns.
 - Errors, structs, and behaviours live at the root, because they are public. There are few enough to read as one list.
 
@@ -162,11 +162,12 @@ What it does not guarantee: that a record is stored, that a handler keeps runnin
 | No package reaches into the interior of another | `boundary`, at compile time |
 | The path names a module the file defines, and its other modules are named under that one | `StructureTest` in `turnstile_dev` |
 | A module in `core/` makes no call to the outside world | `StructureTest` |
+| A module in `core/` names no module in `adapter/` | `StructureTest` |
 | Core and adapter modules carry `@moduledoc false` | `StructureTest` |
 | An adopter's queries reach the check | `Turnstile.Credo.UnmediatedRepo` and `NoRawSQL` |
 | Placement, naming, division of a mixed function | Review |
 
-`StructureTest` reads the syntax tree and is about a hundred lines. The `boundary` library cannot see a call to Elixir's own modules or to Erlang, which is why the effect rule belongs to the test and not to a dependency list.
+`StructureTest` reads the syntax tree and is a few hundred lines. The `boundary` library cannot see a call to Elixir's own modules or to Erlang, which is why the effect rule belongs to the test and not to a dependency list.
 
 Two numbers run in CI: the runtime dependency count of `turnstile`, which must stay at two, and the line coverage of every `core/` module, which must stay at one hundred percent.
 
