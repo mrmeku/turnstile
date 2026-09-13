@@ -1,4 +1,5 @@
 defmodule Turnstile.Postgres.Adapter.Session do
+  @moduledoc false
   # Where the settings meet the connection. `set_config(name, value, true)`
   # is local to a transaction, so a call that is not already inside one opens
   # a transaction for the length of the call and the settings leave with it.
@@ -24,7 +25,6 @@ defmodule Turnstile.Postgres.Adapter.Session do
   #
   # Each statement runs through the bound repo's raw channel under the
   # library exemption, and each is one query in the shape counts.
-  @moduledoc false
 
   alias Turnstile.Postgres.Core.Settings
 

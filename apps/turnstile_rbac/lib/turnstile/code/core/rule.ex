@@ -1,4 +1,5 @@
 defmodule Turnstile.Code.Core.Rule do
+  @moduledoc false
   # A protected schema's rule for one subject and operation, built from the
   # policy's clauses as `dynamic` expressions over the protected row: each
   # grant is a membership test against a subquery of its relationship schema,
@@ -7,7 +8,6 @@ defmodule Turnstile.Code.Core.Rule do
   # result, and the whole is any grant and every predicate. Building runs no
   # query: `dynamic/1` is the rule `scope` returns, and the clause map is what
   # the decider selects for the rows asked about.
-  @moduledoc false
 
   import Ecto.Query, only: [dynamic: 2, from: 2]
 

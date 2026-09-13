@@ -1,10 +1,10 @@
 defmodule Turnstile.Postgres.Core.Name do
+  @moduledoc false
   # A table, column, or policy name on its way into a statement. Names cannot
   # be parameters, so every one this package interpolates passes `check!/2`
   # first: a lowercase letter or underscore, then lowercase letters, digits,
   # and underscores, up to the 63 bytes an identifier can hold. A name that
   # does not fit raises rather than reaching the database.
-  @moduledoc false
 
   alias Turnstile.Error
 

@@ -1,4 +1,5 @@
 defmodule Turnstile.Postgres.Core.Declared do
+  @moduledoc false
   # Which reads a declaration covers. The columns the policies name come
   # from the catalog; what counts as declared is decided here, against the
   # bound schemas alone.
@@ -11,7 +12,6 @@ defmodule Turnstile.Postgres.Core.Declared do
   # what the carried schemas carry in turn. A column on a table no bound
   # schema names is a finding of its own, because no declaration could
   # cover it.
-  @moduledoc false
 
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Coverage

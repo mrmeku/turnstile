@@ -1,4 +1,5 @@
 defmodule Turnstile.Postgres.Adapter.Decide do
+  @moduledoc false
   # What the adapter asks the database. One statement per object type in the
   # call, run under the session settings, selecting each object's primary key
   # as text beside the update gate's `USING` expression where the operation
@@ -24,7 +25,6 @@ defmodule Turnstile.Postgres.Adapter.Decide do
   # decider raises into the engine error that denies, so this package names
   # no driver's error, and a driver it does not carry needs no clause of its
   # own.
-  @moduledoc false
 
   alias Turnstile.Answer
   alias Turnstile.Postgres.Adapter.Session

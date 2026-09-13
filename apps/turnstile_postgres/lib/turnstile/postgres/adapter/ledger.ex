@@ -1,4 +1,5 @@
 defmodule Turnstile.Postgres.Adapter.Ledger do
+  @moduledoc false
   # Appending the policy version to the ledger: read the latest version the
   # ledger holds for the adapter, page by page from the start, and append
   # when it names an older version or none, inside the ledger's transaction
@@ -6,7 +7,6 @@ defmodule Turnstile.Postgres.Adapter.Ledger do
   # once. In ledger mode none the telemetry event is emitted and nothing is
   # appended. What a version is, and what it holds, is
   # `Turnstile.Postgres.Version`'s.
-  @moduledoc false
 
   alias Turnstile.Error
   alias Turnstile.FactEvent

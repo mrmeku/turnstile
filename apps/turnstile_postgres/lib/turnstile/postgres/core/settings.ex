@@ -1,4 +1,5 @@
 defmodule Turnstile.Postgres.Core.Settings do
+  @moduledoc false
   # The session settings a call runs under. Four are always set:
   # `turnstile.subject_id`, `turnstile.subject_kind`, `turnstile.operation`,
   # and `turnstile.now`. Beyond those, every fact the caller supplied in the
@@ -18,7 +19,6 @@ defmodule Turnstile.Postgres.Core.Settings do
   # settings are what the database enforced. Building them runs no statement:
   # what the settings are is decided here, and setting them belongs to the
   # module that holds the connection.
-  @moduledoc false
 
   @prefix "turnstile."
 
