@@ -1,30 +1,32 @@
-defmodule Turnstile.Cerbos.Plan do
-  @moduledoc """
-  A query plan turned into a `dynamic` over the rows of the object type.
-
-  The sidecar answers a plan request with a filter over the resource
-  attributes it could not resolve, which is what makes a list one query
-  rather than a decision per row. Three shapes come back. A plan that
-  admits every row becomes `true`; a plan that admits none is a denial the
-  adapter answers with; a conditional plan is an expression tree over
-  `request.resource.attr.<name>` and values, which this module compiles
-  against the declarations: an attribute read from a column becomes a
-  comparison on that column, and an attribute read from a subquery becomes
-  membership in the ids the subquery selects for the asking subject.
-
-  An attribute the sidecar could not resolve, compared with nothing,
-  becomes a null test on the column. A row whose column holds nothing is
-  what the policy is asking about, and SQL answers nothing rather than true
-  to `= NULL`, so the comparison is written as `is_nil`; an ordering against
-  nothing carries no such reading and is refused.
-
-  An expression this module cannot express is not guessed at and not
-  ignored: it is an error, and the caller records the operation as limited
-  and asks the port for each row instead. The reason is that a plan
-  narrowed by half is a query that returns rows a policy denies, and a
-  plan discarded is a list that returns nothing where the policy allows;
-  the honest answer is that the query plan does not carry this rule.
-  """
+defmodule Turnstile.Cerbos.Core.Plan do
+  @moduledoc false
+  # A query plan turned into a `dynamic` over the rows of the object type.
+  #
+  # The sidecar answers a plan request with a filter over the resource
+  # attributes it could not resolve, which is what makes a list one query
+  # rather than a decision per row. Three shapes come back. A plan that
+  # admits every row becomes `true`; a plan that admits none is a denial the
+  # adapter answers with; a conditional plan is an expression tree over
+  # `request.resource.attr.<name>` and values, which this module compiles
+  # against the declarations: an attribute read from a column becomes a
+  # comparison on that column, and an attribute read from a subquery becomes
+  # membership in the ids the subquery selects for the asking subject.
+  #
+  # An attribute the sidecar could not resolve, compared with nothing,
+  # becomes a null test on the column. A row whose column holds nothing is
+  # what the policy is asking about, and SQL answers nothing rather than true
+  # to `= NULL`, so the comparison is written as `is_nil`; an ordering against
+  # nothing carries no such reading and is refused.
+  #
+  # An expression this module cannot express is not guessed at and not
+  # ignored: it is an error, and the caller records the operation as limited
+  # and asks the port for each row instead. The reason is that a plan
+  # narrowed by half is a query that returns rows a policy denies, and a
+  # plan discarded is a list that returns nothing where the policy allows;
+  # the honest answer is that the query plan does not carry this rule.
+  #
+  # Compiling runs no query: the subquery an attribute names is built here
+  # and run by whoever runs the rule.
 
   import Ecto.Query, only: [dynamic: 2, from: 2, subquery: 1]
 

@@ -1,35 +1,34 @@
-defmodule Turnstile.Cerbos.Values do
-  @moduledoc """
-  The values of the declared attributes, read through the bound repo as a
-  library caller: one query for the columns of a kind, one for each
-  subquery an attribute names.
-
-  Every declared attribute is sent, whether or not the row holds it: a
-  column with nothing in it goes as null and a subquery that selected
-  nothing goes as the empty list. The reason is what the sidecar does with
-  an attribute that is absent: it records an evaluation error against the
-  request rather than reading the attribute as empty, so the record of the
-  decision would carry a fault where the answer is sound.
-
-  A value crosses to JSON as itself where JSON has it, and as text where it
-  does not: an `Ecto.Enum` column reaches the sidecar as the string the
-  column holds, a date as its ISO 8601 form.
-
-  The request-time facts go with the subject's own attributes, under the
-  name `Turnstile.Cerbos.Attribute.reserved/0`, and `environment/2` builds
-  them: the moment the port stamped the request with, always, and each fact
-  an `environment` block declared, whether the caller supplied it or not.
-  Every moment among them is cut to the second first. A policy compares
-  them as text, while a plan compiled from that same policy compares a
-  column of the same moment in the database, and the two readings agree only
-  where both sides carry the same precision.
-  """
+defmodule Turnstile.Cerbos.Adapter.Values do
+  @moduledoc false
+  # The values of the declared attributes, read through the bound repo as a
+  # library caller: one query for the columns of a kind, one for each
+  # subquery an attribute names.
+  #
+  # Every declared attribute is sent, whether or not the row holds it: a
+  # column with nothing in it goes as null and a subquery that selected
+  # nothing goes as the empty list. The reason is what the sidecar does with
+  # an attribute that is absent: it records an evaluation error against the
+  # request rather than reading the attribute as empty, so the record of the
+  # decision would carry a fault where the answer is sound.
+  #
+  # Each value crosses to JSON through the codec, which is the same encoding
+  # a plan compiled from the same policy compares a column against.
+  #
+  # The request-time facts go with the subject's own attributes, under the
+  # name `Turnstile.Cerbos.Attribute.reserved/0`, and `environment/2` builds
+  # them: the moment the port stamped the request with, always, and each fact
+  # an `environment` block declared, whether the caller supplied it or not.
+  # Every moment among them is cut to the second first. A policy compares
+  # them as text, while a plan compiled from that same policy compares a
+  # column of the same moment in the database, and the two readings agree only
+  # where both sides carry the same precision.
 
   import Ecto.Query, only: [from: 2, subquery: 1]
 
   alias Turnstile.Cerbos.Attribute
   alias Turnstile.Cerbos.Attributes
   alias Turnstile.Cerbos.Binding
+  alias Turnstile.Cerbos.Core.Codec
 
   @exemption {:exempt, :library}
 
@@ -49,8 +48,8 @@ defmodule Turnstile.Cerbos.Values do
   @doc "The request-time facts: the moment the port stamped the request with, and each declared fact."
   @spec environment(Binding.t(), Turnstile.environment()) :: attributes()
   def environment(%Binding{attributes: attributes}, %{now: _now} = request) do
-    declared = Map.new(Attributes.facts(attributes), &{&1, moment(Map.get(request, &1))})
-    Map.put(declared, :now, moment(request.now))
+    declared = Map.new(Attributes.facts(attributes), &{&1, Codec.moment(Map.get(request, &1))})
+    Map.put(declared, :now, Codec.moment(request.now))
   end
 
   @doc "The attributes of each object of one type, by the object's id as text."
@@ -113,7 +112,7 @@ defmodule Turnstile.Cerbos.Values do
   end
 
   defp named(attributes, values) do
-    Map.new(attributes, fn %Attribute{name: name, source: {:column, column}} -> {name, json(values[column])} end)
+    Map.new(attributes, fn %Attribute{name: name, source: {:column, column}} -> {name, Codec.encode(values[column])} end)
   end
 
   defp subqueries(binding, subject, ids, declared) do
@@ -135,7 +134,7 @@ defmodule Turnstile.Cerbos.Values do
   # other attributes are already in.
   defp gathered(acc, name, rows) do
     rows
-    |> Enum.group_by(fn {id, _value} -> to_string(id) end, fn {_id, value} -> json(value) end)
+    |> Enum.group_by(fn {id, _value} -> to_string(id) end, fn {_id, value} -> Codec.encode(value) end)
     |> Enum.reduce(acc, fn {key, values}, into ->
       Map.update(into, key, %{name => values}, &Map.put(&1, name, values))
     end)
@@ -148,19 +147,4 @@ defmodule Turnstile.Cerbos.Values do
   rescue
     error in [DBConnection.ConnectionError, Postgrex.Error, Ecto.Query.CastError] -> {:error, Exception.message(error)}
   end
-
-  # A moment is cut to the second so the text a policy compares and the
-  # column a plan compares carry the same precision.
-  defp moment(%DateTime{} = value), do: json(DateTime.truncate(value, :second))
-  defp moment(value), do: json(value)
-
-  defp json(nil), do: nil
-  defp json(true), do: true
-  defp json(false), do: false
-  defp json(value) when is_atom(value), do: Atom.to_string(value)
-  defp json(%Date{} = value), do: Date.to_iso8601(value)
-  defp json(%DateTime{} = value), do: DateTime.to_iso8601(value)
-  defp json(%NaiveDateTime{} = value), do: NaiveDateTime.to_iso8601(value)
-  defp json(%Time{} = value), do: Time.to_iso8601(value)
-  defp json(value), do: value
 end

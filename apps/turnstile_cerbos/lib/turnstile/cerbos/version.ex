@@ -13,24 +13,22 @@ defmodule Turnstile.Cerbos.Version do
   a directory that changed without a new commit is visible as a hash that
   no longer matches.
 
-  `publish/1` appends the version when the ledger's latest for the adapter
-  is older or missing, inside the ledger's transaction when it offers one,
-  so many nodes booting at once append it once. In ledger mode none it
-  emits `[:turnstile, :cerbos, :policy_version]` and appends nothing.
+  `Turnstile.Cerbos.publish/0` appends the version when the ledger's latest
+  for the adapter is older or missing, inside the ledger's transaction when
+  it offers one, so many nodes booting at once append it once. In ledger
+  mode none it emits `[:turnstile, :cerbos, :policy_version]` and appends
+  nothing.
   """
 
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Config
   alias Turnstile.Error
-  alias Turnstile.FactEvent
-  alias Turnstile.Id
   alias Turnstile.PolicyVersion
 
   @marker "# turnstile-policy: "
-  @page 1_000
   @telemetry [:turnstile, :cerbos, :policy_version]
 
-  @doc "The telemetry event `publish/1` emits, once per call."
+  @doc "The telemetry event `Turnstile.Cerbos.publish/0` emits, once per call."
   @spec telemetry_event() :: [atom()]
   def telemetry_event, do: @telemetry
 
@@ -96,23 +94,6 @@ defmodule Turnstile.Cerbos.Version do
     end
   end
 
-  @doc """
-  Append the bound commit as a version when the ledger's latest is older or
-  missing: `{:ok, event}` when appended, `{:ok, :current}` when the ledger
-  already names it, `{:ok, :telemetry}` in ledger mode none.
-  """
-  @spec publish(module()) ::
-          {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
-  def publish(adapter) when is_atom(adapter) do
-    with {:ok, %Binding{} = binding} <- Binding.resolve(),
-         {:ok, %Config{} = config} <- Config.resolve(),
-         {:ok, %PolicyVersion{} = version} <- of(adapter, binding, config, config.clock.()) do
-      result = published(version, config.ledger)
-      :telemetry.execute(@telemetry, %{}, %{version: version, result: elem(result, 1)})
-      result
-    end
-  end
-
   defp read(directory, path, acc) do
     case File.read(path) do
       {:ok, text} -> {:cont, {:ok, [{Path.relative_to(path, directory), text} | acc]}}
@@ -136,58 +117,4 @@ defmodule Turnstile.Cerbos.Version do
   defp pointer(%Binding{policies: directory, commit: commit}), do: "policies in #{directory} at #{commit}"
 
   defp invalid(detail), do: Error.invalid(:policies, detail)
-
-  defp published(%PolicyVersion{}, :none), do: {:ok, :telemetry}
-
-  defp published(%PolicyVersion{adapter: adapter} = version, {ledger, options}) do
-    within(ledger, options, fn ->
-      with {:ok, latest} <- latest(ledger, options, adapter) do
-        append(ledger, options, version, latest)
-      end
-    end)
-  end
-
-  defp within(ledger, options, fun) do
-    if function_exported?(ledger, :transaction, 2), do: ledger.transaction(options, fun), else: fun.()
-  end
-
-  defp append(_ledger, _options, %PolicyVersion{version: same}, %PolicyVersion{version: same}), do: {:ok, :current}
-
-  defp append(ledger, options, %PolicyVersion{adapter: adapter} = version, previous) do
-    event = %FactEvent{
-      kind: :policy_version,
-      subject_ref: nil,
-      object_ref: {:policy, adapter},
-      attribute: :version,
-      old: previous && previous.version,
-      new: version,
-      position: nil,
-      operation_id: Id.new(),
-      at: version.at,
-      by: FactEvent.library()
-    }
-
-    case ledger.append(options, [event]) do
-      {:ok, [appended]} -> {:ok, appended}
-      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
-    end
-  end
-
-  # The latest policy version of the adapter in the ledger, paging from the start.
-  defp latest(ledger, options, adapter), do: latest(ledger, options, adapter, 0, nil)
-
-  defp latest(ledger, options, adapter, from, found) do
-    case ledger.read(options, from, @page) do
-      {:ok, []} -> {:ok, found}
-      {:ok, events} -> latest(ledger, options, adapter, List.last(events).position, newest(events, adapter, found))
-      {:error, %Error{reason: :engine_unreachable} = error} -> {:error, error}
-    end
-  end
-
-  defp newest(events, adapter, found) do
-    Enum.reduce(events, found, fn
-      %FactEvent{kind: :policy_version, object_ref: {:policy, ^adapter}, new: %PolicyVersion{} = new}, _acc -> new
-      _other, acc -> acc
-    end)
-  end
 end

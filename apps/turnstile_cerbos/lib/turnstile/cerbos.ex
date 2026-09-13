@@ -13,10 +13,10 @@ defmodule Turnstile.Cerbos do
   then asks the sidecar once. `check`, `authorize`, `batch`, and `explain`
   ask for a decision over the rows named and answer with the policy the
   sidecar matched. `scope` asks for a query plan and compiles the filter it
-  answers into a `dynamic` over the object type
-  (`Turnstile.Cerbos.Plan`); a plan this adapter does not express fails,
-  and the caller asks the port for each row instead, which is the answer
-  the declaration of a rule enforced this way records as limited.
+  answers into a `dynamic` over the object type; a plan this adapter does
+  not express fails, and the caller asks the port for each row instead,
+  which is the answer the declaration of a rule enforced this way records
+  as limited.
 
   The commit is the version identifier of every decision, and
   `publish/0` appends it to the ledger the way a deploy is a version
@@ -24,7 +24,7 @@ defmodule Turnstile.Cerbos do
   declarations name, so a policy cannot come to depend on a value no one
   declared: the moment the request carries, and each request-time fact an
   `environment` block declared, go as one principal attribute beside the
-  subject's own (`Turnstile.Cerbos.Values.environment/2`).
+  subject's own.
   """
 
   @behaviour Turnstile.Adapter
@@ -38,20 +38,17 @@ defmodule Turnstile.Cerbos do
       Binding,
       Client,
       Coverage,
-      Decide,
       Decisions,
       Decisions.Line,
       Finding,
-      Plan,
       Propagation,
       Request,
-      Values,
       Version
     ]
 
+  alias Turnstile.Cerbos.Adapter.Decide
+  alias Turnstile.Cerbos.Adapter.Ledger
   alias Turnstile.Cerbos.Binding
-  alias Turnstile.Cerbos.Decide
-  alias Turnstile.Cerbos.Version
   alias Turnstile.Error
   alias Turnstile.FactEvent
 
@@ -65,7 +62,7 @@ defmodule Turnstile.Cerbos do
 
   @doc "Append the bound policy directory's commit to the ledger; see `Turnstile.Cerbos.Version`."
   @spec publish() :: {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
-  def publish, do: Version.publish(__MODULE__)
+  def publish, do: Ledger.publish(__MODULE__)
 
   @impl Turnstile.Adapter
   def options_schema, do: @schema

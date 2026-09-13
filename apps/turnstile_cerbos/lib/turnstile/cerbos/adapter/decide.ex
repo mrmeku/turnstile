@@ -1,34 +1,32 @@
-defmodule Turnstile.Cerbos.Decide do
-  @moduledoc """
-  The answers the adapter gives: the attribute values read, one request to
-  the sidecar, and the effects it answered turned into answers.
-
-  A decision over rows is one call carrying every object asked about, and a
-  scope is one call for the object type whose filter becomes the rule. An
-  effect of allow is allowed by the policy the sidecar matched; anything
-  else is a denial naming that policy where the sidecar named one. A denial
-  is not read as a rule that denied, because the sidecar names the policy it
-  evaluated whether a rule denied or no rule allowed, and the two are not
-  the same claim.
-
-  A resource the sidecar answered nothing about is denied by default, and a
-  failure of the call is the failure's detail, which the adapter turns into
-  an engine error.
-
-  Each call carries the request-time facts with the subject's attributes, so
-  a rule about the moment of the request is answered from the moment the
-  port stamped it with rather than from the sidecar's own clock
-  (`Turnstile.Cerbos.Values.environment/2`).
-  """
+defmodule Turnstile.Cerbos.Adapter.Decide do
+  # The answers the adapter gives: the attribute values read, one request to
+  # the sidecar, and the effects it answered turned into answers.
+  #
+  # A decision over rows is one call carrying every object asked about, and a
+  # scope is one call for the object type whose filter becomes the rule. An
+  # effect of allow is allowed by the policy the sidecar matched; anything
+  # else is a denial naming that policy where the sidecar named one. A denial
+  # is not read as a rule that denied, because the sidecar names the policy it
+  # evaluated whether a rule denied or no rule allowed, and the two are not
+  # the same claim.
+  #
+  # A resource the sidecar answered nothing about is denied by default, and a
+  # failure of the call is the failure's detail, which the adapter turns into
+  # an engine error.
+  #
+  # Each call carries the request-time facts with the subject's attributes, so
+  # a rule about the moment of the request is answered from the moment the
+  # port stamped it with rather than from the sidecar's own clock.
+  @moduledoc false
 
   import Ecto.Query, only: [dynamic: 2]
 
   alias Turnstile.Answer
+  alias Turnstile.Cerbos.Adapter.Values
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Client
-  alias Turnstile.Cerbos.Plan
+  alias Turnstile.Cerbos.Core.Plan
   alias Turnstile.Cerbos.Request
-  alias Turnstile.Cerbos.Values
 
   @fallback [:turnstile, :cerbos, :scope_fallback]
 

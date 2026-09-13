@@ -9,7 +9,7 @@ defmodule Turnstile.Cerbos.Request do
   struct, and this module is the only place it is built.
   """
 
-  alias Turnstile.Cerbos.Values
+  alias Turnstile.Cerbos.Adapter.Values
   alias Turnstile.Id
 
   @doc """
