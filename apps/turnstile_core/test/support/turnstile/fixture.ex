@@ -12,8 +12,17 @@ defmodule Turnstile.Fixture do
 
   use Boundary,
     top_level?: true,
-    deps: [Ecto, ExUnitProperties, StreamData, Turnstile, Turnstile.Conformance],
-    exports: [Account, Folder, Item, Membership, World]
+    deps: [
+      Ecto,
+      ExUnitProperties,
+      StreamData,
+      Turnstile,
+      Turnstile.Conformance,
+      Turnstile.Test,
+      Turnstile.Test.Sandbox,
+      Turnstile.TestRepos
+    ],
+    exports: [Account, Folder, Item, Membership, Rows, World]
 end
 
 defmodule Turnstile.Fixture.Item do

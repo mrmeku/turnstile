@@ -19,6 +19,7 @@ defmodule Turnstile.Conformance do
       LedgerCase,
       Projected,
       RepoCase,
+      RepoCase.Rows,
       Scenario,
       Scenarios,
       Seed,

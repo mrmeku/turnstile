@@ -20,7 +20,10 @@ defmodule Example.Fixture do
   | ivan | user | federal | FR | member of the foreign program |
   """
 
-  use Boundary, top_level?: true, deps: [Example, Ecto, Turnstile]
+  use Boundary,
+    top_level?: true,
+    deps: [Example, Ecto, Turnstile, Turnstile.Conformance, Turnstile.Test, Turnstile.Test.Sandbox],
+    exports: [Rows]
 
   import Ecto.Query, only: [from: 2]
 

@@ -6,7 +6,10 @@ defmodule Turnstile.TestRepos do
   own repos instead.
   """
 
-  use Boundary, top_level?: true, deps: [Ecto, Ecto.Adapters.Postgres, Ecto.Adapters.SQL, Turnstile]
+  use Boundary,
+    top_level?: true,
+    deps: [Ecto, Ecto.Adapters.Postgres, Ecto.Adapters.SQL, Turnstile],
+    exports: [Committed, Owner, Sandboxed]
 end
 
 defmodule Turnstile.TestRepos.Sandboxed do
