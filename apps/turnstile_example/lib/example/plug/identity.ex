@@ -2,8 +2,9 @@ defmodule Example.Plug.Identity do
   @moduledoc """
   The identity-only plug. It reads the caller's account id, session id, and
   re-authentication time from headers an authenticating proxy sets, builds
-  the subject from the account's row, and assigns the subject and the facts
-  the port receives, session id among them. It authorizes nothing: every
+  the subject from the account's row, and assigns the subject and the
+  environment the port receives, session id among them. It authorizes
+  nothing: every
   rule is asked at the port by the contexts.
   """
 
@@ -22,7 +23,7 @@ defmodule Example.Plug.Identity do
          {_kind, _account} = subject <- Accounts.subject(user_id) do
       conn
       |> assign(:subject, subject)
-      |> assign(:facts, facts(conn))
+      |> assign(:env, env(conn))
     else
       _absent ->
         conn
@@ -31,7 +32,7 @@ defmodule Example.Plug.Identity do
     end
   end
 
-  defp facts(conn) do
+  defp env(conn) do
     Enum.into(session(conn), reauthenticated(conn))
   end
 

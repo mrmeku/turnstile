@@ -5,7 +5,7 @@ The words `turnstile_core` owns. A word with a second meaning elsewhere is liste
 | Term | Meaning |
 |---|---|
 | Reference monitor | The part of a system that checks every access; always invoked, tamperproof, small |
-| Subject / object / operation / environment | Who is asking, about what, to do what, under what conditions; a subject is a `{kind, id}` tuple and an object a `{type, id}` tuple |
+| Subject / object / operation / environment | Who is asking, about what, to do what, under what conditions; a subject is a `{kind, id}` tuple, an object a `{type, id}` tuple, and the environment a map of the caller's facts with `now` from the configured clock beside them |
 | Attribute | A fact about a subject or object that a rule can test |
 | RBAC / ABAC / ReBAC | Rules over roles / over any attribute / over relationships in a graph |
 | PEP / PDP / PIP / PAP | Where a request is stopped / where the answer is computed / where attributes come from / where rules are written |

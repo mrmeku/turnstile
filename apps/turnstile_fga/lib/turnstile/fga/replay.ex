@@ -26,7 +26,6 @@ defmodule Turnstile.Fga.Replay do
 
   alias Turnstile.Answer
   alias Turnstile.Decision
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fga.Client
   alias Turnstile.Fga.Client.Write
@@ -97,9 +96,9 @@ defmodule Turnstile.Fga.Replay do
   moment of the decision and no facts, which is what a question that reads no
   caller-supplied fact was asked under.
   """
-  @spec ask(t(), Decision.t(), Environment.t() | nil) :: {:ok, Answer.t()} | {:error, Error.t()}
+  @spec ask(t(), Decision.t(), Turnstile.environment() | nil) :: {:ok, Answer.t()} | {:error, Error.t()}
   def ask(%__MODULE__{} = replay, %Decision{} = decision, environment \\ nil) do
-    with {:ok, entry} <- entry(replay, environment || %Environment{now: decision.at}) do
+    with {:ok, entry} <- entry(replay, environment || %{now: decision.at}) do
       Decide.one(entry, decision.subject, decision.operation, decision.object)
     end
   end
@@ -140,7 +139,7 @@ defmodule Turnstile.Fga.Replay do
     }
   end
 
-  defp entry(%__MODULE__{} = replay, %Environment{} = environment) do
+  defp entry(%__MODULE__{} = replay, %{now: _now} = environment) do
     options = [
       endpoint: replay.endpoint,
       store_id: replay.store,

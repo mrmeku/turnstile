@@ -2,7 +2,6 @@ defmodule Turnstile.ValuesTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Answer
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.FactEvent
   alias Turnstile.Id
@@ -20,7 +19,6 @@ defmodule Turnstile.ValuesTest do
     id = Id.new()
     assert FactEvent.subject_ref({:privileged, id}) == {:user, id}
     assert Port.subject_kinds() == [:user, :non_person_entity, :privileged]
-    assert %Environment{now: ~U[2026-09-08 00:00:00Z], facts: %{}} = %Environment{now: ~U[2026-09-08 00:00:00Z]}
   end
 
   test "an answer carries a verdict, a reason, a version, and the decider's own meta" do

@@ -8,7 +8,6 @@ defmodule Turnstile.Cerbos.PlanTest do
   alias Turnstile.Cerbos.Decide
   alias Turnstile.Cerbos.Plan
   alias Turnstile.Dev
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
@@ -70,7 +69,7 @@ defmodule Turnstile.Cerbos.PlanTest do
      address: sidecar.address,
      ann: {:user, "ann"},
      bob: {:user, "bob"},
-     environment: %Environment{now: DateTime.utc_now()}}
+     environment: %{now: DateTime.utc_now()}}
   end
 
   test "a plan that admits every row is every row, and one that admits none is a denial", ctx do

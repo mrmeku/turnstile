@@ -7,7 +7,6 @@ defmodule Turnstile.CerbosTest do
   alias Turnstile.Cerbos.Sidecar
   alias Turnstile.Cerbos.Version
   alias Turnstile.Dev
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.TestRepos.Sandboxed
@@ -57,7 +56,7 @@ resourcePolicy:
     :ok =
       Binding.override(repo: Sandboxed, attributes: Attributes, policies: sidecar.policies, commit: "conformance")
 
-    {:ok, address: sidecar.address, environment: %Environment{now: DateTime.utc_now()}}
+    {:ok, address: sidecar.address, environment: %{now: DateTime.utc_now()}}
   end
 
   test "the adapter needs no ledger, caps no scope, and its entry carries the address alone" do
@@ -95,13 +94,13 @@ resourcePolicy:
     now = ~U[2026-09-09 12:00:00Z]
     options = [address: sidecar.address]
 
-    fresh = %Environment{now: now, facts: %{reauthenticated_at: DateTime.shift(now, minute: -1)}}
+    fresh = %{now: now, reauthenticated_at: DateTime.shift(now, minute: -1)}
     assert {:ok, %Answer{verdict: :allow}} = Turnstile.Cerbos.check(@ann, :read, @folder, fresh, options)
 
-    stale = %Environment{now: now, facts: %{reauthenticated_at: DateTime.shift(now, second: -901)}}
+    stale = %{now: now, reauthenticated_at: DateTime.shift(now, second: -901)}
     assert {:ok, %Answer{verdict: :deny}} = Turnstile.Cerbos.check(@ann, :read, @folder, stale, options)
 
-    absent = %Environment{now: now}
+    absent = %{now: now}
     assert {:ok, %Answer{verdict: :deny}} = Turnstile.Cerbos.check(@ann, :read, @folder, absent, options)
   end
 

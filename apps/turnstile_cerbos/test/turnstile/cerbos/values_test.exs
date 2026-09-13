@@ -5,7 +5,6 @@ defmodule Turnstile.Cerbos.ValuesTest do
   alias Turnstile.Cerbos.Conformance.Memberships
   alias Turnstile.Cerbos.Values
   alias Turnstile.Dev
-  alias Turnstile.Environment
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
@@ -76,11 +75,7 @@ defmodule Turnstile.Cerbos.ValuesTest do
     :ok = World.insert(Sandboxed, world)
     {:ok, binding} = Binding.resolve()
 
-    {:ok,
-     binding: binding,
-     ann: {:user, "ann"},
-     bob: {:user, "bob"},
-     request: %Environment{now: ~U[2026-09-09 12:00:00.123456Z]}}
+    {:ok, binding: binding, ann: {:user, "ann"}, bob: {:user, "bob"}, request: %{now: ~U[2026-09-09 12:00:00.123456Z]}}
   end
 
   test "the subject's own attributes come from the row its id names, the request's facts beside them", ctx do
@@ -93,9 +88,10 @@ defmodule Turnstile.Cerbos.ValuesTest do
   end
 
   test "a fact the declarations name travels cut to the second, and one they do not name does not", ctx do
-    request = %Environment{
+    request = %{
       now: ~U[2026-09-09 12:00:00Z],
-      facts: %{reauthenticated_at: ~U[2026-09-09 11:59:30.987654Z], clearance: "cleared"}
+      reauthenticated_at: ~U[2026-09-09 11:59:30.987654Z],
+      clearance: "cleared"
     }
 
     assert Values.environment(ctx.binding, request) == %{

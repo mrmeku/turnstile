@@ -101,7 +101,7 @@ defmodule Example.Review do
 
   defp today do
     {:ok, config} = Config.resolve()
-    opts = [facts: %{reauthenticated_at: config.clock.()}]
+    opts = [env: %{reauthenticated_at: config.clock.()}]
     agencies = Repo.all(agencies(), turnstile: @review)
     Enum.flat_map(agencies, &agency_rows(&1, opts)) ++ privileged_rows()
   end

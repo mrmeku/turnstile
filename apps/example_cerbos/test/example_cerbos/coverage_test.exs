@@ -75,5 +75,5 @@ defmodule ExampleCerbos.CoverageTest do
     assert_raise ArgumentError, ~r/title of Example.Document/, fn -> Coverage.check!(Attributes, query) end
   end
 
-  defp fresh, do: [facts: %{reauthenticated_at: DateTime.utc_now()}]
+  defp fresh, do: [env: %{reauthenticated_at: DateTime.utc_now()}]
 end

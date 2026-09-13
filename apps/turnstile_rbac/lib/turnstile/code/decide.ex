@@ -14,27 +14,20 @@ defmodule Turnstile.Code.Decide do
   alias Turnstile.Answer
   alias Turnstile.Code.Binding
   alias Turnstile.Code.Rule
-  alias Turnstile.Environment
 
   @doc "The answer for one object, with the clauses that held under `meta[:matched]`."
-  @spec one(Binding.t(), Turnstile.subject(), atom(), Turnstile.object(), Environment.t()) ::
+  @spec one(Binding.t(), Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment()) ::
           {:ok, Answer.t()} | {:error, String.t()}
-  def one(
-        %Binding{} = binding,
-        {_kind, _account} = subject,
-        operation,
-        {_type, _id} = object,
-        %Environment{} = environment
-      ) do
+  def one(%Binding{} = binding, {_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment) do
     with {:ok, [{^object, answer}]} <- explained(binding, subject, operation, [object], environment) do
       {:ok, answer}
     end
   end
 
   @doc "The answers for a list of objects, one per object reference."
-  @spec many(Binding.t(), Turnstile.subject(), atom(), [Turnstile.object()], Environment.t()) ::
+  @spec many(Binding.t(), Turnstile.subject(), atom(), [Turnstile.object()], Turnstile.environment()) ::
           {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
-  def many(%Binding{} = binding, {_kind, _account} = subject, operation, objects, %Environment{} = environment) do
+  def many(%Binding{} = binding, {_kind, _account} = subject, operation, objects, %{now: _now} = environment) do
     with {:ok, explained} <- explained(binding, subject, operation, objects, environment) do
       {:ok, Map.new(explained)}
     end

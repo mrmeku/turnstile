@@ -19,8 +19,6 @@ defmodule Turnstile.Postgres.Settings do
   settings are what the database enforced.
   """
 
-  alias Turnstile.Environment
-
   @prefix "turnstile."
 
   @enforce_keys [:pairs]
@@ -34,8 +32,8 @@ defmodule Turnstile.Postgres.Settings do
   the call or, where only a decision is at hand, the time it was made. The
   second form carries no supplied fact, so a policy that reads one denies.
   """
-  @spec of(Turnstile.subject(), atom(), Environment.t() | DateTime.t()) :: t()
-  def of({kind, id}, operation, %Environment{} = environment) when is_atom(operation) do
+  @spec of(Turnstile.subject(), atom(), Turnstile.environment() | DateTime.t()) :: t()
+  def of({kind, id}, operation, %{now: _now} = environment) when is_atom(operation) do
     fixed = [
       {"subject_id", id},
       {"subject_kind", kind},
@@ -47,7 +45,7 @@ defmodule Turnstile.Postgres.Settings do
   end
 
   def of({_kind, _account} = subject, operation, %DateTime{} = at) when is_atom(operation) do
-    of(subject, operation, %Environment{now: at})
+    of(subject, operation, %{now: at})
   end
 
   @doc """
@@ -92,8 +90,9 @@ defmodule Turnstile.Postgres.Settings do
     Base.encode16(:crypto.hash(:sha256, text), case: :lower)
   end
 
-  defp supplied(%Environment{facts: facts}) do
-    facts
+  defp supplied(environment) do
+    environment
+    |> Map.delete(:now)
     |> Enum.sort_by(fn {name, _value} -> name end)
     |> Enum.map(fn {name, value} -> {to_string(name), value} end)
   end

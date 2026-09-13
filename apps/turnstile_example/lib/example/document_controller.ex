@@ -72,6 +72,6 @@ defmodule Example.DocumentController do
   defp portions(_unloaded), do: []
 
   defp subject(conn), do: conn.assigns.subject
-  defp options(conn), do: [facts: conn.assigns.facts]
+  defp options(conn), do: [env: conn.assigns.env]
   defp parse(id) when is_binary(id), do: String.to_integer(id)
 end

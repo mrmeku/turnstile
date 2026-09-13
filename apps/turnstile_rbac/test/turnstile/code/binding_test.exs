@@ -3,7 +3,6 @@ defmodule Turnstile.Code.BindingTest do
 
   alias Turnstile.Code.Binding
   alias Turnstile.Code.Conformance.Roles
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.TestRepos.Committed
   alias Turnstile.TestRepos.Sandboxed
@@ -18,7 +17,7 @@ defmodule Turnstile.Code.BindingTest do
 
   test "without a binding every call is an engine error, so the port fails closed" do
     ann = {:user, "ann"}
-    environment = %Environment{now: DateTime.utc_now()}
+    environment = %{now: DateTime.utc_now()}
 
     assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
              Turnstile.Code.scope(ann, :read, :folder, environment, [])

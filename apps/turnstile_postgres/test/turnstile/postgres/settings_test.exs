@@ -1,7 +1,6 @@
 defmodule Turnstile.Postgres.SettingsTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Environment
   alias Turnstile.Postgres.Settings
 
   @at ~U[2026-09-08 12:00:00Z]
@@ -75,5 +74,5 @@ defmodule Turnstile.Postgres.SettingsTest do
 
   defp subject, do: {:user, "acct-a"}
 
-  defp environment(facts), do: %Environment{now: @at, facts: facts}
+  defp environment(facts), do: Map.put(facts, :now, @at)
 end

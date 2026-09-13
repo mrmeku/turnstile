@@ -4,7 +4,6 @@ defmodule Turnstile.Fga.DecideTest do
   import Ecto.Query, only: [dynamic: 2]
 
   alias Turnstile.Answer
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
@@ -25,7 +24,7 @@ defmodule Turnstile.Fga.DecideTest do
     {:ok, store} = Fake.create_store(agent, "decide")
     {:ok, model} = Fake.write_model(agent, store, %{"schema_version" => "1.1"})
     options = [client: Fake, endpoint: agent, store_id: store, model_id: model]
-    {:ok, entry} = Decide.entry(options, :check, %Environment{now: @now})
+    {:ok, entry} = Decide.entry(options, :check, %{now: @now})
 
     {:ok, agent: agent, store: store, model: model, options: options, entry: Decide.applied(entry, 7)}
   end
@@ -51,7 +50,7 @@ defmodule Turnstile.Fga.DecideTest do
     for field <- [:endpoint, :store_id] do
       thin = Keyword.delete(context.options, field)
 
-      assert {:error, %Error{reason: :engine_unreachable} = error} = Decide.entry(thin, :check, %Environment{now: @now})
+      assert {:error, %Error{reason: :engine_unreachable} = error} = Decide.entry(thin, :check, %{now: @now})
 
       assert error.detail ==
                "#{inspect(Turnstile.Fga)} failed during check: the configuration entry names no #{field}"
@@ -59,7 +58,7 @@ defmodule Turnstile.Fga.DecideTest do
   end
 
   test "a client without a client named is the client over HTTP", context do
-    {:ok, entry} = Decide.entry(Keyword.delete(context.options, :client), :check, %Environment{now: @now})
+    {:ok, entry} = Decide.entry(Keyword.delete(context.options, :client), :check, %{now: @now})
 
     assert entry.client == Turnstile.Fga.Client.Http
     assert entry.applied == nil
@@ -67,7 +66,7 @@ defmodule Turnstile.Fga.DecideTest do
 
   test "the context is the caller's facts under their own names and the moment under current_time", context do
     facts = %{clearance: "cleared", from: ~D[2026-01-01], seen: ~N[2026-01-02 03:04:05], count: 3}
-    {:ok, entry} = Decide.entry(context.options, :check, %Environment{now: @now, facts: facts})
+    {:ok, entry} = Decide.entry(context.options, :check, Map.put(facts, :now, @now))
 
     assert {:ok, %Answer{}} = Decide.one(entry, ann(), :read, {:folder, 1})
 
@@ -93,7 +92,7 @@ defmodule Turnstile.Fga.DecideTest do
     assert [%Check{consistency: :higher_consistency, model: model}] = requests(context.agent, :check)
     assert model == context.model
 
-    {:ok, listing} = Decide.entry(context.options, :scope, %Environment{now: @now})
+    {:ok, listing} = Decide.entry(context.options, :scope, %{now: @now})
     assert {:ok, {_rule, %Answer{}}} = Decide.scoped(listing, ann(), :read, :folder)
 
     assert [%ListObjects{consistency: :minimize_latency, user: "user:ann", relation: "can_read", type: "folder"}] =
@@ -118,7 +117,7 @@ defmodule Turnstile.Fga.DecideTest do
   end
 
   test "an entry that pins no model asks nothing at all", context do
-    {:ok, entry} = Decide.entry(Keyword.delete(context.options, :model_id), :authorize, %Environment{now: @now})
+    {:ok, entry} = Decide.entry(Keyword.delete(context.options, :model_id), :authorize, %{now: @now})
     folder = {:folder, 1}
     detail = "the configuration entry pins no model, so no question can be asked under one"
 
@@ -148,7 +147,7 @@ defmodule Turnstile.Fga.DecideTest do
   end
 
   test "a scope under the cap is the identifiers of the listing as a rule over rows", context do
-    {:ok, entry} = Decide.entry(context.options, :scope, %Environment{now: @now})
+    {:ok, entry} = Decide.entry(context.options, :scope, %{now: @now})
     :ok = write(context, [tuple("ann", "can_read", "folder:1"), tuple("ann", "can_read", "folder:2")])
 
     assert {:ok, {rule, %Answer{} = answer}} = Decide.scoped(entry, ann(), :read, :folder)
@@ -183,7 +182,7 @@ defmodule Turnstile.Fga.DecideTest do
 
   test "an engine error on the way to the server is the answer, whichever callback asked", context do
     absent = Keyword.put(context.options, :store_id, "store-404")
-    {:ok, entry} = Decide.entry(absent, :batch, %Environment{now: @now})
+    {:ok, entry} = Decide.entry(absent, :batch, %{now: @now})
     folder = {:folder, 1}
 
     assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Fga failed during check" <> _rest}} =

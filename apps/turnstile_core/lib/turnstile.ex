@@ -21,7 +21,6 @@ defmodule Turnstile do
       Config,
       Decision,
       Edge,
-      Environment,
       Error,
       Exemption,
       FactEvent,
@@ -54,6 +53,14 @@ defmodule Turnstile do
   whole type, which `scope/4` makes, carries `nil` for the id.
   """
   @type object :: {atom(), Turnstile.Id.t() | nil}
+
+  @typedoc """
+  Under what conditions the subject asks: the facts only the caller knows,
+  by name, with `now` from the configured clock beside them. The port
+  stamps `now`, so a decider reads the moment of the request from the
+  environment rather than from a clock of its own.
+  """
+  @type environment :: %{required(:now) => DateTime.t(), optional(atom()) => term()}
 
   @typedoc "A person, software acting alone, or a person who can change the system."
   @type subject_kind :: :user | :non_person_entity | :privileged

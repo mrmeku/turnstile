@@ -7,7 +7,6 @@ defmodule Turnstile.Code.RuleTest do
   alias Turnstile.Code.Binding
   alias Turnstile.Code.Policy
   alias Turnstile.Code.Rule
-  alias Turnstile.Environment
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
@@ -19,10 +18,10 @@ defmodule Turnstile.Code.RuleTest do
     @moduledoc false
     import Ecto.Query, only: [dynamic: 2]
 
-    @spec yes(Turnstile.subject(), Environment.t()) :: boolean()
+    @spec yes(Turnstile.subject(), Turnstile.environment()) :: boolean()
     def yes(_subject, _environment), do: true
 
-    @spec no(Turnstile.subject(), Environment.t()) :: boolean()
+    @spec no(Turnstile.subject(), Turnstile.environment()) :: boolean()
     def no(_subject, _environment), do: false
 
     @spec named() :: Ecto.Query.dynamic_expr()
@@ -103,7 +102,7 @@ defmodule Turnstile.Code.RuleTest do
     }
 
     :ok = World.insert(Sandboxed, world)
-    {:ok, environment: %Environment{now: DateTime.utc_now()}, ann: {:user, "ann"}}
+    {:ok, environment: %{now: DateTime.utc_now()}, ann: {:user, "ann"}}
   end
 
   test "a grant with a fixed role holds through any membership row when the role permits the operation", ctx do

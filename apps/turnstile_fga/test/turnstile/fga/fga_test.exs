@@ -2,11 +2,9 @@ defmodule Turnstile.FgaTest.Guard do
   @moduledoc false
   @behaviour Turnstile.Fga.Guard
 
-  alias Turnstile.Environment
-
   @impl Turnstile.Fga.Guard
-  def admits?(:read, %Environment{facts: facts}), do: Map.get(facts, :cleared) == true
-  def admits?(_operation, %Environment{}), do: true
+  def admits?(:read, environment), do: Map.get(environment, :cleared) == true
+  def admits?(_operation, %{now: _now}), do: true
 end
 
 defmodule Turnstile.FgaTest do
@@ -17,7 +15,6 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Answer
   alias Turnstile.Config
   alias Turnstile.Decision
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fga
   alias Turnstile.Fga.Binding
@@ -205,9 +202,9 @@ defmodule Turnstile.FgaTest do
 
   defp ann, do: {:user, "ann"}
 
-  defp environment, do: %Environment{now: @now}
+  defp environment, do: %{now: @now}
 
-  defp cleared, do: %Environment{now: @now, facts: %{cleared: true}}
+  defp cleared, do: %{now: @now, cleared: true}
 
   defp tuple(user, relation, object), do: %TupleKey{user: "user:#{user}", relation: relation, object: object}
 

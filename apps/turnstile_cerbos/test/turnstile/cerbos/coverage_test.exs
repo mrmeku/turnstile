@@ -8,7 +8,6 @@ defmodule Turnstile.Cerbos.CoverageTest do
   alias Turnstile.Cerbos.Coverage
   alias Turnstile.Cerbos.Decide
   alias Turnstile.Dev
-  alias Turnstile.Environment
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
@@ -35,7 +34,7 @@ defmodule Turnstile.Cerbos.CoverageTest do
     :ok = World.insert(Sandboxed, world)
     {:ok, binding} = Binding.resolve()
 
-    {:ok, binding: binding, address: sidecar.address, ann: {:user, "ann"}, request: %Environment{now: DateTime.utc_now()}}
+    {:ok, binding: binding, address: sidecar.address, ann: {:user, "ann"}, request: %{now: DateTime.utc_now()}}
   end
 
   test "the query the sidecar's own plan compiles to reads declared facts alone", ctx do

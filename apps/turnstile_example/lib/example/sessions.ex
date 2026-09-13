@@ -7,8 +7,6 @@ defmodule Example.Sessions do
   adapters that compute in code call.
   """
 
-  alias Turnstile.Environment
-
   @window 900
 
   @doc "The re-authentication window in seconds."
@@ -16,9 +14,9 @@ defmodule Example.Sessions do
   def window, do: @window
 
   @doc "Whether the environment's `reauthenticated_at` fact is within the window of its clock."
-  @spec fresh?(Environment.t()) :: boolean()
-  def fresh?(%Environment{now: %DateTime{} = now, facts: facts}) when is_map(facts) do
-    case facts[:reauthenticated_at] do
+  @spec fresh?(Turnstile.environment()) :: boolean()
+  def fresh?(%{now: %DateTime{} = now} = environment) do
+    case environment[:reauthenticated_at] do
       %DateTime{} = at -> DateTime.diff(now, at, :second) in 0..@window
       _absent -> false
     end

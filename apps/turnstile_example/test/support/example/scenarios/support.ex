@@ -46,11 +46,11 @@ defmodule Example.Scenarios.Support do
 
   @doc "The port options of a session that re-authenticated now."
   @spec fresh() :: keyword()
-  def fresh, do: [facts: %{reauthenticated_at: DateTime.utc_now()}]
+  def fresh, do: [env: %{reauthenticated_at: DateTime.utc_now()}]
 
   @doc "The port options of a session that re-authenticated before the window."
   @spec stale() :: keyword()
-  def stale, do: [facts: %{reauthenticated_at: DateTime.shift(DateTime.utc_now(), second: -(Sessions.window() + 60))}]
+  def stale, do: [env: %{reauthenticated_at: DateTime.shift(DateTime.utc_now(), second: -(Sessions.window() + 60))}]
 
   @doc """
   Wait until every fact the tests have written has reached the engine, where

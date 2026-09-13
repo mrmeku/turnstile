@@ -17,7 +17,6 @@ defmodule Turnstile.Adapter.Fake do
   import Ecto.Query, only: [dynamic: 2]
 
   alias Turnstile.Answer
-  alias Turnstile.Environment
   alias Turnstile.Error
 
   @version "fake"
@@ -78,7 +77,7 @@ defmodule Turnstile.Adapter.Fake do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{}, options)
+  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now}, options)
       when is_atom(operation) do
     with {:ok, state} <- state(options, :authorize) do
       {:ok, decide(state, subject, operation, object)}
@@ -86,7 +85,7 @@ defmodule Turnstile.Adapter.Fake do
   end
 
   @impl Turnstile.Adapter
-  def check({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{}, options)
+  def check({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now}, options)
       when is_atom(operation) do
     with {:ok, state} <- state(options, :check) do
       {:ok, decide(state, subject, operation, object)}
@@ -94,7 +93,7 @@ defmodule Turnstile.Adapter.Fake do
   end
 
   @impl Turnstile.Adapter
-  def batch({_kind, _account} = subject, operation, objects, %Environment{}, options)
+  def batch({_kind, _account} = subject, operation, objects, %{now: _now}, options)
       when is_atom(operation) and is_list(objects) do
     with {:ok, state} <- state(options, :batch) do
       {:ok, Map.new(objects, fn {_type, _id} = object -> {object, decide(state, subject, operation, object)} end)}
@@ -102,7 +101,7 @@ defmodule Turnstile.Adapter.Fake do
   end
 
   @impl Turnstile.Adapter
-  def scope({_kind, _account} = subject, operation, object_type, %Environment{}, options)
+  def scope({_kind, _account} = subject, operation, object_type, %{now: _now}, options)
       when is_atom(operation) and is_atom(object_type) do
     with {:ok, state} <- state(options, :scope) do
       {:ok, scoped(state, subject, operation, object_type)}
@@ -110,7 +109,7 @@ defmodule Turnstile.Adapter.Fake do
   end
 
   @impl Turnstile.Adapter
-  def explain({_kind, _account}, operation, {_type, _id}, %Environment{}, _options) when is_atom(operation) do
+  def explain({_kind, _account}, operation, {_type, _id}, %{now: _now}, _options) when is_atom(operation) do
     {:error, %Error{reason: :unsupported, detail: "#{inspect(__MODULE__)} does not support explain: it names no rule"}}
   end
 

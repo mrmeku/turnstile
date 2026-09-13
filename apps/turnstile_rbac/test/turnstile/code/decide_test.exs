@@ -6,7 +6,6 @@ defmodule Turnstile.Code.DecideTest do
   alias Turnstile.Answer
   alias Turnstile.Code.Binding
   alias Turnstile.Code.Conformance.Roles
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.World
@@ -15,7 +14,7 @@ defmodule Turnstile.Code.DecideTest do
 
   defmodule Broken do
     @moduledoc false
-    @spec garbage(Turnstile.subject(), Environment.t()) :: term()
+    @spec garbage(Turnstile.subject(), Turnstile.environment()) :: term()
     def garbage(_subject, _environment), do: :not_a_dynamic
   end
 
@@ -43,7 +42,7 @@ defmodule Turnstile.Code.DecideTest do
       )
 
     :ok = World.insert(Sandboxed, world)
-    environment = %Environment{now: DateTime.utc_now()}
+    environment = %{now: DateTime.utc_now()}
     {:ok, environment: environment, ann: {:user, "ann"}, bob: {:user, "bob"}}
   end
 

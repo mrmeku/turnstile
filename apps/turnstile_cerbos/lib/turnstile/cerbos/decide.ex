@@ -29,7 +29,6 @@ defmodule Turnstile.Cerbos.Decide do
   alias Turnstile.Cerbos.Plan
   alias Turnstile.Cerbos.Request
   alias Turnstile.Cerbos.Values
-  alias Turnstile.Environment
 
   @fallback [:turnstile, :cerbos, :scope_fallback]
 
@@ -38,7 +37,7 @@ defmodule Turnstile.Cerbos.Decide do
   def fallback_event, do: @fallback
 
   @doc "The answer for one object, with the policy the sidecar matched under `meta[:matched]`."
-  @spec one(Binding.t(), Client.address(), Turnstile.subject(), atom(), Turnstile.object(), Environment.t()) ::
+  @spec one(Binding.t(), Client.address(), Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment()) ::
           {:ok, Answer.t()} | {:error, String.t()}
   def one(
         %Binding{} = binding,
@@ -46,7 +45,7 @@ defmodule Turnstile.Cerbos.Decide do
         {_kind, _account} = subject,
         operation,
         {_type, _id} = object,
-        %Environment{} = request
+        %{now: _now} = request
       )
       when is_binary(address) and is_atom(operation) do
     with {:ok, explained} <- explained(binding, address, subject, operation, [object], request) do
@@ -55,9 +54,9 @@ defmodule Turnstile.Cerbos.Decide do
   end
 
   @doc "The answers for a list of objects, one per object reference."
-  @spec many(Binding.t(), Client.address(), Turnstile.subject(), atom(), [Turnstile.object()], Environment.t()) ::
+  @spec many(Binding.t(), Client.address(), Turnstile.subject(), atom(), [Turnstile.object()], Turnstile.environment()) ::
           {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
-  def many(%Binding{} = binding, address, {_kind, _account} = subject, operation, objects, %Environment{} = request)
+  def many(%Binding{} = binding, address, {_kind, _account} = subject, operation, objects, %{now: _now} = request)
       when is_binary(address) and is_atom(operation) and is_list(objects) do
     explained(binding, address, subject, operation, objects, request)
   end
@@ -68,9 +67,9 @@ defmodule Turnstile.Cerbos.Decide do
   rule that admits none, and a plan this adapter does not express emits
   `fallback_event/0` and fails, which is what a caller records as limited.
   """
-  @spec scoped(Binding.t(), Client.address(), Turnstile.subject(), atom(), atom(), Environment.t()) ::
+  @spec scoped(Binding.t(), Client.address(), Turnstile.subject(), atom(), atom(), Turnstile.environment()) ::
           {:ok, Turnstile.Adapter.scoped()} | {:error, String.t()}
-  def scoped(%Binding{} = binding, address, {_kind, _account} = subject, operation, kind, %Environment{} = request)
+  def scoped(%Binding{} = binding, address, {_kind, _account} = subject, operation, kind, %{now: _now} = request)
       when is_binary(address) and is_atom(operation) and is_atom(kind) do
     with {:ok, principal} <- Values.principal(binding, subject, request),
          body = Request.plan(subject, operation, kind, principal),

@@ -5,12 +5,11 @@ defmodule Turnstile.Adapter.FakeTest do
 
   alias Turnstile.Adapter.Fake
   alias Turnstile.Answer
-  alias Turnstile.Environment
   alias Turnstile.Error
 
   @subject {:user, "11111111-1111-1111-1111-111111111111"}
   @object {:thing, "22222222-2222-2222-2222-222222222222"}
-  @environment %Environment{now: ~U[2026-09-08 00:00:00Z]}
+  @environment %{now: ~U[2026-09-08 00:00:00Z]}
 
   test "it denies by default with a deny-by-default reason and the fake policy version" do
     assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default, version: "fake"} = answer} =
@@ -61,13 +60,12 @@ defmodule Turnstile.Adapter.FakeTableTest do
 
   alias Turnstile.Adapter.Fake
   alias Turnstile.Answer
-  alias Turnstile.Environment
   alias Turnstile.Error
 
   @user {:user, "acct-a"}
   @other {:user, "acct-b"}
   @folder {:folder, 1}
-  @environment %Environment{now: ~U[2026-09-08 00:00:00Z]}
+  @environment %{now: ~U[2026-09-08 00:00:00Z]}
 
   setup do
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})

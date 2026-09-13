@@ -30,7 +30,6 @@ defmodule Turnstile.Cerbos.Values do
   alias Turnstile.Cerbos.Attribute
   alias Turnstile.Cerbos.Attributes
   alias Turnstile.Cerbos.Binding
-  alias Turnstile.Environment
 
   @exemption {:exempt, :library}
 
@@ -38,8 +37,9 @@ defmodule Turnstile.Cerbos.Values do
   @type attributes :: %{atom() => term()}
 
   @doc "The subject's own attributes, from the declarations of its kind, with the request-time facts beside them."
-  @spec principal(Binding.t(), Turnstile.subject(), Environment.t()) :: {:ok, attributes()} | {:error, String.t()}
-  def principal(%Binding{} = binding, {kind, id} = subject, %Environment{} = request) do
+  @spec principal(Binding.t(), Turnstile.subject(), Turnstile.environment()) ::
+          {:ok, attributes()} | {:error, String.t()}
+  def principal(%Binding{} = binding, {kind, id} = subject, %{now: _now} = request) do
     with {:ok, by_id} <- of(binding, subject, kind, [id]) do
       own = Map.fetch!(by_id, to_string(id))
       {:ok, Map.put(own, Attribute.reserved(), environment(binding, request))}
@@ -47,9 +47,9 @@ defmodule Turnstile.Cerbos.Values do
   end
 
   @doc "The request-time facts: the moment the port stamped the request with, and each declared fact."
-  @spec environment(Binding.t(), Environment.t()) :: attributes()
-  def environment(%Binding{attributes: attributes}, %Environment{} = request) do
-    declared = Map.new(Attributes.facts(attributes), &{&1, moment(Map.get(request.facts, &1))})
+  @spec environment(Binding.t(), Turnstile.environment()) :: attributes()
+  def environment(%Binding{attributes: attributes}, %{now: _now} = request) do
+    declared = Map.new(Attributes.facts(attributes), &{&1, moment(Map.get(request, &1))})
     Map.put(declared, :now, moment(request.now))
   end
 

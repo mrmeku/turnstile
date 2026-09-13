@@ -46,7 +46,7 @@ defmodule Example.Scenarios.Identity do
 
     settle()
     assert_refused(Documents.change_marking(subject("dana"), document.id, @noforn), :change_marking)
-    assert_refused(Documents.change_marking(subject("dana"), document.id, @noforn, facts: %{}), :change_marking)
+    assert_refused(Documents.change_marking(subject("dana"), document.id, @noforn, env: %{}), :change_marking)
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id)
   end
 

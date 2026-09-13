@@ -18,7 +18,6 @@ defmodule Turnstile.Code.Coverage do
   alias Turnstile.Code.Policy
   alias Turnstile.Code.Policy.Object
   alias Turnstile.Code.Rule
-  alias Turnstile.Environment
   alias Turnstile.Schema
   alias Turnstile.Schema.Fact
   alias Turnstile.Schema.Relationship
@@ -60,7 +59,7 @@ defmodule Turnstile.Code.Coverage do
   @spec reads(Policy.t()) :: [finding()]
   def reads(policy) when is_atom(policy) do
     subject = {:user, "coverage"}
-    environment = %Environment{now: DateTime.from_unix!(0), facts: %{}}
+    environment = %{now: DateTime.from_unix!(0)}
 
     for %Object{schema: schema} <- Policy.objects(policy),
         operation <- Policy.operations(policy),

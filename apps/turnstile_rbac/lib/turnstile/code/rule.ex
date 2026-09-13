@@ -18,7 +18,6 @@ defmodule Turnstile.Code.Rule do
   alias Turnstile.Code.Policy.Clauses
   alias Turnstile.Code.Policy.Object
   alias Turnstile.Code.Version
-  alias Turnstile.Environment
   alias Turnstile.Schema
   alias Turnstile.Schema.Relationship
 
@@ -43,9 +42,9 @@ defmodule Turnstile.Code.Rule do
   type or no role permits the operation, or `{:error, detail}` when a
   predicate returned neither a `dynamic` nor a boolean.
   """
-  @spec build(Policy.t(), Turnstile.subject(), atom(), atom(), Environment.t()) ::
+  @spec build(Policy.t(), Turnstile.subject(), atom(), atom(), Turnstile.environment()) ::
           {:ok, t()} | {:error, Answer.t() | String.t()}
-  def build(policy, {_kind, _account} = subject, operation, type, %Environment{} = environment)
+  def build(policy, {_kind, _account} = subject, operation, type, %{now: _now} = environment)
       when is_atom(policy) and is_atom(operation) and is_atom(type) do
     version = Version.ref(policy)
 

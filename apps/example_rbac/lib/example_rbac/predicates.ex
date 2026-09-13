@@ -23,15 +23,14 @@ defmodule ExampleRbac.Predicates do
   alias Example.Portion
   alias Example.Sessions
   alias Example.User
-  alias Turnstile.Environment
 
   @doc "A program that has not closed: the hop filter of every assignment grant (C1, C11)."
   @spec open() :: Ecto.Query.dynamic_expr()
   def open, do: dynamic([program], is_nil(program.closed_at))
 
   @doc "C2, C3, C5, and C6 on a document: no effective control of its banner blocks the subject."
-  @spec controls(Turnstile.subject(), Environment.t()) :: Ecto.Query.dynamic_expr()
-  def controls({_kind, subject_id}, %Environment{now: now}) do
+  @spec controls(Turnstile.subject(), Turnstile.environment()) :: Ecto.Query.dynamic_expr()
+  def controls({_kind, subject_id}, %{now: now}) do
     blocked =
       from(m in Marking,
         as: :marking,
@@ -48,8 +47,8 @@ defmodule ExampleRbac.Predicates do
   end
 
   @doc "C2, C3, C5, and C6 on a portion: its own marking, under the document's list and decontrol."
-  @spec portion_controls(Turnstile.subject(), Environment.t()) :: Ecto.Query.dynamic_expr()
-  def portion_controls({_kind, subject_id}, %Environment{now: now}) do
+  @spec portion_controls(Turnstile.subject(), Turnstile.environment()) :: Ecto.Query.dynamic_expr()
+  def portion_controls({_kind, subject_id}, %{now: now}) do
     blocked =
       from(p in Portion,
         as: :marking,
@@ -66,12 +65,12 @@ defmodule ExampleRbac.Predicates do
   end
 
   @doc "C8: the session re-authenticated within the window, by the environment's clock."
-  @spec session(Turnstile.subject(), Environment.t()) :: boolean()
-  def session({_kind, _account}, %Environment{} = environment), do: Sessions.fresh?(environment)
+  @spec session(Turnstile.subject(), Turnstile.environment()) :: boolean()
+  def session({_kind, _account}, %{now: _now} = environment), do: Sessions.fresh?(environment)
 
   @doc "C9: the approver is not the proposer."
-  @spec another_approver(Turnstile.subject(), Environment.t()) :: Ecto.Query.dynamic_expr()
-  def another_approver({_kind, subject_id}, %Environment{}) do
+  @spec another_approver(Turnstile.subject(), Turnstile.environment()) :: Ecto.Query.dynamic_expr()
+  def another_approver({_kind, subject_id}, %{now: _now}) do
     dynamic([proposal], proposal.proposer_id != ^subject_id)
   end
 

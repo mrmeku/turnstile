@@ -2,12 +2,11 @@ defmodule Turnstile.Test.AroundAdapterTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Adapter.Fake
-  alias Turnstile.Environment
   alias Turnstile.Test.AroundAdapter
 
   @subject {:user, "11111111-1111-1111-1111-111111111111"}
   @object {:thing, "22222222-2222-2222-2222-222222222222"}
-  @environment %Environment{now: ~U[2026-09-08 00:00:00Z]}
+  @environment %{now: ~U[2026-09-08 00:00:00Z]}
 
   test "every callback but around_query answers as the fake adapter does" do
     assert AroundAdapter.options_schema() == Fake.options_schema()

@@ -1,7 +1,7 @@
 defmodule Turnstile.Port do
   @moduledoc """
   The mechanism behind `Turnstile`'s functions: resolve the configuration,
-  build the environment from the clock and the caller's facts, read the
+  build the environment from the caller's map and the clock, read the
   ledger head, ask the adapter, fail closed on an engine error, stamp a
   `Turnstile.Decision`, and emit it as a telemetry span.
 
@@ -23,12 +23,11 @@ defmodule Turnstile.Port do
   alias Turnstile.Config
   alias Turnstile.Decision
   alias Turnstile.Edge
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Id
 
   @options NimbleOptions.new!(
-             facts: [type: {:map, :atom, :any}, default: %{}, doc: "Facts only the caller knows, by name."],
+             env: [type: {:map, :atom, :any}, default: %{}, doc: "The environment: facts only the caller knows, by name."],
              operation_id: [type: :string, doc: "The id every record of this operation carries; fresh when absent."]
            )
 
@@ -36,7 +35,7 @@ defmodule Turnstile.Port do
   @spans [:user, :non_person_entity, :privileged, :unknown]
 
   @typedoc "The options every port function takes."
-  @type options :: [facts: %{atom() => term()}, operation_id: Id.t()]
+  @type options :: [env: %{atom() => term()}, operation_id: Id.t()]
 
   @typedoc "A batch's verdicts, one per object reference."
   @type verdicts :: %{Turnstile.object() => Answer.verdict()}
@@ -200,7 +199,7 @@ defmodule Turnstile.Port do
       adapter: adapter,
       options: options,
       kind: kind(subject),
-      environment: %Environment{now: config.clock.(), facts: validated[:facts]},
+      environment: Map.put(validated[:env], :now, config.clock.()),
       operation_id: Keyword.get_lazy(validated, :operation_id, &Id.new/0),
       head: head(config)
     }

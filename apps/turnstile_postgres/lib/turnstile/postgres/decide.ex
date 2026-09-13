@@ -23,7 +23,6 @@ defmodule Turnstile.Postgres.Decide do
   """
 
   alias Turnstile.Answer
-  alias Turnstile.Environment
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Name
@@ -34,7 +33,7 @@ defmodule Turnstile.Postgres.Decide do
   @exemption {:exempt, :library}
 
   @doc "One answer per object, grouped by object type, under one set of settings."
-  @spec many(Binding.t(), Catalog.t(), Turnstile.subject(), atom(), [Turnstile.object()], Environment.t()) ::
+  @spec many(Binding.t(), Catalog.t(), Turnstile.subject(), atom(), [Turnstile.object()], Turnstile.environment()) ::
           {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
   def many(
         %Binding{} = binding,
@@ -42,7 +41,7 @@ defmodule Turnstile.Postgres.Decide do
         {_kind, _account} = subject,
         operation,
         objects,
-        %Environment{} = env
+        %{now: _now} = env
       )
       when is_atom(operation) and is_list(objects) do
     settings = remembered(subject, operation, env)
@@ -57,7 +56,7 @@ defmodule Turnstile.Postgres.Decide do
   end
 
   @doc "The answer for one object."
-  @spec one(Binding.t(), Catalog.t(), Turnstile.subject(), atom(), Turnstile.object(), Environment.t()) ::
+  @spec one(Binding.t(), Catalog.t(), Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment()) ::
           {:ok, Answer.t()} | {:error, String.t()}
   def one(%Binding{} = binding, %Catalog{} = catalog, {_kind, _account} = subject, operation, {_type, _id} = object, env) do
     with {:ok, answers} <- many(binding, catalog, subject, operation, [object], env) do

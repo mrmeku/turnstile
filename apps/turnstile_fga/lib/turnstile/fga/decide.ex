@@ -48,7 +48,6 @@ defmodule Turnstile.Fga.Decide do
   import Ecto.Query, only: [dynamic: 2]
 
   alias Turnstile.Answer
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fga.Client
   alias Turnstile.Fga.Client.BatchCheck
@@ -109,8 +108,8 @@ defmodule Turnstile.Fga.Decide do
   def named({type, id}), do: "#{type}:#{id}"
 
   @doc "What the configuration entry names, or an engine error naming what it does not."
-  @spec entry(keyword(), atom(), Environment.t()) :: {:ok, entry()} | {:error, Error.t()}
-  def entry(options, callback, %Environment{} = environment) when is_list(options) and is_atom(callback) do
+  @spec entry(keyword(), atom(), Turnstile.environment()) :: {:ok, entry()} | {:error, Error.t()}
+  def entry(options, callback, %{now: _now} = environment) when is_list(options) and is_atom(callback) do
     with {:ok, endpoint} <- fetched(options, :endpoint, callback),
          {:ok, store} <- fetched(options, :store_id, callback) do
       {:ok,
@@ -326,8 +325,9 @@ defmodule Turnstile.Fga.Decide do
 
   # The caller's facts under their own names, and the moment of the call. A
   # date is sent as text, which is what a condition compares timestamps as.
-  defp context(%Environment{now: now, facts: facts}) do
-    Map.new([{@time, now} | Map.to_list(facts)], fn {name, value} -> {to_string(name), value(value)} end)
+  defp context(%{now: now} = environment) do
+    facts = Map.to_list(Map.delete(environment, :now))
+    Map.new([{@time, now} | facts], fn {name, value} -> {to_string(name), value(value)} end)
   end
 
   defp value(%DateTime{} = value), do: DateTime.to_iso8601(value)

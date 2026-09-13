@@ -17,12 +17,10 @@ defmodule Turnstile.Fga.Guard do
   rule of the model, where the graph can walk it.
   """
 
-  alias Turnstile.Environment
-
   @doc """
   Whether this operation is admitted under this environment. A guard answers
   a boolean and nothing else: a guard that cannot tell is a guard that does
   not admit.
   """
-  @callback admits?(operation :: atom(), environment :: Environment.t()) :: boolean()
+  @callback admits?(operation :: atom(), environment :: Turnstile.environment()) :: boolean()
 end

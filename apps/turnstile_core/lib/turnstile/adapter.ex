@@ -18,7 +18,6 @@ defmodule Turnstile.Adapter do
 
   alias Turnstile.Answer
   alias Turnstile.Decision
-  alias Turnstile.Environment
   alias Turnstile.Error
 
   @type options :: keyword()
@@ -28,23 +27,24 @@ defmodule Turnstile.Adapter do
   @type scoped :: {Ecto.Query.dynamic_expr(), Answer.t()}
 
   @doc "Decide, and let the port record the decision."
-  @callback authorize(Turnstile.subject(), atom(), Turnstile.object(), Environment.t(), options()) ::
+  @callback authorize(Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment(), options()) ::
               {:ok, Answer.t()} | failure()
 
   @doc "Decide without a record; the port records `check` as it records `authorize`, the adapter need not tell them apart."
-  @callback check(Turnstile.subject(), atom(), Turnstile.object(), Environment.t(), options()) ::
+  @callback check(Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment(), options()) ::
               {:ok, Answer.t()} | failure()
 
   @doc "Decide for many objects of one type at once, one answer per object reference."
-  @callback batch(Turnstile.subject(), atom(), [Turnstile.object()], Environment.t(), options()) ::
+  @callback batch(Turnstile.subject(), atom(), [Turnstile.object()], Turnstile.environment(), options()) ::
               {:ok, %{Turnstile.object() => Answer.t()}} | failure()
 
   @doc "The rule that narrows a query over an object type to what the subject may see."
-  @callback scope(Turnstile.subject(), atom(), atom(), Environment.t(), options()) :: {:ok, scoped()} | failure()
+  @callback scope(Turnstile.subject(), atom(), atom(), Turnstile.environment(), options()) ::
+              {:ok, scoped()} | failure()
 
   @doc "The answer with what produced it under `meta[:matched]`, where the adapter can say."
-  @callback explain(Turnstile.subject(), atom(), Turnstile.object(), Environment.t(), options()) ::
-              {:ok, Answer.t()} | {:error, Error.t() | Error.t()}
+  @callback explain(Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment(), options()) ::
+              {:ok, Answer.t()} | {:error, Error.t()}
 
   @doc """
   Wrap a mediated call: the query or changeset, the decision in force, and

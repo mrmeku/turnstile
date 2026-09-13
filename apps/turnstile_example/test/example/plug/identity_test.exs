@@ -17,13 +17,13 @@ defmodule Example.Plug.IdentityTest do
 
     refute conn.halted
     assert conn.assigns.subject == {:privileged, "gil"}
-    assert conn.assigns.facts == %{session_id: "s1", reauthenticated_at: ~U[2026-09-08 12:00:00Z]}
+    assert conn.assigns.env == %{session_id: "s1", reauthenticated_at: ~U[2026-09-08 12:00:00Z]}
   end
 
   test "no session and no re-authentication header give a bare subject and no facts", %{} do
     conn = identified("ann")
     assert conn.assigns.subject == {:user, "ann"}
-    assert conn.assigns.facts == %{}
+    assert conn.assigns.env == %{}
 
     conn =
       :get
@@ -32,7 +32,7 @@ defmodule Example.Plug.IdentityTest do
       |> put_req_header("x-reauthenticated-at", "soon")
       |> Identity.call([])
 
-    assert conn.assigns.facts == %{}
+    assert conn.assigns.env == %{}
   end
 
   test "a missing or unknown account is refused with 401", %{} do

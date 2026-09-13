@@ -4,7 +4,6 @@ defmodule Turnstile.PostgresTest do
   alias Ecto.Adapters.SQL.Sandbox
   alias Turnstile.Answer
   alias Turnstile.Decision
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
@@ -135,7 +134,7 @@ defmodule Turnstile.PostgresTest do
   end
 
   defp environment(facts \\ %{}) do
-    %Environment{now: ~U[2026-09-08 12:00:00Z], facts: facts}
+    Map.put(facts, :now, ~U[2026-09-08 12:00:00Z])
   end
 
   defp decision(subject \\ @subject) do

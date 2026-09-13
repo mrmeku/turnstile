@@ -53,7 +53,6 @@ defmodule Turnstile.Cerbos do
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Decide
   alias Turnstile.Cerbos.Version
-  alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.FactEvent
 
@@ -79,19 +78,19 @@ defmodule Turnstile.Cerbos do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
       when is_atom(operation) do
     explain(subject, operation, object, environment, options)
   end
 
   @impl Turnstile.Adapter
-  def check({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def check({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
       when is_atom(operation) do
     authorize(subject, operation, object, environment, options)
   end
 
   @impl Turnstile.Adapter
-  def batch({_kind, _account} = subject, operation, objects, %Environment{} = environment, options)
+  def batch({_kind, _account} = subject, operation, objects, %{now: _now} = environment, options)
       when is_atom(operation) and is_list(objects) do
     with {:ok, binding, address} <- bound(:batch, options) do
       named(Decide.many(binding, address, subject, operation, objects, environment), :batch)
@@ -99,7 +98,7 @@ defmodule Turnstile.Cerbos do
   end
 
   @impl Turnstile.Adapter
-  def scope({_kind, _account} = subject, operation, object_type, %Environment{} = environment, options)
+  def scope({_kind, _account} = subject, operation, object_type, %{now: _now} = environment, options)
       when is_atom(operation) and is_atom(object_type) do
     with {:ok, binding, address} <- bound(:scope, options) do
       named(Decide.scoped(binding, address, subject, operation, object_type, environment), :scope)
@@ -107,7 +106,7 @@ defmodule Turnstile.Cerbos do
   end
 
   @impl Turnstile.Adapter
-  def explain({_kind, _account} = subject, operation, {_type, _id} = object, %Environment{} = environment, options)
+  def explain({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
       when is_atom(operation) do
     with {:ok, binding, address} <- bound(:explain, options) do
       named(Decide.one(binding, address, subject, operation, object, environment), :explain)
