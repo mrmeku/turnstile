@@ -1,11 +1,13 @@
 # Turnstile dev
 
-The engine servers this repository's suites raise. Nothing here ships to Hex.
+The engine servers this repository's suites raise, and the test that holds the umbrella's source tree to its shape. Nothing here ships to Hex.
 
 - `Turnstile.Dev.Cerbos`: one `cerbos server` per `mix test` run, and one owned by a single test where that test publishes a policy version or reads a decision log the run's sidecar must not see. It writes a configuration file naming the caller's policy directory, an audit log under `tmp/`, and a free port of the loopback interface.
 - `Turnstile.Dev.Fga`: one `openfga run` per `mix test` run with the in-memory datastore, and one owned by a single test where that test replays a stored decision against a model that is no longer in force.
 
 Both start the process under `MuonTrap.Daemon`, which kills it when the Erlang process that owns it dies and when the virtual machine exits, and both wait on the server's health endpoint before they answer, so a caller never asks a server that is not listening yet.
+
+`StructureTest`, in this package's own suite, reads every `.ex` file under each package's `lib` and `test/support` and holds one rule over it: the file's path names a module the file defines, and every other module the file defines is named under that one. It reads the syntax tree rather than the compiled modules, so it needs no dependency on the packages it reads. `PLAN.md` §2 states the rule and the two dependency gates that shape it; the test names the one file that cannot follow it, with the reason.
 
 `glossary.md` defines the words this package owns.
 

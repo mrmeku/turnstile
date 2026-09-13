@@ -65,7 +65,7 @@ Three places, not six.
 
 Rules:
 
-- One module to a file, and the path names the module.
+- The path names a module the file defines, and every other module the file defines is named under that one. Two gates of the repository forbid the flatter reading, one module to a file and nothing else. `mix xref --label compile-connected --fail-above 0` holds a `use`d module to being a leaf, so the structs a declaration macro builds stay in the file that builds them. `mix xref --format cycles --fail-above 0` refuses a cycle between files, so schemas whose associations refer to one another share one. `StructureTest` names each file of the second kind with its reason.
 - A function that decides and also touches the world is divided until no function does both.
 - A module in `core/` calls no other package's interior, and no adapter.
 - An adapter may call another adapter in its own package. At this size, a boundary for each adapter costs more than the isolation returns.
@@ -160,7 +160,7 @@ What it does not guarantee: that a record is stored, that a handler keeps runnin
 | Rule | Enforced by |
 |---|---|
 | No package reaches into the interior of another | `boundary`, at compile time |
-| One module to a file, and the path names the module | `StructureTest` in `turnstile_dev` |
+| The path names a module the file defines, and its other modules are named under that one | `StructureTest` in `turnstile_dev` |
 | A module in `core/` makes no call to the outside world | `StructureTest` |
 | Core and adapter modules carry `@moduledoc false` | `StructureTest` |
 | An adopter's queries reach the check | `Turnstile.Credo.UnmediatedRepo` and `NoRawSQL` |
@@ -249,7 +249,7 @@ Each step is one merge, and `mix quality` passes at the end of each.
 
 1. **Correct the banner.** Change rule C4 in the reference, add the scenario that catches the fault, and fix `Example.Controls`. This is security work and depends on nothing else.
 2. **Split `turnstile_dev`.** Done. The package holds the two launchers and nothing else, and the four suites that raise a server take it as a test-only dependency, so no published package carries `muontrap`. The cluster and the sandbox setup stayed published for the reason §1 gives. The population moved into the test tree behind `Turnstile.Conformance.World`. Nothing changed semantically, and the published dependency list shrank. Step 3 adds `StructureTest` to this package.
-3. **One module to a file.** Divide every file that holds more than one, across every package. Write `StructureTest` with this rule only.
+3. **One module to a file.** Done. `Turnstile.Facts.Context`, the six adapter conformance modules, and the two controllers moved to the paths their names give; the conformance modules left `priv/conformance` for their packages' `test/support`, and what an engine reads as text stayed behind. `StructureTest` in `turnstile_dev` carries the rule §2 states and nothing else, over every package's `lib` and `test/support`. One file is named as its exception, for the reason §2 gives.
 4. **Collapse the surface.** Apply §3: the tuples, the single answer, the single error, the clock function, and the deletions of §8 that concern types. This is the widest rename, so it comes before any module moves.
 5. **Emit the change event.** One event for each write, inside the transaction, from the changeset, with the payload of §4. Add the kind declaration to `use Turnstile.Schema`. Refuse bulk writes on audited schemas. Delete the audit store, and make `Example.Siem` a handler that maps to OCSF. Assert E1 to E4 in `RepoCase`.
 6. **Rename the packages and place the contract.** `turnstile_core` becomes `turnstile`, and `turnstile_example` becomes `example`. Move its modules into `core/` and `adapter/`, write the boundary declarations, extend `StructureTest` with the effect rule, and write the classifier property.
