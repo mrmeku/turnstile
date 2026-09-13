@@ -20,6 +20,7 @@ defmodule Example.User do
     field(:nationality, :string)
   end
 
+  audited(:user)
   fact(:employment, kind: :subject_attribute, subject: :id)
   fact(:nationality, kind: :subject_attribute, subject: :id)
 end

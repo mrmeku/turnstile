@@ -35,9 +35,10 @@ end
 defmodule Turnstile.Schema do
   @moduledoc """
   Declarations on an Ecto schema: the object type it protects, the
-  associations its decision covers, and the fact mapping column by column.
-  Each macro records its declaration and does nothing else; the seam and the
-  ledger read them back through `__turnstile__/1`.
+  associations its decision covers, what kind of thing its rows are, and
+  the fact mapping column by column. Each macro records its declaration and
+  does nothing else; the seam and the ledger read them back through
+  `__turnstile__/1`.
 
       defmodule Example.Marking do
         use Ecto.Schema
@@ -45,12 +46,14 @@ defmodule Turnstile.Schema do
 
         object_type :marking
         carries [:portions]
+        audited :entity
         fact :controls, kind: :object_attribute, object: :document_id, element: :control
         relationship subject: :user_id, object: :program_id, attributes: [:role]
       end
 
   `__turnstile__(:object_type)` is the declared type or `nil`;
   `__turnstile__(:carries)` the carried association names;
+  `__turnstile__(:kind)` the kind `audited/1` declared or `nil`;
   `__turnstile__(:facts)` the `Turnstile.Schema.Fact` records in declaration
   order; `__turnstile__(:relationship)` the `Turnstile.Schema.Relationship`
   or `nil`. Every structure this file needs is defined in this file, so a
@@ -59,6 +62,8 @@ defmodule Turnstile.Schema do
 
   alias Turnstile.Schema.Fact
   alias Turnstile.Schema.Relationship
+
+  @kinds [:user, :group, :role, :entity]
 
   @fact_schema NimbleOptions.new!(
                  kind: [type: {:in, [:subject_attribute, :object_attribute, :relationship]}, required: true],
@@ -82,11 +87,12 @@ defmodule Turnstile.Schema do
   @doc false
   defmacro __using__(_opts) do
     quote do
-      import Turnstile.Schema, only: [object_type: 1, carries: 1, fact: 2, relationship: 1]
+      import Turnstile.Schema, only: [object_type: 1, carries: 1, audited: 1, fact: 2, relationship: 1]
 
       Module.register_attribute(__MODULE__, :turnstile_facts, accumulate: true)
       Module.put_attribute(__MODULE__, :turnstile_object_type, nil)
       Module.put_attribute(__MODULE__, :turnstile_carries, [])
+      Module.put_attribute(__MODULE__, :turnstile_kind, nil)
       Module.put_attribute(__MODULE__, :turnstile_relationship, nil)
       @before_compile Turnstile.Schema
     end
@@ -103,6 +109,13 @@ defmodule Turnstile.Schema do
   defmacro carries(associations) do
     quote bind_quoted: [associations: associations] do
       Turnstile.Schema.__declare_carries__(__MODULE__, associations)
+    end
+  end
+
+  @doc "Declare what kind of thing a row of this schema is, which is what makes its writes audited."
+  defmacro audited(kind) do
+    quote bind_quoted: [kind: kind] do
+      Turnstile.Schema.__declare_kind__(__MODULE__, kind)
     end
   end
 
@@ -126,9 +139,10 @@ defmodule Turnstile.Schema do
 
     quote do
       @doc false
-      @spec __turnstile__(:object_type | :carries | :facts | :relationship) :: term()
+      @spec __turnstile__(:object_type | :carries | :kind | :facts | :relationship) :: term()
       def __turnstile__(:object_type), do: @turnstile_object_type
       def __turnstile__(:carries), do: @turnstile_carries
+      def __turnstile__(:kind), do: @turnstile_kind
       def __turnstile__(:facts), do: unquote(Macro.escape(facts))
       def __turnstile__(:relationship), do: @turnstile_relationship
     end
@@ -145,6 +159,20 @@ defmodule Turnstile.Schema do
   def carries_of(module) do
     if declares?(module), do: module.__turnstile__(:carries), else: []
   end
+
+  @doc "The kinds a schema's rows can be declared as, which are the kinds a change event carries."
+  @spec kinds() :: [atom()]
+  def kinds, do: @kinds
+
+  @doc "What kind of thing a module's rows are, or `nil` for a module that declares none."
+  @spec kind_of(term()) :: atom() | nil
+  def kind_of(module) do
+    if declares?(module), do: module.__turnstile__(:kind)
+  end
+
+  @doc "Whether a module's writes are audited: whether it declares what kind of thing its rows are."
+  @spec audited?(term()) :: boolean()
+  def audited?(module), do: kind_of(module) != nil
 
   @doc "The fact columns a module declares, in declaration order; `[]` where it declares none."
   @spec facts_of(term()) :: [Fact.t()]
@@ -191,6 +219,19 @@ defmodule Turnstile.Schema do
     case Enum.filter(associations, &(&1 in declared)) do
       [] -> Module.put_attribute(module, :turnstile_carries, declared ++ associations)
       repeated -> raise ArgumentError, "#{inspect(module)} already carries #{inspect(repeated)}"
+    end
+  end
+
+  @doc false
+  @spec __declare_kind__(module(), atom()) :: :ok
+  def __declare_kind__(module, kind) when is_atom(module) do
+    if kind not in @kinds do
+      raise ArgumentError, "audited expects one of #{inspect(@kinds)}, got: #{inspect(kind)}"
+    end
+
+    case Module.get_attribute(module, :turnstile_kind) do
+      nil -> Module.put_attribute(module, :turnstile_kind, kind)
+      other -> raise ArgumentError, "#{inspect(module)} is already audited as #{inspect(other)}"
     end
   end
 

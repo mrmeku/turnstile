@@ -12,5 +12,6 @@ defmodule Turnstile.Fixture.Account do
     field(:clearance, :string)
   end
 
+  audited(:user)
   fact(:clearance, kind: :subject_attribute, subject: :id)
 end

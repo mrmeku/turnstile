@@ -15,5 +15,6 @@ defmodule Example.Assignment do
   end
 
   object_type(:assignment)
+  audited(:role)
   relationship(subject: :user_id, object: :program_id, attributes: [:role])
 end

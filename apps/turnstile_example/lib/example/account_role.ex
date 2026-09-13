@@ -17,5 +17,6 @@ defmodule Example.AccountRole do
     field(:role, Ecto.Enum, values: [:override])
   end
 
+  audited(:role)
   fact(:role, kind: :subject_attribute, subject: :user_id)
 end

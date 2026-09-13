@@ -22,6 +22,7 @@ defmodule Example.OfficeRole do
   end
 
   object_type(:office_role)
+  audited(:role)
   fact(:user_id, kind: :object_attribute, object: :id)
   fact(:office_id, kind: :object_attribute, object: :id)
   fact(:role, kind: :object_attribute, object: :id)

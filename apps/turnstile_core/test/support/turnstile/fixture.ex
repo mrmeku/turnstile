@@ -50,6 +50,7 @@ defmodule Turnstile.Fixture.Membership do
     belongs_to(:folder, Folder)
   end
 
+  audited(:role)
   relationship(subject: :account_id, object: :folder_id, attributes: [:role])
 end
 

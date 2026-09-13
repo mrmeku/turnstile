@@ -1,4 +1,4 @@
-locals_without_parens = [object_type: 1, carries: 1, fact: 2, relationship: 1, scenario: 4]
+locals_without_parens = [object_type: 1, carries: 1, audited: 1, fact: 2, relationship: 1, scenario: 4]
 
 [
   plugins: [Styler],

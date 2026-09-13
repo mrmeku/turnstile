@@ -33,6 +33,7 @@ defmodule Example.Document do
 
   object_type(:document)
   carries([:program, :designating_office, :marking, :proposals])
+  audited(:entity)
   fact(:decontrol, kind: :object_attribute, object: :id)
   fact(:program_id, kind: :object_attribute, object: :id)
   fact(:designating_office_id, kind: :object_attribute, object: :id)
@@ -70,6 +71,7 @@ defmodule Example.Marking do
   end
 
   object_type(:marking)
+  audited(:entity)
   fact(:categories, kind: :object_attribute, object: :document_id, element: :category)
   fact(:controls, kind: :object_attribute, object: :document_id, element: :control)
   fact(:releasable_to, kind: :object_attribute, object: :document_id, element: :country)
@@ -107,6 +109,7 @@ defmodule Example.Portion do
 
   object_type(:portion)
   carries([:document])
+  audited(:entity)
   fact(:document_id, kind: :object_attribute, object: :id)
   fact(:categories, kind: :object_attribute, object: :id, element: :category)
   fact(:controls, kind: :object_attribute, object: :id, element: :control)
@@ -155,6 +158,7 @@ defmodule Example.Proposal do
 
   object_type(:proposal)
   carries([:document])
+  audited(:entity)
   fact(:document_id, kind: :object_attribute, object: :id)
   fact(:proposer_id, kind: :object_attribute, object: :id)
   relationship(subject: :proposer_id, object: :document_id, attributes: [:status])

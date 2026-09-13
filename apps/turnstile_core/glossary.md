@@ -23,6 +23,7 @@ The words `turnstile_core` owns. A word with a second meaning elsewhere is liste
 | Owner-role repo | `use Turnstile.Repo, role: :owner`: the library's own channel, library-exempt on every call, recording nothing |
 | RepoCase | The conformance test that holds a Repo to the surface and refuses each non-plumbing function without a decision |
 | Protected schema / carried relation | A schema that declares an object type / an association the parent's decision covers |
+| Audited schema / kind | A schema that declares what kind of thing its rows are / `:user`, `:group`, `:role`, or `:entity`, which is the kind a change event carries |
 | Fact event (four kinds) | Subject attribute; object attribute; relationship; policy version, each with old and new |
 | Fact mapping | The declaration, column by column, from an application's schemas to the four kinds |
 | Projection / projector / checkpoint | How an adapter's state relates to the ledger / the process that drains it / the position it has applied |
