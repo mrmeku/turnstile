@@ -6,7 +6,7 @@ defmodule Turnstile.Test do
   run outside this repository.
   """
 
-  use Boundary, top_level?: true, deps: [Turnstile, Ecto, Mox, NimbleOptions], exports: [Cerbos, Clock, Cluster, Fga]
+  use Boundary, top_level?: true, deps: [Turnstile, Ecto, Mox, NimbleOptions], exports: [Clock, Cluster]
 
   alias Turnstile.Config
   alias Turnstile.Projection.Drain

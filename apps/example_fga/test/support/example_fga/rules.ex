@@ -48,6 +48,7 @@ defmodule ExampleFga.Rules do
   alias Example.Scenarios.Rules
   alias ExampleFga.Tightened
   alias Turnstile.Config
+  alias Turnstile.Dev
   alias Turnstile.Error
   alias Turnstile.FactEvent
   alias Turnstile.Fga
@@ -62,7 +63,7 @@ defmodule ExampleFga.Rules do
 
   @impl Rules
   def setup(tags) when is_map(tags) do
-    server = Test.Fga.info()
+    server = Dev.Fga.info()
     {:ok, store} = Http.create_store(server.address, name())
     :ok = Test.with_config(adapter: {Fga, endpoint: server.address, store_id: store})
     stored(server, store, tags[:committed])
@@ -92,7 +93,7 @@ defmodule ExampleFga.Rules do
 
   @impl Rules
   def replay(%Replay{} = replay, fun) when is_function(fun, 0) do
-    server = Test.Fga.start_supervised!([])
+    server = Dev.Fga.start_supervised!([])
     {:ok, loaded} = Fga.Replay.build(build(server, replay))
     entry = [endpoint: server.address, store_id: loaded.store, model_id: loaded.model]
 

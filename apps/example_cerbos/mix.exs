@@ -53,6 +53,7 @@ defmodule ExampleCerbos.MixProject do
   defp deps do
     [
       {:turnstile_core, in_umbrella: true},
+      {:turnstile_dev, in_umbrella: true, only: :test},
       {:turnstile_example, in_umbrella: true},
       {:turnstile_cerbos, in_umbrella: true},
       {:turnstile_ledger, in_umbrella: true},

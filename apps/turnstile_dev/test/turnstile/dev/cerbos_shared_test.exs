@@ -1,9 +1,9 @@
-defmodule Turnstile.Test.CerbosSharedTest do
+defmodule Turnstile.Dev.CerbosSharedTest do
   # Not async: the run's sidecar is registered in `:persistent_term`, one term
   # for the virtual machine, and this module erases it for its own duration.
   use ExUnit.Case, async: false
 
-  alias Turnstile.Test.Cerbos
+  alias Turnstile.Dev.Cerbos
 
   @moduletag :cerbos
 

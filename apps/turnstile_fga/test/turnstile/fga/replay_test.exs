@@ -3,6 +3,7 @@ defmodule Turnstile.Fga.ReplayTest do
 
   alias Turnstile.Answer
   alias Turnstile.Decision
+  alias Turnstile.Dev
   alias Turnstile.Error
   alias Turnstile.Fga.Client.Fake
   alias Turnstile.Fga.Client.Http
@@ -13,7 +14,6 @@ defmodule Turnstile.Fga.ReplayTest do
   alias Turnstile.Id
   alias Turnstile.Reason
   alias Turnstile.Subject
-  alias Turnstile.Test
 
   @model "priv/conformance/model.fga"
 
@@ -35,7 +35,7 @@ defmodule Turnstile.Fga.ReplayTest do
   end
 
   test "a stored decision asked again against the state it names answers as the record does", context do
-    server = Test.Fga.start_supervised!()
+    server = Dev.Fga.start_supervised!()
     stored = decision(:allow, context.cleared)
 
     assert {:ok, replay} = build(server.address, context, context.cleared)

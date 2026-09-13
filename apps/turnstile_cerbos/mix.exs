@@ -47,6 +47,7 @@ defmodule Turnstile.Cerbos.MixProject do
   defp deps do
     [
       {:turnstile_core, in_umbrella: true},
+      {:turnstile_dev, in_umbrella: true, only: :test},
       {:ecto, "3.14.2"},
       {:nimble_options, "1.1.1"},
       {:telemetry, "1.4.2"},

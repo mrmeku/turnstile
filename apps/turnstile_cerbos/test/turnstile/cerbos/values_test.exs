@@ -4,6 +4,7 @@ defmodule Turnstile.Cerbos.ValuesTest do
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Conformance.Memberships
   alias Turnstile.Cerbos.Values
+  alias Turnstile.Dev
   alias Turnstile.Environment
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
@@ -57,7 +58,7 @@ defmodule Turnstile.Cerbos.ValuesTest do
 
   setup tags do
     :ok = Sandbox.setup(Sandboxed, tags)
-    :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: Test.Cerbos.info().address}, ledger: :none)
+    :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: Dev.Cerbos.info().address}, ledger: :none)
 
     :ok =
       Binding.override(

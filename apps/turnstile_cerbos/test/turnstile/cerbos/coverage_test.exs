@@ -7,6 +7,7 @@ defmodule Turnstile.Cerbos.CoverageTest do
   alias Turnstile.Cerbos.Conformance.Attributes
   alias Turnstile.Cerbos.Coverage
   alias Turnstile.Cerbos.Decide
+  alias Turnstile.Dev
   alias Turnstile.Environment
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
@@ -19,7 +20,7 @@ defmodule Turnstile.Cerbos.CoverageTest do
   alias Turnstile.TestRepos.Sandboxed
 
   setup tags do
-    sidecar = Test.Cerbos.info()
+    sidecar = Dev.Cerbos.info()
     :ok = Sandbox.setup(Sandboxed, tags)
     :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: sidecar.address}, ledger: :none)
 

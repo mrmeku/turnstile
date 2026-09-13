@@ -7,6 +7,7 @@ defmodule Turnstile.Cerbos.PlanTest do
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Decide
   alias Turnstile.Cerbos.Plan
+  alias Turnstile.Dev
   alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
@@ -44,7 +45,7 @@ defmodule Turnstile.Cerbos.PlanTest do
   end
 
   setup tags do
-    sidecar = Test.Cerbos.info()
+    sidecar = Dev.Cerbos.info()
     :ok = Sandbox.setup(Sandboxed, tags)
     :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: sidecar.address}, ledger: :none)
 

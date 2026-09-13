@@ -19,7 +19,7 @@ defmodule Turnstile.Fga.Client.HttpTest do
   @moduletag :fga
 
   setup do
-    server = Turnstile.Test.Fga.info()
+    server = Turnstile.Dev.Fga.info()
     {:ok, store} = Http.create_store(server.address, "conformance")
     {:ok, model} = Http.write_model(server.address, store, Model.read!("priv/conformance/model.fga"))
 

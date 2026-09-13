@@ -1,7 +1,7 @@
-defmodule Turnstile.Test.FgaTest do
+defmodule Turnstile.Dev.FgaTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Test.Fga
+  alias Turnstile.Dev.Fga
 
   @moduletag :fga
 

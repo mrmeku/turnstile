@@ -20,6 +20,7 @@ defmodule Turnstile.Fga.ConformanceTest do
     ],
     projection: Turnstile.Fga.Projected
 
+  alias Turnstile.Dev
   alias Turnstile.FactEvent
   alias Turnstile.Fga
   alias Turnstile.Fga.Binding
@@ -58,7 +59,7 @@ defmodule Turnstile.Fga.ConformanceTest do
   # that is interrupted with work still to do. The serving store is the one the
   # seed drains into, which is what every decision case reads.
   setup %{repo: repo} do
-    server = Test.Fga.info()
+    server = Dev.Fga.info()
     {:ok, store} = Http.create_store(server.address, name())
     :ok = Test.with_config(adapter: {Fga, endpoint: server.address, store_id: store})
     :ok = Binding.override(repo: repo, model: @model, mapping: Mapping, author: "conformance", approval: "conformance")

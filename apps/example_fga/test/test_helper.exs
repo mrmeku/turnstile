@@ -31,7 +31,7 @@ Turnstile.Test.Cluster.start(
 # store on it for the boot the application would do: the store every test
 # reads is one of its own, which `ExampleFga.Rules` creates per test, and this
 # one carries the model the ledger's boot version names.
-server = Turnstile.Test.Fga.start_shared([])
+server = Turnstile.Dev.Fga.start_shared([])
 {:ok, store} = Turnstile.Fga.Client.Http.create_store(server.address, "example-fga-boot")
 
 _config =

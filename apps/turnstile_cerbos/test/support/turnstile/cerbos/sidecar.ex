@@ -14,12 +14,12 @@ defmodule Turnstile.Cerbos.Sidecar do
   use Boundary, top_level?: true, deps: [Turnstile.Cerbos, Turnstile.Test]
 
   alias Turnstile.Cerbos.Replay
-  alias Turnstile.Test
+  alias Turnstile.Dev
 
   @conformance "priv/conformance"
 
   @doc "A sidecar over a copy of the conformance policies."
-  @spec own!() :: Test.Cerbos.t()
+  @spec own!() :: Dev.Cerbos.t()
   def own! do
     started(fn directory ->
       Enum.each(conformance(), fn {name, text} -> File.write!(Path.join(directory, name), text) end)
@@ -27,7 +27,7 @@ defmodule Turnstile.Cerbos.Sidecar do
   end
 
   @doc "A sidecar over the policy files a version's content carries."
-  @spec replayed!(String.t()) :: Test.Cerbos.t()
+  @spec replayed!(String.t()) :: Dev.Cerbos.t()
   def replayed!(policies) when is_binary(policies) do
     started(fn directory -> Replay.build!(to: directory, policies: policies) end)
   end
@@ -49,7 +49,7 @@ defmodule Turnstile.Cerbos.Sidecar do
     policies = Path.join(directory, "policies")
     File.mkdir_p!(policies)
     write.(policies)
-    Test.Cerbos.start_supervised!(policies: policies, dir: directory)
+    Dev.Cerbos.start_supervised!(policies: policies, dir: directory)
   end
 
   defp suffix, do: Base.url_encode64(:crypto.strong_rand_bytes(8), padding: false)

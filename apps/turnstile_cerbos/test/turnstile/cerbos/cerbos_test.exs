@@ -6,12 +6,12 @@ defmodule Turnstile.CerbosTest do
   alias Turnstile.Cerbos.Conformance.Attributes
   alias Turnstile.Cerbos.Sidecar
   alias Turnstile.Cerbos.Version
+  alias Turnstile.Dev
   alias Turnstile.Environment
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.Object
   alias Turnstile.Subject
-  alias Turnstile.Test
   alias Turnstile.TestRepos.Sandboxed
 
   @ann %Subject{id: "ann", kind: :user}
@@ -54,7 +54,7 @@ resourcePolicy:
   end
 
   setup do
-    sidecar = Test.Cerbos.info()
+    sidecar = Dev.Cerbos.info()
 
     :ok =
       Binding.override(repo: Sandboxed, attributes: Attributes, policies: sidecar.policies, commit: "conformance")

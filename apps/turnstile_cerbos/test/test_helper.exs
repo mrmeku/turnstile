@@ -16,7 +16,7 @@ Turnstile.Test.Cluster.start(
   end
 )
 
-_shared = Turnstile.Test.Cerbos.start_shared(policies: "priv/conformance")
+_shared = Turnstile.Dev.Cerbos.start_shared(policies: "priv/conformance")
 
 Sandbox.mode(Sandboxed, :manual)
 ExUnit.start()

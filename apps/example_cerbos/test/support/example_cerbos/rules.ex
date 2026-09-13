@@ -44,6 +44,7 @@ defmodule ExampleCerbos.Rules do
   alias Turnstile.Cerbos.Request
   alias Turnstile.Cerbos.Version
   alias Turnstile.Config
+  alias Turnstile.Dev
   alias Turnstile.Error
   alias Turnstile.Ledger.Replay
   alias Turnstile.Test
@@ -91,7 +92,7 @@ defmodule ExampleCerbos.Rules do
     dir = Path.join([File.cwd!(), "tmp", "replay-" <> suffix()])
     directory = Path.join(dir, "policies")
     :ok = Turnstile.Cerbos.Replay.build!(to: directory, policies: policies!(replay))
-    sidecar = Test.Cerbos.start_supervised!(policies: directory, dir: dir)
+    sidecar = Dev.Cerbos.start_supervised!(policies: directory, dir: dir)
     overrides = [policies: sidecar.policies, commit: replay.policy_version.version]
 
     Test.with_config([adapter: {Turnstile.Cerbos, address: sidecar.address}], fn ->

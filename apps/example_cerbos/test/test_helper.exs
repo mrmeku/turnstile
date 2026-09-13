@@ -37,7 +37,7 @@ policies = Path.join(run, "policies")
 File.mkdir_p!(policies)
 Enum.each(Path.wildcard("priv/policies/*.yaml"), &File.cp!(&1, Path.join(policies, Path.basename(&1))))
 
-sidecar = Turnstile.Test.Cerbos.start_shared(policies: policies, dir: run)
+sidecar = Turnstile.Dev.Cerbos.start_shared(policies: policies, dir: run)
 
 # The address and the directory of the run's sidecar, and the file it writes
 # its decision log to, put where every test reads them: the application

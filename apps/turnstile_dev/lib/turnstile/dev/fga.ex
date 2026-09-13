@@ -1,4 +1,4 @@
-defmodule Turnstile.Test.Fga do
+defmodule Turnstile.Dev.Fga do
   @moduledoc """
   One `openfga run` per test run, and one of its own for a test that needs a
   server it can throw away.
@@ -24,6 +24,8 @@ defmodule Turnstile.Test.Fga do
   collide on. Nothing here speaks the model language or the decision API; the
   adapter package does that.
   """
+
+  use Boundary, top_level?: true, deps: [MuonTrap, NimbleOptions, Turnstile.Test]
 
   @schema NimbleOptions.new!(
             dir: [
@@ -82,7 +84,7 @@ defmodule Turnstile.Test.Fga do
   def info do
     case :persistent_term.get(__MODULE__, nil) do
       %__MODULE__{} = shared -> shared
-      nil -> raise "no shared server; call Turnstile.Test.Fga.start_shared/1 from test_helper.exs"
+      nil -> raise "no shared server; call Turnstile.Dev.Fga.start_shared/1 from test_helper.exs"
     end
   end
 

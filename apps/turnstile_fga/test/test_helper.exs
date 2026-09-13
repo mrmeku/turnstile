@@ -22,7 +22,7 @@ Turnstile.Test.Cluster.start(
   end
 )
 
-_shared = Turnstile.Test.Fga.start_shared()
+_shared = Turnstile.Dev.Fga.start_shared()
 
 Sandbox.mode(Sandboxed, :manual)
 ExUnit.start()

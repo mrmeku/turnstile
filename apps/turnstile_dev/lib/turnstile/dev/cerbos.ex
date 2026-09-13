@@ -1,4 +1,4 @@
-defmodule Turnstile.Test.Cerbos do
+defmodule Turnstile.Dev.Cerbos do
   @moduledoc """
   One `cerbos server` per test run, and one of its own for a test that
   changes what the run's sidecar must not change.
@@ -23,6 +23,8 @@ defmodule Turnstile.Test.Cerbos do
   that gets a struct back has a server that answers. Nothing here speaks the
   policy language or the decision API; the adapter package does that.
   """
+
+  use Boundary, top_level?: true, deps: [MuonTrap, NimbleOptions, Turnstile.Test]
 
   @schema NimbleOptions.new!(
             policies: [
@@ -93,7 +95,7 @@ defmodule Turnstile.Test.Cerbos do
   def info do
     case :persistent_term.get(__MODULE__, nil) do
       %__MODULE__{} = shared -> shared
-      nil -> raise "no shared sidecar; call Turnstile.Test.Cerbos.start_shared/1 from test_helper.exs"
+      nil -> raise "no shared sidecar; call Turnstile.Dev.Cerbos.start_shared/1 from test_helper.exs"
     end
   end
 

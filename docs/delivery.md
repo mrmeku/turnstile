@@ -228,7 +228,7 @@ If `origin` has been pushed to by then, the workflow is green on `main`; if not,
 ### S10a. `turnstile_cerbos`
 
 - **Entry.** S9.
-- **Deliverables.** `Turnstile.Test.Cerbos.start_shared/1` under `MuonTrap.Daemon` in core's test support (`docs/testing.md` §4). `apps/turnstile_cerbos`: attribute declarations, the query plan to `dynamic` with the `filter` fallback recorded as `limited`, policy versions from the policy repository's commit, decision-log reconciliation, the `policy_propagation` latency component, the declaration, replay with a throwaway sidecar, `priv/conformance/` with the policies for the neutral fixture.
+- **Deliverables.** `Turnstile.Dev.Cerbos.start_shared/1` under `MuonTrap.Daemon` in `apps/turnstile_dev` (`docs/testing.md` §4). `apps/turnstile_cerbos`: attribute declarations, the query plan to `dynamic` with the `filter` fallback recorded as `limited`, policy versions from the policy repository's commit, decision-log reconciliation, the `policy_propagation` latency component, the declaration, replay with a throwaway sidecar, `priv/conformance/` with the policies for the neutral fixture.
 - **Gate.** In `apps/turnstile_cerbos`:
 
 ```
@@ -265,7 +265,7 @@ No test in this stage starts a server.
 ### S11b. `turnstile_fga`: the adapter
 
 - **Entry.** S11a.
-- **Deliverables.** `Turnstile.Test.Fga.start_shared/1` under `MuonTrap.Daemon` in core's test support (`docs/testing.md` §6). `Check`, `BatchCheck`, `ListObjects` with `caps[:batch_ids]` and the `filter` fallback, `Expand`, consistency per operation, model publication as a policy version, the `projector_drain` latency component, the declaration, replay with a throwaway in-memory server, `priv/conformance/` with the model and a tuple mapping for the neutral fixture, the three projection cases on the committed repo driving `drain_once/1` against `openfga run --datastore-engine memory`.
+- **Deliverables.** `Turnstile.Dev.Fga.start_shared/1` under `MuonTrap.Daemon` in `apps/turnstile_dev` (`docs/testing.md` §6). `Check`, `BatchCheck`, `ListObjects` with `caps[:batch_ids]` and the `filter` fallback, `Expand`, consistency per operation, model publication as a policy version, the `projector_drain` latency component, the declaration, replay with a throwaway in-memory server, `priv/conformance/` with the model and a tuple mapping for the neutral fixture, the three projection cases on the committed repo driving `drain_once/1` against `openfga run --datastore-engine memory`.
 - **Gate.** In `apps/turnstile_fga`:
 
 ```

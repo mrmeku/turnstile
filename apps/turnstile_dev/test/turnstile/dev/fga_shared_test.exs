@@ -1,9 +1,9 @@
-defmodule Turnstile.Test.FgaSharedTest do
+defmodule Turnstile.Dev.FgaSharedTest do
   # Not async: the run's server is registered in `:persistent_term`, one term
   # for the virtual machine, and this module erases it for its own duration.
   use ExUnit.Case, async: false
 
-  alias Turnstile.Test.Fga
+  alias Turnstile.Dev.Fga
 
   @moduletag :fga
 

@@ -1,7 +1,7 @@
-defmodule Turnstile.Test.CerbosTest do
+defmodule Turnstile.Dev.CerbosTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Test.Cerbos
+  alias Turnstile.Dev.Cerbos
 
   @moduletag :cerbos
 

@@ -3,7 +3,7 @@ defmodule Turnstile.Cerbos.ClientTest do
 
   alias Turnstile.Cerbos.Client
   alias Turnstile.Cerbos.Request
-  alias Turnstile.Test
+  alias Turnstile.Dev
 
   @dead "127.0.0.1:1"
   @principal %{id: "an-account", roles: ["user"], attr: %{"clearance" => "cleared"}}
@@ -12,7 +12,7 @@ defmodule Turnstile.Cerbos.ClientTest do
   setup do
     :telemetry.attach(inspect(self()), Client.telemetry_event(), &__MODULE__.forward/4, self())
     on_exit(fn -> :telemetry.detach(inspect(self())) end)
-    {:ok, address: Test.Cerbos.info().address}
+    {:ok, address: Dev.Cerbos.info().address}
   end
 
   test "a decision over resources answers the effect per action, with the policy it matched", ctx do
@@ -48,7 +48,7 @@ defmodule Turnstile.Cerbos.ClientTest do
   end
 
   test "a body the server refuses is the status and what it said" do
-    address = Test.Cerbos.info().address
+    address = Dev.Cerbos.info().address
 
     assert {:error, detail} = Client.check_resources(address, %{requestId: "empty"})
     assert detail =~ "cerbos answered 400"

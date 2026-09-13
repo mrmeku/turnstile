@@ -50,6 +50,7 @@ defmodule Turnstile.Fga.MixProject do
   defp deps do
     [
       {:turnstile_core, in_umbrella: true},
+      {:turnstile_dev, in_umbrella: true, only: :test},
       {:turnstile_ledger, in_umbrella: true},
       {:ecto, "3.14.2"},
       {:ecto_sql, "3.14.0"},

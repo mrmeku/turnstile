@@ -20,6 +20,7 @@ defmodule Turnstile.Cerbos.ConformanceTest do
 
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Conformance.Attributes
+  alias Turnstile.Dev
   alias Turnstile.Test
 
   defmodule Unreachable do
@@ -35,7 +36,7 @@ defmodule Turnstile.Cerbos.ConformanceTest do
   # policies in the repository, and read their facts through their own
   # connection.
   setup %{repo: repo} do
-    sidecar = Test.Cerbos.info()
+    sidecar = Dev.Cerbos.info()
     :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: sidecar.address})
 
     Binding.override(
