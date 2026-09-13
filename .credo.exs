@@ -1,7 +1,8 @@
 # Credo 1.7.19. Every check the release ships is enabled unless a comment
 # beside it says why not. docs/code.md §5 names the checks that are off by
-# default and on here. Core's own two checks, compiled into turnstile,
-# close the list.
+# default and on here. The two checks of `turnstile_credo` close the list;
+# every app takes that package as a dev and test dependency, so a run from
+# an app's own directory finds them as a run from the root does.
 %{
   configs: [
     %{

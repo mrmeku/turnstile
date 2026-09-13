@@ -63,6 +63,7 @@ defmodule ExampleCerbos.MixProject do
       {:boundary, "0.10.4", runtime: false},
       {:sobelow, "0.15.0", only: [:dev, :test], runtime: false},
       {:credo, "1.7.19", only: [:dev, :test], runtime: false},
+      {:turnstile_credo, in_umbrella: true, only: [:dev, :test], runtime: false},
       {:styler, "1.12.2", only: [:dev, :test], runtime: false},
       {:ex_doc, "0.40.4", only: [:dev, :test], runtime: false},
       {:mix_audit, "2.1.5", only: [:dev, :test], runtime: false}

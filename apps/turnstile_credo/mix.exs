@@ -1,9 +1,9 @@
-defmodule Turnstile.Dev.MixProject do
+defmodule Turnstile.Credo.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :turnstile_dev,
+      app: :turnstile_credo,
       version: "0.1.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
@@ -27,27 +27,21 @@ defmodule Turnstile.Dev.MixProject do
   end
 
   def application do
-    # `:inets` carries `httpc`, which the launchers ask a server's health
-    # endpoint with. It ships with OTP, so it is no pin.
-    [extra_applications: [:logger, :inets]]
+    [extra_applications: [:logger]]
   end
 
-  # This package is never published, so what it needs to raise a server sits
-  # here in every environment rather than being optional: `muontrap` runs the
-  # sidecar and kills it with the run, and `nimble_options` validates what a
-  # caller passes. `ecto_sql` is optional in core and named by core's sandbox
-  # setup, so it is listed here as well, and every application in the
-  # umbrella then compiles core once. Every pin is exact. Versions verified
-  # against https://hex.pm/api/packages/<name> on 2026-09-08.
+  # The checks are written against Credo's own check behaviour and its test
+  # case, and they read source text, so this is the whole dependency list and
+  # no package of this repository is in it. Credo is a development and test
+  # dependency here as it is in every other package, which is what Mix asks
+  # of an umbrella, and each check module is written under
+  # `Code.ensure_loaded?(Credo.Check)` so a build without it compiles to
+  # nothing. The pin is exact. The version was verified against
+  # https://hex.pm/api/packages/credo on 2026-09-13.
   defp deps do
     [
-      {:turnstile, in_umbrella: true},
-      {:nimble_options, "1.1.1"},
-      {:muontrap, "2.0.0"},
-      {:ecto_sql, "3.14.0", only: :test},
-      {:boundary, "0.10.4", runtime: false},
       {:credo, "1.7.19", only: [:dev, :test], runtime: false},
-      {:turnstile_credo, in_umbrella: true, only: [:dev, :test], runtime: false},
+      {:boundary, "0.10.4", runtime: false},
       {:styler, "1.12.2", only: [:dev, :test], runtime: false},
       {:ex_doc, "0.40.4", only: [:dev, :test], runtime: false},
       {:mix_audit, "2.1.5", only: [:dev, :test], runtime: false}
@@ -55,7 +49,7 @@ defmodule Turnstile.Dev.MixProject do
   end
 
   defp docs do
-    [main: "readme", extras: ["README.md": [title: "Turnstile dev"], "glossary.md": [title: "Glossary"]]]
+    [main: "readme", extras: ["README.md": [title: "Turnstile Credo checks"], "glossary.md": [title: "Glossary"]]]
   end
 
   # CVE-2026-32686 (GHSA-rhv4-8758-jx7v): an unbounded exponent when decimal

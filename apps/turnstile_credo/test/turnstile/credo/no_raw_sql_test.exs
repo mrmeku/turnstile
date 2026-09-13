@@ -52,6 +52,29 @@ defmodule Turnstile.Credo.NoRawSQLTest do
     |> assert_issue(fn issue -> assert issue.line_no == 10 end)
   end
 
+  test "a call to another module, and an SQL function that runs no query, are not raw SQL" do
+    """
+    defmodule Report do
+      def run(repo) do
+        Ecto.Adapters.SQL.explain(repo, :all, "SELECT 1")
+        Enum.map([1], & &1)
+      end
+    end
+    """
+    |> to_source_file()
+    |> run_check(NoRawSQL)
+    |> refute_issues()
+  end
+
+  test "raw SQL outside any module is flagged, because no prefix can allow it" do
+    """
+    Ecto.Adapters.SQL.query!(repo, "SELECT 1")
+    """
+    |> to_source_file()
+    |> run_check(NoRawSQL, allow: ["Turnstile.Ledger"])
+    |> assert_issue(fn issue -> assert issue.line_no == 1 end)
+  end
+
   test "a repo call with an exemption is not raw SQL" do
     """
     defmodule Report do
