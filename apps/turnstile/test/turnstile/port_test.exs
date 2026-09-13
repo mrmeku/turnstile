@@ -200,11 +200,21 @@ defmodule Turnstile.PortTest do
     assert %DynamicExpr{} = rule
   end
 
-  test "a decider that raises publishes the exception, and the call raises on" do
+  test "a decider that raises denies closed, and its event carries the exception" do
     :ok = Turnstile.Test.with_config(adapter: Raising)
 
-    assert_raise RuntimeError, fn -> Port.check(@user, :read, @folder, []) end
-    assert_received {[:turnstile, :decision], _ref, _measurements, %{exception: %RuntimeError{}, verdict: nil}}
+    assert {:error, %Error{reason: :engine_unreachable} = error} = Port.authorize(@user, :read, @folder, [])
+    assert Exception.message(error) =~ "#{inspect(Raising)} raised during authorize: the decider broke"
+
+    assert_received {[:turnstile, :decision], _ref, _measurements,
+                     %{exception: %RuntimeError{}, verdict: :deny, reason: :engine_unreachable}}
+
+    assert Port.check(@user, :read, @folder, []) == false
+    assert Port.batch(@user, :read, [@folder], []) == %{@folder => :deny}
+    assert {_rule, %Decision{verdict: :deny, reason: :engine_unreachable}} = Port.scope(@user, :read, :folder, [])
+
+    assert_received {[:turnstile, :decision], _ref, _measurements,
+                     %{exception: %RuntimeError{}, object: {:folder, nil}, reason: :engine_unreachable}}
   end
 
   test "review answers a rule per subject over a type and allowed references over a population" do

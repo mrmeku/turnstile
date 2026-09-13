@@ -2,8 +2,9 @@ defmodule Turnstile.Port do
   @moduledoc """
   The mechanism behind `Turnstile`'s functions: resolve the configuration,
   build the environment from the caller's map and the clock, read the
-  ledger head, ask the adapter, fail closed on an engine error, stamp a
-  `Turnstile.Decision`, and publish it.
+  ledger head, ask the adapter, fail closed on an engine error or on an
+  exception the decider raised, stamp a `Turnstile.Decision`, and publish
+  it.
 
   Every call publishes one `[:turnstile, :decision]` event, whose metadata
   is what PLAN §4 states: who asked and of what kind, the operation, the
@@ -102,7 +103,7 @@ defmodule Turnstile.Port do
     decided(call, subject, operation, {object_type, nil}, fn ->
       {rule, answer} = scoped(call, subject, operation, object_type)
       decision = stamp(call, subject, operation, {object_type, nil}, answer, scope_verdict(answer))
-      {{rule, decision}, decision, %{object: rule}}
+      {{rule, decision}, decision, Map.put(said(answer), :object, rule)}
     end)
   end
 
@@ -147,7 +148,7 @@ defmodule Turnstile.Port do
     decided(call, subject, operation, object, fn ->
       answer = ask(call, function, subject, operation, object)
       decision = stamp(call, subject, operation, object, answer, answer.verdict)
-      {{decision, answer}, decision, %{}}
+      {{decision, answer}, decision, said(answer)}
     end)
   end
 
@@ -157,10 +158,10 @@ defmodule Turnstile.Port do
     type = population_type(objects)
 
     decided(call, subject, operation, {type, nil}, fn ->
-      verdicts = verdicts(call, function, subject, operation, objects)
-      answer = summary(verdicts)
+      {verdicts, closed} = verdicts(call, function, subject, operation, objects)
+      answer = closed || summary(verdicts)
       decision = stamp(call, subject, operation, {type, nil}, answer, answer.verdict)
-      {{verdicts, decision}, decision, %{}}
+      {{verdicts, decision}, decision, said(answer)}
     end)
   end
 
@@ -171,13 +172,13 @@ defmodule Turnstile.Port do
           decision = stamp(call, subject, operation, object, answer, answer.verdict)
           {{:ok, answer, decision}, decision, %{}}
 
-        {:error, %Error{reason: :unsupported} = error} ->
+        {:error, %Error{reason: :unsupported} = error, _exception} ->
           {{:error, error}, nil, %{}}
 
-        {:error, %Error{reason: :engine_unreachable} = error} ->
-          answer = closed(error)
+        {:error, %Error{reason: :engine_unreachable} = error, exception} ->
+          answer = closed(error, exception)
           decision = stamp(call, subject, operation, object, answer, :deny)
-          {{:ok, answer, decision}, decision, %{}}
+          {{:ok, answer, decision}, decision, said(answer)}
       end
     end)
   end
@@ -214,42 +215,62 @@ defmodule Turnstile.Port do
   defp ask(call, function, subject, operation, object) do
     case asked(call, function, subject, operation, object) do
       {:ok, %Answer{} = answer} -> answer
-      {:error, %Error{reason: :engine_unreachable} = error} -> closed(error)
+      {:error, %Error{reason: :engine_unreachable} = error, exception} -> closed(error, exception)
     end
   end
 
+  # The adapter's answer, or the error the port answers in its place: the
+  # ledger head it could not read, the engine error the adapter gave, or
+  # the exception the adapter raised, which the third element carries so
+  # the event names what broke. A decider that raises closes the door
+  # rather than reaching the caller, so no decider carries a rescue clause
+  # for the driver underneath it.
   defp asked(%{head: {:error, %Error{reason: :engine_unreachable} = error}}, _function, _subject, _operation, _object),
-    do: {:error, error}
+    do: {:error, error, nil}
 
-  defp asked(%{adapter: adapter} = call, :authorize, subject, operation, object) do
+  defp asked(call, function, subject, operation, object) do
+    case answered(call, function, subject, operation, object) do
+      {:ok, answer} -> {:ok, answer}
+      {:error, %Error{} = error} -> {:error, error, nil}
+    end
+  rescue
+    exception -> {:error, raised(call.adapter, function, exception), exception}
+  end
+
+  defp answered(%{adapter: adapter} = call, :authorize, subject, operation, object) do
     adapter.authorize(subject, operation, object, call.environment, call.options)
   end
 
-  defp asked(%{adapter: adapter} = call, :check, subject, operation, object) do
+  defp answered(%{adapter: adapter} = call, :check, subject, operation, object) do
     adapter.check(subject, operation, object, call.environment, call.options)
   end
 
-  defp asked(%{adapter: adapter} = call, :batch, subject, operation, objects) do
+  defp answered(%{adapter: adapter} = call, :batch, subject, operation, objects) do
     adapter.batch(subject, operation, objects, call.environment, call.options)
   end
 
-  defp asked(%{adapter: adapter} = call, :scope, subject, operation, type) do
+  defp answered(%{adapter: adapter} = call, :scope, subject, operation, type) do
     adapter.scope(subject, operation, type, call.environment, call.options)
   end
 
-  defp asked(%{adapter: adapter} = call, :explain, subject, operation, object) do
+  defp answered(%{adapter: adapter} = call, :explain, subject, operation, object) do
     adapter.explain(subject, operation, object, call.environment, call.options)
   end
 
+  # The verdict per object, beside the denial the port gave in their place
+  # where it gave one, so a batch records the same reason one object would.
   defp verdicts(%{kind: :unknown}, _function, subject, _operation, objects) do
-    verdict = unknown_kind(subject).verdict
-    Map.new(objects, &{&1, verdict})
+    answer = unknown_kind(subject)
+    {Map.new(objects, &{&1, answer.verdict}), answer}
   end
 
   defp verdicts(call, _function, subject, operation, objects) do
     case asked(call, :batch, subject, operation, objects) do
-      {:ok, answers} -> Map.new(objects, &{&1, Map.fetch!(answers, &1).verdict})
-      {:error, %Error{reason: :engine_unreachable}} -> Map.new(objects, &{&1, :deny})
+      {:ok, answers} ->
+        {Map.new(objects, &{&1, Map.fetch!(answers, &1).verdict}), nil}
+
+      {:error, %Error{reason: :engine_unreachable} = error, exception} ->
+        {Map.new(objects, &{&1, :deny}), closed(error, exception)}
     end
   end
 
@@ -259,7 +280,7 @@ defmodule Turnstile.Port do
     case asked(call, :scope, subject, operation, type) do
       {:ok, {rule, %Answer{verdict: :allow} = answer}} -> {rule, answer}
       {:ok, {_rule, %Answer{verdict: :deny} = answer}} -> {refused(), answer}
-      {:error, %Error{reason: :engine_unreachable} = error} -> {refused(), closed(error)}
+      {:error, %Error{reason: :engine_unreachable} = error, exception} -> {refused(), closed(error, exception)}
     end
   end
 
@@ -269,8 +290,9 @@ defmodule Turnstile.Port do
   end
 
   defp reviewed(call, subject, operation, objects) when is_list(objects) do
-    %{call | kind: kind(subject)}
-    |> verdicts(:batch, subject, operation, objects)
+    {verdicts, _closed} = verdicts(%{call | kind: kind(subject)}, :batch, subject, operation, objects)
+
+    verdicts
     |> Enum.filter(fn {_object, verdict} -> verdict == :allow end)
     |> Enum.map(fn {object, _verdict} -> object end)
     |> Enum.sort()
@@ -285,9 +307,25 @@ defmodule Turnstile.Port do
     %Error{reason: :unsupported, detail: "#{inspect(adapter)} does not support #{feature}"}
   end
 
-  defp closed(%Error{reason: :engine_unreachable, detail: detail}) do
+  defp closed(%Error{reason: :engine_unreachable, detail: detail}, nil) do
     %Answer{verdict: :deny, reason: :engine_unreachable, meta: %{detail: detail}}
   end
+
+  defp closed(%Error{reason: :engine_unreachable, detail: detail}, exception) do
+    %Answer{verdict: :deny, reason: :engine_unreachable, meta: %{detail: detail, exception: exception}}
+  end
+
+  defp raised(adapter, function, exception) do
+    %Error{
+      reason: :engine_unreachable,
+      detail: "#{inspect(adapter)} raised during #{function}: #{Exception.message(exception)}"
+    }
+  end
+
+  # What the event says beyond the verdict: the exception, where a decider
+  # raised and the answer closed the door in its place.
+  defp said(%Answer{meta: %{exception: exception}}), do: %{exception: exception}
+  defp said(%Answer{}), do: %{}
 
   defp unknown_kind({kind, _account}) do
     %Answer{verdict: :deny, reason: :unknown_subject_kind, meta: %{kind: kind}}
