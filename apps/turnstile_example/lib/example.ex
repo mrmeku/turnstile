@@ -53,6 +53,8 @@ defmodule Example do
       Review,
       Router,
       Sessions,
+      Siem,
+      Siem.Ocsf,
       User
     ]
 
