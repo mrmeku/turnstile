@@ -22,7 +22,7 @@ A pass that fails leaves what it had acknowledged in the store, the markers wher
 
 ## What the drain needs from an application
 
-Three things: a mapping module, the store it writes into, and a mediated repo holding the outbox and the tables the mapping reads. How often a pass runs belongs to the runner a thin application starts beside its reconcile schedule. A test settles the store itself, through `Turnstile.Fga.settle/0`, against the fake or against a server, and starts no runner.
+Three things: a mapping module, the store it writes into, and a mediated repo holding the outbox and the tables the mapping reads. How often a pass runs belongs to the runner a thin application starts beside its reconcile schedule. A test settles the store itself, through the adapter's `settle` callback, against the fake or against a server, and starts no runner.
 
 ## The pieces the decision path rests on
 
