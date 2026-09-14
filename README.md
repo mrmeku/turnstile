@@ -21,16 +21,15 @@ Repo.all(from(d in Document, where: ^rule), turnstile: decision)
 
 ## The four adapters
 
-One port, four mechanisms. Each is a package of its own, and each has a thin application that binds it to the same example domain and declares what every rule of that domain is enforced by. `docs/reference.md` §4 carries this table and the notes per adapter.
+One port, four mechanisms. Each is a package of its own, and each has a thin application that binds it to the same example domain and whose README says what each rule of that domain is enforced by. `docs/reference.md` §4 carries this table and the notes per adapter.
 
 | Adapter | Package | Example application | Enforcement | Explains | Revocation latency components | Rules live in | Boundary cost |
 |---|---|---|---|---|---|---|---|
 | RBAC in code | `turnstile_rbac` | [`example_rbac`](apps/example_rbac/README.md) | the application's discipline, backed by the seam | the clause | commit | Elixir modules; a deploy is a policy version | none |
 | Postgres row-level security | `turnstile_postgres` | [`example_postgres`](apps/example_postgres/README.md) | the database; write gates need no application code (a printed note, not a rule) | verdict only | commit | migrations; a migration is a policy version | none new |
-| Cerbos | `turnstile_cerbos` | `example_cerbos` | the application's discipline; policies versioned and tested as their own artifact | verdict and matched rule | commit for facts; policy propagation (the poll interval) for rules | policy files; a policy owner | one sidecar |
-| OpenFGA | `turnstile_fga` | `example_fga` | the application's discipline, backed by the seam; the graph decides | the path (`Expand`) | commit, projector drain, engine write, check-cache TTL for facts; model publication for rules | a model file in a repository, published as an immutable model id; tuples projected from the tables a change marked | a server and a datastore: two inventory items, one engine if the datastore shares the application's Postgres instance |
+| Cerbos | `turnstile_cerbos` | [`example_cerbos`](apps/example_cerbos/README.md) | the application's discipline; policies versioned and tested as their own artifact | verdict and matched rule | commit for facts; policy propagation (the poll interval) for rules | policy files; a policy owner | one sidecar |
+| OpenFGA | `turnstile_fga` | [`example_fga`](apps/example_fga/README.md) | the application's discipline, backed by the seam; the graph decides | the path (`Expand`) | commit, the relay pass, the engine write, and the check-cache TTL for facts; model publication for rules | a model file in a repository, published as an immutable model id; tuples the outbox keeps in step | a server and a datastore: two inventory items, one engine if the datastore shares the application's Postgres instance |
 
-`example_cerbos` and `example_fga` carry no link yet: they arrive with their adapter packages, as `docs/delivery.md` lists them.
 
 ## Quickstart
 
@@ -55,7 +54,7 @@ Every scenario of `docs/reference.md` §3a is a test there, named by its id and 
 
 ## Layout
 
-An umbrella. `apps/turnstile` holds the port, the structs, the behaviours, the fact-mapping macro, the configuration struct, the conformance mechanisms, the test cluster, and the schema-dump task. `apps/turnstile_rbac`, `apps/turnstile_postgres`, `apps/turnstile_cerbos`, and `apps/turnstile_fga` are the adapters, `apps/turnstile_relay` is batched ordered delivery from a Postgres table, which the OpenFGA drain runs on, `apps/example` is the example domain and its scenarios, and `apps/example_rbac`, `apps/example_postgres`, `apps/example_cerbos`, and `apps/example_fga` are the thin applications that bind an adapter to it.
+An umbrella. `apps/turnstile` holds the port, the structs, the behaviours, the fact-mapping macro, the configuration struct, the conformance mechanisms, the test cluster, and the schema-dump task. `apps/turnstile_rbac`, `apps/turnstile_postgres`, `apps/turnstile_cerbos`, and `apps/turnstile_fga` are the adapters, `apps/turnstile_relay` is batched ordered delivery from a Postgres table, which the OpenFGA drain runs on, `apps/turnstile_credo` holds the Credo checks this repository adds, `apps/turnstile_dev` starts the Cerbos and OpenFGA binaries a run needs, `apps/example` is the example domain and its scenarios, and `apps/example_rbac`, `apps/example_postgres`, `apps/example_cerbos`, and `apps/example_fga` are the thin applications that bind an adapter to it.
 
 ## Working on it
 
@@ -73,6 +72,6 @@ The `quality` alias formats, compiles with warnings as errors, runs Credo strict
 - `docs/reference.md`: the requirement groups, the rules of the example, the scenarios, the frozen contracts, the adapter comparison, and the pinned versions.
 - `docs/testing.md`: the test environment, the tiers and their tags, and what CI runs.
 - `docs/code.md`: the code conventions, the boundaries, and the `quality` alias.
-- `docs/delivery.md`: the stages, in order, and the gate each one passes.
+- `docs/delivery.md`: how one piece of work runs from start to commit, and the gate each package passes.
 - `docs/writing.md`: the prose rules every document here is held to.
 - `docs/glossary-index.md`: every word that carries more than one meaning, and the one place each meaning lives.

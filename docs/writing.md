@@ -51,7 +51,7 @@ A reader should be able to tell which register they are in from the first line.
 ## Document-specific rules
 
 - **README** (Art of README): purpose in one paragraph, the comparison table with a link to each thin app, a quickstart that runs, links. It summarizes; it is never the source of anything.
-- **Thin-app README** (how-to): what this adapter costs, as the directory's contents explained in order: the binding, the migrations, the policies or model, the capability declaration; then the translation table between the example's words and the adapter's.
+- **Thin-app README** (how-to): what this adapter costs, as the directory's contents explained in order: the binding, the migrations, the policies or model, the schema dump; then the table of what each rule is enforced by, and the translation table between the example's words and the adapter's.
 - **Adapter notes** (`docs/reference.md` §4, and later each adapter package's README): mechanism per rule shape, what the adapter declares, its measured latency and components. No sentence tells the application what it may do.
 - **Glossaries** (reference): term, meaning, nothing else. A term's history belongs in `PLAN.md`, if anywhere.
 
