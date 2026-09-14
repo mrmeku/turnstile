@@ -66,7 +66,8 @@ defmodule Turnstile.Umbrella.MixProject do
         "docs --warnings-as-errors",
         "test"
       ],
-      test: &run_tests/1
+      test: &run_tests/1,
+      "test.core": &run_core_tests/1
     ]
   end
 
@@ -84,5 +85,23 @@ defmodule Turnstile.Umbrella.MixProject do
       end
 
     Mix.Task.run("cmd", ["mix", "test", "--warnings-as-errors", "--cover"] ++ partitions ++ args)
+  end
+
+  # Every module under a `core/` covered to every line. A partitioned run
+  # measures coverage over a part of the suite, so this one is unpartitioned
+  # and is a run of its own, over the applications that own a `core/`, which
+  # it reads from the tree rather than from a list kept by hand.
+  defp run_core_tests(args) do
+    System.put_env("TURNSTILE_CORE_COVERAGE", "1")
+
+    Mix.Task.run("cmd", core_apps() ++ ["mix", "test", "--warnings-as-errors", "--cover"] ++ args)
+  end
+
+  defp core_apps do
+    "apps/*/lib/**/core"
+    |> Path.wildcard()
+    |> Enum.map(&Enum.at(Path.split(&1), 1))
+    |> Enum.uniq()
+    |> Enum.flat_map(&["--app", &1])
   end
 end

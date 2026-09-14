@@ -14,7 +14,7 @@ defmodule Example.MixProject do
       elixirc_options: [warnings_as_errors: true, infer_signatures: true, no_warn_undefined: []],
       compilers: [:boundary] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
-      test_coverage: [summary: [threshold: 90], ignore_modules: ignore_modules()],
+      test_coverage: test_coverage(),
       aliases: aliases(),
       hex: hex(),
       deps: deps(),
@@ -30,6 +30,19 @@ defmodule Example.MixProject do
   # applications start the repos and the consumer of the events.
   def application do
     [extra_applications: [:logger]]
+  end
+
+  # The coverage a run measures. A run with TURNSTILE_CORE_COVERAGE set
+  # ignores every module outside a `core/` and holds what is left to every
+  # line, which a module that decides and touches nothing can be held to.
+  # Any other run is the ordinary one, whose threshold is a floor under the
+  # application as a whole.
+  defp test_coverage do
+    if System.get_env("TURNSTILE_CORE_COVERAGE") do
+      [summary: [threshold: 100], ignore_modules: [~r/^(?!.*\.Core\.)/]]
+    else
+      [summary: [threshold: 90], ignore_modules: ignore_modules()]
+    end
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
