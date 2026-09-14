@@ -46,10 +46,10 @@ defmodule ExampleFga.MixProject do
   end
 
   # The example, the adapter, the relay the drain is a runner of, and the
-  # ledger the policy version is recorded in. `muontrap` starts the server
-  # the suite asks, through the test support of the adapter. Every pin is
-  # exact. Versions verified against https://hex.pm/api/packages/<name> on
-  # 2026-09-09.
+  # connection library the cluster the dump task raises rests on. `muontrap`
+  # starts the server the suite asks, through the test support of the
+  # adapter. Every pin is exact. Versions verified against
+  # https://hex.pm/api/packages/<name> on 2026-09-09.
   defp deps do
     [
       {:turnstile, in_umbrella: true},

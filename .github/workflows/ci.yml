@@ -38,14 +38,9 @@ jobs:
       - run: nix develop --command bash -c 'cd apps/example_rbac && mix turnstile.schema_dump'
       - run: git diff --exit-code priv/schema/
         working-directory: apps/example_rbac
-      # Ledger mode ecto is the whole scenario file, and the run the coverage
-      # threshold is measured on.
-      - run: nix develop --command bash -c 'cd apps/example_rbac && EXAMPLE_LEDGER=ecto mix test --warnings-as-errors --cover'
-      # Ledger mode none excludes the scenarios a ledger answers, so what it
-      # proves is that the rest of them pass with no ledger configured; a
-      # coverage number over a run that leaves scenarios out would measure the
-      # exclusion rather than the application.
-      - run: nix develop --command bash -c 'cd apps/example_rbac && EXAMPLE_LEDGER=none mix test --warnings-as-errors'
+      # The whole scenario file, under the one binding whose rules are
+      # Elixir, so the run needs no engine beside the database.
+      - run: nix develop --command bash -c 'cd apps/example_rbac && mix test --warnings-as-errors --cover'
 
   example_postgres:
     runs-on: ubuntu-latest
@@ -66,9 +61,9 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: DeterminateSystems/nix-installer-action@v22
       - run: nix develop --command mix deps.get
-      # The fifth migration of this application creates nothing, so the dump
-      # is the example and the ledger alone, which is what holds the rules to
-      # the policy files rather than the database.
+      # The second migration of this application creates nothing, so the dump
+      # is the example's tables alone, which is what holds the rules to the
+      # policy files rather than to the database.
       - run: nix develop --command bash -c 'cd apps/example_cerbos && mix turnstile.schema_dump'
       - run: git diff --exit-code priv/schema/
         working-directory: apps/example_cerbos
@@ -82,9 +77,9 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: DeterminateSystems/nix-installer-action@v22
       - run: nix develop --command mix deps.get
-      # The fifth migration of this application creates the projector's
-      # checkpoint, one row per store, which is the position every decision
-      # reports as the state the engine could have seen.
+      # The second migration of this application creates the marker outbox
+      # and the cursor the drain keeps its place in, which is what holds the
+      # store to the tables one change at a time.
       - run: nix develop --command bash -c 'cd apps/example_fga && mix turnstile.schema_dump'
       - run: git diff --exit-code priv/schema/
         working-directory: apps/example_fga

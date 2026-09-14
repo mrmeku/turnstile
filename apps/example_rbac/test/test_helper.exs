@@ -20,7 +20,7 @@ Turnstile.Test.Cluster.start(
     {Example.OwnerRepo, role: :owner, database: :sandboxed, pool_size: 2}
   ],
   migrate: fn repo ->
-    [_domain] = Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
+    [_domain, _rules] = Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
     :ok
   end
 )

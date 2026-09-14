@@ -44,8 +44,8 @@ defmodule ExampleRbac.MixProject do
     ]
   end
 
-  # The example, the adapter, and the ledger's migration helper and dump
-  # task. Every pin is exact. Versions verified against
+  # The example, the adapter, and the connection library the cluster the
+  # dump task raises rests on. Every pin is exact. Versions verified against
   # https://hex.pm/api/packages/<name> on 2026-09-08.
   defp deps do
     [

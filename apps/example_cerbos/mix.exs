@@ -45,9 +45,10 @@ defmodule ExampleCerbos.MixProject do
     ]
   end
 
-  # The example, the adapter, and the ledger's migration helper and dump
-  # task. `muontrap` starts the sidecar the suite asks, through the test
-  # support of core. Every pin is exact. Versions verified against
+  # The example, the adapter, and the connection library the cluster the
+  # dump task raises rests on. `muontrap` starts the sidecar the suite asks,
+  # through the test support of this repository. Every pin is exact.
+  # Versions verified against
   # https://hex.pm/api/packages/<name> on 2026-09-09.
   defp deps do
     [
