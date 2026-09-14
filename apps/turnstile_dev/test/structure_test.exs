@@ -64,6 +64,12 @@ defmodule StructureTest do
     :timer
   ]
 
+  # The functions of the modules above that answer from their arguments
+  # alone. A hash reaches nothing outside the call: the same term answers the
+  # same number on any node and on any release, so a module that decides may
+  # take one.
+  @pure [{:erlang, :phash2}]
+
   # A moment read from a clock, whichever module answers it.
   @moments [
     :local_time,
@@ -207,6 +213,7 @@ defmodule StructureTest do
     named = resolved(target, aliases)
 
     cond do
+      {target, function} in @pure -> []
       named in @world -> ["#{named}.#{function}/#{arity}"]
       target in @erlang -> [":#{target}.#{function}/#{arity}"]
       function in @moments and named != nil -> ["#{named}.#{function}/#{arity}"]
