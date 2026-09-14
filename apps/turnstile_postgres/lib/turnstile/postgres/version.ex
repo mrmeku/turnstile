@@ -11,16 +11,14 @@ defmodule Turnstile.Postgres.Version do
   tables above it. The content hash is the SHA-256 of that text either way.
   """
 
-  alias Turnstile.Error
-  alias Turnstile.FactEvent
   alias Turnstile.PolicyVersion
-  alias Turnstile.Postgres.Adapter.Ledger
+  alias Turnstile.Postgres.Adapter
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Policy
 
-  @doc "The telemetry event `publish/2` emits in ledger mode none."
+  @doc "The telemetry event `publish/1` emits, once per call."
   @spec telemetry_event() :: [atom()]
-  def telemetry_event, do: Ledger.telemetry_event()
+  def telemetry_event, do: Adapter.Version.telemetry_event()
 
   @doc """
   The version a migration publishes, from the policies it read back.
@@ -43,14 +41,9 @@ defmodule Turnstile.Postgres.Version do
     }
   end
 
-  @doc """
-  Append the version unless the ledger's latest for the adapter already
-  names it: `{:ok, event}` when appended, `{:ok, :current}` when it is
-  already there, `{:ok, :telemetry}` in ledger mode none.
-  """
-  @spec publish(PolicyVersion.t(), :none | {module(), keyword()}) ::
-          {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
-  def publish(%PolicyVersion{} = version, ledger), do: Ledger.publish(version, ledger)
+  @doc "Emit the version, once per call, answering the version emitted."
+  @spec publish(PolicyVersion.t()) :: {:ok, PolicyVersion.t()}
+  def publish(%PolicyVersion{} = version), do: Adapter.Version.publish(version)
 
   defp pointer(policies) do
     tables =

@@ -58,8 +58,7 @@ resourcePolicy:
     {:ok, address: sidecar.address, environment: %{now: DateTime.utc_now()}}
   end
 
-  test "the adapter needs no ledger, caps no scope, and its entry carries the address alone" do
-    assert Turnstile.Cerbos.requires_ledger() == false
+  test "the adapter caps no scope, and its entry carries the address alone" do
     assert Turnstile.Cerbos.scope_cap() == :none
     assert Turnstile.Cerbos.options_schema().schema[:address][:required]
     assert Keyword.keys(Turnstile.Cerbos.options_schema().schema) == [:address]

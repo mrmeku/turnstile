@@ -15,7 +15,6 @@ Turnstile.Test.Cluster.start(
     {Turnstile.TestRepos.Owner, role: :owner, database: :committed, pool_size: 2}
   ],
   migrate: fn repo ->
-    Turnstile.Test.CounterTable.create!(repo)
     Turnstile.Fixture.Tables.create!(repo)
     _versions = Ecto.Migrator.run(repo, [{1, TestMigrations.Outbox}], :up, all: true, log: false)
     :ok

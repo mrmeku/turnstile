@@ -43,11 +43,7 @@ defmodule Turnstile.FgaTest do
     {:ok, store} = Fake.create_store(agent, "adapter")
     {:ok, model} = Fake.write_model(agent, store, %{"schema_version" => "1.1"})
 
-    :ok =
-      Test.with_config(
-        adapter: {Fga, endpoint: agent, store_id: store, client: Fake, model_id: model},
-        ledger: :none
-      )
+    :ok = Test.with_config(adapter: {Fga, endpoint: agent, store_id: store, client: Fake, model_id: model})
 
     :ok = Binding.override(repo: Sandboxed, model: "priv/conformance/model.fga", mapping: Mapping)
     {:ok, options} = options()
@@ -55,8 +51,7 @@ defmodule Turnstile.FgaTest do
     {:ok, agent: agent, store: store, model: model, options: options}
   end
 
-  test "the adapter needs no ledger, states how far one listing reaches, and settles by draining" do
-    assert Fga.requires_ledger() == false
+  test "the adapter states how far one listing reaches, and settles by draining" do
     assert Fga.scope_cap() == Decide.scope_cap()
     assert Fga.scope_cap() == 1_000
     assert Fga.settle() == :ok

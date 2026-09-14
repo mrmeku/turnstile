@@ -13,11 +13,10 @@ defmodule Turnstile.Cerbos.Version do
   a directory that changed without a new commit is visible as a hash that
   no longer matches.
 
-  `Turnstile.Cerbos.publish/0` appends the version when the ledger's latest
-  for the adapter is older or missing, inside the ledger's transaction when
-  it offers one, so many nodes booting at once append it once. In ledger
-  mode none it emits `[:turnstile, :cerbos, :policy_version]` and appends
-  nothing.
+  `Turnstile.Cerbos.publish/0` builds the version and emits
+  `[:turnstile, :cerbos, :policy_version]` carrying it, once per call.
+  Nothing is stored, so whoever keeps a record of what was deployed handles
+  that event.
   """
 
   alias Turnstile.Cerbos.Binding
@@ -74,7 +73,7 @@ defmodule Turnstile.Cerbos.Version do
   @spec content_hash(String.t()) :: String.t()
   def content_hash(text) when is_binary(text), do: Base.encode16(:crypto.hash(:sha256, text), case: :lower)
 
-  @doc "The version as the ledger records it for `adapter`, with the content by value when under the cap."
+  @doc "The version of `adapter` as an event carries it, with the content by value when under the cap."
   @spec of(module(), Binding.t(), Config.t(), DateTime.t()) :: {:ok, PolicyVersion.t()} | {:error, Error.t()}
   def of(adapter, %Binding{} = binding, %Config{caps: caps}, %DateTime{} = at) when is_atom(adapter) do
     with {:ok, text} <- content(binding) do

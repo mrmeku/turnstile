@@ -6,8 +6,6 @@ defmodule Turnstile.Cerbos.VersionTest do
   alias Turnstile.Cerbos.Sidecar
   alias Turnstile.Cerbos.Version
   alias Turnstile.Config
-  alias Turnstile.FactEvent
-  alias Turnstile.Ledger.Memory
   alias Turnstile.PolicyVersion
   alias Turnstile.Test
   alias Turnstile.TestRepos.Sandboxed
@@ -16,8 +14,7 @@ defmodule Turnstile.Cerbos.VersionTest do
   # policies, because a test here writes into the policy directory it reads.
   setup do
     sidecar = Sidecar.own!()
-    agent = start_supervised!(%{id: Memory, start: {Memory, :start_link, []}})
-    :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: sidecar.address}, ledger: {Memory, agent: agent})
+    :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: sidecar.address})
 
     :ok =
       Binding.override(
@@ -30,7 +27,7 @@ defmodule Turnstile.Cerbos.VersionTest do
         decision_log: sidecar.audit_log
       )
 
-    {:ok, sidecar: sidecar, ledger: {Memory, agent: agent}}
+    {:ok, sidecar: sidecar}
   end
 
   test "the version is the commit, and the content is the policy files each preceded by its path" do
@@ -93,43 +90,24 @@ defmodule Turnstile.Cerbos.VersionTest do
     assert Version.content(binding) == {:ok, ""}
   end
 
-  test "publish appends the commit once and emits one policy version event", ctx do
-    {Memory, options} = ctx.ledger
+  test "publish emits one policy version event carrying the commit" do
     :telemetry.attach(inspect(self()), Version.telemetry_event(), &__MODULE__.forward/4, self())
 
-    assert {:ok, %FactEvent{} = event} = Turnstile.Cerbos.publish()
-    assert event.kind == :policy_version
-    assert event.subject_ref == nil
-    assert event.object_ref == {:policy, Turnstile.Cerbos}
-    assert event.attribute == :version
-    assert event.old == nil
-    assert %PolicyVersion{version: "conformance"} = event.new
-    assert event.by == FactEvent.library()
+    assert {:ok, %PolicyVersion{} = version} = Turnstile.Cerbos.publish()
+    assert version.adapter == Turnstile.Cerbos
+    assert version.version == "conformance"
 
-    assert_receive {:policy_version, %{version: %PolicyVersion{version: "conformance"}, result: %FactEvent{}}}
+    assert_receive {:policy_version, %{version: ^version}}
     refute_receive {:policy_version, _later}
-
-    assert Turnstile.Cerbos.publish() == {:ok, :current}
-    assert {:ok, [_one]} = Memory.read(options, 0, 10)
   after
     :telemetry.detach(inspect(self()))
   end
 
-  test "a later commit records the one before it as old" do
-    assert {:ok, %FactEvent{old: nil}} = Turnstile.Cerbos.publish()
+  test "a later commit publishes under that commit" do
+    assert {:ok, %PolicyVersion{version: "conformance"}} = Turnstile.Cerbos.publish()
     :ok = Binding.override(commit: "later")
 
-    assert {:ok, %FactEvent{old: "conformance", new: %PolicyVersion{version: "later"}}} = Turnstile.Cerbos.publish()
-  end
-
-  test "in ledger mode none publish emits telemetry and appends nothing" do
-    :ok = Test.with_config(ledger: :none)
-    :telemetry.attach(inspect(self()), Version.telemetry_event(), &__MODULE__.forward/4, self())
-
-    assert Turnstile.Cerbos.publish() == {:ok, :telemetry}
-    assert_receive {:policy_version, %{result: :telemetry}}
-  after
-    :telemetry.detach(inspect(self()))
+    assert {:ok, %PolicyVersion{version: "later"}} = Turnstile.Cerbos.publish()
   end
 
   @doc false

@@ -85,9 +85,6 @@ defmodule Turnstile.Postgres do
   def replica_lag, do: "not measured"
 
   @impl Turnstile.Adapter
-  def requires_ledger, do: false
-
-  @impl Turnstile.Adapter
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter

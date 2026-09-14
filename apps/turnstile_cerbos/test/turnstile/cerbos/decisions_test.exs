@@ -218,8 +218,6 @@ defmodule Turnstile.Cerbos.DecisionsTest do
       reason: :deny_by_default,
       adapter: Turnstile.Cerbos,
       policy_version: "conformance",
-      head_position: nil,
-      applied_position: nil,
       operation_id: Id.new(),
       at: DateTime.utc_now()
     }

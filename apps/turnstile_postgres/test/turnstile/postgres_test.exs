@@ -22,8 +22,7 @@ defmodule Turnstile.PostgresTest do
   @subject {:user, "account-1"}
   @object {:folder, 1}
 
-  test "the declaration: no ledger, no scope cap, and a replica lag the adapter cannot measure" do
-    assert Postgres.requires_ledger() == false
+  test "the declaration: no scope cap, and a replica lag the adapter cannot measure" do
     assert Postgres.scope_cap() == :none
     assert Postgres.replica_lag() == "not measured"
   end
@@ -74,7 +73,7 @@ defmodule Turnstile.PostgresTest do
     bind()
 
     assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default, meta: %{matched: []}}} =
-             Postgres.explain(@subject, :read, {:ledger_entry, 1}, environment(), [])
+             Postgres.explain(@subject, :read, {:no_such_type, 1}, environment(), [])
   end
 
   test "an operation with no policy on the type denies the scope" do
@@ -147,8 +146,6 @@ defmodule Turnstile.PostgresTest do
       reason: :allowed,
       adapter: Postgres,
       policy_version: nil,
-      head_position: nil,
-      applied_position: nil,
       operation_id: Id.new(),
       at: ~U[2026-09-08 12:00:00Z]
     }

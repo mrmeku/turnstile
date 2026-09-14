@@ -92,7 +92,7 @@ defmodule Turnstile.Code.RuleTest do
 
   setup tags do
     :ok = Sandbox.setup(Sandboxed, tags)
-    :ok = Turnstile.Test.with_config(adapter: Turnstile.Code, ledger: :none)
+    :ok = Turnstile.Test.with_config(adapter: Turnstile.Code)
 
     world = %World{
       accounts: %{"ann" => World.cleared()},

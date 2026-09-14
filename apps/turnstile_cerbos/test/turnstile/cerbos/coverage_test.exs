@@ -19,7 +19,7 @@ defmodule Turnstile.Cerbos.CoverageTest do
   setup tags do
     sidecar = Dev.Cerbos.info()
     :ok = Sandbox.setup(Sandboxed, tags)
-    :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: sidecar.address}, ledger: :none)
+    :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: sidecar.address})
 
     :ok =
       Binding.override(repo: Sandboxed, attributes: Attributes, policies: sidecar.policies, commit: "conformance")

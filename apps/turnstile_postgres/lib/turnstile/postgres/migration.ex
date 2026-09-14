@@ -29,7 +29,7 @@ defmodule Turnstile.Postgres.Migration do
   - `grant!/2` grants a role the table privileges it needs. Row-level
     security narrows what a role may reach; the grant is what lets it reach
     the table at all, and the two are set together.
-  - `publish!/2` reads the policies back from `pg_policy` and appends the
+  - `publish!/2` reads the policies back from `pg_policy` and emits the
     policy version, in the transaction the migration is already running in.
 
   Every name a helper puts into a statement is checked first: a plain
@@ -126,17 +126,19 @@ defmodule Turnstile.Postgres.Migration do
   end
 
   @doc """
-  Read the policies on those tables back and append the policy version.
-  Requires `tables:`, `version:`, `author:`, and `approval:`; takes
-  `ledger:`, `at:`, and `content_bytes:`. The ledger is passed rather than
-  resolved, because a migration runs before the configuration is booted.
+  Read the policies on those tables back and emit the policy version.
+  Requires `tables:`, `version:`, `author:`, and `approval:`; takes `at:`
+  and `content_bytes:`. The moment is passed rather than read from the
+  configured clock, because a migration runs before the configuration is
+  booted.
   """
   @spec publish!(module(), keyword()) :: PolicyVersion.t()
   def publish!(repo, options) when is_atom(repo) and is_list(options) do
     tables = Enum.map(Keyword.fetch!(options, :tables), &Name.check!(&1, :table))
     policies = Catalog.policies!(repo, tables)
     version = Version.of(Turnstile.Postgres, policies, published(options))
-    {:ok, _result} = Version.publish(version, Keyword.get(options, :ledger, :none))
+    {:ok, ^version} = Version.publish(version)
+
     version
   end
 

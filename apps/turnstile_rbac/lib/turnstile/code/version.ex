@@ -7,11 +7,9 @@ defmodule Turnstile.Code.Version do
   text when it is under the configured cap, and a pointer to the modules
   otherwise.
 
-  One event per version: `Turnstile.Code.publish/0` reads the ledger's
-  latest policy version for this adapter and appends only when it is older
-  or missing, inside the ledger's transaction when it offers one, so many
-  nodes booting at once append it once. In ledger mode none it emits
-  `telemetry_event/0` and appends nothing.
+  One event per call: `Turnstile.Code.publish/0` builds the version and
+  emits `telemetry_event/0` carrying it. Nothing is stored, so whoever
+  keeps a record of what was deployed handles that event.
   """
 
   alias Turnstile.Code.Policy
@@ -44,7 +42,7 @@ defmodule Turnstile.Code.Version do
     "modules: #{Enum.map_join(Policy.modules(policy), ", ", &inspect/1)}\nroles:\n" <> roles
   end
 
-  @doc "The version as the ledger records it for `adapter`, with the content by value when under the cap."
+  @doc "The version of `adapter` as an event carries it, with the content by value when under the cap."
   @spec of(module(), Policy.t(), Config.t(), DateTime.t()) :: PolicyVersion.t()
   def of(adapter, policy, %Config{caps: caps}, %DateTime{} = at) when is_atom(adapter) and is_atom(policy) do
     options = Policy.options(policy)

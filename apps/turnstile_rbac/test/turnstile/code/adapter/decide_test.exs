@@ -31,7 +31,7 @@ defmodule Turnstile.Code.DecideTest do
 
   setup tags do
     :ok = Sandbox.setup(Sandboxed, tags)
-    :ok = Turnstile.Test.with_config(adapter: Turnstile.Code, ledger: :none)
+    :ok = Turnstile.Test.with_config(adapter: Turnstile.Code)
     :ok = Binding.override(policy: Roles, repo: Sandboxed)
 
     world =

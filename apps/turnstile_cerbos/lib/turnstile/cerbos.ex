@@ -18,9 +18,8 @@ defmodule Turnstile.Cerbos do
   which is the answer the declaration of a rule enforced this way records
   as limited.
 
-  The commit is the version identifier of every decision, and
-  `publish/0` appends it to the ledger the way a deploy is a version
-  (`Turnstile.Cerbos.Version`). What reaches the sidecar is what the
+  The commit is the version identifier of every decision, and `publish/0`
+  emits it the way a deploy is a version (`Turnstile.Cerbos.Version`). What reaches the sidecar is what the
   declarations name, so a policy cannot come to depend on a value no one
   declared: the moment the request carries, and each request-time fact an
   `environment` block declared, go as one principal attribute beside the
@@ -47,10 +46,10 @@ defmodule Turnstile.Cerbos do
     ]
 
   alias Turnstile.Cerbos.Adapter.Decide
-  alias Turnstile.Cerbos.Adapter.Ledger
+  alias Turnstile.Cerbos.Adapter.Version
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Error
-  alias Turnstile.FactEvent
+  alias Turnstile.PolicyVersion
 
   @schema NimbleOptions.new!(
             address: [
@@ -60,15 +59,12 @@ defmodule Turnstile.Cerbos do
             ]
           )
 
-  @doc "Append the bound policy directory's commit to the ledger; see `Turnstile.Cerbos.Version`."
-  @spec publish() :: {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
-  def publish, do: Ledger.publish(__MODULE__)
+  @doc "Emit the bound policy directory's commit as a version; see `Turnstile.Cerbos.Version`."
+  @spec publish() :: {:ok, PolicyVersion.t()} | {:error, Error.t()}
+  def publish, do: Version.publish(__MODULE__)
 
   @impl Turnstile.Adapter
   def options_schema, do: @schema
-
-  @impl Turnstile.Adapter
-  def requires_ledger, do: false
 
   @impl Turnstile.Adapter
   def scope_cap, do: :none

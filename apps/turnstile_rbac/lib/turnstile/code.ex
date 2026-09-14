@@ -14,9 +14,8 @@ defmodule Turnstile.Code do
   `check`, `authorize`, `batch`, and `explain` run one query per call that
   selects each clause of the rule for the rows asked about, so the reason
   names the clause that allowed or the clause that failed, and `explain`
-  lists every clause that held. A deploy is a policy version:
-  `publish/0` appends it at boot when the ledger's latest names an older
-  one, and emits telemetry alone in ledger mode none.
+  lists every clause that held. A deploy is a policy version, and
+  `publish/0` emits it as telemetry at boot.
   """
 
   @behaviour Turnstile.Adapter
@@ -43,14 +42,11 @@ defmodule Turnstile.Code do
   alias Turnstile.Code.Binding
   alias Turnstile.Code.Core.Rule
   alias Turnstile.Error
-  alias Turnstile.FactEvent
+  alias Turnstile.PolicyVersion
 
-  @doc "Append the bound policy's version to the ledger when its latest names an older one; the version is `Turnstile.Code.Version`."
-  @spec publish() :: {:ok, :telemetry | :current | FactEvent.t()} | {:error, Error.t()}
+  @doc "Emit the bound policy's version as telemetry; the version is `Turnstile.Code.Version`."
+  @spec publish() :: {:ok, PolicyVersion.t()} | {:error, Error.t()}
   def publish, do: Version.publish(__MODULE__)
-
-  @impl Turnstile.Adapter
-  def requires_ledger, do: false
 
   @impl Turnstile.Adapter
   def scope_cap, do: :none

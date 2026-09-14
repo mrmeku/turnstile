@@ -18,7 +18,7 @@ The words `turnstile_cerbos` owns. A word with a second meaning elsewhere is lis
 | Fallback | A plan the compiler cannot express: `scope` fails, `[:turnstile, :cerbos, :scope_fallback]` is emitted, and the caller asks per row |
 | Matched policy | The policy the sidecar reports it evaluated for a resource and an action, carried as the rule of a reason where the sidecar named one |
 | Content | The policy files as one text, each preceded by its path, which the version carries by value under the cap |
-| Publish | Append the policy version at boot when the ledger's latest for this adapter names an older commit or none; telemetry alone in ledger mode none |
+| Publish | Emit the policy version as telemetry at boot, once per call; nothing is stored |
 | Propagation | The interval from writing policy text into the directory to the first answer that reflects it, this adapter's `policy_propagation` component of revocation latency |
 | Decision log | The file the sidecar writes one JSON object per decision to, whose path the binding names |
 | Line | One question and answer out of that file: who asked, the operation, the object, the verdict, and the attributes as they were sent |

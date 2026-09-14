@@ -39,10 +39,9 @@ defmodule Turnstile.Fga do
     and guard to what a decision relies on. The first two write and take
     away a `Turnstile.Fga.Population` of the application's own rows.
 
-  Three declarations of this adapter in any domain: it needs no ledger,
-  since what it drains from is the application's own tables, its scope is
-  capped at what one `ListObjects` answers with, and settling it is draining
-  its outbox until nothing is left.
+  Two declarations of this adapter in any domain: its scope is capped at
+  what one `ListObjects` answers with, and settling it is draining its
+  outbox until nothing is left.
   """
 
   @behaviour Turnstile.Adapter
@@ -77,14 +76,14 @@ defmodule Turnstile.Fga do
     ]
 
   alias Turnstile.Error
-  alias Turnstile.FactEvent
   alias Turnstile.Fga.Adapter.Decide
   alias Turnstile.Fga.Adapter.Settle
   alias Turnstile.Fga.Adapter.Store
+  alias Turnstile.Fga.Adapter.Version
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Drift
   alias Turnstile.Fga.Outbox
-  alias Turnstile.Fga.Version
+  alias Turnstile.PolicyVersion
   alias Turnstile.Relay.Cursor
 
   @schema NimbleOptions.new!(
@@ -106,8 +105,8 @@ defmodule Turnstile.Fga do
             ]
           )
 
-  @doc "Publish the bound model when the ledger's latest names another; see `Turnstile.Fga.Version`."
-  @spec publish() :: {:ok, :current | FactEvent.t()} | {:error, Error.t()}
+  @doc "Write the bound model to the server and emit the version it was published under; see `Turnstile.Fga.Version`."
+  @spec publish() :: {:ok, PolicyVersion.t()} | {:error, Error.t()}
   def publish, do: Version.publish(__MODULE__)
 
   @doc """
@@ -158,9 +157,6 @@ defmodule Turnstile.Fga do
 
   @impl Turnstile.Adapter
   def options_schema, do: @schema
-
-  @impl Turnstile.Adapter
-  def requires_ledger, do: false
 
   @impl Turnstile.Adapter
   def scope_cap, do: Decide.scope_cap()

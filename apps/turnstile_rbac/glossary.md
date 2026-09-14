@@ -13,6 +13,6 @@ The words `turnstile_rbac` owns. A word with a second meaning elsewhere is liste
 | Rule | A protected schema's clauses built for one subject and operation: any grant and every predicate, as one `dynamic` over subqueries |
 | Binding | The policy module and the mediated repo the rules read through, bound once at boot or overridden per process |
 | Content hash | The digest of the policy module and every module a predicate or a hop filter lives in; the default version identifier |
-| Publish | Append the policy version at boot when the ledger's latest names an older one or none; telemetry alone in ledger mode none |
+| Publish | Emit the policy version as telemetry at boot, once per call; nothing is stored |
 | Coverage | The walk of every rule's `dynamic`, subqueries included, that fails on a column no declaration names |
 | Finding | One undeclared read: a schema and a column, or a fragment's text |

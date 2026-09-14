@@ -7,16 +7,12 @@ defmodule Turnstile.Code.VersionTest do
   alias Turnstile.Code.Policy
   alias Turnstile.Code.Version
   alias Turnstile.Config
-  alias Turnstile.FactEvent
-  alias Turnstile.Ledger.Memory
   alias Turnstile.PolicyVersion
   alias Turnstile.TestRepos.Sandboxed
 
   setup do
-    agent = start_supervised!(%{id: Memory, start: {Memory, :start_link, []}})
-    :ok = Turnstile.Test.with_config(adapter: Turnstile.Code, ledger: {Memory, agent: agent})
+    :ok = Turnstile.Test.with_config(adapter: Turnstile.Code)
     :ok = Binding.override(policy: Roles, repo: Sandboxed)
-    {:ok, ledger: {Memory, agent: agent}}
   end
 
   test "the version carries the commit, the hash of the rule modules, and the role table as data" do
@@ -42,35 +38,25 @@ defmodule Turnstile.Code.VersionTest do
     assert version.pointer == "modules #{inspect(Predicates)}, #{inspect(Roles)}"
   end
 
-  test "publish appends one event per version, never per boot", %{ledger: {Memory, options}} do
-    assert {:ok, %FactEvent{} = event} = Turnstile.Code.publish()
-    assert event.kind == :policy_version
-    assert event.subject_ref == nil
-    assert event.object_ref == {:policy, Turnstile.Code}
-    assert event.attribute == :version
-    assert event.old == nil
-    assert %PolicyVersion{version: "conformance"} = event.new
-    assert event.by == FactEvent.library()
-    assert event.position == 1
-
-    assert Turnstile.Code.publish() == {:ok, :current}
-    assert Turnstile.Code.publish() == {:ok, :current}
-    assert {:ok, [_one]} = Memory.read(options, 0, 10)
-  end
-
-  test "a newer version records the previous one as old" do
-    assert {:ok, %FactEvent{old: nil}} = Turnstile.Code.publish()
-    :ok = Binding.override(policy: Turnstile.Code.VersionTest.Later)
-    assert {:ok, %FactEvent{old: "conformance", new: %PolicyVersion{version: "later"}}} = Turnstile.Code.publish()
-  end
-
-  test "in ledger mode none publish emits telemetry alone" do
-    :ok = Turnstile.Test.with_config(ledger: :none)
+  test "publish emits the bound policy's version, once per call" do
     :telemetry.attach(inspect(self()), Version.telemetry_event(), &__MODULE__.forward/4, self())
-    assert Turnstile.Code.publish() == {:ok, :telemetry}
-    assert_receive {:policy_version, %{version: %PolicyVersion{version: "conformance"}, result: :telemetry}}
+
+    assert {:ok, %PolicyVersion{} = version} = Turnstile.Code.publish()
+    assert version.adapter == Turnstile.Code
+    assert version.version == "conformance"
+    assert version.content =~ "  reader: read\n"
+
+    assert_receive {:policy_version, %{version: ^version}}
+    refute_receive {:policy_version, _later}
   after
     :telemetry.detach(inspect(self()))
+  end
+
+  test "a policy that names another version publishes under that one" do
+    assert {:ok, %PolicyVersion{version: "conformance"}} = Turnstile.Code.publish()
+    :ok = Binding.override(policy: Turnstile.Code.VersionTest.Later)
+
+    assert {:ok, %PolicyVersion{version: "later"}} = Turnstile.Code.publish()
   end
 
   test "the default version is the content hash" do

@@ -55,7 +55,7 @@ defmodule Turnstile.Cerbos.ValuesTest do
 
   setup tags do
     :ok = Sandbox.setup(Sandboxed, tags)
-    :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: Dev.Cerbos.info().address}, ledger: :none)
+    :ok = Test.with_config(adapter: {Turnstile.Cerbos, address: Dev.Cerbos.info().address})
 
     :ok =
       Binding.override(

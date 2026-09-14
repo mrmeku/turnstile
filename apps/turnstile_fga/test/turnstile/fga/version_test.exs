@@ -2,14 +2,12 @@ defmodule Turnstile.Fga.VersionTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Error
-  alias Turnstile.FactEvent
   alias Turnstile.Fga
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Client.Fake
   alias Turnstile.Fga.Conformance.Mapping
   alias Turnstile.Fga.Model
   alias Turnstile.Fga.Version
-  alias Turnstile.Ledger.Memory
   alias Turnstile.PolicyVersion
   alias Turnstile.Test
   alias Turnstile.TestRepos.Sandboxed
@@ -18,17 +16,12 @@ defmodule Turnstile.Fga.VersionTest do
 
   # A fake on an agent of the test's own is the server here, because what a
   # publication does to a server is one call, and the id it answers with is
-  # what the ledger records.
+  # the version.
   setup do
     agent = start_supervised!(Fake)
     {:ok, store} = Fake.create_store(agent, "version")
-    ledger = start_supervised!(%{id: Memory, start: {Memory, :start_link, []}})
 
-    :ok =
-      Test.with_config(
-        adapter: {Fga, endpoint: agent, store_id: store, client: Fake},
-        ledger: {Memory, agent: ledger}
-      )
+    :ok = Test.with_config(adapter: {Fga, endpoint: agent, store_id: store, client: Fake})
 
     :ok =
       Binding.override(
@@ -39,7 +32,7 @@ defmodule Turnstile.Fga.VersionTest do
         approval: "the conformance suite"
       )
 
-    {:ok, agent: agent, store: store, ledger: {Memory, agent: ledger}}
+    {:ok, agent: agent, store: store}
   end
 
   test "the version is the model id, and the content is the text the model file holds" do
@@ -68,48 +61,27 @@ defmodule Turnstile.Fga.VersionTest do
     assert version.content_hash == Version.content_hash(text)
   end
 
-  test "publish writes the model once and appends the version once", context do
-    {Memory, options} = context.ledger
+  test "publish writes the model and emits the version the server gave it", context do
     :telemetry.attach(inspect(self()), Version.telemetry_event(), &__MODULE__.forward/4, self())
 
-    assert {:ok, %FactEvent{} = event} = Fga.publish()
-    assert event.kind == :policy_version
-    assert event.subject_ref == nil
-    assert event.object_ref == {:policy, Fga}
-    assert event.attribute == :version
-    assert event.old == nil
-    assert %PolicyVersion{version: "model-1", adapter: Fga} = event.new
-    assert event.by == FactEvent.library()
+    assert {:ok, %PolicyVersion{} = version} = Fga.publish()
+    assert version.adapter == Fga
+    assert version.version == "model-1"
+    assert version.content_hash == Version.content_hash(File.read!(@model))
     assert models(context.agent) == [Model.read!(@model)]
 
-    assert_receive {:policy_version, %{adapter: Fga, hash: hash, result: %FactEvent{}}}
-    assert hash == Version.content_hash(File.read!(@model))
+    assert_receive {:policy_version, %{version: ^version}}
     refute_receive {:policy_version, _later}
-
-    assert Fga.publish() == {:ok, :current}
-    assert {:ok, [_one]} = Memory.read(options, 0, 10)
-    assert length(models(context.agent)) == 1
   after
     :telemetry.detach(inspect(self()))
   end
 
-  test "a text the ledger's latest does not carry is published again, over the id before it", context do
-    assert {:ok, %FactEvent{old: nil, new: %PolicyVersion{version: "model-1"}}} = Fga.publish()
+  test "a model is immutable, so a second publication is a model and a version of its own", context do
+    assert {:ok, %PolicyVersion{version: "model-1"}} = Fga.publish()
     :ok = Binding.override(model: changed())
 
-    assert {:ok, %FactEvent{old: "model-1", new: %PolicyVersion{version: "model-2"}}} = Fga.publish()
+    assert {:ok, %PolicyVersion{version: "model-2"}} = Fga.publish()
     assert length(models(context.agent)) == 2
-  end
-
-  test "a publication answering that the ledger is current says so in the telemetry" do
-    :telemetry.attach(inspect(self()), Version.telemetry_event(), &__MODULE__.forward/4, self())
-    assert {:ok, %FactEvent{}} = Fga.publish()
-
-    assert Fga.publish() == {:ok, :current}
-    assert_receive {:policy_version, %{result: %FactEvent{}}}
-    assert_receive {:policy_version, %{result: :current}}
-  after
-    :telemetry.detach(inspect(self()))
   end
 
   test "a model file that is not there publishes nothing" do
@@ -122,16 +94,9 @@ defmodule Turnstile.Fga.VersionTest do
   test "a configuration naming another adapter publishes nothing under this one", context do
     :ok = Test.with_config(adapter: Turnstile.Test.Fake)
 
-    assert {:error, %Error{reason: :invalid, detail: "invalid model: " <> detail}} = Fga.publish()
-    assert detail == "#{inspect(Turnstile.Test.Fake)} is the configured adapter, not #{inspect(Fga)}"
+    assert {:error, %Error{reason: :invalid, detail: "invalid store: " <> detail}} = Fga.publish()
+    assert detail == "#{inspect(Turnstile.Test.Fake)} is the configured adapter, not this one"
     assert models(context.agent) == []
-  end
-
-  test "in ledger mode none there is nothing to publish into" do
-    :ok = Test.with_config(adapter: Turnstile.Test.Fake, ledger: :none)
-
-    assert {:error, %Error{reason: :unsupported, detail: detail}} = Fga.publish()
-    assert detail == "Turnstile.Fga has nothing to publish into: the configuration names no ledger"
   end
 
   @doc false

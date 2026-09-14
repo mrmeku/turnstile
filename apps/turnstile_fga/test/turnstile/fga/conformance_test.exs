@@ -20,7 +20,6 @@ defmodule Turnstile.Fga.ConformanceTest do
     ]
 
   alias Turnstile.Dev
-  alias Turnstile.FactEvent
   alias Turnstile.Fga
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Client.Http
@@ -47,15 +46,15 @@ defmodule Turnstile.Fga.ConformanceTest do
 
   # A store per test on the run's server, and the model published into it as
   # a policy version, so the id every question is pinned to is the id the
-  # ledger records. The template hands each test the repo of its tier, so the
-  # binding is made per test as well: the markers and the tables the drain
-  # reads are that tier's.
+  # publication answered with. The template hands each test the repo of its
+  # tier, so the binding is made per test as well: the markers and the tables
+  # the drain reads are that tier's.
   setup %{repo: repo} do
     server = Dev.Fga.info()
     {:ok, store} = Http.create_store(server.address, name())
     :ok = Test.with_config(adapter: {Fga, endpoint: server.address, store_id: store})
     :ok = Binding.override(repo: repo, model: @model, mapping: Mapping, author: "conformance", approval: "conformance")
-    assert {:ok, %FactEvent{new: %PolicyVersion{version: model}}} = Fga.publish()
+    assert {:ok, %PolicyVersion{version: model}} = Fga.publish()
     Test.with_config(adapter: {Fga, endpoint: server.address, store_id: store, model_id: model})
   end
 
