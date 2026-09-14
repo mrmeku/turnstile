@@ -15,5 +15,6 @@ defmodule Example.Program do
   end
 
   object_type(:program)
+  audited(:entity)
   fact(:closed_at, kind: :object_attribute, object: :id)
 end

@@ -12,5 +12,6 @@ defmodule Example.Agency do
   end
 
   object_type(:agency)
+  audited(:entity)
   fact(:nationality, kind: :object_attribute, object: :id)
 end

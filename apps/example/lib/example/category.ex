@@ -16,6 +16,7 @@ defmodule Example.Category do
   end
 
   object_type(:category)
+  audited(:entity)
   fact(:specified, kind: :object_attribute, object: :name)
   fact(:implied_controls, kind: :object_attribute, object: :name, element: :control)
 end
