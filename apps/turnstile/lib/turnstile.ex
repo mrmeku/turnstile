@@ -34,8 +34,6 @@ defmodule Turnstile do
       Ledger.Memory,
       PolicyVersion,
       Port,
-      Projection,
-      Projection.Drain,
       Projection.Drift,
       Repo,
       Schema,

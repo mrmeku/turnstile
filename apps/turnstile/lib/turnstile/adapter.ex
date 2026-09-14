@@ -12,8 +12,9 @@ defmodule Turnstile.Adapter do
 
   Three declarations are true of an adapter in any domain: whether it
   requires a ledger, the cap on the number of objects `scope` can return,
-  `:none` where the rule is a query the database runs, and the projection it
-  keeps, `:none` where the working state is the application's own tables.
+  `:none` where the rule is a query the database runs, and whether it has
+  state of its own to settle, which an adapter reading the application's own
+  tables has not.
   """
 
   alias Turnstile.Answer
@@ -65,14 +66,17 @@ defmodule Turnstile.Adapter do
   @callback scope_cap() :: pos_integer() | :none
 
   @doc """
-  The projection the adapter keeps: the module implementing
-  `Turnstile.Projection` and the configuration that module's callbacks take,
-  resolved the way the adapter resolves the rest of its state. `:none` for an
-  adapter that projects nothing, which is what an adapter leaving this
-  callback undefined says. A caller with facts to settle drains this to the
-  ledger's head; `Turnstile.Test.settle/0` is that caller in the suite.
-  """
-  @callback projection() :: {:ok, {module(), struct()}} | :none | {:error, Error.t()}
+  Bring whatever state the adapter keeps of its own into step with the
+  application's tables, and answer when nothing is outstanding. `:none` for
+  an adapter that keeps none, which is what an adapter leaving this callback
+  undefined says. A caller that has written facts and is about to ask about
+  them settles first; `Turnstile.Test.settle/0` is that caller in the suite.
 
-  @optional_callbacks explain: 5, around_query: 3, options_schema: 0, projection: 0
+  Settling is what a caller does in place of waiting. An application in
+  production has a process bringing the same state into step on its own
+  interval, and nothing on the request path calls this.
+  """
+  @callback settle() :: :ok | :none | {:error, Error.t()}
+
+  @optional_callbacks explain: 5, around_query: 3, options_schema: 0, settle: 0
 end

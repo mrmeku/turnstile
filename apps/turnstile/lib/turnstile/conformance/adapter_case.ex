@@ -18,8 +18,7 @@ defmodule Turnstile.Conformance.AdapterCase do
   the seam and, when the adapter keeps state of its own, seeding it through
   the `seed:` module; the shape tests, of ledger mode none for an adapter
   that admits it and of the ledger for one that requires it; the
-  fail-closed case; the revocation-latency template; and the three
-  projection cases.
+  fail-closed case; and the revocation-latency template.
 
   Options:
 
@@ -44,10 +43,7 @@ defmodule Turnstile.Conformance.AdapterCase do
     counted by the shape tests; default 0.
   - `committed:` `[repo: module, owner: module, tables: [name]]`, the
     committed and owner repos and the tables to truncate; the latency case
-    and the projection cases are defined when given.
-  - `projection:` a module implementing `Turnstile.Projection` and
-    `Turnstile.Conformance.Projected`; the module's own `setup` must put
-    its configuration struct under `:projection` in the context.
+    is defined when given.
   """
 
   alias Turnstile.Conformance.AdapterCase.Laws
@@ -66,8 +62,7 @@ defmodule Turnstile.Conformance.AdapterCase do
       seed: Keyword.get(opts, :seed),
       outage: Keyword.get(opts, :outage),
       setup_queries: Keyword.get(opts, :setup_queries, 0),
-      committed: Keyword.get(opts, :committed),
-      projection: Keyword.get(opts, :projection)
+      committed: Keyword.get(opts, :committed)
     }
 
     async = Keyword.get(opts, :async, is_nil(config.committed))
@@ -80,8 +75,7 @@ defmodule Turnstile.Conformance.AdapterCase do
       round_trips(),
       shapes(config),
       fail_closed(config.outage),
-      latency(config.committed),
-      projection(config.committed, config.projection)
+      latency(config.committed)
     ]
   end
 
@@ -289,28 +283,6 @@ defmodule Turnstile.Conformance.AdapterCase do
       @tag :committed
       test "latency: a revocation through the seam to the first denied check, printed and never asserted", context do
         Laws.latency(context)
-      end
-    end
-  end
-
-  defp projection(nil, _projection), do: []
-  defp projection(_committed, nil), do: []
-
-  defp projection(_committed, _projection) do
-    quote do
-      @tag :committed
-      test "projection: one drain covers the head, its lag printed as projector_drain", context do
-        Laws.projection_lag(context)
-      end
-
-      @tag :committed
-      test "projection: a fact written behind the projector's back is drift reconcile reports", context do
-        Laws.projection_drift(context)
-      end
-
-      @tag :committed
-      test "projection: a drain interrupted before its checkpoint advances converges on the next", context do
-        Laws.projection_convergence(context)
       end
     end
   end

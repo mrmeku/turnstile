@@ -10,7 +10,6 @@ defmodule Turnstile.Test do
 
   alias Turnstile.Change
   alias Turnstile.Config
-  alias Turnstile.Projection.Drain
 
   @default_timeout 5_000
   @interval 10
@@ -42,21 +41,20 @@ defmodule Turnstile.Test do
   end
 
   @doc """
-  Drain the configured adapter's projection until it has applied the ledger's
-  head, and answer `:ok`. An adapter that projects nothing has nothing to
-  drain, and the answer is `:none`, so a shared scenario can settle after
-  writing facts without naming an adapter. Raises what the projection or the
-  ledger failed with, since a scenario that cannot settle cannot ask its
-  question.
+  Bring the configured adapter's own state into step with the tables and
+  answer `:ok`. An adapter that keeps no state of its own has nothing to
+  settle, and the answer is `:none`, so a shared scenario can settle after
+  writing facts without naming an adapter. Raises what settling failed with,
+  since a scenario that cannot settle cannot ask its question.
   """
   @spec settle() :: :ok | :none
   def settle do
     {:ok, config} = Config.resolve()
     {adapter, _options} = Config.adapter(config)
 
-    case projection(adapter) do
+    case settled(adapter) do
+      :ok -> :ok
       :none -> :none
-      {:ok, {module, state}} -> drained(module, state, head(config))
       {:error, error} -> raise error
     end
   end
@@ -128,29 +126,11 @@ defmodule Turnstile.Test do
     :ok
   end
 
-  defp projection(adapter) do
-    if Code.ensure_loaded?(adapter) and function_exported?(adapter, :projection, 0) do
-      adapter.projection()
+  defp settled(adapter) do
+    if Code.ensure_loaded?(adapter) and function_exported?(adapter, :settle, 0) do
+      adapter.settle()
     else
       :none
-    end
-  end
-
-  defp head(%Config{ledger: :none}), do: 0
-
-  defp head(%Config{ledger: {module, options}}) do
-    {:ok, head} = module.head(options)
-    head
-  end
-
-  # One drain covers every event the reader answers with, so the loop is for
-  # events appended while it ran; a drain that applied nothing has caught up
-  # even where the head is ahead of the last event the reader can see.
-  defp drained(module, state, head) do
-    case module.drain_once(state) do
-      {:ok, %Drain{to: to, applied: applied}} when to >= head or applied == 0 -> :ok
-      {:ok, %Drain{}} -> drained(module, state, head)
-      {:error, error} -> raise error
     end
   end
 

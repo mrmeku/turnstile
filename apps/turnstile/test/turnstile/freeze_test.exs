@@ -27,21 +27,16 @@ defmodule Turnstile.FreezeTest do
                options_schema: 0,
                requires_ledger: 0,
                scope_cap: 0,
-               projection: 0
+               settle: 0
              )
 
     assert Enum.sort(Turnstile.Adapter.behaviour_info(:optional_callbacks)) ==
-             Enum.sort(explain: 5, around_query: 3, options_schema: 0, projection: 0)
+             Enum.sort(explain: 5, around_query: 3, options_schema: 0, settle: 0)
   end
 
   test "Turnstile.Ledger has the frozen callbacks" do
     assert Enum.sort(Turnstile.Ledger.behaviour_info(:callbacks)) ==
              Enum.sort(append: 2, read: 3, head: 1, options_schema: 0)
-  end
-
-  test "Turnstile.Projection has the frozen callbacks" do
-    assert Enum.sort(Turnstile.Projection.behaviour_info(:callbacks)) ==
-             Enum.sort(checkpoint: 1, drain_once: 1, rebuild: 1, reconcile: 1)
   end
 
   test "the structs have the frozen fields" do

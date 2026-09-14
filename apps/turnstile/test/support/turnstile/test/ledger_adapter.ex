@@ -6,17 +6,17 @@ defmodule Turnstile.Test.LedgerAdapter do
   shape cases for such an adapter have one to run against. Test support
   only.
 
-  The projection it declares is whatever `bind/1` put in the calling
-  process, the way a real adapter resolves its projector from its binding,
-  and `:none` until something does.
+  What settling does is whatever `bind/1` put in the calling process, the way
+  a real adapter reaches its own state through its binding, and `:none` until
+  something does.
   """
 
   @behaviour Turnstile.Adapter
 
-  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Test, Turnstile.Test.Projection]
+  use Boundary, top_level?: true, deps: [Turnstile, Turnstile.Test]
 
+  alias Turnstile.Error
   alias Turnstile.Test.Fake
-  alias Turnstile.Test.Projection
 
   @impl Turnstile.Adapter
   defdelegate options_schema, to: Fake
@@ -43,17 +43,17 @@ defmodule Turnstile.Test.LedgerAdapter do
   defdelegate explain(subject, operation, object, environment, options), to: Fake
 
   @impl Turnstile.Adapter
-  def projection do
+  def settle do
     case Process.get(__MODULE__) do
       nil -> :none
-      %Projection{} = projection -> {:ok, {Projection, projection}}
+      settling -> settling.()
     end
   end
 
-  @doc "The projection this adapter declares for the rest of the calling process."
-  @spec bind(Projection.t()) :: :ok
-  def bind(%Projection{} = projection) do
-    Process.put(__MODULE__, projection)
+  @doc "What settling this adapter does for the rest of the calling process."
+  @spec bind((-> :ok | {:error, Error.t()})) :: :ok
+  def bind(settling) when is_function(settling, 0) do
+    Process.put(__MODULE__, settling)
     :ok
   end
 end

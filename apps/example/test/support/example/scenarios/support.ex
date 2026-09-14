@@ -141,11 +141,11 @@ defmodule Example.Scenarios.Support do
     end
   end
 
-  # An adapter that answers from the tables it is bound to has no projection,
-  # and `Turnstile.Test.settle/0` answers `:none` there, so the line says so
-  # rather than reporting a zero that reads like a measurement.
-  defp drained(nil), do: "projector_drain not needed"
-  defp drained(milliseconds) when is_integer(milliseconds), do: "projector_drain #{milliseconds} ms"
+  # An adapter that answers from the tables it is bound to keeps no state of
+  # its own, and `Turnstile.Test.settle/0` answers `:none` there, so the line
+  # says so rather than reporting a zero that reads like a measurement.
+  defp drained(nil), do: "settle not needed"
+  defp drained(milliseconds) when is_integer(milliseconds), do: "settle #{milliseconds} ms"
 
   # credo:disable-for-next-line Credo.Check.Refactor.IoPuts
   defp report(text), do: IO.puts("\n" <> text)

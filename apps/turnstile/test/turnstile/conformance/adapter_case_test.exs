@@ -12,21 +12,18 @@ defmodule Turnstile.Conformance.AdapterCaseTest do
       owner: Turnstile.TestRepos.Owner,
       tables:
         ~w(turnstile_fixture_memberships turnstile_fixture_items turnstile_fixture_folders turnstile_fixture_accounts)
-    ],
-    projection: Turnstile.Test.Projection
+    ]
 
   alias Ecto.Adapters.SQL
   alias Turnstile.Config
   alias Turnstile.Ledger.Memory
   alias Turnstile.Test.Fake
-  alias Turnstile.Test.Projection
   alias Turnstile.TestRepos.Sandboxed
 
-  setup %{ledger: ledger} do
+  setup do
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})
-    agent = start_supervised!(%{id: Projection, start: {Projection, :start_link, []}})
     :ok = Turnstile.Test.with_config(adapter: {Fake, rules: rules})
-    {:ok, rules: rules, projection: %Projection{agent: agent, ledger: ledger}}
+    {:ok, rules: rules}
   end
 
   test "the setup binds the adapter, a memory ledger, the clock, and a per-test counter row", %{rules: rules} do

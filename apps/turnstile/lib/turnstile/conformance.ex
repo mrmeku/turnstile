@@ -17,7 +17,6 @@ defmodule Turnstile.Conformance do
       Case,
       Gen,
       LedgerCase,
-      Projected,
       RepoCase,
       RepoCase.Rows,
       Scenario,

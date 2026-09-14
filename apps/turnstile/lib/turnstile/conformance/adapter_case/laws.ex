@@ -18,8 +18,6 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   alias Turnstile.Error
   alias Turnstile.FactEvent
   alias Turnstile.Ledger.Fold
-  alias Turnstile.Projection.Drain
-  alias Turnstile.Projection.Drift
   alias Turnstile.Schema
   alias Turnstile.Test.Clock
 
@@ -173,7 +171,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   @spec scoped_all_ledger_shape(context()) :: true
   def scoped_all_ledger_shape(context), do: scoped_all_over_rows(context, & &1.())
 
-  @doc "An adapter that requires a ledger refuses mode none, rather than answer from a projection nothing drains."
+  @doc "An adapter that requires a ledger refuses mode none, rather than answer from state nothing fills."
   @spec mode_none_refused(context()) :: true
   def mode_none_refused(%{case: %{adapter: adapter}}) do
     Turnstile.Test.with_config([ledger: :none], fn ->
@@ -207,8 +205,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     started = System.monotonic_time(:millisecond)
     revoked = module.revoke(repo, world, subject, grantable)
     committed = System.monotonic_time(:millisecond)
-    drain = drain_component(context)
-    seed(context, revoked)
+    drain = drain_component(context, revoked)
     polled = System.monotonic_time(:millisecond)
     assert Turnstile.Test.poll(fn -> not Turnstile.check(subject, operation, object) end)
     finished = System.monotonic_time(:millisecond)
@@ -216,52 +213,11 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     report("""
     revocation latency, #{inspect(adapter)}: total #{finished - started} ms
       commit #{committed - started} ms
-      projector_drain #{drain}
+      settle #{drain}
       poll #{finished - polled} ms, floor #{Turnstile.Test.poll_interval()} ms
       replica_lag not measured
       cache not measured
     """)
-  end
-
-  @doc "One drain from a fresh checkpoint covers the head; its duration is printed as `projector_drain`."
-  @spec projection_lag(context()) :: :ok
-  def projection_lag(%{case: %{projection: projector, world: module}, projection: projection} = context) do
-    populate(context, module.layered())
-    head = head(context)
-    assert head > 0
-    started = System.monotonic_time(:millisecond)
-    assert {:ok, %Drain{from: 0, to: ^head}} = projector.drain_once(projection)
-    finished = System.monotonic_time(:millisecond)
-    assert {:ok, ^head} = projector.checkpoint(projection)
-    report("projector_drain, #{inspect(projector)}: #{finished - started} ms to position #{head}\n")
-  end
-
-  @doc "A fact written into the state behind the projector's back is drift, and a rebuild is clean."
-  @spec projection_drift(context()) :: true
-  def projection_drift(%{case: %{projection: projector, world: module}, projection: projection} = context) do
-    populate(context, module.layered())
-    head = head(context)
-    assert {:ok, %Drain{to: ^head}} = projector.drain_once(projection)
-    assert {:ok, %Drift{missing: [], extra: [], checked_to: ^head}} = projector.reconcile(projection)
-    :ok = projector.disturb(projection)
-    assert {:ok, %Drift{checked_to: ^head} = drift} = projector.reconcile(projection)
-    refute Drift.clean?(drift)
-    assert {:ok, reference} = projector.rebuild(projection)
-    assert is_binary(reference)
-  end
-
-  @doc "A drain that fails after applying part of its batch leaves the checkpoint; the next drain converges."
-  @spec projection_convergence(context()) :: true
-  def projection_convergence(%{case: %{projection: projector, world: module}, projection: projection} = context) do
-    populate(context, module.layered())
-    head = head(context)
-    interrupted = projector.interrupt(projection)
-    assert {:error, %Error{reason: :engine_unreachable}} = projector.drain_once(interrupted)
-    assert {:ok, 0} = projector.checkpoint(projection)
-    assert {:ok, %Drain{from: 0, to: ^head}} = projector.drain_once(projection)
-    assert {:ok, ^head} = projector.checkpoint(projection)
-    assert {:ok, %Drift{} = drift} = projector.reconcile(projection)
-    assert Drift.clean?(drift)
   end
 
   # The measurements are printed, never asserted, and the test logger sits
@@ -383,11 +339,14 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     {rows, queries, decisions(handler)}
   end
 
-  defp drain_component(%{case: %{projection: nil}}), do: "not measured"
+  # What brings the adapter's own state into step after the revocation, and
+  # how long it took. An adapter reading the application's own tables seeds
+  # nothing and has nothing to measure here.
+  defp drain_component(%{case: %{seed: nil}}, _world), do: "not measured"
 
-  defp drain_component(%{case: %{projection: projector}, projection: projection}) do
+  defp drain_component(context, world) do
     started = System.monotonic_time(:millisecond)
-    assert {:ok, %Drain{}} = projector.drain_once(projection)
+    :ok = seed(context, world)
     "#{System.monotonic_time(:millisecond) - started} ms"
   end
 
