@@ -35,7 +35,7 @@ defmodule Turnstile.Credo.NoRawSQLTest do
 
   test "a module under an allowed prefix passes, and a nested module keeps its own name" do
     """
-    defmodule Turnstile.Ledger.Writer do
+    defmodule MyApp.Ledger.Writer do
       def run(repo), do: Ecto.Adapters.SQL.query!(repo, "SELECT 1")
 
       defmodule Inner do
@@ -48,7 +48,7 @@ defmodule Turnstile.Credo.NoRawSQLTest do
     end
     """
     |> to_source_file()
-    |> run_check(NoRawSQL, allow: ["Turnstile.Ledger"])
+    |> run_check(NoRawSQL, allow: ["MyApp.Ledger"])
     |> assert_issue(fn issue -> assert issue.line_no == 10 end)
   end
 
@@ -71,7 +71,7 @@ defmodule Turnstile.Credo.NoRawSQLTest do
     Ecto.Adapters.SQL.query!(repo, "SELECT 1")
     """
     |> to_source_file()
-    |> run_check(NoRawSQL, allow: ["Turnstile.Ledger"])
+    |> run_check(NoRawSQL, allow: ["MyApp.Ledger"])
     |> assert_issue(fn issue -> assert issue.line_no == 1 end)
   end
 

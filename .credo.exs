@@ -130,13 +130,9 @@
           {Credo.Check.Warning.UnusedStringOperation, []},
           {Credo.Check.Warning.UnusedTupleOperation, []},
           {Credo.Check.Warning.WrongTestFilename, []},
-          # Raw SQL bypasses the seam. The ledger writes its own tables, and
-          # the test cluster bootstraps roles and databases, through it.
-          {Turnstile.Credo.NoRawSQL,
-           [
-             files: %{included: ["lib/", "apps/*/lib/"]},
-             allow: ["Turnstile.Ledger", "Turnstile.Test.Cluster"]
-           ]},
+          # Raw SQL bypasses the seam. The test cluster bootstraps roles and
+          # databases through it.
+          {Turnstile.Credo.NoRawSQL, [files: %{included: ["lib/", "apps/*/lib/"]}, allow: ["Turnstile.Test.Cluster"]]},
           {Turnstile.Credo.UnmediatedRepo, []}
         ],
         disabled: [
