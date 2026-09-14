@@ -22,7 +22,7 @@ defmodule ExampleFga do
     exports: [Application, Guard, TupleMapping]
 
   @author "example_fga"
-  @approval "docs/reference.md §13, as the model under review"
+  @approval "docs/reference.md §12, as the model under review"
   @model "priv/fga/model.fga"
 
   @doc "Who wrote the rules, as the record of a policy version carries it."

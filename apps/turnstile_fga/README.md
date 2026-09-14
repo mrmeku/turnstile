@@ -1,6 +1,6 @@
 # Turnstile on OpenFGA
 
-The adapter whose working state is a relationship graph in a store of its own: `Turnstile.Fga`. The server is OpenFGA 1.19.0, pinned in the flake (`docs/reference.md` §12), self-hosted with a datastore of its own. Facts become tuples in a store, rules become a model that is immutable and named by an id, and a decision is a question about the graph under that model.
+The adapter whose working state is a relationship graph in a store of its own: `Turnstile.Fga`. The server is OpenFGA 1.19.0, pinned in the flake (`docs/reference.md` §11), self-hosted with a datastore of its own. Facts become tuples in a store, rules become a model that is immutable and named by an id, and a decision is a question about the graph under that model.
 
 The one structural difference from the adapters whose state is the application's tables: this one keeps a copy. The record is the application's own tables, and a drain is what keeps the copy in step with them.
 

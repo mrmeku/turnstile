@@ -1,5 +1,6 @@
-# Turnstile: reference notes for plan v9
-*Tables, numbers, and mechanics the plan cites by section. Nothing here is a decision the plan does not already make; this is where the plan's decisions are spelled out at implementation grain. Section numbers are the plan's; §3a and §15 are the newest. Each section moves into the docs of the package that owns it as that package appears. ⟨verify⟩ marks a claim to check against the standard cited or the pinned Ecto before relying on it.*
+# Turnstile: reference notes
+
+*Tables, numbers, and mechanics at implementation grain. Nothing here is a decision `PLAN.md` does not already make; this is where those decisions are spelled out against the code. The section numbers are this document's own, and the documents and modules that cite them cite these. ⟨verify⟩ marks a claim to check against the standard cited or against the pinned Ecto before relying on it.*
 
 ## §1 Requirement groups, controls, and scenario ids
 
@@ -47,7 +48,7 @@ Two read operations on a document. `read` is the whole document under the banner
 
 ## §3 Rules and mechanisms
 
-The rules move to the example's glossary as `turnstile_example` appears.
+The thirteen rules of the example's domain, as a person wrote them. `apps/example/glossary.md` defines the words they use.
 
 | Rule | Statement |
 |---|---|
@@ -65,48 +66,13 @@ The rules move to the example's glossary as `turnstile_example` appears.
 | **C12 Revocation clock** | A revoked fact is enforced within the configured maximum delay. The measured latency is recorded beside the configured maximum; no test asserts it. |
 | **C13 Scope fidelity** | `scope` returns exactly the rows for which `check` is true, for Documents and for Portions. |
 
-**Mechanism per rule per adapter.** The source of each cell is the thin app's capability declaration (`example_<adapter>`, the function clauses below); this table is what the plan expects each thin app to declare, so a declaration that differs from it is a finding for the stage that wrote it. A level in parentheses is `native` unless written.
+**What enforces each rule.** Each thin application's README carries a table of the rules against what enforces each of them under that binding: the engine, the seam, the adapter, or the application's own code. That table is prose a person writes and keeps, and no code reads it. What a test carries instead is its tags. The `scenario` macro tags each test with its scenario id, the rule it tests, and the controls §3a cites for that id, so a control id is written once, in §3a, and the tags are what a run reports from.
 
-| Rule | `example_rbac` | `example_postgres` | `example_cerbos` | `example_fga` |
-|---|---|---|---|---|
-| C1 | predicate with subqueries over Assignment and OfficeRole in the `dynamic` | `USING` policy on `documents` with `EXISTS` subqueries over `assignments` and `office_roles` against `current_setting('turnstile.subject_id')` | policy condition over the declared attributes `program_roles` and `office_roles`, both subqueries selecting the role held over the row | `lawful_purpose` relation |
-| C2 | one predicate per control, conjoined | the same policy's predicate over the marking tables, reading `employment` and `nationality` from `users` at every call | one policy rule per control over sent subject attributes | `can_read: lawful_purpose but not blocked` |
-| C3 | implied controls read from `categories` in a subquery | the policy joins `categories` | `check` and `scope` over the attribute `effective_controls`, a subquery that derives declared ∪ implied outside the policy (limited) | `fedonly_applies from category` and the other flags, nothing copied |
-| C4 | the banner kept in `Example.Documents` at write time; a `read` on `Portion` for the redacted read | the banner in the domain; the second policy on `portions`, which reads the document's program, office, and decontrol through `SECURITY DEFINER` accessors so the document's own policy does not narrow it | the banner in the domain; the `portion` resource kind, whose decontrol is the document's and so is tested inside its subqueries (limited) | the banner in the domain; `from portion` on the document's flags, the `portion` type for the redacted read |
-| C5 | the port's clock compared in the predicate | `current_setting('turnstile.now')` set by `around_query/3` | `now` sent as a request attribute from the port's clock | the `before_decontrol` condition with `current_time` in the check context |
-| C6 | membership of the marking's list in a subquery | the policy over the marking's `list` column | the attribute `listed`, a subquery | `listed` with the `list_applies` flag |
-| C7 | the seam refuses the write without a `change_marking` decision; the predicate tests the OfficeRole (by the seam) | `WITH CHECK` policy on `documents` and `markings` requiring a designator row; the refusal needs no application code, printed as a defense-in-depth note (by the database) | the `change_marking` action's policy requires `designator`; the write is gated by the seam (by the seam) | `can_change_marking`; the write is gated by the seam (by the seam) |
-| C8 | the adapter reads `reauthenticated_at` from the environment before the rules (by the adapter) | `current_setting('turnstile.reauthenticated_at')` inside the `WITH CHECK` predicate | sent as a request attribute; the policy compares it with the window | the adapter checks it from the environment before calling the server (by the adapter) |
-| C9 | a predicate requiring the approver and the proposer to differ | `WITH CHECK` on `marking_proposals` comparing `proposer_id` with the subject setting | policy condition over `proposal.proposer_id` | `can_approve_marking: approver from office but not proposer` |
-| C10 | the privileged path in `Example.Documents.override_read/3`: permission, justification, event, report (by application code) | the read runs under a declared exemption, which the exempt policy of the application role admits; permission, justification, event, and report in application code (by application code) | an `override` action for the `privileged` principal kind; justification, event, and report in application code (by application code) | `can_override`; justification, event, and report in application code (by application code) |
-| C11 | predicates read the tables at every check | policies evaluate at execution | facts are sent with each request | every `Check` walks current tuples, up to the projector's lag |
-| C12 | measured; evidence, never a level (§4) | measured | measured | measured, drain included |
-| C13 | the `dynamic` is the rule | row-level security is the rule; `scope` returns `true` | the query plan compiled to a `dynamic`; an expression the compiler does not carry fails closed (limited) | `ListObjects` under the cap; `filter` per page above it (limited) |
-
-Where the adapters differ on these. Write gates without application code: Postgres only, a C7-violating marking change is refused by the database whether or not the application asked; this is not a rule, it is a defense-in-depth property of Postgres. Rules owned by non-developers, versioned and tested as their own artifact: Cerbos only. Explanation: Cerbos names the matched rule, code names the clause, OpenFGA returns the path from `Expand`, Postgres names nothing. Derived markings (C3, and C4 through portions): Cerbos plans over the attributes it is sent alone, so the derivation lives in the subquery a declaration names rather than in the policy, and the thin app records limited; nothing is materialized; OpenFGA walks them as tuple-to-userset with nothing copied. Request-time facts (C5, C8): native everywhere, Postgres threads them through session settings, OpenFGA takes C5 as a tuple condition with the time in the check context and takes C8 in the adapter, from the environment, before the call. OpenFGA alone: C9 is `approver from office but not proposer`; `scope` is `ListObjects`, capped, declared limited. The model and the tuple mapping are in §13.
-
-**Capability levels and records**. Three levels: `native`, `limited`, `unsupported`. A rule enforced by another component of the same stack (C7 by the seam under RBAC, Cerbos, and OpenFGA; C8 by the adapter under OpenFGA) is `native` with the enforcing component named. Only `unsupported` skips a scenario; `limited` carries its note in the test's tags. The record is `{level, by: component, note: String.t()}` where `component` is one of `:adapter`, `:seam`, `:database`, `:engine`, `:application`. A thin app's declaration is one function clause per record plus a fallback, never a map lookup:
-
-```elixir
-defmodule ExampleCerbos.Capabilities do
-  @behaviour Turnstile.Capabilities
-
-  @impl true
-  def capability(:c3), do: {:limited, by: :engine, note: "the implied controls are derived in the subquery the declaration names"}
-  def capability(:c4), do: {:limited, by: :engine, note: "a portion's decontrol is its document's, so the controlled test is in the subquery"}
-  def capability(:c7), do: {:native, by: :seam, note: "the write is refused by the seam before the policy is asked"}
-  def capability(:c10), do: {:native, by: :application, note: "permission, justification, event, and report in code"}
-  def capability(:c12), do: {:native, by: :adapter, note: "the latency is measured and recorded, never asserted"}
-  def capability(:c13), do: {:limited, by: :engine, note: "scope holds where the plan compiles, and any other expression fails closed"}
-  def capability(_rule), do: {:native, by: :engine, note: ""}
-end
-```
-
-Tier 2 runs once per thin app; the count test (`docs/testing.md` §6) checks every skip against this declaration.
+**Where the adapters differ.** Write gates without application code: Postgres only, where a C7-violating marking change is refused by the database whether or not the application asked. That is a property of Postgres rather than a rule, and no scenario tests it. Rules owned by non-developers, versioned and tested as their own artifact: Cerbos only. Explanation: Cerbos names the matched rule, code names the clause, OpenFGA returns the path from `Expand`, and Postgres answers a verdict with an empty match list. Derived markings, which are C3 and C4 through portions: Cerbos plans over the attributes it is sent alone, so the derivation lives in the subquery a declaration names rather than in the policy, and nothing is materialized; OpenFGA walks them as tuple-to-userset, also with nothing copied. Request-time facts, which are C5 and C8: every adapter answers them, Postgres threads them through session settings, and OpenFGA takes C5 as a tuple condition with the moment in the check context and C8 in the adapter, from the environment, before the call. OpenFGA alone: C9 is `approver from office but not proposer`, and `scope` is `ListObjects` under a cap. The model and the tuple mapping are §12.
 
 ## §3a Tier 2 scenarios
 
-Frozen at S1 with the contracts. Every row is a test in `Example.Scenarios` whose name is the sentence, declared with the `scenario/4` macro (`scenario "enf-01", "<sentence>", control: [...], rule: :c1 do ... end`, §14), run by each thin app. "Tests" names the C-rule, or the guarantee where the scenario tests the port or seam in the domain's words. Beyond-baseline citations are marked with an asterisk.
+Frozen with the contracts, and the freeze test in `turnstile` reads this table and holds `Turnstile.Conformance.Scenarios` to it row for row. Every row is a test in `Example.Scenarios` whose name is the sentence, written with the `scenario` macro (`scenario "enf-01", "<sentence>", rule: :c1 do ... end`, §13), and run by each of the four thin applications. "Tests" names the C-rule, or the guarantee where the scenario tests the port or the seam in the domain's words. Beyond-baseline citations are marked with an asterisk.
 
 | Id | Sentence | Group | Controls cited | Tests |
 |---|---|---|---|---|
@@ -170,19 +136,19 @@ Frozen at S1 with the contracts. Every row is a test in `Example.Scenarios` whos
 
 No scenario tests "write gates without application code"; it is not a rule.
 
-## §4 Adapters: comparison, declarations, notes, latency
+## §4 Adapters: comparison, declarations, notes
 
 | Adapter | Package | Enforcement | Explains | Revocation latency components | Rules live in | Boundary cost |
 |---|---|---|---|---|---|---|
-| RBAC in code | `turnstile_rbac` | the application's discipline, backed by the seam | the clause | commit | Elixir modules; a deploy is a policy version | none |
-| Postgres row-level security | `turnstile_postgres` | the database; write gates need no application code (a printed note, not a rule) | verdict only | commit | migrations; a migration is a policy version | none new |
-| Cerbos | `turnstile_cerbos` | the application's discipline; policies versioned and tested as their own artifact | verdict and matched rule | commit for facts; policy propagation (the poll interval) for rules | policy files; a policy owner | one sidecar |
-| OpenFGA | `turnstile_fga` | the application's discipline, backed by the seam; the graph decides | the path (`Expand`) | commit, projector drain, engine write, check-cache TTL for facts; model publication for rules | a model file in a repository, published as an immutable model id; tuples projected from the ledger | a server and a datastore: two inventory items, one engine if the datastore shares the application's Postgres instance |
+| Roles in code | `turnstile_rbac` | the application's discipline, backed by the seam | the clause | commit | Elixir modules; a deploy is a policy version | none |
+| Postgres row-level security | `turnstile_postgres` | the database; write gates need no application code | a verdict, with an empty match list | commit | migrations; a migration is a policy version | none new |
+| Cerbos | `turnstile_cerbos` | the application's discipline; policies versioned and tested as their own artifact | the matched rule | commit for facts; the sidecar's policy poll interval for rules | policy files; a policy owner | one sidecar |
+| OpenFGA | `turnstile_fga` | the application's discipline, backed by the seam; the graph decides | the path from `Expand` | commit, the relay pass, the engine write, and the check-cache TTL for facts; model publication for rules | a model file, published as an immutable model id; tuples the outbox keeps in step | a server and a datastore: two inventory items, one engine where the datastore shares the application's Postgres instance |
 
-**Declarations, in two places**. An adapter package declares only what is true of it in any domain: `requires_ledger` (boolean), `scope_cap` (an integer or `:none`), and its projection, the module implementing `Turnstile.Projection` and the configuration that module takes, or `:none` for an adapter whose working state is the application's own tables. It also carries what Tier 1's neutral fixture needs on its mechanism (§14). The thin app declares the capability per rule, C1 to C13, as §3's function clauses, and, in its README, the translation table from the domain's words to the adapter's. Measured revocation latency is in neither declaration; it is evidence (below).
+**What an adapter declares.** Two things, and both are true of the adapter in any domain, so both are callbacks of `Turnstile.Adapter` rather than a table someone keeps: `scope_cap/0`, the cap on the number of objects `scope` can return, `:none` where the rule is a query the database runs; and `settle/0`, whether the adapter has state of its own to settle before a test reads it. `options_schema/0` says what options the adapter takes, validated at boot. Nothing else is declared. What holds a rule under one binding is that thin application's README, and what a scenario tests is its tags.
 
-- **Postgres.** The application role must not own the tables, or row-level security is bypassed, and it carries `NOBYPASSRLS`; `FORCE ROW LEVEL SECURITY` on every protected table. Forcing it applies the policies to the owner as well, so the migrations give the owner role a `SELECT` policy on every protected table, which is what reconcile, genesis, and the accessor functions read through. Session settings are set inside `around_query/3`: the adapter opens a transaction where none is open, one per call, and runs `set_config(name, value, true)` for `turnstile.subject_id`, `turnstile.subject_kind`, `turnstile.operation`, `turnstile.now`, and one name per fact the caller supplied, such as `turnstile.reauthenticated_at`, so two subjects in one transaction each set their own; policies read them with `current_setting(name, true)`. Where the transaction was already open when the call arrived, the adapter puts the names it set back to the empty string as the call returns, so a query the seam admits outside a decision is not read under the settings of the last one. `check` for a write operation is a `SELECT` of the update policy's `USING` predicate, read from `pg_policy` at boot and cached per policy version, run against the target row under those settings; `authorize(subject, :change_marking, document)` answers before the write this way, and the write itself is then refused or admitted by `WITH CHECK`. A thin application that writes `USING (true)` on a gate moves the whole decision into `WITH CHECK`, so a write no one asked about raises instead of matching no row, and the `SELECT` policy of the operation is what narrows the answer. An RLS `scope` decision record carries rule `true`, the migration number as policy version, and a hash of the session settings in force (§7). The policy expressions are read back from `pg_policy` for the policy-version event. The `replica_lag` component prints "not measured": v9 configures no replica. Portions: a second policy on `portions`. Replay for this adapter means state and policies in a scratch database. The per-rule table is `example_postgres`'s (§3).
-- **Cerbos.** Facts arrive with each request, so their latency is one request; rules arrive on the sidecar's policy poll interval, which is the latency for policy changes, measured from a policy publish. A sidecar picking a version up is measured as propagation latency, not ledgered. The sidecar's decision logs are reconciled with the port's decision events; any difference is a drift scenario. Its `version` field on a policy runs variants side by side and is not history; history is the policy repository's commit. An attribute declaration maps a Cerbos attribute name to a column or to a subquery, and the query plan is compiled to a `dynamic` over declared attributes only; a plan over an attribute declared as a subquery becomes `in subquery(...)`, and a plan the compiler cannot express falls back to `filter` with the thin app recording limited:
+- **Postgres.** The application role must not own the tables, or row-level security is bypassed, and it carries `NOBYPASSRLS`; `FORCE ROW LEVEL SECURITY` is on every protected table. Forcing it applies the policies to the owner as well, so the migrations give the owner role a `SELECT` policy on every protected table, which is what the reconcile and the accessor functions read through. Session settings are set inside `around_query/3`: the adapter opens a transaction where none is open, one per call, and runs `set_config(name, value, true)` for `turnstile.subject_id`, `turnstile.subject_kind`, `turnstile.operation`, `turnstile.now`, and one name per fact the caller supplied, such as `turnstile.reauthenticated_at`, so two subjects in one transaction each set their own; policies read them with `current_setting(name, true)`. Where the transaction was already open when the call arrived, the adapter puts the names it set back to the empty string as the call returns, so a query the seam admits outside a decision is not read under the settings of the last one. `check` for a write operation is a `SELECT` of the update policy's `USING` predicate, read from `pg_policy` at boot and cached per policy version, run against the target row under those settings; `authorize(subject, :change_marking, document, env)` answers before the write this way, and the write itself is then refused or admitted by `WITH CHECK`. A thin application that writes `USING (true)` on a gate moves the whole decision into `WITH CHECK`, so a write no one asked about raises instead of matching no row, and the `SELECT` policy of the operation is what narrows the answer. The policy expressions are read back from `pg_policy` for the policy-version event. Portions are a second policy on the `portions` table. The rules per binding are `example_postgres`'s README.
+- **Cerbos.** Facts arrive with each request, so their latency is one request; rules arrive on the sidecar's policy poll interval, which is the latency for a policy change, measured from a publish. The sidecar's decision logs are reconciled with the port's decision events, and any difference is a drift scenario. Its `version` field on a policy runs variants side by side and is not history; history is the policy repository's commit. An attribute declaration maps a Cerbos attribute name to a column or to a subquery, and the query plan is compiled to a `dynamic` over declared attributes only; a plan over an attribute declared as a subquery becomes `in subquery(...)`, and a plan the compiler cannot express falls back to `filter`:
 
   ```elixir
   attribute :nationality, column: :nationality
@@ -191,36 +157,40 @@ No scenario tests "write gates without application code"; it is not a rule.
   attribute :effective_controls, subquery: &Example.Markings.effective_controls_for/1
   ```
 
-  Portions are a `portion` resource kind with its own policy. Replay is the cheapest of the four: fold facts to the date, check out the policies at the commit, start a throwaway sidecar.
-- **RBAC in code.** The role→permission table is declared data; attribute predicates are functions in the same modules. Portions get a `read` operation of their own. The boot-time policy-version append runs inside a transaction that takes the counter row (§9), so it cannot race across nodes; in ledger mode none it emits telemetry only. Replay of the predicates needs the commit, so replay of RBAC rules depends on the repository's retention.
-- **OpenFGA.** Requires a ledger. The adapter talks to the server only through the `Turnstile.Fga.Client` behaviour, and an `Agent`-backed fake client in test support is built first (§13). The projector drains fact events from the ledger's reader from a checkpoint, applies the tuple mapping, and writes in batches (default `maxTuplesPerWrite` 100 on the pinned server, counting the deletes and the writes of one call together); it advances its checkpoint in the application's database after every acknowledged `Write` call; the drain computes, per touched object, the difference between the tuples the fold requires and what `Read` returns, writes only that difference, and tolerates no errors, so a re-drain after a crash converges (a Tier 1 case on the committed repo). `rebuild/1` takes the projector's configuration, creates a store, publishes the pinned model, folds from position zero into it, and returns the new store id; serving continues from the old store until the application swaps `store_id` in config, a dated configuration change; minutes for a million facts, beside the serving store, then a swap. Reconcile compares the fold with `Read`, paged by type; cost is proportional to tuples, so the interval is longer. `Check` pins the model id and sets `consistency` per operation: `HIGHER_CONSISTENCY` under C7 to C10, `MINIMIZE_LATENCY` allowed for reads, a constant of the adapter; the check cache, if enabled, adds its TTL to latency. `ListObjects` has a result cap of 1,000, a constant of the adapter and deadline on the order of a thousand ⟨verify⟩; above it the seam falls back to `filter` per page with `BatchCheck`. Self-hosted means the open-source server; a hosted FGA is a hosted engine and inadmissible. Portions are a `portion` type with a `document` parent. Replay: fold to the date, write the tuples into a throwaway server with the in-memory datastore, pin the model in force then (models are immutable and kept) and `Check`.
+  Portions are a `portion` resource kind with a policy of its own.
+- **Roles in code.** The role to permission table is declared data, and attribute predicates are functions in the same modules. Portions get a `read` operation of their own. Publishing a version emits telemetry and writes nothing, because there is no artifact to write: the rules are the modules the release carries.
+- **OpenFGA.** The adapter talks to the server only through the `Turnstile.Fga.Client` behaviour, and an `Agent`-backed fake in test support answers it without a server. The store is a copy of what the tables say, kept in step by the outbox and the relay (§9) rather than by a fold of history. `Check` pins the model id and sets `consistency` per operation: `HIGHER_CONSISTENCY` under C7 to C10, `MINIMIZE_LATENCY` allowed for reads, which is a constant of the adapter; a check cache, where one is enabled, adds its TTL to latency. `ListObjects` has a result cap of 1,000, a constant of the adapter, and a deadline on the order of a thousand milliseconds ⟨verify⟩; above the cap the port falls back to `filter` per page with `BatchCheck`. Self-hosted means the open-source server; a hosted FGA is a hosted engine and inadmissible. Portions are a `portion` type with a `document` parent. The adapter is §12.
 
-**Revocation latency as evidence**. One Tier 1 case per adapter, `@tag :committed`, from the template in core. It writes a revoking fact through the seam on the committed repo, reads `System.monotonic_time(:millisecond)` when the transaction returns, polls the port with `Turnstile.Test.poll/2` until the first denied check, and reads the clock again. The number and its components are printed to the log, with the poll interval as the measurement's floor. Components: `commit` (every adapter, the elapsed time above); `projector_drain` (`turnstile_fga`, from the revoking event's position to the checkpoint advance that covers it); `policy_propagation` (`turnstile_cerbos`, from a policy publish to the first denial under the new policy); `replica_lag` and `cache` (printed "not measured", since v9 configures neither a replica nor a cache). The total is what a reader compares with the FedRAMP-assigned PS-4 value ⟨verify⟩; nothing asserts it.
+**Revocation latency as evidence.** Scenario `rev-01` writes a revoking fact through the seam, settles the adapter through `Turnstile.Test.settle/0`, and checks again. The measured milliseconds and the adapter's components are printed beside the run, and nothing asserts them: rule C12 asks for the number to be recorded, not bounded. An adapter that answers from the tables it is bound to has no state to settle, so `settle/0` answers `:none` and the line says the settle was not needed rather than reporting a zero that reads like a measurement. `rev-06` is the same shape over a rule change rather than a fact change, where the component is the sidecar's propagation for Cerbos and a model publication for OpenFGA.
 
-## §5 Policy-version events
+## §5 Policy versions
 
-A policy version is the fourth fact kind, `%Turnstile.FactEvent{kind: :policy_version}`. Its payload: `subject_ref` is `nil`; `object_ref` is `{:policy, adapter}`; `attribute` is `:version`; `old` is the previous version identifier or `nil`; `new` is `%Turnstile.PolicyVersion{adapter, version, content_hash, content, pointer, author, approval, at}`, where `content` is the text by value only when it is under `caps[:policy_content_bytes]` (64 KB default) and `pointer` names the store it lives in otherwise. Decision records carry the version identifier and never content. One event per version, never per node, boot, or sidecar.
+A policy version is `%Turnstile.PolicyVersion{adapter, version, content_hash, content, pointer, author, approval, at}`. `content` is the text by value only where it is under `caps[:policy_content_bytes]`, 64 KB by default, and `pointer` names the store it lives in otherwise. Each adapter publishes one telemetry event when a version is deployed, and the library stores nothing: whoever keeps a record of what was deployed attaches a handler. A decision event carries the version identifier and never the content.
 
-| Adapter | Version | Appended by | Carries | Getting an old version back |
+| Adapter | Event | Version | Published by | Carries |
 |---|---|---|---|---|
-| RBAC in code | the commit or release | the application at boot, inside a transaction that takes the counter row, only when the ledger head names an older version; telemetry only in mode none | commit, hash of the rule modules, the role→permission table as data when under the cap | check out the commit; run that release's port |
-| Postgres | the migration number | the migration, in the same transaction as its DDL | `USING` and `WITH CHECK` expressions read from `pg_policy`, self-contained | apply that migration's policies to a scratch database |
-| Cerbos | the policy repository's commit | the policy repository's CI on merge | commit, hash of the files, the files when under the cap | a throwaway sidecar over the files at that commit |
-| OpenFGA | the model id the server returns on publish, with the model repository's commit | the model repository's CI on publish | model id, commit, hash of the model file, the DSL text when under the cap | pin the model id (models are immutable and kept) over tuples folded to the date in a throwaway server |
+| Roles in code | `[:turnstile, :code, :policy_version]` | the commit or release | the application at boot | the commit, a hash of the rule modules, and the role to permission table as data where it is under the cap |
+| Postgres | `[:turnstile, :postgres, :policy_version]` | the migration number | the migration, in the same transaction as its DDL | the `USING` and `WITH CHECK` expressions read back from `pg_policy` |
+| Cerbos | `[:turnstile, :cerbos, :policy_version]` | the policy repository's commit | the policy repository's CI on merge | the commit, a hash of the files, and the files where they are under the cap |
+| OpenFGA | `[:turnstile, :fga, :policy_version]` | the model id the server returns on publish | the model repository's CI on publish | the model id, the commit, a hash of the model file, and the DSL text where it is under the cap |
 
-## §6 The Repo seam: surface, matching, exemptions, mechanics, checks
+The metadata of each event is `%{version: %Turnstile.PolicyVersion{}}`. Scenarios `cm-01` to `cm-03` read the event a binding names through `Example.Scenarios.Rules.version_event/0`, which is what keeps an adapter's name out of the scenario bodies.
 
-`use Turnstile.Repo` after `use Ecto.Repo`; the macro raises at compile time if the order is wrong. The failure mode to defend against is silent: a function core forgot to wrap runs unmediated.
+## §6 The Repo seam
 
-**Classification** (`Turnstile.Repo.Surface`), every `Ecto.Repo` function in exactly one bucket:
-- *query*: mediated through `prepare_query/3`: `all`, `all_by`, `one`, `get`, `get_by`, `reload`, `aggregate/3` and `/4`, `exists?`, `stream`, `preload`, `update_all`, `delete_all`, and the raising variant of each.
-- *write*: overridden: `insert`, `update`, `delete`, `insert_or_update`, `insert_all`, the raising variant of each, and every one of them called with `on_conflict:`, which is an upsert; an upsert on a fact schema is refused.
-- *raw*: wrapped to demand an exemption: `query`, `query_many`, and the raising variant of each.
-- *plumbing*: touches no rows: `transaction`, `transact`, `rollback`, `in_transaction?`, `checkout`, `checked_out?`, `config`, `start_link`, `stop`, `child_spec`, `load`, `get_dynamic_repo`, `put_dynamic_repo`, `default_options`, `prepare_query`, `prepare_transaction`, `to_sql`, `explain`, `disconnect_all`, `__adapter__`, and the seam's own `__turnstile__`, which answers the repo's role.
+`use Turnstile.Repo` after `use Ecto.Repo`; the macro raises at compile time where the order is wrong. The failure mode to defend against is silent: a function a core forgot to wrap runs unmediated.
 
-**Matching**. A schema is protected iff it declares an object type. Three rules decide which decision applies to which query:
+**Classification** (`Turnstile.Core.Surface`), every `Ecto.Repo` function in exactly one bucket, written against Ecto 3.14 and `ecto_sql` 3.14:
+
+- *query*, mediated through `prepare_query/3`: `all`, `all_by`, `one`, `get`, `get_by`, `reload`, `aggregate`, `exists?`, `stream`, `preload`, `update_all`, `delete_all`, and the raising variant of each.
+- *write*, overridden: `insert`, `update`, `delete`, `insert_or_update`, `insert_all`, and the raising variant of each. Any of them called with `on_conflict:` is an upsert, and an upsert on an audited schema is refused.
+- *raw*, wrapped to demand an exemption: `query`, `query_many`, and the raising variant of each.
+- *plumbing*, touching no rows: `transaction`, `transact`, `rollback`, `in_transaction?`, `checkout`, `checked_out?`, `config`, `start_link`, `stop`, `child_spec`, `load`, `get_dynamic_repo`, `put_dynamic_repo`, `default_options`, `prepare_query`, `prepare_transaction`, `to_sql`, `explain`, `disconnect_all`, `__adapter__`, and the seam's own `__turnstile__`, which answers the repo's role.
+
+**Matching** (`Turnstile.Core.Matching`). A schema is protected if and only if it declares an object type. Three rules decide which decision applies to which query:
+
 1. The seam judges a query by its root source. A query whose root source is a protected schema and whose decision names a different object type is refused.
-2. A preload or association query needs its own decision unless the parent schema declares the association as a carried relation; a nested association write of another protected schema is refused unless that association is carried.
+2. A preload or association query needs a decision of its own unless the parent schema declares the association as carried; a nested association write of another protected schema is refused unless that association is carried.
 3. A multi-source query is judged by its root source, and every other protected source in it must be carried by the root.
 
 Queries on unprotected schemas pass without a decision. The declarations sit in the schema module beside the fact mapping, from the same macro:
@@ -230,176 +200,172 @@ defmodule Example.Document do
   use Ecto.Schema
   use Turnstile.Schema
 
-  object_type :document
-  carries [:program, :designating_office, :marking]
+  object_type(:document)
+  carries([:program, :designating_office, :marking, :proposals])
+  audited(:entity)
   # portions is not carried: the redacted read supplies a Portion decision (§2)
-  ...
 end
 ```
 
-**Exemptions**. Two kinds, one struct: `%Turnstile.Exemption{on: schema | table, caller: module | :any, reason: String.t(), kind: :declared | :library}`.
-- Per call: `turnstile: {:exempt, reason}` with a non-empty reason; recorded as `%Turnstile.Exemption{on: root source, caller: the calling module, kind: :declared}`.
-- Library: `turnstile: {:exempt, :library}`, accepted only from `Turnstile.*` callers (the seam checks the caller module), set by library code for the ledger's events and counter tables, the projector checkpoint, genesis, and the owner-role repo.
+**Exemptions.** Two kinds, one struct: `%Turnstile.Exemption{on: schema | table | nil, caller: module | :any, reason: String.t(), kind: :declared | :library}`, where `on` is `nil` for raw SQL.
 
-Under the matching rule, `schema_migrations`, `oban_jobs`, and other framework tables declare no object type and pass; they need no exemption. Each exemption is recorded on the call's span with its reason.
+- Per call: `turnstile: {:exempt, reason}` with a non-empty reason, recorded with the root source, the calling module, and kind `:declared`.
+- Library: `turnstile: {:exempt, :library}`, accepted from `Turnstile.*` callers alone, which the seam checks by reading the caller module off the stack. The outbox's markers, the relay's cursor, and the owner-role repo travel this way.
 
-**The owner-role repo**. Reconcile, genesis, the catalog check (§10), and test truncation run through the application's second Repo module, `use Turnstile.Repo, role: :owner`, named as `owner_repo` in the ledger tuple of `%Turnstile.Config{}` (§15). The `UnmediatedRepo` check accepts it, and the seam treats every call on it as library-exempt. Under Postgres it connects as the role that owns the tables, and the migrations give that role a `SELECT` policy on every protected table, so its reads are unfiltered while its writes still meet the write gates.
+A nested call Ecto makes on the caller's behalf reuses the mediation of the call it is inside, because Ecto hands a nested association write only a few of the parent's options and `turnstile:` is not among them. `schema_migrations`, `oban_jobs`, and other framework tables declare no object type and pass under the matching rule; they need no exemption.
 
-**Four extension points** for an adapter, all optional: `prepare_query/3`, which core defines and an adapter's rewrite runs inside; the write overrides; the raw wrap; and `around_query(query_or_changeset, decision, fun)`, which the seam calls for every mediated query and write, receiving the query or changeset, the decision in force, and a zero-arity function that runs the call. `turnstile_postgres` uses the fourth to open a transaction when none is open and to run `set_config/3` for the subject's session settings on every call (§4).
+**The owner-role repo.** `use Turnstile.Repo, role: :owner` is the library's own channel. It runs migrations, it records nothing, and the seam treats every call on it as library-exempt. `Turnstile.Credo.UnmediatedRepo` accepts it. Under Postgres it connects as the role that owns the tables, and the migrations give that role a `SELECT` policy on every protected table, so its reads are unfiltered while its writes still meet the write gates.
 
-**The surface list and its proof**. The overrides and core's `prepare_query/3` are defined in a `@before_compile` hook with `defoverridable` and `super`, so they wrap whatever the application or adapter defined; an application's own tenancy `prepare_query` runs inside ours; overrides redeclare the default argument (`opts \\ []`) so every arity routes through them. The classification is a plain list in `Turnstile.Repo.Surface`, one entry per name and arity, the shorter arities default arguments generate included. Its proof is one Tier 1 test, `Turnstile.Conformance.RepoCase` (`use Turnstile.Conformance.RepoCase, repo: Example.Repo`), shipped so a thin app or an adopter runs it against its own Repo: it diffs the list against the Repo's exported functions, where an export outside the list fails with the function's name and arity and a Repo exporting a subset of the list passes (`read_only: true` drops the write bucket); then it calls each exported non-plumbing function with a fixture and no decision and asserts `Turnstile.Error`. Core pins `ecto` to the minor range the list was written against. ⟨verify⟩ hook ordering against the adapter's own `@before_compile` on the pinned Ecto: the same test asserts that `query/3` refuses without an exemption.
+**Four extension points** for an adapter, all optional: `prepare_query/3`, which the seam defines and an adapter's rewrite runs inside; the write overrides; the raw wrap; and `around_query/3`, which the seam calls for every mediated query and write, handing it the query or changeset, the decision in force, and a zero-arity function that runs the call. `turnstile_postgres` uses the fourth to open a transaction where none is open and to run `set_config/3` for the subject's session settings on every call (§4).
 
-**Refusal**. Refusal raises `%Turnstile.Error{reason: :unmediated}`, carrying the function, the root source, the decision's object type if any, and the caller. There is no mode that logs instead of raising.
+**The surface list and its proof.** The overrides and the seam's `prepare_query/3` are defined in a `@before_compile` hook with `defoverridable` and `super`, so they wrap whatever the application or the adapter defined, and an application's own tenancy `prepare_query` runs inside the seam's. Overrides redeclare the default argument (`opts \\ []`) so every arity routes through them. The classification is a plain list, one entry per name and arity, the shorter arities a default argument generates included. Its proof is `Turnstile.Conformance.RepoCase` (`use Turnstile.Conformance.RepoCase, repo: Example.Repo`), shipped so a thin application or an adopter runs it against its own repo: it diffs the list against the repo's exported functions, where an export outside the list fails with the function's name and arity and a repo exporting a subset of the list passes; then it calls each exported non-plumbing function with a fixture and no decision and asserts `Turnstile.Error`. The property beside it generates names and arities on and off the surface and holds each to one bucket or to none. `turnstile` pins `ecto` to the minor range the list was written against.
 
-**Fact recording.** A write to a fact schema records one fact event per changed fact field in the same transaction as the write (§8). For a single-row update or delete the seam re-reads the row under the dialect's lock clause inside its own transaction and takes `old` from the re-read, never from the changeset's `data`. The clause reaches core as the configured ledger's `lock` option, a string or `nil`, which a ledger that records through the seam declares in its options schema with the dialect's answer as the default; core spells no dialect. The seam sees every write that goes through the Repo, including `on_replace: :delete` and nested association writes; it cannot see a foreign key that cascades, so `turnstile_ledger` ships a catalog check that reads every foreign key with `ON DELETE CASCADE` or `SET NULL` into a fact schema and refuses when it finds one (§10).
+**Refusal.** Refusal raises `%Turnstile.Error{reason: :unmediated}`, carrying the function and its arity, the root source, the decision's object type where there was one, and the caller where the seam could read it. There is no mode that logs instead of raising.
 
-**Proof at runtime.** `RepoCase` is the sweep. Explicit cases beside it: `preload`, `aggregate`, `exists?`, `stream`, `reload`, `insert_all` with entries and with a query source, an `Ecto.Multi` run through `transaction`, `query/3` without an exemption; and from the matching rules: a decision naming the wrong object type is refused, a preload without a decision is refused, a carried preload is allowed, a nested association write of another protected schema is refused; an `insert` with `on_conflict:` on a fact schema is refused; a `{:exempt, :library}` from a non-library caller is refused. ⟨verify⟩ that `prepare_query/3` fires for the queries `preload` generates on the pinned Ecto; the review of the pinned Ecto found it does, and the case settles it.
+**Change events.** A single-row write to an audited schema publishes one change event inside the write's transaction (§7, §8). A bulk write to an audited schema raises. The seam sees every write that goes through the repo, including `on_replace: :delete` and nested association writes; it cannot see a foreign key that cascades, which is why a cascade into an audited schema is a modeling decision the application makes with its eyes open.
 
-**Static checks**, shipped in core, advisory: `Turnstile.Credo.NoRawSQL` flags `Ecto.Adapters.SQL.query*` and `Postgrex.*` calls outside an allowlist (migrations, reconcile, the ledger's own code); `Turnstile.Credo.UnmediatedRepo` flags any `use Ecto.Repo` without `use Turnstile.Repo`, the owner-role repo excepted. Nothing else: a check that every Repo call carries options is the rejected compile-time heuristic reborn; module-dependency boundaries are `boundary`'s job, which core uses for its own top layer.
+**Static checks**, shipped in `turnstile_credo`, advisory: `Turnstile.Credo.NoRawSQL` flags `Ecto.Adapters.SQL.query*` and `Postgrex.*` calls outside an allowlist, and `Turnstile.Credo.UnmediatedRepo` flags any `use Ecto.Repo` without `use Turnstile.Repo`, the owner-role repo excepted. Nothing else: a check that every repo call carries options is a compile-time heuristic that costs more than it catches, and module-dependency boundaries are `boundary`'s job.
 
-## §7 Audit records: shapes, span, caps, sizes, shape tests
+## §7 The two events
 
-**Shapes.**
-- `authorize`, `check`: one record per object: subject, object type and id, operation, verdict, reason.
-- `batch`, `filter`: one record for N objects with N verdicts; ids listed up to `caps[:batch_ids]`, beyond it a count and a SHA-256 of the sorted ids.
-- `scope`: one record with the object type, the operation, and the enforced rule: the inspected `dynamic`, truncated at `caps[:rule_bytes]` with a hash of the full text, parameter lists longer than `caps[:batch_ids]` elided to a count and hash; plus ledger position and policy version. Under a denied precondition the rule is `dynamic([_], false)` and the verdict is `:deny`. The RLS variant: rule `true`, policy version the migration number, and `settings_hash`, a SHA-256 of the session settings in force, since those are what the database enforced.
-- `review`: one record per review.
-- Common fields (AU-3, AU-3(1)): type, time, source component, outcome, subject identity and kind (`:user | :non_person_entity | :privileged`), request or session id, adapter, policy version, `head_position` and `applied_position` (equal unless the adapter projects), `operation_id`. No attribute values by default.
+Two telemetry events, and the library publishes both and stores neither. Each payload carries what a consumer needs to write an OCSF record without inventing a value. The library carries the meaning; the consumer chooses the format and the schema version.
 
-**The head read**. In ledger mode Ecto every port call reads the counter row once, `SELECT position FROM turnstile_ledger_counter WHERE name = $1`; that is one query, counted explicitly below. In mode none there is no head and both positions are `nil`.
+**`[:turnstile, :change]`**, published inside the write transaction, where the change is computed. Measurements are empty.
 
-**Span.** `:start` is the decision, with its ledger position. `:stop` is rows returned, rows affected, `operation_id`, duration, and for bulk fact writes the minimum and maximum ledger positions. `:exception` is the failure. The position is stamped at decision time; the query runs in the same request; a `dynamic` built from prefetched subject attributes is as fresh as the decision, one built on subqueries is as fresh as execution; either gap is inside measured revocation latency; RLS evaluates at execution.
+| Field | Value | What a mapper does with it |
+|---|---|---|
+| `operation` | `:create`, `:update`, or `:delete` | The OCSF activity |
+| `kind` | `:user`, `:group`, `:role`, or `:entity`, from `audited/1` on the schema | The OCSF class |
+| `target` | `{type, id}` of the row that changed | The entity type and identifier |
+| `changes` | a map of field to `{old, new}`, for the fact fields that changed | The attributes before and after |
+| `actor` | `{kind, id}` of the subject whose authorization allowed the write, or the library where an exemption carried it | The actor |
+| `actor_kind` | `:user`, `:non_person_entity`, or `:privileged` | Whether the actor is a person or a process |
+| `time` | the configured clock at the moment of the write | The event time |
+| `operation_id` | one identifier shared by every event of one operation | The correlation identifier |
+| `schema` | the Ecto schema module | Context a mapper may need |
 
-**Caps**: `caps[:batch_ids]` 1,000, `caps[:rule_bytes]` 4 KB, `caps[:policy_content_bytes]` 64 KB, one keyword field of `%Turnstile.Config{}` (§15); and `fact_insert_batch`, a dialect default (§11). Every decision is emitted; nothing is sampled.
+**`[:turnstile, :decision]`**, published after each decision. A decision is a read, so it has no transaction. The one measurement is `duration`, in microseconds.
 
-**Sizes to plan against.**
-- A decision record is 300 to 600 bytes. At `:all`, 1,000 port calls per second is about 86 million records a day, tens of gigabytes uncompressed: a log-pipeline sizing question for the adopter's SIEM, not for the library.
-- A fact event row is 200 to 400 bytes; a million fact changes a year is a few hundred megabytes. Retention is the life of the system; partition by position range if growth demands it, since the read-from-position contract does not care.
+| Field | Value |
+|---|---|
+| `subject`, `subject_kind` | `{kind, id}`, and `:user`, `:non_person_entity`, or `:privileged` |
+| `operation` | the operation that was asked about |
+| `object` | `{type, id}`, or the query for a narrowing call |
+| `verdict` | `:allow`, `:deny`, or `:scoped` |
+| `reason` | an atom of `Turnstile.Answer.reasons/0` |
+| `decider`, `version` | the adapter module, and its policy version string |
+| `env` | the environment map as the caller gave it, with `now` stamped from the configured clock |
+| `exception` | the exception, where a decider raised and the decision failed closed |
+| `time`, `operation_id` | as above |
 
-**Shape tests**, in Tier 1, every pull request, cited by nothing. They assert counts (queries issued, from Ecto's `[:repo, :query]` telemetry with transaction-control statements filtered out; audit records emitted; ledger rows written) because every regression that matters changes a number: per-row inserts instead of batches, per-row telemetry, a forgotten no-op filter, `RETURNING` on a non-fact write, a per-row `check` inside `scope`. Counts are deterministic; timings measure the runner. Fixtures are small: the only size that proves anything is one more than a batch. Counts are stated per adapter and per ledger mode; the scoped `all` case:
+**What the consumer adds.** The class, category, severity, and type identifiers, its own product metadata, and the shape of the OCSF actor. Each of those depends on the schema version the consumer targets, and the identifiers move between versions, so they stay outside the library. `Example.Siem` maps both events to OCSF and holds the result in memory, which keeps the mapping under test without putting a schema version in any published package; `Example.Siem.schema_version/0` is what a caller reads the version through.
 
-| Case | Adapter | Ledger mode | Queries | Audit records | Ledger rows |
-|---|---|---|---|---|---|
-| scoped `all` over 1,000 rows | RBAC | Ecto | 2: head, query | 1 | 0 |
-| | RBAC | none | 1: query | 1 | 0 |
-| | Cerbos | Ecto | 2: head, query | 1 | 0 |
-| | Cerbos | none | 1: query | 1 | 0 |
-| | Postgres | Ecto | 4: `set_config`, head, query, clear | 1 | 0 |
-| | Postgres | none | 3: `set_config`, query, clear | 1 | 0 |
-| | OpenFGA | Ecto | 3: head, checkpoint, query | 1 | 0 |
-| | OpenFGA | none | not run: the adapter requires a ledger | | |
+**What the library guarantees.**
 
-The engine's own calls (Cerbos over its socket, OpenFGA's `ListObjects`) are not database queries and are counted by the adapter's client telemetry, one per port call. The remaining cases, under ledger mode Ecto unless stated:
-- A mediated single-row fact write: the re-read, the write, one ledger insert, and the counter take (one statement, §9), no other query; and a ledger append that fails rolls the write back, the atomicity claim, tested by behaviour rather than by counting `begin`/`commit`.
-- A bulk write touching no fact field, 1,000 rows: one query, no `RETURNING` in it, one audit record, zero fact events, no counter take.
-- A `bulk_update` changing a fact field on 5,000 rows: one `UPDATE`, one counter take, three ledger `INSERT`s (the 2,000-row batch), one audit record, 5,000 fact events carrying the same `operation_id`.
-- A `bulk_update` setting a fact field to its current value on 1,000 rows: zero fact events, one audit record, no counter take.
-- The same single-row fact write in mode none: the write, no re-read, no ledger insert, one audit record.
-- One tripwire, generously bounded, on the committed repo: the 5,000-row `bulk_update` completes in under ten seconds. It catches an order-of-magnitude mistake and nothing subtler.
+| Id | Guarantee |
+|---|---|
+| E1 | A single-row write to an audited schema emits one change event, carrying every fact field that changed. |
+| E2 | A bulk write to an audited schema raises and emits nothing. |
+| E3 | A write that goes around the interception emits nothing. |
+| E4 | A consumer that writes to the same repository from its handler joins the write transaction. |
 
-**Numbers, not gates.** Real performance characterization is `mix turnstile.bench`, a Benchee suite run on demand (seam overhead per operation, bulk write throughput, scope compilation, the counter row's serialization cost) whose output is a committed table in the docs, refreshed when the seam changes, never a CI assertion. Revocation latency is a third thing: a measurement printed for comparison with the PS-4 value, taken end to end on the committed repo and reported, not bounded.
+What it does not guarantee: that a record is stored, that a handler keeps running, that the change committed, or that the old value was current at the moment of the write. The old value is the value the caller loaded. `RepoCase` asserts E1 to E4.
 
-## §8 Bulk writes and fact fields
+**Caps.** One cap, `caps[:policy_content_bytes]`, 64 KB by default, which is the policy text a version carries by value before a pointer takes its place. Every decision is published, and nothing is sampled.
 
-**The fact mapping macro**. A fact schema declares its mapping column by column with `use Turnstile.Schema`, the macro that also declares the object type and carried relations (§6). Per column: the kind, the subject column, the object column, and the element type for a set-valued column. Per row: what insert and delete mean, because a relationship row's existence is the grant and its other columns are attributes of that relationship. Only a change to a declared column is a fact.
+**Sizes to plan against.** A decision record is 300 to 600 bytes, so a thousand port calls a second is about 86 million records a day and tens of gigabytes uncompressed. That is a log-pipeline sizing question for the adopter's consumer, and not for the library, which is the point of the split.
+
+**Shape tests**, in the library's own suite, on every pull request, cited by nothing. They assert counts, of queries issued and of events published, because every regression that matters changes a number: a per-row telemetry call, a forgotten no-op filter, `RETURNING` on a write that needs none, a per-row `check` inside `scope`. Counts are deterministic where timings measure the runner. Query counts come from Ecto's `[:repo, :query]` telemetry with transaction-control statements filtered out. The engine's own calls are not database queries: each adapter's client publishes one telemetry event per call, which is how a shape test counts them.
+
+## §8 Audited schemas and the change event
+
+A schema declares what kind of thing its rows are with `audited/1`, and what its columns mean with `fact/2` and `relationship/1`. Only a change to a declared column is a change worth an event.
 
 ```elixir
 defmodule Example.Assignment do
   use Ecto.Schema
   use Turnstile.Schema
 
-  object_type :assignment
-  # the row is the grant: insert emits :relationship with new: :member | :lead,
-  # delete emits :relationship with old: the role and new: nil,
-  # a change to :role emits :relationship with attribute: :role, old, and new
-  relationship subject: :user_id, object: :program_id, attributes: [:role]
-  ...
+  object_type(:assignment)
+  audited(:role)
+  # the row is the grant: the subject column, the object column, and the
+  # columns that are attributes of the relationship itself
+  relationship(subject: :user_id, object: :program_id, attributes: [:role])
 end
 
 defmodule Example.Marking do
   use Ecto.Schema
   use Turnstile.Schema
 
-  object_type :marking
-  fact :controls, kind: :object_attribute, object: :document_id, element: :control
-  fact :list, kind: :relationship, object: :document_id, element: :user
-  ...
+  object_type(:marking)
+  audited(:entity)
+  fact(:categories, kind: :object_attribute, object: :document_id, element: :category)
+  fact(:controls, kind: :object_attribute, object: :document_id, element: :control)
+  fact(:list, kind: :relationship, object: :document_id, element: :user)
 end
 
 defmodule Example.User do
   use Ecto.Schema
   use Turnstile.Schema
 
-  fact :employment, kind: :subject_attribute, subject: :id
-  fact :nationality, kind: :subject_attribute, subject: :id
-  ...
+  audited(:user)
+  fact(:employment, kind: :subject_attribute, subject: :id)
+  fact(:nationality, kind: :subject_attribute, subject: :id)
 end
 ```
 
-A set-valued column emits one event per element added (`old: nil, new: element`) or removed (`old: element, new: nil`), and the element is that event's subject reference, typed by `element:`, so a fold keys each element on its own and one removal erases one element rather than the set. A fact schema need not be protected: `Example.User` above declares facts and no object type, so its writes are recorded and pass the seam without a decision. The CUI mapping: Assignment and OfficeRole rows are relationships with a `role` attribute, and a Proposal row is a relationship with a `status` attribute; the Marking's `categories`, `controls`, `releasable_to`, and `list`, and the Portion's `categories`, `controls`, and `releasable_to`, are set-valued; `User.employment` and `User.nationality` are subject attributes; `Document.decontrol` and the columns holding the structure a graph walks, an office's agency, a document's program and designating office, a portion's document, a proposal's document and proposer, and an office role's account, office, and role, are object attributes. An office role is both: an account may hold the designator role and the approver role in one office, and a fold keys a relationship by its subject and its object alone, so the relationship is what a review of a past date reports and the row's own three columns are what tells the two roles apart. The `turnstile_fga` tuple mapping (§13) reads these events, not the schemas.
+`__turnstile__(:kind)` answers what `audited/1` declared or `nil`, `__turnstile__(:facts)` the `Turnstile.Schema.Fact` records in declaration order, and `__turnstile__(:relationship)` the `Turnstile.Schema.Relationship` or `nil`. A fact kind is `:subject_attribute`, `:object_attribute`, or `:relationship`; a set-valued column names the type of its elements with `element:`, so a reader of the event knows what each member of the set refers to. An audited schema need not be protected: `Example.User` above declares facts and no object type, so its writes are recorded and pass the seam without a decision.
 
-**The event.** `%Turnstile.FactEvent{kind, subject_ref, object_ref, attribute, old, new, position, operation_id, at, by}`; `kind` is `:subject_attribute | :object_attribute | :relationship | :policy_version`; a ref is `{object_type, id}`; `position` is `nil` in mode none; `by` is the subject of the operation that wrote it.
+**What one write produces.** One change event, carrying the fact fields that changed and their old and new values. The old value is the row the caller loaded, so a change a second writer made between the load and the write is not visible in the event, and the library says so rather than taking a lock to make it true.
 
-- The events table is a transactional outbox: the fact event commits with the write it records, and the projector, replay, and reconcile read it afterwards from the same database, which is why every event carries `old` and `new` and why positions are gapless (§9).
-- A single-row write emits one fact event per changed fact field. The seam takes `old` from a re-read of the row under the dialect's lock clause, inside the write's transaction, not from the changeset's `data`, which is whatever the caller loaded earlier. A bulk write whose `set` or `inc` touches no fact field emits none: one decision record, outcome count, no `RETURNING` requested.
-- `insert`, `insert_all`, and `insert_or_update` with `on_conflict:` on a fact schema are refused with a pointer to the bulk API, because an upsert updates fact fields of existing rows with no changeset and no old value, and `RETURNING` cannot say which rows were inserted and which updated.
-- Plain `update_all`, `delete_all`, `insert_all` against fact fields are refused by the seam when the configured ledger asks for it (the Ecto ledger does; mode none does not) with a pointer to `turnstile_ledger`'s `Turnstile.Facts.bulk_update/3`, `bulk_delete/2`, `bulk_insert/3`.
-- `bulk_update` adds, per field it sets, a null-safe "is different" condition in plain Ecto: `is_nil(field) or field` differs from `^value` (a `not is_nil(field)` test when the value is nil). No fragment; portable. A row whose value already matches is not affected and emits nothing, so a million-row sync that changes nine facts records nine. Computed sets (`inc`, fragments) cannot be compared in advance and record every affected row, which is correct.
-- The bulk API needs the affected rows back with their old values; the dialect answers how (§11): `RETURNING` where the database supports it (for an update, the old values come from a select under the lock clause first, in the same transaction; for a delete, the deleted rows), else select the rows first under the dialect's lock clause, then write.
-- Fact events are inserted with `insert_all` in batches of `fact_insert_batch` inside the same transaction as the write, with positions taken from the counter row once for the whole operation (§9); each carries the `operation_id`, indexed.
-- The audit record for the operation carries count, `operation_id`, and min/max position; an investigator pulls rows by `operation_id`. The example's chained store writes one chained record per operation.
-- Smell: a job that flips a million authorization facts nightly is a modeling error; something bookkeeping-shaped has been declared a fact.
+**What raises.** `update_all`, `delete_all`, and `insert_all` on an audited schema raise `%Turnstile.Error{reason: :unmediated}` with `:bulk_write` in the detail, because one statement changing many rows has no changeset and no old value to record, and an event per row would be a lie about what the library saw. An upsert, which is any write carrying `on_conflict:`, raises for the same reason: `RETURNING` cannot say which rows were inserted and which were updated. The owner-role repo is the library's own channel and is exempt from both. An application that has a million facts to flip nightly has a modeling error rather than a missing API: something bookkeeping-shaped has been declared audited.
 
-## §9 Ledger positions
+**The CUI mapping.** Assignment and OfficeRole rows are relationships with a `role` attribute, and a Proposal row is a relationship with a `status` attribute. The Marking's `categories`, `controls`, `releasable_to`, and `list`, and the Portion's `categories`, `controls`, and `releasable_to`, are set-valued. `User.employment` and `User.nationality` are subject attributes. `Document.decontrol`, and the columns holding the structure a graph walks, which are an office's agency, a document's program and designating office, a portion's document, a proposal's document and proposer, and an office role's account, office, and role, are object attributes. An office role is both at once: an account may hold the designator role and the approver role in one office, and each row states the one role it holds.
 
-Positions come from a counter row. The table is library-owned, created by `turnstile_ledger`'s migration helper:
+## §9 The outbox and the relay
 
-```
-turnstile_ledger_counter(name text primary key, position bigint not null)
-```
+An adapter whose working state is the application's own tables needs nothing here. `turnstile_fga` keeps a copy, in a store of its own, and the outbox and the relay are what keep that copy in step.
 
-with one row, `default`, at position 0, inserted by the same migration. Every fact-writing transaction takes its positions by this sequence:
+**The markers.** A handler on the change event inserts one marker row per affected object, in the transaction that changed the rows, through `Turnstile.Fga.Outbox`. What objects one change affects is the application's mapping to answer, through `changed/2`, because a change names the row it was made on and a tuple can rest on several rows at once. `Turnstile.Fga.Migration` is the helper a thin application's migration calls to create the marker table, and `Turnstile.Relay.Migration` creates the cursor table beside it. Both are in the application's own database, because a marker is written in the transaction that changed the rows and a pass advances the cursor in the transaction that delivered them.
 
-1. Inside the writing transaction, lock the row named by `%Turnstile.Config{ledger_counter}` with the dialect's lock clause (`SELECT position FROM turnstile_ledger_counter WHERE name = $1 FOR UPDATE` on Postgres).
-2. Count the events the operation will write, `n`.
-3. Advance the row by `n`. `Turnstile.Ledger.Dialect.Postgres` does steps 1 and 3 in one statement, `UPDATE turnstile_ledger_counter SET position = position + $2 WHERE name = $1 RETURNING position`; another dialect may answer with the locked select and an update.
-4. Insert the events with positions `previous + 1` through `previous + n`.
+**One pass** (`Turnstile.Relay`) is one transaction:
+
+1. Ask for the transaction-scoped advisory lock on the runner's name. A runner told no reports the cursor, delivers nothing, and tries again after its idle interval.
+2. Read the cursor, then read a batch of entries above it through the job.
+3. Deliver the batch through the job.
+4. Advance the cursor to the position of the last entry delivered.
 5. Commit.
 
-Commit order is position order, there are no gaps, and the reader behind projection, reconcile, and replay is "from position N": `SELECT ... WHERE position > $1 ORDER BY position`. The head read is a plain select of the row (§7); the head is the row's committed value, every position at or below it is committed, and replay to the head is exact. A bulk write's positions are one contiguous range; its audit record names the `operation_id` as well as the range. The mechanism is the same on every database; the dialect seam stays so a Postgres watermark reader can be added later (§11).
+Delivery that fails rolls the pass back, so the cursor stays where it was and the same batch is read again. That is at-least-once delivery in position order, and a job's `deliver/3` is written for a batch it may have seen before. The runner decides only when the next pass runs: at once where the batch filled, after the idle interval where it did not, and after a wait that doubles per failure and is capped where the pass failed. A wake-up is a cast, so the process that wrote the rows is not held up by a delivery, and a wake-up arriving while a pass is already pending is dropped, because that pass reads everything committed before it runs.
 
-The lock serializes fact-writing transactions. Tier 1 measures the cost on the committed repo: N concurrent fact-writing transactions on one counter row, with throughput and mean wait printed to the log as the serialization cost, never asserted. The interleaved-transactions case, also on the committed repo, opens two fact-writing transactions on one counter row and asserts that the second takes no position while the first is open, so commit order is position order and the reverse cannot arise, and that a reader from position N, once both have committed, sees every position above N once and skips none.
+**What delivery means for the store.** Per object a batch names, the drain reads what the tables require, reads what the store holds, and writes the difference, in calls of at most `Turnstile.Fga.Client.max_tuples_per_write/0` changes. Delivering a marker twice costs a read and no write, which is what lets at-least-once delivery stand as correctness. A tuple whose condition changed takes two calls, the deletion and then the writing of the same key with the new value on it, because one `Write` refuses a tuple key that appears in both its deletes and its writes. Between those two calls the store holds neither the old state nor the new one, and a pass that stops there has committed nothing, so its markers are read again.
 
-Naming the row is what keeps tests async. A sandboxed test holds its transaction for its whole life, so two async tests writing facts would contend on `default`. The test cluster's sandbox setup inserts a per-test row inside the sandbox transaction and points the config override at it (`Turnstile.Test.with_config(ledger_counter: "test-<id>", ...)`), so async fact-writing tests never contend, and positions taken inside a rolled-back sandbox transaction are rolled back with it; committed-repo tests use `default`.
+**Telemetry.** Every pass publishes `[:turnstile, :relay, :pass]`, whether it delivered, stepped aside, or failed: measurements `delivered` and, where there was one, `position`; metadata the runner's `name`, its `job`, and either the `%Turnstile.Relay.Pass{}` or the error term the job reported.
 
-## §10 Ledger modes: what each can claim
+**Beside the outbox.** `Turnstile.Fga.reconcile/0` compares the tables with the store, paged by object type, and reports what each holds and the other does not; its cost is proportional to tuples, so its interval is longer than a pass's. `Turnstile.Fga.rebuild/1` creates a store, publishes the model, writes every object the tables hold into it, and answers the new store, so a rebuild runs beside the store that is serving and the application swaps to it as a dated configuration change.
 
-| Mode | Who owns the facts | What the library does | What the mode can claim |
-|---|---|---|---|
-| Ecto ledger | the application's tables | one fact event per changed fact field in the same transaction, through the seam, into a library-owned table; positions from the counter row; genesis; reconcile; the catalog check | no fact without an entry inside the application after genesis; drift from outside detected within the reconcile interval; replay exact to the head, and exact after reconcile for out-of-band drift |
-| None | the application's tables | nothing | nothing about history: drift detection, point-in-time review, and account-management audit (AC-2(4)) are the application's to provide; decision events carry no position; an adapter that requires a ledger (OpenFGA) cannot be bound, and boot fails with `%Turnstile.Error{reason: :unsupported}` |
+**The relay holds no authorization concept.** It names no subject, no object, and no rule, and its `lib` takes none of the library's other packages. The repo a runner is given is one whose calls carry no decision: a plain Ecto repo, or a seam repo in the owner's role. A cursor states nothing about a subject or an object, so there is nothing for a decision to cover.
 
-A third mode, the application's own event store read through the fact mapping, is deferred; the ledger behaviour and the fact event's payload are its contract, so nothing in core changes when it returns.
+## §10 The NIST line
 
-Genesis: every current fact as an event at position zero, stamped "backfilled from tables on ⟨date⟩ by ⟨migration⟩", written through the owner-role repo; reconcile runs from there. Append-only: the dialect's migration grants the application role insert and never update or delete on the ledger table, and update on the counter table only. The catalog check runs at genesis and in the ledger's Tier 1 case: it reads every foreign key with `ON DELETE CASCADE` or `ON DELETE SET NULL` whose target is a fact schema (§11's cascade query) and refuses when it finds one. The example's migrations use no cascades into fact schemas. A conformance case for the ledger behaviour ships with core so an implementation over another store can prove itself.
+One table, written and maintained by a person. No code reads it. Check the control numbers against the catalog before this table is published.
 
-## §11 The dialect
-
-`Turnstile.Ledger.Dialect` is the behaviour behind the ledger's database-dependent mechanisms. `Turnstile.Ledger.Dialect.Postgres` is the one implementation, the reference, and the only one the suite runs; an adopter on another database implements the behaviour and proves it with the ledger's conformance case (§10). The seven callbacks, with the Postgres answer and what another implementation has to decide:
-
-| Callback | `Postgres` | What another dialect answers |
+| Control | What holds it | Test |
 |---|---|---|
-| Rows back from a bulk write | `RETURNING` ids, deleted rows for deletes | whether the database can return rows; else select first under the lock clause, then write |
-| `fact_insert_batch` | 2,000, against 65,535 bound parameters per statement | from its parameter limit per statement |
-| Reader strategy | counter row; a watermark reader is a later option | counter row |
-| Counter take | one `UPDATE ... RETURNING` | one statement where the database can, else the locked select and an update |
-| Lock clause for select-then-write and the re-read | `FOR UPDATE` | its own spelling, or none where the database serializes writers |
-| Append-only grant | `GRANT INSERT`, no `UPDATE`/`DELETE`, to the application role on the events table; `UPDATE` on the counter table | the same grants in its own syntax |
-| Cascade query | `pg_constraint` (`confdeltype` in `c`, `n`) | `information_schema.referential_constraints` or its own catalog |
+| AC-3 Access enforcement | The interception and deny by default | `RepoCase`, `AdapterCase`, the `enf` scenarios |
+| AC-5 Separation of duties | Rule C9 | The `sod` scenarios |
+| AC-6 Least privilege | Rules C1 and C2 | The `lp` scenarios |
+| AC-6(7) Review of privileges | `Turnstile.review/5`, run on a schedule, with the reports kept | `rvw-01`, `lp-08` |
+| AC-2, AC-2(4) Account management | The change event. The system stores it. | The `aud` scenarios |
+| AU-2, AU-3, AU-12 Audit events and content | Change events and decision events | The `aud` scenarios |
+| AU-5 Audit failure alert | The telemetry handler failure event | Outside the library |
+| AU-9 Protection of audit records | The store of the consumer | Outside the library |
+| IA-11 Re-authentication | Rule C8, from an environment fact | The `ia` scenarios |
+| Revocation | The outbox of `turnstile_fga` | `rev-01`, `rev-07` |
 
-## §12 Toolchain pins and terms
+## §11 Toolchain pins and terms
 
-**Toolchain pins**, verified 2026-09-07; S0 re-verifies and says where in its commit message.
+**Toolchain pins**, verified 2026-09-07.
 
 | Component | Version | Nix expression | Where verified |
 |---|---|---|---|
@@ -412,73 +378,66 @@ Genesis: every current fact as an event at position zero, stamped "backfilled fr
 | services-flake | active, last commit 2026-08-18 | the flake's input; `postgres` service, Cerbos and OpenFGA as process-compose processes | https://github.com/juspay/services-flake; https://community.flake.parts/services-flake/services (no cerbos or openfga service) |
 | Hex: nimble_options, stream_data, boundary, styler, muontrap | 1.1.1, 1.4.0, 0.10.4, 1.12.2, 2.0.0 | `mix.lock` | https://hex.pm/api/packages/<name>; muontrap 2.0.0 is a new major, check its changelog |
 
-Nix is not installed on the development Mac; the S0 agent installs it and stops to ask before running the installer. No Docker.
+Nix is not installed by the repository; a contributor installs it and the flake pins the rest. No Docker.
 
-Each thin app's README carries the translation table from the domain's words to the adapter's (Assignment to `member` tuple, marking to policy attribute, designator to `WITH CHECK` role); its CI job is `docs/testing.md` §7.
+Each thin application's README carries the translation table from the domain's words to the adapter's: an Assignment to a `member` tuple, a marking to a policy attribute, a designator to a `WITH CHECK` role.
 
-**Terms**, held here until the package glossaries exist; each moves to the glossary of the context that owns it.
+**Terms.** Each term belongs to the glossary of the package that owns it, and `docs/glossary-index.md` says which. What is here is the shared vocabulary, for a reader who has neither package open.
 
 | Term | Meaning | Owner |
 |---|---|---|
-| Reference monitor | The part of a system that checks every access; always invoked, tamperproof, small | core |
-| Subject / object / operation / environment | Who is asking, about what, to do what, under what conditions | core |
-| Attribute | A fact about a subject or object that a rule can test | core |
-| RBAC / ABAC / ReBAC | Rules over roles / over any attribute / over relationships in a graph | core |
-| PEP / PDP / PIP / PAP | Where a request is stopped / where the answer is computed / where attributes come from / where rules are written | core |
-| Port / adapter | The interface in core / an implementation of it for one mechanism | core |
-| Conformance suite | The tests any adapter must pass; the real contract | core |
-| Deny by default / fail closed | No unless a rule says yes / no when the system cannot decide | core |
-| Sidecar | A small server running beside the application (Cerbos) | `turnstile_cerbos` |
-| `scope` / `dynamic` | Narrow a query to what the subject may see / the Ecto where-clause fragment it returns, which can only narrow | core |
-| Scope fidelity | `scope` returns exactly the rows `check` would allow | core |
+| Reference monitor | The part of a system that checks every access; always invoked, tamperproof, small | `turnstile` |
+| Subject / object / operation / environment | Who is asking, about what, to do what, under what conditions | `turnstile` |
+| Attribute | A fact about a subject or object that a rule can test | `turnstile` |
+| RBAC / ABAC / ReBAC | Rules over roles / over any attribute / over relationships in a graph | `turnstile` |
+| PEP / PDP / PIP / PAP | Where a request is stopped / where the answer is computed / where attributes come from / where rules are written | `turnstile` |
+| Port / adapter | The interface in the library / an implementation of it for one mechanism | `turnstile` |
+| Conformance suite | The tests any adapter must pass; the real contract | `turnstile` |
+| Deny by default / fail closed | No unless a rule says yes / no when the system cannot decide | `turnstile` |
+| Sidecar | A small server running beside the application | `turnstile_cerbos` |
+| `scope` / `dynamic` | Narrow a query to what the subject may see / the Ecto where-clause fragment it returns, which can only narrow | `turnstile` |
+| Scope fidelity | `scope` returns exactly the rows `check` would allow | `turnstile` |
 | Row-level security | Postgres policies applied to every query on a table; `USING` for reads, `WITH CHECK` for writes | `turnstile_postgres` |
-| Write gate | A rule the database enforces on inserts and updates without application code; a printed note, not a rule | `turnstile_postgres` |
-| Mediated Repo, the seam | A Repo that refuses calls carrying no decision and no exemption | core |
-| Exemption | A named, logged opt-out from mediation, per call, with a reason | core |
-| Protected schema / carried relation | A schema that declares an object type / an association the parent's decision covers | core |
-| Event / ledger / fold / replay | An immutable record of a change / an append-only list of them / reducing them to state / folding up to a date | `turnstile_ledger` |
-| Transactional outbox | A record committed in the same transaction as the write it describes and read afterwards by consumers from the same database; the ledger's shape, never emptied | `turnstile_ledger` |
-| Fact event (four kinds) | Subject attribute; object attribute; relationship; policy version, each with old and new | core |
-| Fact mapping | The declaration, column by column, from an application's schemas to the four kinds | core |
-| Ledger position / head / applied position | The index in the ledger / the counter row's committed value / the position an adapter's state has applied | `turnstile_ledger` |
-| Counter row | The locked row every fact-writing transaction takes positions from | `turnstile_ledger` |
-| Genesis | The backfill that gives an existing application's ledger an origin | `turnstile_ledger` |
-| Drift / reconcile | Facts changed outside the seam / checking the tables against the ledger on an interval | `turnstile_ledger` |
-| Projection / projector / checkpoint | How an adapter's state relates to the ledger / the process that drains it / the position it has applied | core, `turnstile_fga` |
-| Audit record | A log entry with the shape AU-3 requires | core |
-| Telemetry | Elixir's convention for a library to publish events that handlers consume | core |
-| SIEM | The security team's central log system; a sink | core |
-| Hash chain / anchoring | Each record hashes the previous; keeping the head somewhere the attacker cannot write | `turnstile_example` |
-| Continuous evaluation | Attributes looked up on every check, never cached across requests | core |
-| Revocation latency | Time from a revoking change to the first denial; evidence, measured | core |
-| Environment fact (port-supplied / caller-supplied) | Time from the configured clock / facts only the caller knows | core |
-| Re-authentication | Prove it is still you before sensitive operations | `turnstile_example` |
-| User / NPE / privileged user | A person / software acting alone / a person who can change the system; the subject's kind | core |
-| Least privilege / separation of duties | The least access needed / dangerous combinations split between people | `turnstile_example` |
-| Audited override (break-glass) | Privileged access past the rules, with justification, logging, and reporting | `turnstile_example` |
-| CUI | Controlled unclassified information; protected by law, below classified | `turnstile_example` |
-| Category (Basic / Specified) | What kind of information; Specified brings its own handling rules | `turnstile_example` |
-| Dissemination control | Who may not receive it, below the default | `turnstile_example` |
-| Marking / portion marking / banner / decontrol | Categories and controls / a marking per portion / the marking every portion admits / the end of protection | `turnstile_example` |
-| Designating agency / lawful government purpose | Who declared it CUI / the legal basis for access | `turnstile_example` |
-| Redacted read | The document with the portions the subject may not read removed | `turnstile_example` |
+| Write gate | A rule the database enforces on inserts and updates without application code | `turnstile_postgres` |
+| Mediated repo, the seam | A repo that refuses calls carrying no decision and no exemption | `turnstile` |
+| Exemption | A named, recorded opt-out from mediation, per call, with a reason | `turnstile` |
+| Protected schema / carried relation | A schema that declares an object type / an association the parent's decision covers | `turnstile` |
+| Audited schema / kind | A schema whose single-row writes emit a change event / what its rows are | `turnstile` |
+| Change event | One telemetry event for one single-row write, carrying the fact fields that changed | `turnstile` |
+| Decision event | One telemetry event for one decision, carrying the verdict and the reason | `turnstile` |
+| Consumer | Whatever attaches to those events and stores what it needs; not the library | `turnstile` |
+| Outbox / marker / cursor | Rows written in the transaction they describe / one per affected object / how far a runner has delivered | `turnstile_fga`, `turnstile_relay` |
+| Drain / reconcile / drift | Bringing a copy into step with the tables / comparing the two / a difference between them | `turnstile_fga` |
+| Telemetry | Elixir's convention for a library to publish events that handlers consume | `turnstile` |
+| SIEM | The security team's central log system; a sink | `example` |
+| Continuous evaluation | Attributes looked up on every check, never cached across requests | `turnstile` |
+| Revocation latency | Time from a revoking change to the first denial; evidence, measured | `turnstile` |
+| Environment fact (port-supplied / caller-supplied) | The moment from the configured clock / facts only the caller knows | `turnstile` |
+| Re-authentication | Prove it is still you before sensitive operations | `example` |
+| User / NPE / privileged user | A person / software acting alone / a person who can change the system; the subject's kind | `turnstile` |
+| Least privilege / separation of duties | The least access needed / dangerous combinations split between people | `example` |
+| Audited override (break-glass) | Privileged access past the rules, with justification, logging, and reporting | `example` |
+| CUI | Controlled unclassified information; protected by law, below classified | `example` |
+| Category (Basic / Specified) | What kind of information; Specified brings its own handling rules | `example` |
+| Dissemination control | Who may not receive it, below the default | `example` |
+| Marking / portion marking / banner / decontrol | Categories and controls / a marking per portion / the marking every portion admits / the end of protection | `example` |
+| Designating agency / lawful government purpose | Who declared it CUI / the legal basis for access | `example` |
+| Redacted read | The document with the portions the subject may not read removed | `example` |
 | FISMA / FIPS 199 / 800-53 / 800-53B | The law / impact levels / the catalog / the baselines | `PLAN.md` |
-| Control / enhancement / family | A requirement (AC-2) / an optional sharpening (AC-2(4)) / a group (AC) | core |
-| ODP / FedRAMP-assigned parameter | A blank in a control / a blank FedRAMP fills | core |
-| Baseline / beyond baseline | The subset required at an impact level / cited but not required | core |
-| Dialect | The behaviour behind the ledger's database-dependent mechanisms (§11); Postgres ships | `turnstile_ledger` |
-| The line | Opinionated below the port; above it the database is reached only through the ledger behaviour and `around_query/3`, checked at compile time | core |
+| Control / enhancement / family | A requirement (AC-2) / an optional sharpening (AC-2(4)) / a group (AC) | `turnstile` |
+| ODP / FedRAMP-assigned parameter | A blank in a control / a blank FedRAMP fills | `turnstile` |
+| Baseline / beyond baseline | The subset required at an impact level / cited but not required | `turnstile` |
 | Assessment-ready | The plan's word; never "compliant", never "FedRAMP Ready" | `PLAN.md` |
-| Declaration / scenario / capability | What an adapter or thin app states about itself / a cited test / a rule's level with the enforcing component | core, `turnstile_example` |
-| Tier 1 / Tier 2 | Port guarantees over a neutral fixture / CUI scenarios per thin app | core, `turnstile_example` |
-| `review` | Who can do what, today or on a date | core |
-| Thin app | One of the four applications that bind the library app to an adapter | `turnstile_example` |
+| Scenario | A cited test: an id, a sentence, and the rule it tests | `turnstile`, `example` |
+| Tier 1 / Tier 2 | Port guarantees over a neutral fixture / CUI scenarios per thin application | `turnstile`, `example` |
+| `review` | Who can do what, today | `turnstile` |
+| Thin application | One of the four applications that bind the example to an adapter | `example` |
 
-## §13 The OpenFGA adapter
+## §12 The OpenFGA adapter
 
-The design note for `turnstile_fga`. It began as an exercise (does the plan's altitude hold if an adapter is a relationship graph) and became the decision: the port, the seam, and the events survive untouched, three of the CUI rules come out cleaner on a graph than anywhere else, and the costs are the kind of thing the evidence exists to show. The three core amendments the exercise found (`applied_position` beside `head_position`, `requires_ledger`, the projection behaviour's checkpoint and `rebuild/1`) are applied for every adapter and listed in `PLAN.md`'s decisions.
+The design note for `turnstile_fga`. It began as an exercise, to find out whether the port holds where an adapter is a relationship graph, and the answer was that the port, the seam, and the events survive untouched, that three of the CUI rules come out cleaner on a graph than anywhere else, and that the costs are the kind of thing evidence exists to show.
 
-**Zanzibar in the plan's words.** A Zanzibar-style system stores tuples, `(user, relation, object)` such as `user:alice member program:9`, and an authorization model that says how relations compose: directly assigned, computed from other relations on the same object, or followed through a related object ("members of the document's program"). OpenFGA is the open-source implementation: a server with its own datastore, an API of `Check`, `BatchCheck`, `ListObjects`, `ListUsers`, `Expand`, `Read`, `Write`, and `ReadChanges`, models that are immutable and versioned by id, and conditions, small CEL expressions on tuples, evaluated against a context sent with each check.
+**Zanzibar in the plan's words.** A Zanzibar-style system stores tuples, `(user, relation, object)` such as `user:alice member program:9`, and an authorization model that says how relations compose: directly assigned, computed from other relations on the same object, or followed through a related object, as in "members of the document's program". OpenFGA is the open-source implementation: a server with its own datastore, an API of `Check`, `BatchCheck`, `ListObjects`, `ListUsers`, `Expand`, `Read`, `Write`, and `ReadChanges`, models that are immutable and versioned by id, and conditions, which are small CEL expressions on tuples evaluated against a context sent with each check.
 
 | Plan concept | OpenFGA |
 |---|---|
@@ -492,10 +451,10 @@ The design note for `turnstile_fga`. It began as an exercise (does the plan's al
 | `scope` | `ListObjects`, then `dynamic([d], d.id in ^ids)` |
 | `review` | `ListObjects` per subject, or `ListUsers` per object |
 | `explain` | `Expand`, the relation tree, which is the path explanation |
-| the adapter's working state | the FGA store, a projection of the ledger, fed by the projector |
-| revocation latency | commit, projector drain, engine write, check-cache TTL |
+| the adapter's working state | the FGA store, a copy of what the tables say, kept in step by the outbox |
+| revocation latency | commit, relay pass, engine write, check-cache TTL |
 
-The one structural difference from the other three adapters: their working state is the application's tables. FGA's is a copy, in another store, kept current by the projector. That is what `Turnstile.Projection` is for. The ledger is the assessment's system of record and the projector reads it; the ledger-as-outbox shape is accepted, since the drain by diff answers the duplicate-write question and reconcile gives the 3PAO the ledger-versus-engine comparison.
+The one structural difference from the other three adapters: their working state is the application's tables, and this one keeps a copy in a store of its own. The outbox and the relay (§9) are what keep that copy in step, and `reconcile/0` is what says whether it is.
 
 **The CUI domain as a model** (`apps/example_fga/priv/fga/model.fga`). A control on a marking is a wildcard flag, a tuple `user:* fedonly_applies document:1` meaning "this applies to everyone", and the block is the flag minus the users who clear it. Implication (C3) and portions (C4) are tuple-to-userset, so nothing is copied. Decontrol (C5) is a condition on the flag and category tuples. Separation of duties (C9) is `but not proposer`.
 
@@ -605,73 +564,61 @@ condition before_decontrol(decontrol_at: timestamp, current_time: timestamp) {
 }
 ```
 
-Rule by rule. C1 is `lawful_purpose`. C2 is `can_read: lawful_purpose but not blocked`: every flag present must be cleared, and an absent flag blocks nobody. C3: a Specified category carries its own wildcard flags, and `fedonly_applies from category` inherits them; nothing is copied. C4: the document's flags include `from portion`, so a control a Portion carries applies to the document by construction on this adapter as well as at write time in the domain, while `relto_clear` is `member from releasable_to` over the document's own country tuples, which are the banner the domain narrowed to the intersection; the redacted read is `can_read_redacted` on the document and `can_read` per portion, whose `scope` is a `ListObjects` over `portion`. C5: a document with a decontrol writes its flag and category tuples with `before_decontrol` and the date; one without writes them plain; after the date the flags evaluate false and only C1 remains. C6: `listed` is a per-document grant and combines with nothing; the model has no path from `listed` to `lawful_purpose`. C7 is `can_change_marking`; the write itself is gated by the seam, not by FGA. C8, re-authentication, is not modeled: it is a fact about the session, and putting it in a condition would make every use of `designator` demand session context, so the adapter checks it from the environment before calling FGA, through the guard its binding names, as the RBAC adapter does through a predicate. C9 is `can_approve_marking: approver from office but not proposer`. C10 is `can_override` plus the justification and the event, in code. C11 holds per check, up to the projector's lag. C12 is measured. C13 is `ListObjects`, by FGA's definition of it, under the cap. The per-rule levels are `example_fga`'s declaration (§3), not this package's.
+Rule by rule. C1 is `lawful_purpose`. C2 is `can_read: lawful_purpose but not blocked`: every flag present must be cleared, and an absent flag blocks nobody. C3: a Specified category carries its own wildcard flags, and `fedonly_applies from category` inherits them, with nothing copied. C4: the document's flags include `from portion`, so a control a Portion carries applies to the document by construction on this adapter as well as at write time in the domain, while `relto_clear` is `member from releasable_to` over the document's own country tuples, which are the banner the domain narrowed to the intersection; the redacted read is `can_read_redacted` on the document and `can_read` per portion, whose `scope` is a `ListObjects` over `portion`. C5: a document with a decontrol writes its flag and category tuples with `before_decontrol` and the date, one without writes them plain, and after the date the flags evaluate false and only C1 remains. C6: `listed` is a per-document grant and combines with nothing, and the model has no path from `listed` to `lawful_purpose`. C7 is `can_change_marking`, and the write itself is gated by the seam rather than by FGA. C8, re-authentication, is not modeled: it is a fact about the session, and putting it in a condition would make every use of `designator` demand session context, so the adapter checks it from the environment before calling FGA, through the guard its binding names, as the roles adapter does through a predicate. C9 is `can_approve_marking: approver from office but not proposer`. C10 is `can_override` plus the justification and the event, in code. C11 holds per check, up to the lag of a pass. C12 is measured. C13 is `ListObjects`, by FGA's definition of it, under the cap.
 
-**The tuple mapping** (`ExampleFga.TupleMapping`, implementing `Turnstile.Fga.TupleMapping`). It maps fact events (§8), with their `old` and `new`, to tuple writes and deletes. Attributes become reified entities, a country, an employment kind, because a graph compares by walking, not by equality.
+**The tuple mapping** (`ExampleFga.TupleMapping`, implementing `Turnstile.Fga.TupleMapping`). Three shapes carry the whole translation. A role a row holds is a relation of the object it is held on. A subject attribute is membership of its value as an object of its own, because a graph compares by walking rather than by equality. A control that applies is the wildcard `user:*` on the relation named for it, so what a marking states is one fact about the document rather than a tuple per account.
 
-| Fact event | Tuples (user · relation · object) |
+The behaviour is four questions, and each is answered from the rows as they stand rather than from the change that arrived, because a tuple can rest on several rows at once and a change names the row it was made on: `object_types/0`, which a reconcile reads by; `objects/2`, every object of a type the tables hold; `changed/2`, which objects one change can have affected; and `tuples/2`, which tuples an object requires. What a row then states is `ExampleFga.Core.Tuples`, which reads nothing and is proved as a function of its input.
+
+| Object | What its rows require (user · relation · object) |
 |---|---|
-| Assignment(U, P, member or lead), a relationship | `user:U · member \| lead · program:P` while the program is open; a `role` change deletes the old relation's tuple and writes the new, and a closure date deletes both |
-| OfficeRole(U, O, designator or approver), a row and a relationship | `user:U · designator \| approver · office:O`, one tuple per row, so an account holding both roles in one office holds both of them |
-| Office in Agency | `agency:A · agency · office:O` |
-| Document's program and designating office | `program:P · program · document:D`; `office:O · designating_office · document:D` |
-| Portion under Document | `portion:X · portion · document:D`; `document:D · document · portion:X` |
-| Document's or Portion's categories | `category:C · category · document:D` (or `portion:X`), with `before_decontrol{decontrol_at}` when set |
-| Marking's controls, one event per element | `user:* · fedonly_applies · document:D` (and the others), with the condition when set; a removed element deletes its tuple |
-| Marking's list, one event per element | `user:U · listed · document:D`; the `list_applies` flag is the `named_list` control's, written from the controls row |
-| REL TO countries | `country:CC · releasable_to · document:D` |
-| Specified category's implied controls | `user:* · fedonly_applies · category:C`, written once per category |
-| User's employment; nationality | `user:U · member · employment:federal`; `user:U · member · country:CC`; a change deletes the old entity's tuple and writes the new |
-| Agency's domestic country; federal marker | `country:CC · domestic · agency:A`; `employment:federal · federal · agency:A` |
-| Privileged user | `user:U · operator · agency:A` |
-| Proposal (C9) | `office:O · office · proposal:P`; `user:U · proposer · proposal:P` |
-| Decontrol set or changed | a read-diff-write: the drain reads the object's flag and category tuples, computes the tuples the new parameter requires, and writes the difference, never the object's tuples whole. A tuple is identified by its user, its relation, and its object, and a condition is a value carried on it rather than part of that identity, so a changed date is the same tuple with another context: the drain deletes that tuple and writes it again, in two calls, because one `Write` refuses a tuple key that appears in both its deletes and its writes (OpenFGA 1.19.0) |
-| Policy version | write the model; record the model id and the DSL text (small) in the policy-version event |
+| `agency:A` | `country:CC · domestic · agency:A` for the agency's nationality; `employment:federal · federal · agency:A`; `user:U · operator · agency:A` per account holding the override role |
+| `office:O` | `agency:A · agency · office:O`; `user:U · designator \| approver · office:O`, one tuple per office-role row, so an account holding both roles holds both relations |
+| `program:P` | `user:U · member \| lead · program:P` per assignment, while the program is open; a closed program requires none of them |
+| `category:C` | `user:* · fedonly_applies \| noforn_applies · category:C` for the controls the category implies |
+| `country:CC`, `employment:E` | `user:U · member · country:CC`; `user:U · member · employment:E`, from each account's nationality and employment |
+| `document:D` | `program:P · program · document:D`; `office:O · designating_office · document:D`; `category:C · category · document:D` and `user:* · <control>_applies · document:D` from the marking, each carrying `before_decontrol` where the document has a decontrol date; `country:CC · releasable_to · document:D`; `user:U · listed · document:D` per account the DL ONLY list names |
+| `portion:X` | `document:D · document · portion:X` and `portion:X · portion · document:D`; the portion's own categories, controls, and countries, carrying the document's decontrol date |
+| `proposal:P` | `office:O · office · proposal:P`; `user:U · proposer · proposal:P` |
 
-**The client behaviour and its fake**. `Turnstile.Fga.Client` is the only path to the server: `create_store/2`, `write_model/3`, `check/3`, `batch_check/3`, `list_objects/3`, `expand/3`, `read/3`, `write/3`, each returning `{:ok, t} | {:error, %Turnstile.Error{reason: :engine_unreachable}}` and never raising. `Turnstile.Fga.Client.Fake`, in test support, is an `Agent` per test holding stores, models, and tuples; its `write/3` rejects a duplicate write and a missing delete as the server does, atomically per call; its `read/3` pages by object type; its `check/3` and `list_objects/3` answer from directly present tuples without evaluating the model, returning values of the real type. The projector's convergence and drift cases run against the fake first, without a server; the decision cases run against `openfga run --datastore-engine memory` with a store per test.
+A tuple is identified by its user, its relation, and its object, and a condition is a value carried on it rather than part of that identity. That is what makes a changed decontrol date a delete and a write of one key rather than a second tuple, and why it takes two calls (§9).
 
-**The projector.** `Turnstile.Fga.Projector` implements `Turnstile.Projection` (`checkpoint/1`, `drain_once/1`, `rebuild/1`, `reconcile/1`): it reads fact events from the ledger's reader (§9) from its checkpoint, applies the tuple mapping, writes in batches (default `maxTuplesPerWrite` 100 on the pinned server, counting the deletes and the writes of one call together), and advances the checkpoint in the application's database.
-- **Checkpoint per acknowledged write**. The checkpoint advances after every acknowledged `Write` call, to the position of the last event that call covered, so a crash between batches leaves `applied_position` exact. A step whose difference asks for a tuple to be deleted and written again takes two calls, and the checkpoint advances after the second of them, since the state between the two is neither the old one nor the new one.
-- **Drain by diff**. For each object a batch touches, the drain computes the difference between the tuples the fold requires and what `Read` returns for that object, and writes only that difference. It tolerates no errors: a rejected `Write` fails the drain, which re-runs from the checkpoint. A re-drain after a crash therefore converges (a Tier 1 case).
-- **Rebuild into a fresh store**. `rebuild/1` takes the projector's configuration, creates a store, publishes the pinned model, folds from position zero into it, and returns `{:ok, store_ref}`; serving continues from the old store until the application swaps `store_id`, a dated configuration change. Minutes for a million facts, beside the serving store.
-- **Reconcile compares the fold to `Read`.** `Read` pages tuples by object type; drift is a tuple present in one and not the other. Cost is proportional to tuples, so the interval is longer than the Ecto ledger's table comparison.
-- **A long-lived process.** The drain interval belongs to the projector process, which the thin app starts beside the reconcile scheduler; tests never start it and drive `drain_once/1` instead.
+**The client and its fake.** `Turnstile.Fga.Client` is the only path to the server: `create_store/2`, `write_model/3`, `check/3`, `batch_check/3`, `list_objects/3`, `expand/3`, `read/3`, and `write/3`, each answering a value or a `%Turnstile.Error{reason: :engine_unreachable}`, none of them raising. The endpoint comes first, the store second, and a request struct per call third, because a model id and a consistency are values on a request rather than state on the client: a decision is taken under a version. `Turnstile.Fga.Client.Fake`, in test support, is the same behaviour on an `Agent`, and it copies what a caller can get wrong: a write is atomic per call, and a duplicate write, a delete of a tuple the store does not hold, a tuple key on both sides of one call, and more changes than one call may carry each change nothing at all. It does not evaluate the model, so what it answers questions from is the tuples it holds directly, in the types the real client answers in.
 
-The adapter therefore requires a ledger and declares so; in ledger mode none there is nothing to drain, and boot fails with `%Turnstile.Error{reason: :unsupported}` rather than pretend dual writes are a projection.
+**Decisions and scope.** `Check` with the model id pinned per request and `consistency` set per operation: `HIGHER_CONSISTENCY` for anything under C7 to C10, `MINIMIZE_LATENCY` allowed for reads. The decision event carries the model id as its policy version. `ListObjects` returns ids, so `scope` is `dynamic([d], d.id in ^ids)`; above the cap the port falls back to `filter` per page with `BatchCheck`, and scoping the query to a tenant first keeps most lists under the cap.
 
-**Decisions, scope, replay.** `Check` with the model id pinned per request and `consistency` set per operation: `HIGHER_CONSISTENCY` for anything under C7 to C10, `MINIMIZE_LATENCY` allowed for reads, a constant of the adapter. The decision event carries the model id as its policy version, the ledger head at decision time, and the checkpoint as `applied_position`; replay uses the applied position, because that is the state the engine saw. `ListObjects` returns ids, so `scope` is `dynamic([d], d.id in ^ids)`, and the `caps[:batch_ids]` elision applies to the recorded rule; above the cap the seam falls back to `filter` per page with `BatchCheck`; tenant-scoping the query first (`d.agency_id == ^agency`) keeps most lists under the cap. Replay: fold the ledger to *t*, write the tuples into a throwaway OpenFGA with the in-memory datastore, pin the model in force at *t*, and `Check`; heavier than Cerbos's replay because the state must be loaded, lighter than Postgres's because no schema is involved. Revocation latency decomposes as commit, drain, engine write, check-cache TTL if the cache is enabled, and the consistency mode; the committed-repo case measures it (§4).
+**What the package proves, and where.** `Turnstile.Fga.Core.Drain` holds the arithmetic of a difference and is proved by a property over generated held and required sets. `Turnstile.Fga.Core.Codec` is the tuple encoding, proved by a property that holds a condition's values to the values that were encoded. Three templates hold an application's binding to what a decision rests on: `Turnstile.Fga.TupleMappingCase` for the mapping it declares, `Turnstile.Fga.OutboxCase` for the drain it runs, which is where the drift scenario is, and `Turnstile.Fga.GuardCase` for the guard it names.
 
-**Declaration summary**, domain-free: `requires_ledger: true`; `scope_cap` the `ListObjects` cap; the projection, `Turnstile.Fga.Projector` and the configuration the binding resolves for it. Constants: consistency per operation and the `ListObjects` cap; option: the drain interval (§15).
+## §13 Test environment and conformance
 
-**Projection cases in Tier 1**, each `@tag :committed`, driving `drain_once/1`: measured lag, from a fact's commit to the checkpoint advance that covers it; drift from a tuple deleted through the client directly, caught by reconcile; a re-drain after a simulated crash (a `Write` acknowledged, the checkpoint advance interrupted) converges. They activate only for an adapter that declares a projection.
+See `docs/testing.md` for how a run is set up. A Nix flake pins the toolchain (§11) and provides the Postgres, Cerbos, and OpenFGA binaries; a run starts an ephemeral cluster of its own, with two roles, `turnstile_owner`, which owns the tables and runs migrations, and `turnstile_app`, which does not own them and carries `NOBYPASSRLS` (§4). Every test owns its state, so `async: true` is the default, and the tagged exceptions are the tests that need a committed database.
 
-## §14 Test environment, conformance artifacts, conformance mechanisms
+**The neutral fixture and the conformance artifacts.** Tier 1's fixture is the library's own: two object types, two roles, one attribute, one relationship, as Ecto schemas against the same Postgres the rest of the suite uses. Each adapter package carries what that fixture needs on its own mechanism, in its own `test/support`, under a `Conformance` module of the package's namespace: `turnstile_postgres` the row-level security migration for the fixture tables, `turnstile_cerbos` the attribute declarations, `turnstile_fga` the tuple mapping, and `turnstile_rbac` the role table and predicates. What an engine reads as text rather than as a compiled module stays under `priv/conformance/`, which is the Cerbos policies and the OpenFGA model. `Turnstile.Conformance.AdapterCase` takes the adapter through the configuration override, so all four run in one `mix test` as async modules.
 
-See `docs/testing.md`: a Nix flake pins the toolchain (§12) and provides Postgres, Cerbos, and OpenFGA binaries; `mix test` starts an ephemeral cluster per run, two roles (`turnstile_owner` owns the tables and runs migrations; `turnstile_app` does not own them and carries `NOBYPASSRLS`, §4), a sandboxed and a committed database, and three test repos, of which `Turnstile.TestRepos.Owner` is an owner-role repo in §6's sense; every test owns its state so `async: true` is the default; `:committed` and `:tripwire` are the tagged exceptions; shape tests run on every pull request and benchmarks on demand. The committed-repo list: the interleaved-transactions and lock-cost cases (§9), the append-only grant, reconcile against out-of-band writes, truncation through the owner-role repo, the three projection cases (§13), and the revocation-latency case per adapter (§4).
+**The case templates.**
 
-**The neutral fixture and the conformance artifacts**. Tier 1's fixture is core's: two object types, two roles, one attribute, one relationship, as Ecto schemas against the same Postgres the rest of the suite uses. Each adapter package carries what that fixture needs on its mechanism in its own `test/support`, under a `Conformance` module of the package's namespace: `turnstile_postgres` the RLS migration for the fixture tables; `turnstile_cerbos` the attribute declarations; `turnstile_fga` the tuple mapping; `turnstile_rbac` the role table and predicates. What an engine reads as text rather than as a compiled module stays under `priv/conformance/`: the Cerbos policies and the OpenFGA model. `AdapterCase` (`use Turnstile.Conformance.AdapterCase, adapter: Turnstile.Code`) passes the adapter through the config override, so all four run in one `mix test` as async modules.
-
-**Conformance mechanisms**, two modules that the scenarios and Tier 1 rest on.
-
-| Module | What it is | Package |
+| Template | What it holds to | Package |
 |---|---|---|
-| `Turnstile.Conformance.Case` | The `scenario` macro as a `test` tagged with its rule, its controls, and the capability the declaration records, an `unsupported` scenario skipped with the declaration's note as the reason; the count test that `use Example.Scenarios` defines last (`docs/testing.md` §6); the assertions as macros so a failure points at the scenario | `turnstile_core` |
-| `Turnstile.Conformance.AdapterCase` | The adapter case template: the port's invariants as `stream_data` properties over generators the adapter's test module supplies; scope fidelity, deny by default, record-then-erase, batch agreement, fold-then-state | `turnstile_core` |
+| `Turnstile.Conformance.AdapterCase` | The port's invariants as `stream_data` properties over generators the adapter's test module supplies: scope fidelity, deny by default, batch agreement | `turnstile` |
+| `Turnstile.Conformance.RepoCase` | The surface list against a repo's exports, a refusal from every non-plumbing call without a decision, and E1 to E4 | `turnstile` |
+| `Turnstile.Conformance.Case` | The `scenario` macro: a `test` whose name is the sentence, tagged with the id, the rule, and the controls §3a cites, each checked against `Turnstile.Conformance.Scenarios` at compile time | `turnstile` |
+| `Turnstile.Relay.JobCase` | The three obligations a runner relies on from a job, over a population module the job supplies | `turnstile_relay` |
+| `Turnstile.Fga.OutboxCase`, `GuardCase`, `TupleMappingCase` | The drain, the guard, and the mapping a binding declares | `turnstile_fga` |
 
-**Declared-fact coverage**, one Tier 1 case per adapter whose rules read columns: every column an adapter's rules read is a declared fact (§8). For `turnstile_rbac` and `turnstile_cerbos` the case walks the `dynamic` that `scope` returns, subqueries included, and collects every field reference against the schema it belongs to; for `turnstile_postgres` it reads the policy predicates from `pg_policy` and collects the column references. A column counts as declared when a `fact` or `relationship` declaration on its schema names it, as the fact column, the subject column, or the object column; the primary key and the foreign key of a carried relation are references to the object and count as declared. A rule that reads an undeclared column fails the case with the column's name, because a decision that depended on it would replay from a ledger that never recorded it.
+**The scenario macro.** `scenario "enf-01", "<sentence>", rule: :c1 do ... end`. The id, the sentence, and the rule are checked against `Turnstile.Conformance.Scenarios`, which holds §3a's table as data, and the freeze test holds that module to this document. The count test each thin application defines last reads the ids off the tests the module defined, so a scenario that is never written is a failure rather than a silence. No binding declares a scenario unsupported: every scenario runs under every binding.
 
-**Schema dump**. Each thin-app CI job dumps `pg_dump --schema-only` after migrations into `priv/schema/<adapter>.sql` and fails on a diff against the committed file; the Postgres one is the teaching artifact.
+**Declared-fact coverage**, one case per adapter whose rules read columns: every column an adapter's rules read is a declared fact (§8). For `turnstile_rbac` and `turnstile_cerbos` the case walks the `dynamic` that `scope` returns, subqueries included, and collects every field reference against the schema it belongs to; for `turnstile_postgres` it reads the policy predicates from `pg_policy` and collects the column references. A column counts as declared where a `fact` or `relationship` declaration on its schema names it, as the fact column, the subject column, or the object column, and the primary key and the foreign key of a carried relation are references to the object and count as declared. A rule that reads an undeclared column fails the case with the column's name, because a change to that column would move a decision and emit nothing.
 
-## §15 The configuration struct
+**Schema dump.** `mix turnstile.schema_dump`, a task in `turnstile`, dumps `pg_dump --schema-only` after migrations into `priv/schema/<adapter>.sql`, and each thin application's CI job fails on a diff against the committed file. The task reads the repo, the output path, and the migrations from the `:turnstile` key of the application's Mix project. The Postgres one is the teaching artifact: it is where the row-level security policies are legible as SQL.
 
-`%Turnstile.Config{}` is validated once at boot from a `NimbleOptions` schema and is the only runtime configuration the library reads. The schema is frozen at S1. Tests override any field through `Turnstile.Test.with_config(overrides, fun)`, which puts the override in the process dictionary; the seam's resolver checks `self()` and then the `$callers` chain.
+## §14 The configuration struct
+
+`%Turnstile.Config{}` is validated once at boot from a `NimbleOptions` schema and is the only runtime configuration the library reads. It is put in `:persistent_term` at boot, and read from there. Tests override any field through `Turnstile.Test.with_config/1`, which puts the override in the process dictionary, and the resolver checks `self()` and then the `$callers` chain.
 
 | Field | Type | Default |
 |---|---|---|
-| `adapter` | `module \| {module, keyword}`, the module implementing `Turnstile.Adapter` and its options, validated by the adapter's own schema; a bare module means `[]` | required |
-| `ledger` | `{Turnstile.Ledger.Ecto, repo: module, owner_repo: module} \| :none`; `owner_repo` is `use Turnstile.Repo, role: :owner` | required |
-| `ledger_counter` | `String.t()`, the counter row's name; a test override that the sandbox sets per test, left at the default by applications | `"default"` |
+| `adapter` | `module \| {module, keyword}`, the module implementing `Turnstile.Adapter` and its options, validated by the adapter's own `options_schema/0`; a bare module means `[]` | required |
 | `clock` | `(-> DateTime.t())`, a zero-arity function answering the current time in UTC | `&DateTime.utc_now/0` |
-| `caps` | keyword: `batch_ids` (ids listed in a record), `rule_bytes` (rule text kept in a record), `policy_content_bytes` (policy text kept by value) | `[batch_ids: 1_000, rule_bytes: 4_096, policy_content_bytes: 65_536]` |
+| `caps` | keyword, one key: `policy_content_bytes`, the policy text a version carries by value | `[policy_content_bytes: 65_536]` |
 
-Adapter options by adapter: `turnstile_cerbos` `address`; `turnstile_fga` `endpoint`, `store_id`, `model_id`, `drain_interval`, `client` (the behaviour's implementation, the fake in tests); `turnstile_rbac` and `turnstile_postgres` none, so their entry is the bare module. Consistency per operation and the `ListObjects` cap are constants of `turnstile_fga`.
+Adapter options by adapter: `turnstile_cerbos` takes an `address`; `turnstile_fga` takes an `endpoint`, a `store_id`, a `model_id`, and a `client`, which is the behaviour's implementation and is the fake in tests; `turnstile_rbac` and `turnstile_postgres` take none, so their entry is the bare module. The consistency per operation and the `ListObjects` cap are constants of `turnstile_fga` rather than options. How often a relay pass runs belongs to the runner a thin application starts, not to this struct.
