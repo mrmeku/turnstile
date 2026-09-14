@@ -34,7 +34,7 @@ defmodule Example.Documents do
   """
 
   alias Ecto.Changeset
-  alias Example.Controls
+  alias Example.Banner
   alias Example.Core.DocumentQuery
   alias Example.Document
   alias Example.Documents.BannerViolation
@@ -245,10 +245,10 @@ defmodule Example.Documents do
 
   defp covered(document_id, attrs) do
     portions = Repo.all(DocumentQuery.portions(document_id), turnstile: @banner)
-    banner = Controls.marking(attrs)
-    required = Controls.banner(portions)
+    banner = Banner.marking(attrs)
+    required = Banner.of(portions)
 
-    if Controls.covers?(banner, required) do
+    if Banner.covers?(banner, required) do
       :ok
     else
       {:error, %BannerViolation{document_id: document_id, banner: banner, portions: required}}
@@ -261,7 +261,7 @@ defmodule Example.Documents do
   defp recompute_banner(document_id, decision) do
     {:ok, %Document{marking: marking} = document} = fetch(document_id, decision)
     portions = Repo.all(DocumentQuery.portions(document_id), turnstile: @banner)
-    banner = Controls.banner([marking | portions])
+    banner = Banner.of([marking | portions])
     change = Changeset.put_assoc(Changeset.change(document), :marking, Marking.changeset(marking, banner))
     _document = Repo.update!(change, turnstile: decision)
     :ok

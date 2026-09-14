@@ -3,11 +3,11 @@ defmodule Example do
   The example application: controlled unclassified information, as a
   library application. The schemas declare object types and fact mappings,
   the contexts call the port and write through the seam, and the consumer
-  maps the library's events to the shape a security log takes. What
-  decides without touching the world is under `core/`: the queries each
-  context runs and the mapping to OCSF. The web layer is `ExampleWeb`,
-  which reaches the contexts and nothing under them. No adapter is named
-  here; a thin application binds one.
+  maps the library's events to the shape a security log takes. What decides
+  without touching the world is under `core/`: rule C4's arithmetic, the
+  queries each context runs, and the mapping to OCSF. The web layer is
+  `ExampleWeb`, which reaches the contexts and nothing under them. No
+  adapter is named here; a thin application binds one.
   """
 
   use Boundary,
@@ -24,6 +24,7 @@ defmodule Example do
       AccountRole,
       Agency,
       Assignment,
+      Banner,
       Category,
       Controls,
       Document,

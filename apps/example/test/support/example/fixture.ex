@@ -217,7 +217,7 @@ defmodule Example.Fixture do
   end
 
   defp marking!(%Document{id: id}, opts, portions) do
-    banner = Example.Controls.banner([Map.new(opts) | portions])
+    banner = Example.Banner.of([Map.new(opts) | portions])
 
     Repo.insert!(
       %Marking{

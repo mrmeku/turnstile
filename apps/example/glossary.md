@@ -6,8 +6,8 @@ The words `example` owns. A word with a second meaning elsewhere is listed in `d
 |---|---|
 | Document | The protected record: a title, a designating office, a program, a decontrol date, a marking, portions, and proposals |
 | Portion | One part of a document with a marking of its own; the redacted read returns the portions the subject may read |
-| Marking | The categories, controls, and releasable-to list a portion carries and a document's banner unions |
-| Banner | A document's marking: the union of its portions' markings, enforced at write time (C4) |
+| Marking | The categories, controls, and releasable-to list a portion carries and a document's banner combines |
+| Banner | A document's marking: the one that admits no subject a portion of it denies, kept at write time (C4). Its categories and controls are the union of the portions'; its releasable-to list is the intersection of the lists of the portions that carry that control |
 | Control | One dissemination control: `federal_only`, `no_foreign`, `named_list`, or `releasable_to`, each a test on the subject (C2) |
 | Category | A CUI category; a specified category implies controls that count as declared (C3) |
 | Decontrol | The date after which C2 to C4 no longer apply to a document; C1 still does (C5) |

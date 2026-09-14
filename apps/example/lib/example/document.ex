@@ -81,8 +81,8 @@ end
 defmodule Example.Portion do
   @moduledoc """
   A portion of a document with a marking of its own; the document's banner
-  is the union of them. It carries its document, which the rules reach it
-  through.
+  combines them and admits no subject any of them denies. It carries its
+  document, which the rules reach it through.
   """
 
   use Ecto.Schema

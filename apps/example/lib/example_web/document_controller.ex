@@ -3,7 +3,7 @@ defmodule ExampleWeb.DocumentController do
 
   use Phoenix.Controller, formats: [:json]
 
-  alias Example.Controls
+  alias Example.Banner
   alias Example.Document
   alias Example.Documents
   alias Example.Portion
@@ -41,7 +41,7 @@ defmodule ExampleWeb.DocumentController do
   end
 
   defp respond(conn, {:ok, %Document{} = document}), do: json(conn, document(document))
-  defp respond(conn, {:ok, %Example.Marking{} = marking}), do: json(conn, Controls.marking(marking))
+  defp respond(conn, {:ok, %Example.Marking{} = marking}), do: json(conn, Banner.marking(marking))
   defp respond(conn, {:error, :not_found}), do: error(conn, 404, "not found")
   defp respond(conn, {:error, %Documents.BannerViolation{}}), do: error(conn, 422, "banner")
   defp respond(conn, {:error, _refusal}), do: error(conn, 403, "forbidden")
@@ -62,11 +62,11 @@ defmodule ExampleWeb.DocumentController do
     }
   end
 
-  defp marking(%Example.Marking{} = marking), do: Map.put(Controls.marking(marking), :list, marking.list)
+  defp marking(%Example.Marking{} = marking), do: Map.put(Banner.marking(marking), :list, marking.list)
   defp marking(_unloaded), do: nil
 
   defp portions(portions) when is_list(portions) do
-    Enum.map(portions, fn %Portion{} = portion -> Map.put(Controls.marking(portion), :body, portion.body) end)
+    Enum.map(portions, fn %Portion{} = portion -> Map.put(Banner.marking(portion), :body, portion.body) end)
   end
 
   defp portions(_unloaded), do: []
