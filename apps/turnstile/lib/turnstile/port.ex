@@ -6,13 +6,13 @@ defmodule Turnstile.Port do
   raised, stamp a `Turnstile.Decision`, and publish it.
 
   Every call publishes one `[:turnstile, :decision]` event, whose metadata
-  is what PLAN §4 states: who asked and of what kind, the operation, the
-  object or the rule a narrowing call answered with, the verdict and the
-  reason, the decider and the version of its rules, the environment as the
-  caller gave it, the exception where the call raised, the moment, and the
-  operation id. A decision is a read, so it has no transaction. The one
-  measurement is the duration in microseconds, which is where a consumer
-  of telemetry looks for it.
+  is what `docs/reference.md` §7 states: who asked and of what kind, the
+  operation, the object or the rule a narrowing call answered with, the
+  verdict and the reason, the decider and the version of its rules, the
+  environment as the caller gave it, the exception where the call raised,
+  the moment, and the operation id. A decision is a read, so it has no
+  transaction. The one measurement is the duration in microseconds, which
+  is where a consumer of telemetry looks for it.
 
   A subject whose kind the port does not know is denied before the adapter
   is asked, and its event says `:unknown`.
