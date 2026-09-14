@@ -11,10 +11,9 @@ defmodule Example.Accounts do
   row made cannot be read back from one statement.
   """
 
-  import Ecto.Query, only: [from: 2]
-
   alias Example.AccountRole
   alias Example.Assignment
+  alias Example.Core.AccountQuery
   alias Example.OfficeRole
   alias Example.Repo
   alias Example.User
@@ -54,9 +53,8 @@ defmodule Example.Accounts do
   """
   @spec unassign(String.t(), integer()) :: non_neg_integer()
   def unassign(user_id, program_id) when is_binary(user_id) do
-    query = from(a in Assignment, where: a.user_id == ^user_id and a.program_id == ^program_id)
-
-    query
+    user_id
+    |> AccountQuery.assignment(program_id)
     |> Repo.all(turnstile: @administration)
     |> Enum.map(&Repo.delete!(&1, turnstile: @administration))
     |> length()
@@ -77,8 +75,7 @@ defmodule Example.Accounts do
   @doc "Whether the account holds the override permission."
   @spec override_permitted?(String.t()) :: boolean()
   def override_permitted?(user_id) when is_binary(user_id) do
-    query = from(r in AccountRole, where: r.user_id == ^user_id and r.role == :override)
-    Repo.exists?(query)
+    Repo.exists?(AccountQuery.override_role(user_id))
   end
 
   @doc "Change an account's employment; the next check sees it."
@@ -98,14 +95,7 @@ defmodule Example.Accounts do
   @doc "Every privileged account with the roles it holds, by account id."
   @spec privileged() :: [{User.t(), [atom()]}]
   def privileged do
-    query =
-      from(u in User,
-        where: u.kind == :privileged,
-        left_join: r in AccountRole,
-        on: r.user_id == u.id,
-        order_by: [u.id, r.role],
-        select: {u, r.role}
-      )
+    query = AccountQuery.privileged()
 
     query
     |> Repo.all()

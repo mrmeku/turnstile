@@ -33,10 +33,9 @@ defmodule Example.Documents do
   makes carries that decision's operation id.
   """
 
-  import Ecto.Query, only: [from: 2, where: 2]
-
   alias Ecto.Changeset
   alias Example.Controls
+  alias Example.Core.DocumentQuery
   alias Example.Document
   alias Example.Documents.BannerViolation
   alias Example.Documents.OverrideRefused
@@ -88,8 +87,7 @@ defmodule Example.Documents do
         []
 
       {rule, decision} ->
-        query = from(d in Document, where: ^rule, order_by: d.id, preload: :marking)
-        Repo.all(query, turnstile: decision)
+        Repo.all(DocumentQuery.listed(rule), turnstile: decision)
     end
   end
 
@@ -221,8 +219,7 @@ defmodule Example.Documents do
   @doc "The overrides reported to an office, oldest first."
   @spec override_reports(integer()) :: [OverrideReport.t()]
   def override_reports(office_id) when is_integer(office_id) do
-    query = from(r in OverrideReport, where: r.office_id == ^office_id, order_by: r.id)
-    Repo.all(query)
+    Repo.all(DocumentQuery.reports(office_id))
   end
 
   @doc "The object reference for a document id."
@@ -237,8 +234,7 @@ defmodule Example.Documents do
   # scope answered with, which is what a bulk statement cannot do: the seam
   # reads the row before and after and publishes the change it made.
   defp decontrolled(rule, decision, at) do
-    query = from(d in Document, where: ^rule)
-    admitted = Repo.all(query, turnstile: decision)
+    admitted = Repo.all(DocumentQuery.admitted(rule), turnstile: decision)
     Enum.each(admitted, &Repo.update!(Changeset.change(&1, decontrol: at), turnstile: decision))
     length(admitted)
   end
@@ -248,7 +244,7 @@ defmodule Example.Documents do
   end
 
   defp covered(document_id, attrs) do
-    portions = Repo.all(where(Portion, document_id: ^document_id), turnstile: @banner)
+    portions = Repo.all(DocumentQuery.portions(document_id), turnstile: @banner)
     banner = Controls.marking(attrs)
     required = Controls.banner(portions)
 
@@ -264,7 +260,7 @@ defmodule Example.Documents do
   # document's own categories, controls, and countries standing where none is.
   defp recompute_banner(document_id, decision) do
     {:ok, %Document{marking: marking} = document} = fetch(document_id, decision)
-    portions = Repo.all(where(Portion, document_id: ^document_id), turnstile: @banner)
+    portions = Repo.all(DocumentQuery.portions(document_id), turnstile: @banner)
     banner = Controls.banner([marking | portions])
     change = Changeset.put_assoc(Changeset.change(document), :marking, Marking.changeset(marking, banner))
     _document = Repo.update!(change, turnstile: decision)
@@ -301,8 +297,7 @@ defmodule Example.Documents do
         []
 
       {rule, decision} ->
-        query = from(p in Portion, where: p.document_id == ^id, where: ^rule, order_by: p.id)
-        Repo.all(query, turnstile: decision)
+        Repo.all(DocumentQuery.portions(id, rule), turnstile: decision)
     end
   end
 

@@ -16,7 +16,6 @@ defmodule Example.Scenarios.Audit do
   alias Example.Program
   alias Example.Repo
   alias Example.Siem
-  alias Example.Siem.Ocsf
   alias Turnstile.Answer
   alias Turnstile.Id
   alias Turnstile.PolicyVersion
@@ -278,7 +277,7 @@ defmodule Example.Scenarios.Audit do
   # type identifier is the class and the activity, which is how OCSF
   # builds it.
   defp assert_ocsf_fields(record) do
-    assert record.metadata.version == Ocsf.version()
+    assert record.metadata.version == Siem.schema_version()
     assert record.type_uid == record.class_uid * 100 + record.activity_id
   end
 

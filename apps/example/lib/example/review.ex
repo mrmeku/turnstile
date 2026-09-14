@@ -16,14 +16,11 @@ defmodule Example.Review do
   a reason that is the session's and not the role's.
   """
 
-  import Ecto.Query, only: [from: 2]
-
   alias Example.Accounts
   alias Example.Agency
-  alias Example.Document
+  alias Example.Core.ReviewQuery
   alias Example.Documents
   alias Example.Repo
-  alias Example.User
 
   @review {:exempt, "access review: the population the reviewer ranges over"}
 
@@ -56,7 +53,7 @@ defmodule Example.Review do
   """
   @spec report(Turnstile.subject(), keyword()) :: String.t()
   def report({_kind, _account} = reviewer, opts \\ []) when is_list(opts) do
-    agencies = Repo.all(agencies(), turnstile: @review)
+    agencies = Repo.all(ReviewQuery.agencies(), turnstile: @review)
 
     lines =
       Enum.flat_map(agencies, fn agency ->
@@ -94,10 +91,8 @@ defmodule Example.Review do
       end)
   end
 
-  defp agencies, do: from(a in Agency, order_by: a.id)
-
   defp subjects do
-    query = from(u in User, order_by: u.id, select: {u.id, u.kind})
+    query = ReviewQuery.subjects()
 
     query
     |> Repo.all()
@@ -105,15 +100,8 @@ defmodule Example.Review do
   end
 
   defp documents(agency_id) do
-    query =
-      from(d in Document,
-        join: o in assoc(d, :designating_office),
-        where: o.agency_id == ^agency_id,
-        order_by: d.id,
-        select: d.id
-      )
-
-    query
+    agency_id
+    |> ReviewQuery.documents()
     |> Repo.all(turnstile: @review)
     |> Enum.map(&{:document, &1})
   end
