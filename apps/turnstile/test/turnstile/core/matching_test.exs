@@ -49,6 +49,17 @@ defmodule Turnstile.Core.MatchingTest do
     assert :ok = Matching.judge(schemaless, nil, caller())
   end
 
+  test "a source with no schema is judged by nothing it reaches: a fragment, and an association off one" do
+    fragment = from(g in fragment("generate_series(1, 3)"), select: 1)
+    assert :ok = Matching.judge(fragment, nil, caller())
+
+    over_fragment = from(s in subquery(from(g in fragment("generate_series(1, 3)"), select: %{n: 1})), select: s.n)
+    assert :ok = Matching.judge(over_fragment, nil, caller())
+
+    assoc = from(a in "turnstile_fixture_accounts", join: f in assoc(a, :folder), select: a.id)
+    assert :ok = Matching.judge(assoc, nil, caller())
+  end
+
   defp mediation(type) do
     decision = %Decision{
       id: Id.new(),

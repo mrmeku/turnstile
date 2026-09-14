@@ -1,6 +1,7 @@
 defmodule Turnstile.Code.PolicyTest do
   use ExUnit.Case, async: true
 
+  alias Turnstile.Code.Conformance.Assignment
   alias Turnstile.Code.Conformance.Predicates
   alias Turnstile.Code.Conformance.Roles
   alias Turnstile.Code.Core.Clauses
@@ -80,6 +81,8 @@ defmodule Turnstile.Code.PolicyTest do
 
   test "a grant needs the role column named when the relationship declares more than one attribute or none" do
     assert %Clause{as: :reader} = Clauses.grant(:fixed, Membership, as: :reader)
+    assert %Clause{role: :role} = Clauses.grant(:named, Assignment, role: :role)
+    assert_raise ArgumentError, ~r/declares 2 attributes/, fn -> Clauses.grant(:wide, Assignment, []) end
     assert_raise ArgumentError, ~r/declares no relationship/, fn -> Clauses.grant(:bare, Folder, []) end
     assert_raise ArgumentError, ~r/declares no object type/, fn -> Clauses.object(Membership, []) end
     assert_raise ArgumentError, ~r/permissions must be atoms/, fn -> Policy.__role__(:reader, ["read"]) end

@@ -9,5 +9,5 @@ defmodule Turnstile.Code.Conformance do
   use Boundary,
     top_level?: true,
     deps: [Turnstile, Turnstile.Code, Turnstile.Fixture, Ecto],
-    exports: [Predicates, Roles]
+    exports: [Assignment, Predicates, Roles]
 end

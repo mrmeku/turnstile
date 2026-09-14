@@ -97,13 +97,10 @@ defmodule Turnstile.Core.Matching do
             arity: arity,
             schema: schema,
             object_type: Mediation.object_type(mediation),
-            caller: named(mediation, caller)
+            caller: caller.()
           )
   end
 
   defp call(%Mediation{call: call}), do: call
   defp call(nil), do: {:prepare_query, 3}
-
-  defp named(%Mediation{caller: caller}, _read) when is_atom(caller) and not is_nil(caller), do: caller
-  defp named(_mediation, read), do: read.()
 end

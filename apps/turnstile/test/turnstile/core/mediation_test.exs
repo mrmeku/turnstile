@@ -10,6 +10,16 @@ defmodule Turnstile.Core.MediationTest do
   alias Turnstile.Id
   alias Turnstile.Test.Fake
 
+  test "a refusal names the caller where the seam could read one, and says nothing where it could not" do
+    parts = fn caller -> [function: :all, arity: 2, schema: Folder, object_type: nil, caller: caller] end
+
+    assert %Error{reason: :unmediated, detail: named} = Mediation.unmediated(parts.(__MODULE__))
+    assert named =~ "(from #{inspect(__MODULE__)})"
+
+    assert %Error{detail: bare} = Mediation.unmediated(parts.(:any))
+    assert bare == "Repo.all/2 on #{inspect(Folder)} carries no decision and no exemption"
+  end
+
   test "the option's schema is a NimbleOptions schema that admits a resolved mediation" do
     assert %NimbleOptions{} = Mediation.schema()
     assert {:ok, %Mediation{}} = Mediation.validate_option(Mediation.empty({:all, 2}))

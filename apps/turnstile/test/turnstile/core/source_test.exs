@@ -25,6 +25,8 @@ defmodule Turnstile.Core.SourceTest do
     assert Source.root([%Item{}, %Folder{}]) == Item
     assert Source.root([]) == nil
     assert Source.root(nil) == nil
+    series = from(g in fragment("generate_series(1, 3)"), select: 1)
+    assert Source.root(series) == nil
   end
 
   test "to_query/1 turns a schema, struct, changeset, or list into the query the adapter sees" do

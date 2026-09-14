@@ -91,6 +91,9 @@ defmodule Turnstile.Cerbos.PlanTest do
     assert ids(compiled!(ctx, "le", [id_of(), value(1)])) == [1]
     assert ids(compiled!(ctx, "lt", [value(1), id_of()])) == [2]
     assert ids(compiled!(ctx, "ge", [value(1), id_of()])) == [1]
+    assert ids(compiled!(ctx, "le", [value(2), id_of()])) == [2]
+    assert ids(compiled!(ctx, "gt", [value(2), id_of()])) == [1]
+    assert ids(compiled!(ctx, "eq", [value("folder 1"), attr("name")])) == [1]
   end
 
   test "a comparison with nothing is a null test, and an ordering against nothing is no rule", ctx do
@@ -138,6 +141,20 @@ defmodule Turnstile.Cerbos.PlanTest do
 
     assert {:error, unsupported} = compiled(ctx, "like", [attr("name"), value("folder%")])
     assert unsupported =~ "the plan uses the operator like, which this adapter does not express"
+
+    assert {:error, shape} = compiled(ctx, "size", [attr("name")])
+    assert shape =~ "the plan uses an expression this adapter does not express"
+  end
+
+  test "an operand that carries no rule stops the connective it is under, whichever side it is on", ctx do
+    named = expression("eq", [attr("name"), value("folder 1")])
+    unreadable = expression("eq", [attr("title"), value("a")])
+
+    assert {:error, second} = compiled(ctx, "and", [operand(named), operand(unreadable)])
+    assert second =~ "the plan reads the attribute title, which the declarations do not name"
+
+    assert {:error, right} = compiled(ctx, "eq", [attr("name"), operand(unreadable)])
+    assert right =~ "the plan compares against"
   end
 
   test "a plan that reads what the declarations do not name is an error", ctx do

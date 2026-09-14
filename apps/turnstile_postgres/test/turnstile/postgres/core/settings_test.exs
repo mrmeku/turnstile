@@ -27,6 +27,12 @@ defmodule Turnstile.Postgres.SettingsTest do
     assert values["turnstile.level"] == "3"
   end
 
+  test "a fact of a shape the settings have no rendering for is set as the term inspected" do
+    settings = Settings.of(subject(), :read, environment(%{window: {@at, @at}}))
+
+    assert Map.new(settings.pairs)["turnstile.window"] == inspect({@at, @at})
+  end
+
   test "a decision's time alone gives the same settings with no supplied fact" do
     assert Settings.of(subject(), :read, @at) == Settings.of(subject(), :read, environment(%{}))
   end

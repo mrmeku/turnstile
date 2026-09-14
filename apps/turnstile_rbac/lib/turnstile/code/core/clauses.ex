@@ -29,14 +29,6 @@ defmodule Turnstile.Code.Core.Clauses do
                       only: [type: {:list, :atom}, doc: "The operations the predicate applies to; all when absent."]
                     )
 
-  @doc "The options `grant` accepts."
-  @spec grant_schema() :: NimbleOptions.t()
-  def grant_schema, do: @grant_schema
-
-  @doc "The options `predicate` accepts."
-  @spec predicate_schema() :: NimbleOptions.t()
-  def predicate_schema, do: @predicate_schema
-
   @doc "The protected schema of an object type in a policy, or nil."
   @spec object_of(Policy.t(), atom()) :: Object.t() | nil
   def object_of(policy, type) when is_atom(policy) and is_atom(type) do

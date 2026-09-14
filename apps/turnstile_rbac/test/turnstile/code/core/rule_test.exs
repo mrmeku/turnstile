@@ -67,6 +67,18 @@ defmodule Turnstile.Code.RuleTest do
     end
   end
 
+  defmodule Unfiltered do
+    @moduledoc false
+    use Policy, version: "unfiltered"
+
+    role :reader, [:read]
+    role :editor, [:read]
+
+    object Item do
+      grant :folder_membership, Membership, on: :folder_id, through: [{Folder, :id}]
+    end
+  end
+
   defmodule Foreign do
     @moduledoc false
     use Policy, version: "foreign"
@@ -151,6 +163,11 @@ defmodule Turnstile.Code.RuleTest do
     {1, nil} = Sandboxed.update_all(closed, [set: [name: "closed"]], turnstile: World.exemption())
 
     assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
+             Turnstile.Code.check(ctx.ann, :read, item, ctx.environment, [])
+
+    :ok = Binding.override(policy: Unfiltered, repo: Sandboxed)
+
+    assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "folder_membership"}}} =
              Turnstile.Code.check(ctx.ann, :read, item, ctx.environment, [])
   end
 
