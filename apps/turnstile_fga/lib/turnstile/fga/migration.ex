@@ -1,30 +1,34 @@
 defmodule Turnstile.Fga.Migration do
   @moduledoc """
-  The checkpoint table, for a thin application's own migration to create.
-  This package ships no migration files; each thin application has one that
-  calls these.
+  The outbox table, for a thin application's own migration to create. This
+  package ships no migration files; each thin application has one that calls
+  these.
 
       defmodule ExampleFga.Repo.Migrations.Fga do
         use Ecto.Migration
 
-        def up, do: Turnstile.Fga.Migration.checkpoint_up()
+        def up, do: Turnstile.Fga.Migration.outbox_up()
 
-        def down, do: Turnstile.Fga.Migration.checkpoint_down()
+        def down, do: Turnstile.Fga.Migration.outbox_down()
       end
 
-  `checkpoint_up/1` creates `turnstile_fga_checkpoint(store text primary key,
-  position bigint not null)` and grants the application role select, insert,
-  and update: the projector runs as the application, and advancing a
-  checkpoint replaces the position of a row that is already there. No delete
-  is granted, because a store is forgotten by dropping its row from a
-  migration rather than at run time.
+  `outbox_up/1` creates `turnstile_fga_outbox(id bigserial primary key,
+  object text not null)` and grants the application role select, insert, and
+  delete: the marker is written in the transaction that changed the rows,
+  and the drain reads a batch and deletes what it delivered, both as the
+  application. No update is granted, because a marker is written once and
+  read as it was written.
+
+  A thin application creates the cursor table beside this one, with
+  `Turnstile.Relay.Migration.cursor_up/1`, since the drain is a relay
+  runner and the cursor is where it keeps its place.
   """
 
   use Boundary, top_level?: true, deps: [Ecto.Migration]
 
   import Ecto.Migration
 
-  @table :turnstile_fga_checkpoint
+  @table :turnstile_fga_outbox
 
   @schema NimbleOptions.new!(
             app_role: [
@@ -34,23 +38,24 @@ defmodule Turnstile.Fga.Migration do
             ]
           )
 
-  @doc "Create the checkpoint table and its grants. Options: #{NimbleOptions.docs(@schema)}"
-  @spec checkpoint_up(keyword()) :: :ok
-  def checkpoint_up(options \\ []) when is_list(options) do
+  @doc "Create the outbox table and its grants. Options: #{NimbleOptions.docs(@schema)}"
+  @spec outbox_up(keyword()) :: :ok
+  def outbox_up(options \\ []) when is_list(options) do
     options = NimbleOptions.validate!(options, @schema)
 
     create table(@table, primary_key: false) do
-      add(:store, :text, primary_key: true)
-      add(:position, :bigint, null: false)
+      add(:id, :bigserial, primary_key: true)
+      add(:object, :text, null: false)
     end
 
-    execute("GRANT SELECT, INSERT, UPDATE ON #{@table} TO #{options[:app_role]}")
+    execute("GRANT SELECT, INSERT, DELETE ON #{@table} TO #{options[:app_role]}")
+    execute("GRANT USAGE ON SEQUENCE #{@table}_id_seq TO #{options[:app_role]}")
     :ok
   end
 
-  @doc "Drop the checkpoint table."
-  @spec checkpoint_down() :: :ok
-  def checkpoint_down do
+  @doc "Drop the outbox table."
+  @spec outbox_down() :: :ok
+  def outbox_down do
     drop(table(@table))
     :ok
   end

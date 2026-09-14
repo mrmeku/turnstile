@@ -1,54 +1,56 @@
 defmodule Turnstile.Fga do
   @moduledoc """
   The OpenFGA adapter. Facts become tuples in a store of the engine's own,
-  rules become a model that is immutable and named by id, and the projector
-  drains the ledger into that store, which is why this adapter requires a
-  ledger: its working state is a copy rather than the application's tables.
+  rules become a model that is immutable and named by id, and a drain keeps
+  that store in step with the application's tables, which is what makes this
+  adapter's working state a copy rather than the tables themselves.
 
   An operation is a relation of the model, `can_` and the operation's name,
   and a decision is one `Check` under the model the configuration pins. A
   batch is `BatchCheck`, a scope is `ListObjects` turned into a `dynamic`
   over identifiers, and an explanation is `Expand`, whose tree is the path.
-  `Turnstile.Fga.Decide` holds those translations and the constants they use.
 
   What this package holds, and what each piece is for:
 
   - `Turnstile.Fga.Client`, the only path to the server. Eight calls, each
     answering a value or an engine error, none of them raising.
-    `Turnstile.Fga.Client.Fake` is the same behaviour on an `Agent`, which
-    is where the projector's own cases run.
+    `Turnstile.Fga.Client.Fake` is the same behaviour on an `Agent`.
   - `Turnstile.Fga.TupleMapping`, what an application states about its
-    facts: which objects an event can have changed, and which tuples an
-    object requires. Both are read from the fold rather than from one event,
-    which is what lets the projector write differences.
-  - `Turnstile.Fga.Projector`, `Turnstile.Projection` over that mapping:
-    a drain by difference, a checkpoint in the application's own database, a
-    rebuild into a store of its own, and a reconcile against what the store
-    reports. `Turnstile.Fga.Projector.Scheduler` is the process that drains
-    on the interval, which a thin application starts and a test does not.
+    tables: which object types it writes, which objects of a type there are,
+    which objects one change can have affected, and which tuples an object
+    requires. Every answer is read from the rows as they stand, which is
+    what lets a drain write differences.
+  - `Turnstile.Fga.Outbox`, the markers a drain works from. A handler on the
+    change event writes one marker per affected object in the transaction
+    that changed the rows, and a `Turnstile.Relay` runner delivers them: per
+    object, the difference between what the rows require and what the store
+    holds.
   - `Turnstile.Fga.Binding`, what the configuration entry does not carry:
-    the repo the checkpoint is read through, the model file the store is
-    published from, the mapping, and the guard.
+    the mediated repo the markers and the tables are read through, the model
+    file the store is published from, the mapping, and the guard.
   - `Turnstile.Fga.Guard`, a precondition on the environment a binding may
     name, which every callback consults before it asks, for a fact about the
     call that no tuple should carry.
   - `Turnstile.Fga.Version`, the model published as a policy version.
-  - `Turnstile.Fga.Migration`, the checkpoint table, which a thin
-    application's migration creates.
+  - `Turnstile.Fga.Migration`, the outbox table, which a thin application's
+    migration creates.
+  - `Turnstile.Fga.OutboxCase`, `Turnstile.Fga.TupleMappingCase`, and
+    `Turnstile.Fga.GuardCase`, which hold an application's mapping, drain,
+    and guard to what a decision relies on. The first two write and take
+    away a `Turnstile.Fga.Population` of the application's own rows.
 
-  Three declarations of this adapter in any domain: it requires a ledger,
-  since nothing drains without one, its scope is capped at what one
-  `ListObjects` answers with, and its projection is
-  `Turnstile.Fga.Projector` over the configuration the binding resolves.
+  Three declarations of this adapter in any domain: it needs no ledger,
+  since what it drains from is the application's own tables, its scope is
+  capped at what one `ListObjects` answers with, and settling it is draining
+  its outbox until nothing is left.
   """
 
   @behaviour Turnstile.Adapter
 
   use Boundary,
-    deps: [Turnstile, Turnstile.Ledger.Reader, Ecto, NimbleOptions],
+    deps: [Turnstile, Turnstile.Relay, Ecto, NimbleOptions],
     exports: [
       Binding,
-      Checkpoint,
       Client,
       Client.BatchCheck,
       Client.Check,
@@ -61,23 +63,29 @@ defmodule Turnstile.Fga do
       Client.Write,
       Condition,
       Consistency,
-      Decide,
+      Drift,
       Guard,
+      GuardCase,
       Model,
-      Projector,
-      Projector.Scheduler,
+      Outbox,
+      OutboxCase,
+      Population,
       TupleKey,
       TupleMapping,
+      TupleMappingCase,
       Version
     ]
 
   alias Turnstile.Error
   alias Turnstile.FactEvent
+  alias Turnstile.Fga.Adapter.Decide
+  alias Turnstile.Fga.Adapter.Settle
+  alias Turnstile.Fga.Adapter.Store
   alias Turnstile.Fga.Binding
-  alias Turnstile.Fga.Checkpoint
-  alias Turnstile.Fga.Decide
-  alias Turnstile.Fga.Projector
+  alias Turnstile.Fga.Drift
+  alias Turnstile.Fga.Outbox
   alias Turnstile.Fga.Version
+  alias Turnstile.Relay.Cursor
 
   @schema NimbleOptions.new!(
             endpoint: [
@@ -85,17 +93,12 @@ defmodule Turnstile.Fga do
               required: true,
               doc: "Where the server is: the address of one, or the process a fake runs on."
             ],
-            store_id: [type: :string, required: true, doc: "The store the projector drains into and decisions read."],
+            store_id: [type: :string, required: true, doc: "The store a drain writes and decisions read."],
             model_id: [
               type: :string,
               doc:
                 "The model every question is pinned to. Absent until the first publish, " <>
                   "and a decision under an entry that pins none fails closed."
-            ],
-            drain_interval: [
-              type: :pos_integer,
-              default: 1_000,
-              doc: "Milliseconds between drains, for the projector process a thin application starts."
             ],
             client: [
               type: :atom,
@@ -107,21 +110,63 @@ defmodule Turnstile.Fga do
   @spec publish() :: {:ok, :current | FactEvent.t()} | {:error, Error.t()}
   def publish, do: Version.publish(__MODULE__)
 
+  @doc """
+  Mark every object of every type the mapping names, so the next drain
+  brings the store to what the tables require for all of them. This is what
+  fills a store whose rows were written before the handler was attached, and
+  what a test calls when it has written rows the handler could not see.
+  """
+  @spec mark_all() :: :ok | {:error, Error.t()}
+  def mark_all do
+    with {:ok, %Store{} = store} <- Store.resolve(__MODULE__) do
+      Outbox.mark(store.repo, Store.objects(store))
+    end
+  end
+
+  @doc """
+  The tuples the tables require against the tuples the store holds, as of
+  the marker the drain has reached. A drift that is clean says the two
+  agree; a drift that is not names every tuple that differs.
+  """
+  @spec reconcile() :: {:ok, Drift.t()} | {:error, Error.t()}
+  def reconcile do
+    with {:ok, %Store{} = store} <- Store.resolve(__MODULE__) do
+      Store.drift(store, Cursor.position(store.repo, Outbox.runner()))
+    end
+  end
+
+  @doc """
+  A store of this name, carrying the bound model and every tuple the tables
+  require, and its reference. The store the configuration names keeps
+  serving while this one is filled, so a rebuild is a store to point the
+  configuration at rather than an outage.
+
+  A rebuild writes every object directly rather than through the outbox: a
+  second store draining the same cursor would read markers the first drain
+  had already deleted.
+  """
+  @spec rebuild(String.t()) :: {:ok, String.t()} | {:error, Error.t()}
+  def rebuild(name \\ "turnstile") when is_binary(name) do
+    with {:ok, %Binding{} = binding} <- Binding.resolve(),
+         {:ok, model} <- Binding.compiled(binding),
+         {:ok, %Store{} = store} <- Store.resolve(__MODULE__),
+         {:ok, %Store{} = fresh} <- Store.created(store, name, model),
+         :ok <- Store.converge(fresh, Store.objects(fresh)) do
+      {:ok, fresh.store}
+    end
+  end
+
   @impl Turnstile.Adapter
   def options_schema, do: @schema
 
   @impl Turnstile.Adapter
-  def requires_ledger, do: true
+  def requires_ledger, do: false
 
   @impl Turnstile.Adapter
   def scope_cap, do: Decide.scope_cap()
 
   @impl Turnstile.Adapter
-  def projection do
-    with {:ok, %Projector{} = projector} <- Projector.resolve(__MODULE__) do
-      {:ok, {Projector, projector}}
-    end
-  end
+  def settle, do: Settle.now()
 
   @impl Turnstile.Adapter
   def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
@@ -173,15 +218,14 @@ defmodule Turnstile.Fga do
     end
   end
 
-  # The position the store has been drained to is read where the
-  # application's own tables are, so the binding is resolved for the repo
-  # that holds the checkpoint before any question is asked. The guard the
-  # same binding names is asked next, and a refusal is answered with the
-  # entry the denial is reported under.
+  # The guard a binding may name is asked before any question goes to the
+  # server, so the binding is resolved first and a refusal is answered with
+  # the entry the denial is reported under. Nothing else is read here: a
+  # decision is one call to the store and no query of its own.
   defp entry(options, callback, operation, environment) do
     with {:ok, %Binding{} = binding} <- bound(callback),
          {:ok, entry} <- Decide.entry(options, callback, environment) do
-      admits(binding, operation, environment, Decide.applied(entry, Checkpoint.position(binding.repo, entry.store)))
+      admits(binding, operation, environment, entry)
     end
   end
 

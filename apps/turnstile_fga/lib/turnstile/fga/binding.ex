@@ -1,24 +1,23 @@
 defmodule Turnstile.Fga.Binding do
   @moduledoc """
   What `Turnstile.Fga` needs beyond the configuration entry, which carries
-  the endpoint and the store alone: the mediated repo the checkpoint is read
-  through, the model text the store is published from, the module that maps
-  facts to tuples, who wrote and approved that model, and the guard, where
-  the application has a precondition the model cannot hold.
+  the endpoint and the store alone: the mediated repo the markers and the
+  tables are read through, the model text the store is published from, the
+  module that maps rows to tuples, who wrote and approved that model, and
+  the guard, where the application has a precondition the model cannot hold.
 
   `bind/1` validates them and keeps them for the life of the VM, as
   `Turnstile.Config.boot!/1` keeps the configuration; `override/1` puts a
   binding in the calling process for the rest of its life, read from the
-  caller and from its `$callers` chain, so a test binds a store and a model
+  caller and from its `$callers` chain, so a test binds a repo and a mapping
   of its own without touching the boot binding.
 
-  The repo is here rather than in the configuration entry because the
-  checkpoint is the application's row, not the engine's: a decision names
-  the position the store has been drained to, and that position is read
-  where the application's own tables are. The model path is here for the
-  same reason it is not the store's id: the store holds tuples under a model
-  the server names by id, and the text those ids come from is the
-  application's file.
+  The repo is here rather than in the configuration entry because what a
+  drain reads is the application's own: the markers and the tables the
+  mapping answers from are where the application's rows are, not where the
+  engine is. The model path is here for the same reason it is not the
+  store's id: the store holds tuples under a model the server names by id,
+  and the text those ids come from is the application's file.
   """
 
   alias Turnstile.Error
@@ -27,7 +26,7 @@ defmodule Turnstile.Fga.Binding do
   alias Turnstile.Fga.TupleMapping
 
   @schema NimbleOptions.new!(
-            repo: [type: :atom, required: true, doc: "The mediated repo holding the checkpoint table."],
+            repo: [type: :atom, required: true, doc: "The mediated repo holding the outbox and the tables."],
             model: [
               type: :string,
               required: true,
@@ -36,7 +35,7 @@ defmodule Turnstile.Fga.Binding do
             mapping: [
               type: :atom,
               required: true,
-              doc: "The `Turnstile.Fga.TupleMapping` implementation for this application's facts."
+              doc: "The `Turnstile.Fga.TupleMapping` implementation for this application's tables."
             ],
             guard: [
               type: :atom,

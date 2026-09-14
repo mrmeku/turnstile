@@ -1,49 +1,46 @@
-defmodule Turnstile.Fga.Decide do
-  @moduledoc """
-  The answers the adapter gives: an operation becomes a relation, a subject
-  and an object become the two ends of a tuple, and the server answers
-  whether a path joins them.
-
-  An operation is the relation `can_` and its name, which is the one
-  translation this package makes, and a subject is a user of the store
-  whatever kind it carries, because a graph compares by walking rather than
-  by equality. An allowance names that relation as the rule that allowed. A
-  denial is denied by default: a graph has no rule that denies, it has no
-  path, and saying a rule denied would name something that does not exist.
-
-  The environment is the context every call carries, which is what a
-  condition on a tuple is evaluated against: the caller's facts under their
-  own names, and the moment of the call under `current_time`, the one name
-  this package reserves. A condition that compares a date on a tuple with
-  the present therefore needs nothing of the caller.
-
-  An entry is where the question goes and what it is asked under: the client,
-  the endpoint, the store, the model, that context, and the position the
-  store has been drained to. Every answer carries the model as its policy
-  version and that position as its applied position, which is the state the
-  engine could have seen. The consistency of each call is a constant of this
-  package: a decision asks for the higher consistency, so a tuple the
-  projector has written is not missed, and a listing asks for the lower one,
-  since a scope is a filter over rows the caller reads anyway.
-
-  A batch is one call per fifty questions, the pinned server's own limit,
-  which is lower than the cap on identifiers a rule may carry. A scope is
-  one `ListObjects`: under the cap its identifiers become the rule, and at
-  the cap or above it the answer is short of the truth without saying so, so
-  this module emits `fallback_event/0` with the level `limited` and fails,
-  and the caller asks per page instead.
-
-  A guard is a rule outside the graph. Where the binding names one and it
-  does not admit the operation, this module answers the denial and asks
-  nothing, and that denial names the guard as the rule that denied, because
-  something denied it rather than nothing allowing it.
-
-  An operation the model has no relation for is a question the server
-  refuses, and that refusal is answered as it stands rather than turned into
-  a denial of this module's own, because nothing here can tell an operation
-  no one declared from a model that was published wrong. Either way the
-  caller denies.
-  """
+defmodule Turnstile.Fga.Adapter.Decide do
+  @moduledoc false
+  # The answers the adapter gives: an operation becomes a relation, a subject
+  # and an object become the two ends of a tuple, and the server answers
+  # whether a path joins them.
+  #
+  # An operation is the relation `can_` and its name, which is the one
+  # translation this package makes, and a subject is a user of the store
+  # whatever kind it carries, because a graph compares by walking rather than
+  # by equality. An allowance names that relation as the rule that allowed. A
+  # denial is denied by default: a graph has no rule that denies, it has no
+  # path, and saying a rule denied would name something that does not exist.
+  #
+  # The environment is the context every call carries, which is what a
+  # condition on a tuple is evaluated against: the caller's facts under their
+  # own names, and the moment of the call under `current_time`, the one name
+  # this package reserves. A condition that compares a date on a tuple with
+  # the present therefore needs nothing of the caller.
+  #
+  # An entry is where the question goes and what it is asked under: the client,
+  # the endpoint, the store, the model, and that context. Every answer carries
+  # the model as its policy version. The consistency of each call is a constant
+  # of this package: a decision asks for the higher consistency, so a tuple a
+  # drain has written is not missed, and a listing asks for the lower one,
+  # since a scope is a filter over rows the caller reads anyway.
+  #
+  # A batch is one call per fifty questions, the pinned server's own limit,
+  # which is lower than the cap on identifiers a rule may carry. A scope is
+  # one `ListObjects`: under the cap its identifiers become the rule, and at
+  # the cap or above it the answer is short of the truth without saying so, so
+  # this module emits `fallback_event/0` with the level `limited` and fails,
+  # and the caller asks per page instead.
+  #
+  # A guard is a rule outside the graph. Where the binding names one and it
+  # does not admit the operation, this module answers the denial and asks
+  # nothing, and that denial names the guard as the rule that denied, because
+  # something denied it rather than nothing allowing it.
+  #
+  # An operation the model has no relation for is a question the server
+  # refuses, and that refusal is answered as it stands rather than turned into
+  # a denial of this module's own, because nothing here can tell an operation
+  # no one declared from a model that was published wrong. Either way the
+  # caller denies.
 
   import Ecto.Query, only: [dynamic: 2]
 
@@ -70,8 +67,7 @@ defmodule Turnstile.Fga.Decide do
           endpoint: Client.endpoint(),
           store: Client.store(),
           model: Client.model() | nil,
-          context: map(),
-          applied: non_neg_integer() | nil
+          context: map()
         }
 
   @doc "The telemetry event a scope at the cap emits, once per scope that falls back."
@@ -119,15 +115,10 @@ defmodule Turnstile.Fga.Decide do
          endpoint: endpoint,
          store: store,
          model: Keyword.get(options, :model_id),
-         context: context(environment),
-         applied: nil
+         context: context(environment)
        }}
     end
   end
-
-  @doc "The entry with the position the store has been drained to, which every answer carries."
-  @spec applied(entry(), non_neg_integer() | nil) :: entry()
-  def applied(entry, position) when is_nil(position) or is_integer(position), do: %{entry | applied: position}
 
   @doc "The answer to one question: one `Check` under the pinned model."
   @spec one(entry(), Turnstile.subject(), atom(), Turnstile.object()) :: {:ok, Answer.t()} | {:error, Error.t()}
@@ -135,7 +126,7 @@ defmodule Turnstile.Fga.Decide do
     with {:ok, model} <- pinned(entry),
          request = check(entry, subject, operation, object, model),
          {:ok, allowed?} <- entry.client.check(entry.endpoint, entry.store, request) do
-      {:ok, answer(allowed?, operation, model, entry.applied)}
+      {:ok, answer(allowed?, operation, model)}
     end
   end
 
@@ -145,7 +136,7 @@ defmodule Turnstile.Fga.Decide do
   def many(entry, {_kind, _account} = subject, operation, objects) when is_atom(operation) and is_list(objects) do
     with {:ok, model} <- pinned(entry),
          {:ok, allowed} <- asked(entry, keyed(subject, operation, objects), model) do
-      {:ok, Map.new(objects, &{&1, answer(named(&1) in allowed, operation, model, entry.applied)})}
+      {:ok, Map.new(objects, &{&1, answer(named(&1) in allowed, operation, model)})}
     end
   end
 
@@ -161,18 +152,18 @@ defmodule Turnstile.Fga.Decide do
     with {:ok, model} <- pinned(entry),
          {:ok, objects} <- listed(entry, subject, operation, type, model),
          {:ok, ids} <- under_cap(objects, operation, type) do
-      {:ok, scope(ids, operation, model, entry.applied)}
+      {:ok, scope(ids, operation, model)}
     end
   end
 
-  @doc "The denial a guard's refusal is for one object, under the entry's model and position."
+  @doc "The denial a guard's refusal is for one object, under the entry's model."
   @spec refused(entry()) :: Answer.t()
   def refused(entry) do
     %Answer{
       verdict: :deny,
       reason: :rule_denied,
       version: entry.model,
-      meta: %{rule: @guard, applied: entry.applied}
+      meta: %{rule: @guard}
     }
   end
 
@@ -210,8 +201,8 @@ defmodule Turnstile.Fga.Decide do
     entry.client.list_objects(entry.endpoint, entry.store, request)
   end
 
-  defp scope(ids, operation, model, applied) do
-    {dynamic([row], row.id in ^ids), answer(true, operation, model, applied)}
+  defp scope(ids, operation, model) do
+    {dynamic([row], row.id in ^ids), answer(true, operation, model)}
   end
 
   defp explaining(_entry, _subject, _operation, _object, %Answer{verdict: :deny} = answer) do
@@ -335,12 +326,12 @@ defmodule Turnstile.Fga.Decide do
   defp value(%Date{} = value), do: Date.to_iso8601(value)
   defp value(value), do: value
 
-  defp answer(true, operation, model, applied) do
-    %Answer{verdict: :allow, reason: :allowed, version: model, meta: %{rule: relation(operation), applied: applied}}
+  defp answer(true, operation, model) do
+    %Answer{verdict: :allow, reason: :allowed, version: model, meta: %{rule: relation(operation)}}
   end
 
-  defp answer(false, _operation, model, applied) do
-    %Answer{verdict: :deny, reason: :deny_by_default, version: model, meta: %{applied: applied}}
+  defp answer(false, _operation, model) do
+    %Answer{verdict: :deny, reason: :deny_by_default, version: model, meta: %{}}
   end
 
   defp pinned(%{model: nil, callback: callback}) do

@@ -15,7 +15,7 @@ defmodule Turnstile.Fga.Client.Http do
   refused, so a read for a whole type asks for pages of the store and keeps
   the tuples of that type, which is what makes reconcile's paging by type
   work against a real server. How a tuple itself crosses, on a delete, on a
-  write, and on the way back, is `Turnstile.Fga.Core.Codec`'s.
+  write, and on the way back, is the codec's, in `core/`.
 
   Nothing here knows what a model says. A call either answers the value the
   behaviour names, or fails with an engine error whose detail is a sentence

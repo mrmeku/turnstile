@@ -17,38 +17,36 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Decision
   alias Turnstile.Error
   alias Turnstile.Fga
+  alias Turnstile.Fga.Adapter.Decide
   alias Turnstile.Fga.Binding
-  alias Turnstile.Fga.Checkpoint
   alias Turnstile.Fga.Client
   alias Turnstile.Fga.Client.Fake
   alias Turnstile.Fga.Client.ListObjects
+  alias Turnstile.Fga.Client.Read
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.Conformance.Mapping
-  alias Turnstile.Fga.Decide
-  alias Turnstile.Fga.Projector
+  alias Turnstile.Fga.Conformance.Population
+  alias Turnstile.Fga.Drift
   alias Turnstile.Fga.TupleKey
   alias Turnstile.FgaTest.Guard
-  alias Turnstile.Ledger.Memory
   alias Turnstile.Test
   alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
   @now ~U[2026-09-09 12:00:00.000000Z]
 
-  # The adapter over a fake, with a store of the test's own and the checkpoint
-  # in the sandboxed repo the binding names, which is where the position every
-  # answer carries is read.
+  # The adapter over a fake, with a store of the test's own, and the markers
+  # and the tables in the sandboxed repo the binding names.
   setup tags do
     :ok = Sandbox.setup(Sandboxed, tags)
     agent = start_supervised!(Fake)
     {:ok, store} = Fake.create_store(agent, "adapter")
     {:ok, model} = Fake.write_model(agent, store, %{"schema_version" => "1.1"})
-    ledger = start_supervised!(%{id: Memory, start: {Memory, :start_link, []}})
 
     :ok =
       Test.with_config(
         adapter: {Fga, endpoint: agent, store_id: store, client: Fake, model_id: model},
-        ledger: {Memory, agent: ledger}
+        ledger: :none
       )
 
     :ok = Binding.override(repo: Sandboxed, model: "priv/conformance/model.fga", mapping: Mapping)
@@ -57,20 +55,34 @@ defmodule Turnstile.FgaTest do
     {:ok, agent: agent, store: store, model: model, options: options}
   end
 
-  test "the adapter declares a ledger, how far one listing reaches, and its projection", context do
-    assert Fga.requires_ledger() == true
+  test "the adapter needs no ledger, states how far one listing reaches, and settles by draining" do
+    assert Fga.requires_ledger() == false
     assert Fga.scope_cap() == Decide.scope_cap()
     assert Fga.scope_cap() == 1_000
-
-    assert {:ok, {Projector, %Projector{} = projector}} = Fga.projection()
-    assert projector.store == context.store
-    assert projector.repo == Sandboxed
+    assert Fga.settle() == :ok
 
     schema = Fga.options_schema().schema
     assert schema[:endpoint][:required]
     assert schema[:store_id][:required]
     refute schema[:model_id][:required]
-    assert schema[:drain_interval][:default] == 1_000
+  end
+
+  test "marking every object and settling fills the store from the tables", context do
+    :ok = Population.write(Sandboxed)
+
+    assert Fga.mark_all() == :ok
+    assert Fga.settle() == :ok
+    assert {:ok, drift} = Fga.reconcile()
+    assert Drift.clean?(drift)
+    assert %TupleKey{user: "user:acct-a", relation: "editor", object: "folder:1"} = held(context, "folder:1")
+  end
+
+  test "a rebuild is a store of its own, carrying the model and every tuple the tables require", context do
+    :ok = Population.write(Sandboxed)
+
+    assert {:ok, rebuilt} = Fga.rebuild("rebuilt")
+    assert rebuilt != context.store
+    assert %TupleKey{user: "user:acct-a"} = held(%{context | store: rebuilt}, "folder:1")
   end
 
   test "authorize and check answer one question under the pinned model", context do
@@ -102,18 +114,6 @@ defmodule Turnstile.FgaTest do
              Fga.explain(ann(), :read, {:folder, 1}, environment(), context.options)
   end
 
-  test "every answer carries the position the store has been drained to", context do
-    folder = {:folder, 1}
-
-    assert {:ok, %Answer{meta: %{applied: 0}}} = Fga.check(ann(), :read, folder, environment(), context.options)
-
-    :ok = Checkpoint.advance(Sandboxed, context.store, 12)
-
-    assert {:ok, %Answer{meta: %{applied: 12}}} = Fga.check(ann(), :read, folder, environment(), context.options)
-    assert {:ok, answers} = Fga.batch(ann(), :read, [folder], environment(), context.options)
-    assert answers[{:folder, 1}].meta.applied == 12
-  end
-
   test "with nothing bound no callback asks anything", context do
     Process.delete(Binding)
     folder = {:folder, 1}
@@ -128,7 +128,7 @@ defmodule Turnstile.FgaTest do
     assert_down(Fga.scope(ann(), :read, :folder, environment(), context.options), :scope)
     assert_down(Fga.explain(ann(), :read, folder, environment(), context.options), :explain)
 
-    assert {:error, %Error{reason: :invalid, detail: invalid}} = Fga.projection()
+    assert {:error, %Error{reason: :invalid, detail: invalid}} = Fga.mark_all()
     assert invalid == "invalid binding: #{detail}"
   end
 
@@ -143,7 +143,6 @@ defmodule Turnstile.FgaTest do
     assert denied.reason == :rule_denied
     assert denied.meta.rule == Decide.guard_rule()
     assert denied.version == context.model
-    assert denied.meta.applied == 0
 
     assert {:ok, %Answer{verdict: :deny}} = Fga.authorize(ann(), :read, folder, environment(), context.options)
     assert {:ok, answers} = Fga.batch(ann(), :read, [folder], environment(), context.options)
@@ -198,6 +197,15 @@ defmodule Turnstile.FgaTest do
     {Fga, options} = Config.adapter(config)
 
     {:ok, options}
+  end
+
+  # The one tuple the store holds for an object, for a case that states there
+  # is one.
+  defp held(context, object) do
+    [type, id] = String.split(object, ":", parts: 2)
+    {:ok, page} = Fake.read(context.agent, context.store, %Read{object_type: type, object_id: id, limit: 100})
+
+    List.first(page.tuples)
   end
 
   defp ann, do: {:user, "ann"}

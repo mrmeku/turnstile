@@ -1,16 +1,16 @@
-defmodule Turnstile.Fga.DecideTest do
+defmodule Turnstile.Fga.Adapter.DecideTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [dynamic: 2]
 
   alias Turnstile.Answer
   alias Turnstile.Error
+  alias Turnstile.Fga.Adapter.Decide
   alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
   alias Turnstile.Fga.Client.Fake
   alias Turnstile.Fga.Client.ListObjects
   alias Turnstile.Fga.Client.Write
-  alias Turnstile.Fga.Decide
   alias Turnstile.Fga.TupleKey
 
   @now ~U[2026-09-09 12:00:00.000000Z]
@@ -26,7 +26,7 @@ defmodule Turnstile.Fga.DecideTest do
     options = [client: Fake, endpoint: agent, store_id: store, model_id: model]
     {:ok, entry} = Decide.entry(options, :check, %{now: @now})
 
-    {:ok, agent: agent, store: store, model: model, options: options, entry: Decide.applied(entry, 7)}
+    {:ok, agent: agent, store: store, model: model, options: options, entry: entry}
   end
 
   test "an operation is a relation, a subject is a user, and an object is one of the store" do
@@ -45,7 +45,6 @@ defmodule Turnstile.Fga.DecideTest do
     assert context.entry.endpoint == context.agent
     assert context.entry.store == context.store
     assert context.entry.model == context.model
-    assert context.entry.applied == 7
 
     for field <- [:endpoint, :store_id] do
       thin = Keyword.delete(context.options, field)
@@ -61,7 +60,6 @@ defmodule Turnstile.Fga.DecideTest do
     {:ok, entry} = Decide.entry(Keyword.delete(context.options, :client), :check, %{now: @now})
 
     assert entry.client == Turnstile.Fga.Client.Http
-    assert entry.applied == nil
   end
 
   test "the context is the caller's facts under their own names and the moment under current_time", context do
@@ -107,13 +105,13 @@ defmodule Turnstile.Fga.DecideTest do
     assert allowed.reason == :allowed
     assert allowed.meta.rule == "can_read"
     assert allowed.version == context.model
-    assert allowed.meta.applied == 7
+    assert allowed.meta == %{rule: "can_read"}
 
     assert {:ok, %Answer{} = denied} = Decide.one(context.entry, ann(), :read, {:folder, 2})
     assert denied.verdict == :deny
     assert denied.reason == :deny_by_default
     assert denied.version == context.model
-    assert denied.meta.applied == 7
+    assert denied.meta == %{}
   end
 
   test "an entry that pins no model asks nothing at all", context do

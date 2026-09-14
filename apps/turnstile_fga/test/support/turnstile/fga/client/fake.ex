@@ -1,7 +1,7 @@
 defmodule Turnstile.Fga.Client.Fake do
   @moduledoc """
   The client behaviour on an `Agent`: stores, models, and tuples in one
-  process, so a suite drives the projector and the adapter without a server.
+  process, so a suite drives the drain and the adapter without a server.
   A test starts one of its own and passes the agent as the endpoint.
 
   What it copies from the server is what a caller can get wrong. A write is

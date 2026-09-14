@@ -33,28 +33,27 @@ defmodule Turnstile.Fga.MixProject do
     [extra_applications: [:logger, :inets]]
   end
 
-  # The fake client, the probe that appends fact events, the checkpoint
-  # migration, and the tuple mapping over the neutral fixture are test
-  # support. `priv/conformance` holds the model that mapping is read under.
+  # The fake client, the seed, the test migrations, and what the conformance
+  # templates run over are test support. `priv/conformance` holds the model
+  # that mapping is read under.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]
 
-  # The projector reads fact events through the ledger's reader, so the
-  # ledger package is a dependency of lib rather than of the test run.
-  # ecto_sql is unrestricted because the checkpoint migration helper ships in
-  # lib, and postgrex because the ledger package carries it in every
-  # environment, so a narrower `only` here would not match what the umbrella
-  # calculates. stream_data is unrestricted because core's
-  # conformance templates ship in lib, so core carries it in every
-  # environment. telemetry is unrestricted because the real client emits one
-  # event per call from lib, and muontrap serves the test run alone, where it
-  # starts the one server the suite asks for. Every pin is exact. Versions
-  # verified against https://hex.pm/api/packages/<name> on 2026-09-09.
+  # The drain is a relay runner, so the relay package is a dependency of lib
+  # rather than of the test run. ecto_sql is unrestricted because the outbox
+  # migration helper ships in lib, and postgrex because the relay package
+  # carries it in every environment, so a narrower `only` here would not
+  # match what the umbrella calculates. stream_data is unrestricted because
+  # this package's own case templates ship in lib. telemetry is unrestricted
+  # because the real client emits one event per call from lib, and muontrap
+  # serves the test run alone, where it starts the one server the suite asks
+  # for. Every pin is exact. Versions verified against
+  # https://hex.pm/api/packages/<name> on 2026-09-09.
   defp deps do
     [
       {:turnstile, in_umbrella: true},
       {:turnstile_dev, in_umbrella: true, only: :test},
-      {:turnstile_ledger, in_umbrella: true},
+      {:turnstile_relay, in_umbrella: true},
       {:ecto, "3.14.2"},
       {:ecto_sql, "3.14.0"},
       {:nimble_options, "1.1.1"},
