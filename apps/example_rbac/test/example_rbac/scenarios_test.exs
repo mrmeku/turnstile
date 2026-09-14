@@ -1,3 +1,3 @@
 defmodule ExampleRbac.ScenariosTest do
-  use Example.Scenarios, capabilities: ExampleRbac.Capabilities, rules: ExampleRbac.Rules
+  use Example.Scenarios, rules: ExampleRbac.Rules
 end

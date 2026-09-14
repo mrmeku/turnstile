@@ -1,3 +1,3 @@
 defmodule ExamplePostgres.ScenariosTest do
-  use Example.Scenarios, capabilities: ExamplePostgres.Capabilities, rules: ExamplePostgres.Rules
+  use Example.Scenarios, rules: ExamplePostgres.Rules
 end

@@ -1,17 +1,20 @@
 defmodule Turnstile.Conformance.Case do
   @moduledoc """
   The `scenario` macro: a `test` named by the scenario's id and sentence,
-  tagged with its rule, its controls, and the capability record the
-  application's declaration returns for the rule. An `unsupported` rule
-  skips the scenario with the declaration's note as the reason. Every
-  declaration is checked against
+  and tagged with them. The tags are the id, the rule the declaration says
+  it tests, and the controls the reference cites for it, which the table
+  carries rather than the declaration, so a control id is written in one
+  place. Every declaration is checked against
   `Turnstile.Conformance.Scenarios` when the module compiles, so a scenario
   cannot drift from the table.
 
-      use Turnstile.Conformance.Case, capabilities: ExamplePostgres.Capabilities
+  What a binding enforces each rule with is prose in that binding's README,
+  a table a person writes and keeps. Nothing here reads it, and a scenario
+  runs under every binding.
 
-      scenario "enf-01", "A User with an Assignment to a Document's Program reads it",
-        control: ["AC-3"], rule: :c1 do
+      use Turnstile.Conformance.Case
+
+      scenario "enf-01", "A User with an Assignment to a Document's Program reads it", rule: :c1 do
         ...
       end
   """
@@ -22,24 +25,19 @@ defmodule Turnstile.Conformance.Case do
 
   @doc false
   defmacro __using__(opts) do
-    capabilities = Keyword.fetch!(opts, :capabilities)
     async = Keyword.get(opts, :async, true)
 
     quote do
       use ExUnit.Case, async: unquote(async)
 
       import Case, only: [scenario: 4]
-
-      @turnstile_capabilities unquote(capabilities)
     end
   end
 
   @doc "Declare one scenario; see the module documentation."
   defmacro scenario(id, sentence, opts, do: block) do
     quote bind_quoted: [id: id, sentence: sentence, opts: opts], unquote: true do
-      tags = Case.__tags__(id, sentence, opts, @turnstile_capabilities)
-
-      for {key, value} <- tags do
+      for {key, value} <- Case.__tags__(id, sentence, opts) do
         @tag [{key, value}]
       end
 
@@ -54,17 +52,13 @@ defmodule Turnstile.Conformance.Case do
   def __name__(id, sentence) when is_binary(id) and is_binary(sentence), do: id <> " " <> sentence
 
   @doc false
-  @spec __tags__(String.t(), String.t(), keyword(), module()) :: keyword()
-  def __tags__(id, sentence, opts, capabilities)
-      when is_binary(id) and is_binary(sentence) and is_list(opts) and is_atom(capabilities) do
+  @spec __tags__(String.t(), String.t(), keyword()) :: keyword()
+  def __tags__(id, sentence, opts) when is_binary(id) and is_binary(sentence) and is_list(opts) do
     scenario = fetch!(id)
     check_sentence!(scenario, sentence)
     rule = check_rule!(scenario, Keyword.fetch!(opts, :rule))
-    controls = check_controls!(scenario, Keyword.fetch!(opts, :control))
-    {level, by_and_note} = capabilities.capability(rule)
 
-    [scenario: id, rule: rule, controls: controls, capability: {level, by_and_note}] ++
-      skip_tag(level, by_and_note)
+    [scenario: id, rule: rule, controls: scenario.controls]
   end
 
   defp fetch!(id) do
@@ -89,15 +83,4 @@ defmodule Turnstile.Conformance.Case do
       raise ArgumentError, "scenario #{id} tests #{inspect(tests)}, got rule: #{inspect(rule)}"
     end
   end
-
-  defp check_controls!(%Scenario{id: id, controls: expected}, controls) do
-    if controls == expected do
-      controls
-    else
-      raise ArgumentError, "scenario #{id} cites #{inspect(expected)}, got: #{inspect(controls)}"
-    end
-  end
-
-  defp skip_tag(:unsupported, by_and_note), do: [skip: Keyword.fetch!(by_and_note, :note)]
-  defp skip_tag(_level, _by_and_note), do: []
 end

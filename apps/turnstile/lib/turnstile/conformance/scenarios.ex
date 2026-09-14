@@ -141,24 +141,7 @@ defmodule Turnstile.Conformance.Scenarios do
     end
   end
 
-  @doc """
-  How many scenarios a thin application must run without a skip: the rows,
-  minus those whose every rule the declaration marks `unsupported`.
-  """
-  @spec expected_count(module()) :: non_neg_integer()
-  def expected_count(capabilities) when is_atom(capabilities) do
-    Enum.count(@scenarios, &(not unsupported?(capabilities, &1)))
-  end
-
-  @doc "Whether the declaration marks the scenario's rule `unsupported`, with the note when it does."
-  @spec unsupported?(module(), Scenario.t()) :: boolean()
-  def unsupported?(capabilities, %Scenario{} = scenario) when is_atom(capabilities) do
-    match?({:unsupported, _by_and_note}, capability(capabilities, scenario))
-  end
-
-  @doc "The declaration's record for the scenario's first rule."
-  @spec capability(module(), Scenario.t()) :: Turnstile.Capabilities.declaration()
-  def capability(capabilities, %Scenario{tests: [rule | _rest]}) when is_atom(capabilities) do
-    capabilities.capability(rule)
-  end
+  @doc "How many scenarios a thin application runs: the rows."
+  @spec count() :: non_neg_integer()
+  def count, do: length(@scenarios)
 end

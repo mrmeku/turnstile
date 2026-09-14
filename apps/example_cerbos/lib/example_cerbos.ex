@@ -1,10 +1,10 @@
 defmodule ExampleCerbos do
   @moduledoc """
-  The example bound to a policy sidecar: the attribute declarations that say
-  what the policies may read, the subqueries behind them, the policy files
-  the sidecar serves, the boot that binds them to `Example.Repo`, the
-  capability declaration, and the migrations that create the example's
-  tables. Nothing of the domain lives here.
+  The example bound to a policy sidecar: the attribute declarations that
+  say what the policies may read, the subqueries behind them, the policy
+  files the sidecar serves, the boot that binds them to `Example.Repo`,
+  and the migrations that create the example's tables. Nothing of the
+  domain lives here.
 
   The version identifier is the commit of the repository the policy files
   come from, since a directory a sidecar reads carries no history of its
@@ -14,7 +14,7 @@ defmodule ExampleCerbos do
 
   use Boundary,
     deps: [Example, Turnstile, Turnstile.Cerbos, Ecto],
-    exports: [Application, Attributes, Capabilities, Facts]
+    exports: [Application, Attributes, Facts]
 
   @author "example_cerbos"
   @approval "docs/reference.md §3, as policy files under review"

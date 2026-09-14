@@ -24,12 +24,4 @@ defmodule ExampleRbac.PolicyTest do
     assert Turnstile.Code.Policy.roles_for(Policy, :approve_marking) == [:approver]
     assert Turnstile.Code.Policy.roles_for(ExampleRbac.Tightened, :read) == [:lead, :designator, :approver]
   end
-
-  test "every rule is declared native with the component that enforces it" do
-    for rule <- [:c1, :c2, :c3, :c4, :c5, :c6, :c7, :c8, :c9, :c10, :c11, :c12, :c13] do
-      assert {:native, by: by, note: note} = ExampleRbac.Capabilities.capability(rule)
-      assert by in [:adapter, :application, :seam]
-      assert is_binary(note)
-    end
-  end
 end

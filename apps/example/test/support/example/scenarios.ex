@@ -2,8 +2,8 @@ defmodule Example.Scenarios do
   @moduledoc """
   Tier 2: every scenario of the reference's table, declared once here and
   defined in a thin application's test module by `use Example.Scenarios,
-  capabilities: ThinApp.Capabilities, rules: ThinApp.Rules`. The adapter
-  comes from the thin application's boot configuration, not from the test.
+  rules: ThinApp.Rules`. The adapter comes from the thin application's boot
+  configuration, not from the test.
 
   Each scenario's body is a function in a module under this one, named by
   the scenario's id. Scenarios that measure latency, `rev-01` and `rev-06`,
@@ -14,9 +14,8 @@ defmodule Example.Scenarios do
   publish a rule change, which for an adapter whose rules are the database's
   own is a schema change, and a schema change waits for every other
   connection reading the tables it changes; the committed tier runs after the
-  async ones, so it holds the only connection there is. The last test counts:
-  the scenarios defined without a skip equal the table's rows less the ones
-  the declaration marks `unsupported`.
+  async ones, so it holds the only connection there is. The last test
+  counts: the scenarios defined are the table's rows, every one of them.
 
   A thin application supplies through `Example.Scenarios.Rules` the policy
   operations a test cannot write without naming the adapter, and, where its
@@ -60,12 +59,11 @@ defmodule Example.Scenarios do
 
   @doc false
   defmacro __using__(opts) do
-    capabilities = Keyword.fetch!(opts, :capabilities)
     rules = Keyword.fetch!(opts, :rules)
     {committed, sandboxed} = Enum.split_with(Scenarios.all(), &(&1.id in @committed))
 
     quote do
-      use Turnstile.Conformance.Case, capabilities: unquote(capabilities), async: true
+      use Turnstile.Conformance.Case, async: true
 
       setup tags do
         Example.Scenarios.setup(tags, unquote(rules))
@@ -75,7 +73,7 @@ defmodule Example.Scenarios do
 
       defmodule Committed do
         @moduledoc false
-        use Turnstile.Conformance.Case, capabilities: unquote(capabilities), async: false
+        use Turnstile.Conformance.Case, async: false
 
         setup tags do
           Example.Scenarios.setup(tags, unquote(rules))
@@ -84,8 +82,8 @@ defmodule Example.Scenarios do
         unquote_splicing(Enum.map(committed, &declare(&1, rules, [:committed])))
       end
 
-      test "the count of scenarios defined without a skip is the table's expected count" do
-        Example.Scenarios.count!([__MODULE__, __MODULE__.Committed], unquote(capabilities))
+      test "the scenarios defined are the table's rows, every one of them" do
+        Example.Scenarios.count!([__MODULE__, __MODULE__.Committed])
       end
     end
   end
@@ -114,12 +112,12 @@ defmodule Example.Scenarios do
   end
 
   @doc "The count test's body: see the module documentation."
-  @spec count!([module()], module()) :: :ok
-  def count!(modules, capabilities) when is_list(modules) and is_atom(capabilities) do
+  @spec count!([module()]) :: :ok
+  def count!(modules) when is_list(modules) do
     declared = declared(modules)
-    assert Enum.sort(Enum.map(declared, &elem(&1, 0))) == Enum.sort(Scenarios.ids())
-    Enum.each(declared, fn {id, tags} -> assert_tags(id, tags, capabilities) end)
-    assert_count(declared, capabilities)
+    assert Enum.sort(declared) == Enum.sort(Scenarios.ids())
+    assert length(declared) == Scenarios.count()
+    :ok
   end
 
   # An application whose adapter needs nothing per test defines no `setup/1`,
@@ -128,34 +126,21 @@ defmodule Example.Scenarios do
     if Code.ensure_loaded?(rules) and function_exported?(rules, :setup, 1), do: rules.setup(tags), else: :ok
   end
 
-  defp declare(%Scenario{id: id, sentence: sentence, controls: controls, tests: [rule | _rest]}, rules, tags \\ []) do
+  defp declare(%Scenario{id: id, sentence: sentence, tests: [rule | _rest]}, rules, tags \\ []) do
     {module, function, arity} = body(id)
     arguments = if arity == 1, do: [rules], else: []
 
     quote do
       unquote_splicing(Enum.map(tags, &quote(do: @tag(unquote(&1)))))
 
-      scenario unquote(id), unquote(sentence), control: unquote(controls), rule: unquote(rule) do
+      scenario unquote(id), unquote(sentence), rule: unquote(rule) do
         unquote(module).unquote(function)(unquote_splicing(arguments))
       end
     end
   end
 
   defp declared(modules) do
-    for module <- modules, %ExUnit.Test{tags: %{scenario: id} = tags} <- module.__ex_unit__().tests, do: {id, tags}
-  end
-
-  defp assert_count(declared, capabilities) do
-    defined = Enum.count(declared, fn {_id, tags} -> not Map.has_key?(tags, :skip) end)
-    assert defined > 0
-    assert defined == Scenarios.expected_count(capabilities)
-    :ok
-  end
-
-  defp assert_tags(id, tags, capabilities) do
-    {:ok, scenario} = Scenarios.fetch(id)
-    unsupported? = Scenarios.unsupported?(capabilities, scenario)
-    assert Map.has_key?(tags, :skip) == unsupported?, "#{id} is skipped without an unsupported declaration"
+    for module <- modules, %ExUnit.Test{tags: %{scenario: id}} <- module.__ex_unit__().tests, do: id
   end
 
   defp body(id) do

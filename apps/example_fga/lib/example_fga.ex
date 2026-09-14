@@ -1,11 +1,11 @@
 defmodule ExampleFga do
   @moduledoc """
-  The example bound to a relationship graph: the model the store is published
-  from, the mapping that turns the example's tables into tuples, the guard
-  that holds the re-authentication window outside the graph, the boot that
-  binds them to `Example.Repo`, the capability declaration, and the
-  migrations that create the example's tables and the marker outbox the
-  drain works from. Nothing of the domain lives in the adapter.
+  The example bound to a relationship graph: the model the store is
+  published from, the mapping that turns the example's tables into tuples,
+  the guard that holds the re-authentication window outside the graph, the
+  boot that binds them to `Example.Repo`, and the migrations that create
+  the example's tables and the marker outbox the drain works from. Nothing
+  of the domain lives in the adapter.
 
   The version identifier is the id the server gives a model when it is
   published, so a rule change needs no configuration: the text of
@@ -19,7 +19,7 @@ defmodule ExampleFga do
 
   use Boundary,
     deps: [Example, Turnstile, Turnstile.Fga, Turnstile.Relay, Ecto],
-    exports: [Application, Capabilities, Guard, TupleMapping]
+    exports: [Application, Guard, TupleMapping]
 
   @author "example_fga"
   @approval "docs/reference.md §13, as the model under review"

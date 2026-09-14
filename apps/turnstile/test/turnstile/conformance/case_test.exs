@@ -1,99 +1,63 @@
 defmodule Turnstile.Conformance.CaseTest do
-  use Turnstile.Conformance.Case, capabilities: Turnstile.Test.Capabilities, async: true
+  use Turnstile.Conformance.Case, async: true
 
   alias Turnstile.Conformance.Case
   alias Turnstile.Conformance.Scenario
   alias Turnstile.Conformance.Scenarios
-  alias Turnstile.Test.Capabilities
 
-  scenario "enf-01", "A User with an Assignment to a Document's Program reads it", control: ["AC-3"], rule: :c1 do
+  scenario "enf-01", "A User with an Assignment to a Document's Program reads it", rule: :c1 do
     assert true
   end
 
-  # Skipped through the declaration's `unsupported` record; the skip reason is the note.
   scenario "enf-09", "A Specified category's implied control blocks a User the declared controls would allow",
-    control: ["AC-3"],
     rule: :c3 do
-    flunk("an unsupported scenario never runs")
+    assert true
   end
 
   scenario "rev-07",
            "A revocation deletes nothing but the fact: the Document and the Program remain, and the grant and the revoke are both evented",
-           control: ["AC-2(4)"],
            rule: :c11 do
     assert true
   end
 
-  test "the macro names the test by id and sentence and tags it" do
-    tags = __MODULE__.__info__(:attributes)
-    assert is_list(tags)
-
-    assert Case.__tags__(
-             "enf-01",
-             "A User with an Assignment to a Document's Program reads it",
-             [control: ["AC-3"], rule: :c1],
-             Capabilities
-           ) ==
-             [
-               scenario: "enf-01",
-               rule: :c1,
-               controls: ["AC-3"],
-               capability: {:native, by: :adapter, note: "the test declaration"}
-             ]
+  test "the macro names the test by id and sentence, and tags it from the table" do
+    assert Case.__tags__("enf-01", "A User with an Assignment to a Document's Program reads it", rule: :c1) ==
+             [scenario: "enf-01", rule: :c1, controls: ["AC-3"]]
 
     assert Case.__name__("enf-01", "sentence") == "enf-01 sentence"
   end
 
-  test "an unsupported rule adds a skip tag with the note, and a supported one none" do
-    tags =
-      Case.__tags__(
-        "enf-09",
-        "A Specified category's implied control blocks a User the declared controls would allow",
-        [control: ["AC-3"], rule: :c3],
-        Capabilities
-      )
+  test "a scenario that tests more than one rule takes either of them" do
+    sentence =
+      "A NOFORN Portion is removed from a foreign national's redacted read while the rest of the Document returns"
 
-    assert tags[:skip] == "the test declaration marks C3 unsupported"
-
-    tags =
-      Case.__tags__(
-        "rev-07",
-        "A revocation deletes nothing but the fact: the Document and the Program remain, and the grant and the revoke are both evented",
-        [control: ["AC-2(4)"], rule: :c11],
-        Capabilities
-      )
-
-    refute Keyword.has_key?(tags, :skip)
+    assert Case.__tags__(
+             "enf-11",
+             sentence,
+             rule: :c13
+           ) == [scenario: "enf-11", rule: :c13, controls: ["AC-3"]]
   end
 
   test "a declaration that drifts from the table is refused" do
     sentence = "A User with an Assignment to a Document's Program reads it"
 
     assert_raise ArgumentError, ~r/no scenario "enf-99"/, fn ->
-      Case.__tags__("enf-99", sentence, [control: ["AC-3"], rule: :c1], Capabilities)
+      Case.__tags__("enf-99", sentence, rule: :c1)
     end
 
     assert_raise ArgumentError, ~r/reads/, fn ->
-      Case.__tags__("enf-01", "another sentence", [control: ["AC-3"], rule: :c1], Capabilities)
+      Case.__tags__("enf-01", "another sentence", rule: :c1)
     end
 
     assert_raise ArgumentError, ~r/tests \[:c1\]/, fn ->
-      Case.__tags__("enf-01", sentence, [control: ["AC-3"], rule: :c2], Capabilities)
-    end
-
-    assert_raise ArgumentError, ~r/cites/, fn ->
-      Case.__tags__("enf-01", sentence, [control: ["AC-6"], rule: :c1], Capabilities)
+      Case.__tags__("enf-01", sentence, rule: :c2)
     end
   end
 
-  test "the table answers fetch, ids, and the expected count" do
+  test "the table answers fetch, ids, and the count" do
     assert {:ok, %Scenario{id: "enf-01", group: :enforcement}} = Scenarios.fetch("enf-01")
     assert :error = Scenarios.fetch("enf-99")
     assert length(Scenarios.ids()) == length(Scenarios.all())
-    unsupported = Enum.count(Scenarios.all(), &Scenarios.unsupported?(Capabilities, &1))
-    assert unsupported == 1
-    assert Scenarios.expected_count(Capabilities) == length(Scenarios.all()) - unsupported
-    assert Turnstile.Capabilities.levels() == [:native, :limited, :unsupported]
-    assert Turnstile.Capabilities.components() == [:adapter, :seam, :database, :engine, :application]
+    assert Scenarios.count() == length(Scenarios.all())
   end
 end

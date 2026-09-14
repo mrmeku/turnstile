@@ -17,7 +17,6 @@ defmodule Turnstile do
       Adapter.Overrides,
       Adapter.Seam,
       Answer,
-      Capabilities,
       Change,
       Config,
       Core.Surface,
