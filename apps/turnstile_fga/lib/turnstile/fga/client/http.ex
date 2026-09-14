@@ -10,13 +10,12 @@ defmodule Turnstile.Fga.Client.Http do
   names, with a deadline: a server that does not answer within it is a
   failure the caller turns into a denial rather than a wait.
 
-  Two shapes of the pinned server (1.19.0) are answered here rather than by
-  a caller. A read whose tuple key names an object type and no object id is
+  One shape of the pinned server (1.19.0) is answered here rather than by a
+  caller: a read whose tuple key names an object type and no object id is
   refused, so a read for a whole type asks for pages of the store and keeps
   the tuples of that type, which is what makes reconcile's paging by type
-  work against a real server. And a delete carries the tuple key alone,
-  while a write carries the condition with it, because a condition is a
-  value on a tuple rather than part of what identifies it.
+  work against a real server. How a tuple itself crosses, on a delete, on a
+  write, and on the way back, is `Turnstile.Fga.Core.Codec`'s.
 
   Nothing here knows what a model says. A call either answers the value the
   behaviour names, or fails with an engine error whose detail is a sentence
@@ -34,7 +33,7 @@ defmodule Turnstile.Fga.Client.Http do
   alias Turnstile.Fga.Client.Read
   alias Turnstile.Fga.Client.Tree
   alias Turnstile.Fga.Client.Write
-  alias Turnstile.Fga.Condition
+  alias Turnstile.Fga.Core.Codec
   alias Turnstile.Fga.TupleKey
 
   @connect_timeout 1_000
@@ -61,7 +60,7 @@ defmodule Turnstile.Fga.Client.Http do
 
   @impl Client
   def check(endpoint, store, %Check{} = request) do
-    body = asked(%{"tuple_key" => key(request.tuple_key)}, request.model, request.consistency, request.context)
+    body = asked(%{"tuple_key" => Codec.key(request.tuple_key)}, request.model, request.consistency, request.context)
 
     with {:ok, answered} <- post(endpoint, path(store, "check"), body, :check) do
       {:ok, answered["allowed"] == true}
@@ -132,21 +131,13 @@ defmodule Turnstile.Fga.Client.Http do
   defp put_context(body, context), do: Map.put(body, "context", context)
 
   defp item(id, %TupleKey{} = tuple, context) do
-    put_context(%{"correlation_id" => id, "tuple_key" => key(tuple)}, context)
-  end
-
-  defp key(%TupleKey{} = tuple), do: %{"user" => tuple.user, "relation" => tuple.relation, "object" => tuple.object}
-
-  defp written(%TupleKey{condition: nil} = tuple), do: key(tuple)
-
-  defp written(%TupleKey{condition: %Condition{} = condition} = tuple) do
-    Map.put(key(tuple), "condition", %{"name" => condition.name, "context" => condition.context})
+    put_context(%{"correlation_id" => id, "tuple_key" => Codec.key(tuple)}, context)
   end
 
   # A side with nothing on it is left out: the server refuses a list of no
   # tuple keys, and a call that carries one side alone is the usual one.
   defp changes(%Write{} = request) do
-    sides = [{"deletes", keys(request.deletes, &key/1)}, {"writes", keys(request.writes, &written/1)}]
+    sides = [{"deletes", keys(request.deletes, &Codec.key/1)}, {"writes", keys(request.writes, &Codec.written/1)}]
 
     for {field, value} <- sides, value != nil, into: %{}, do: {field, value}
   end
@@ -176,7 +167,7 @@ defmodule Turnstile.Fga.Client.Http do
   end
 
   defp page(answered, %Read{} = request) do
-    tuples = for tuple <- Map.get(answered, "tuples", []), keep?(tuple, request), do: stored(tuple)
+    tuples = for tuple <- Map.get(answered, "tuples", []), keep?(tuple, request), do: Codec.stored(tuple)
 
     %Page{tuples: tuples, continuation: token(Map.get(answered, "continuation_token"))}
   end
@@ -206,18 +197,6 @@ defmodule Turnstile.Fga.Client.Http do
   defp same?(_value, nil), do: true
   defp same?(value, value), do: true
   defp same?(_value, _asked), do: false
-
-  defp stored(%{"key" => key}) do
-    %TupleKey{
-      user: key["user"],
-      relation: key["relation"],
-      object: key["object"],
-      condition: condition(Map.get(key, "condition"))
-    }
-  end
-
-  defp condition(nil), do: nil
-  defp condition(%{"name" => name} = json), do: %Condition{name: name, context: Map.get(json, "context") || %{}}
 
   defp tree(%{"tree" => %{"root" => root}}, %Expand{} = request) do
     {:ok, %{branch(root) | object: request.object, relation: request.relation}}
