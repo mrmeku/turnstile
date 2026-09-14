@@ -9,10 +9,6 @@ config :example_cerbos,
   policies: "priv/policies",
   commit: System.get_env("POLICY_COMMIT", "policies-at-the-working-tree")
 
-# The ledger mode this application boots with. The test configuration reads
-# it from EXAMPLE_LEDGER so the suite runs once per mode.
-config :example_cerbos, ledger: :none
-
 if config_env() == :test do
   import_config "test.exs"
 end

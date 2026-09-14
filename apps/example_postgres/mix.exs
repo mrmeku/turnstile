@@ -52,7 +52,6 @@ defmodule ExamplePostgres.MixProject do
       {:turnstile, in_umbrella: true},
       {:example, in_umbrella: true},
       {:turnstile_postgres, in_umbrella: true},
-      {:turnstile_ledger, in_umbrella: true},
       {:ecto, "3.14.2"},
       {:ecto_sql, "3.14.0"},
       {:postgrex, "0.22.4"},

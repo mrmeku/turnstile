@@ -1,11 +1,10 @@
 defmodule ExampleRbac.Application do
   @moduledoc """
-  Boot: the configuration names the adapter and the ledger mode, the
-  binding names the policy and the repo, the supervisor starts the repos
-  and the consumer of the events, and the policy version is published once the tree
-  is up. The test configuration leaves the repos to the ephemeral cluster,
-  and with them the publish: a ledger mode writes the version as an event,
-  which needs a repo to write it through.
+  Boot: the configuration names the adapter, the binding names the policy
+  and the repo, the supervisor starts the repos and the consumer of the
+  events, and the policy version is emitted once the tree is up. The test
+  configuration leaves the repos to the ephemeral cluster, and with them the
+  publish, so a run has one policy-version event rather than two.
   """
 
   use Application
@@ -15,8 +14,7 @@ defmodule ExampleRbac.Application do
 
   @impl Application
   def start(_type, _args) do
-    ledger = Application.fetch_env!(:example_rbac, :ledger)
-    _config = Turnstile.Config.boot!(adapter: Turnstile.Code, ledger: ledger)
+    _config = Turnstile.Config.boot!(adapter: Turnstile.Code)
     _binding = Binding.bind!(policy: ExampleRbac.Policy, repo: Example.Repo)
     repos = repos()
     children = [{Siem, name: Siem, attach: true} | repos]
@@ -27,8 +25,8 @@ defmodule ExampleRbac.Application do
     end
   end
 
-  # A ledger mode writes the policy version as an event, so the publish
-  # belongs to whoever starts the repos: this tree, or the test cluster.
+  # The publish belongs to whoever starts the repos: this tree, or the test
+  # cluster.
   defp publish([]), do: :ok
 
   defp publish(_repos) do

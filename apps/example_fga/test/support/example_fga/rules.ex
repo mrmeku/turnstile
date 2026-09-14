@@ -1,19 +1,14 @@
 defmodule ExampleFga.Rules do
   @moduledoc """
   What the scenarios need from this binding: a store of each test's own, a
-  tightened model published for the calling process, the boot model pinned
-  again, and the boot model published into a ledger a committed test has
-  emptied.
+  tightened model published for the calling process, and the boot model
+  pinned again.
 
   The store is per test because it is the engine's own copy of the facts: two
   tests writing tuples into one store would read each other's, whatever the
-  database does with their rows. Creating it is what `setup/1` is for, and
-  which model id the test is pinned to differs by tier. A committed test
-  empties the ledger and then publishes the boot model itself, so the id it
-  asks under is the id the version event carries and a scenario setting the
-  two beside each other compares equal ids. A sandboxed test keeps the boot
-  event the run committed, whose digest a publish would find current, so the
-  model is written into the new store directly and that id is pinned.
+  database does with their rows. Creating it is what `setup/1` is for, and the
+  boot model is written into it there, so every question the test asks is
+  asked under a model of its own.
 
   A rule change here is a model of its own: models are immutable and named by
   id, so publishing one changes nothing that is already stored and a question
@@ -41,29 +36,33 @@ defmodule ExampleFga.Rules do
   alias ExampleFga.Tightened
   alias Turnstile.Config
   alias Turnstile.Dev
-  alias Turnstile.FactEvent
   alias Turnstile.Fga
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Client.Http
   alias Turnstile.Fga.Model
+  alias Turnstile.Fga.Version
   alias Turnstile.PolicyVersion
   alias Turnstile.Test
 
   @boot {__MODULE__, :boot_model}
 
   @impl Rules
-  def setup(tags) when is_map(tags) do
+  def setup(_tags) do
     server = Dev.Fga.info()
     {:ok, store} = Http.create_store(server.address, name())
     :ok = Test.with_config(adapter: {Fga, endpoint: server.address, store_id: store})
-    stored(server, store, tags[:committed])
+    {:ok, model} = Http.write_model(server.address, store, Model.read!(ExampleFga.model()))
+    boot(model)
   end
+
+  @impl Rules
+  def version_event, do: Version.telemetry_event()
 
   @impl Rules
   def publish_tightened do
     :ok = Binding.override(model: Tightened.written())
 
-    with {:ok, %FactEvent{new: %PolicyVersion{} = version}} <- Fga.publish() do
+    with {:ok, %PolicyVersion{} = version} <- Fga.publish() do
       :ok = pinned(version.version)
       {:ok, version}
     end
@@ -73,23 +72,6 @@ defmodule ExampleFga.Rules do
   def restore do
     :ok = Binding.override(model: ExampleFga.model())
     pinned(booted())
-  end
-
-  @impl Rules
-  def publish_boot do
-    {:ok, %FactEvent{new: %PolicyVersion{version: model}}} = Fga.publish()
-    boot(model)
-  end
-
-  # A committed test publishes the boot model itself, through `publish_boot/0`,
-  # and pins what that answers. A sandboxed test has the store write the model
-  # of the boot text, because the ledger's boot event already carries its
-  # digest and a publish would answer that the ledger is current.
-  defp stored(_server, _store, true), do: :ok
-
-  defp stored(server, store, _sandboxed) do
-    {:ok, model} = Http.write_model(server.address, store, Model.read!(ExampleFga.model()))
-    boot(model)
   end
 
   # The model every question of this test is asked under, kept beside the

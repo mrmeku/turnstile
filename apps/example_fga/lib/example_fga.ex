@@ -4,13 +4,13 @@ defmodule ExampleFga do
   from, the mapping that turns the example's tables into tuples, the guard
   that holds the re-authentication window outside the graph, the boot that
   binds them to `Example.Repo`, the capability declaration, and the
-  migrations that create the example's tables, the ledger, and the marker
-  outbox the drain works from. Nothing of the domain lives in the adapter.
+  migrations that create the example's tables and the marker outbox the
+  drain works from. Nothing of the domain lives in the adapter.
 
   The version identifier is the id the server gives a model when it is
   published, so a rule change needs no configuration: the text of
-  `priv/fga/model.fga` is the artifact under review, and its digest is what
-  decides whether a boot publishes anything.
+  `priv/fga/model.fga` is the artifact under review, and the id it comes
+  back with is what every question is then asked under.
 
   The store this binding keeps is a copy of the example's own tables. A
   change to a row leaves a marker in the transaction that made it, and the

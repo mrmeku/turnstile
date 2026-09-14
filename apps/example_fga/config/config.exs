@@ -9,12 +9,6 @@ config :example_fga,
   endpoint: System.get_env("FGA_ENDPOINT", "127.0.0.1:8080"),
   store_id: System.get_env("FGA_STORE_ID", "turnstile-example")
 
-# The ledger this application boots with, which is where the policy version
-# of a published model is recorded. The store is filled from the example's
-# own tables rather than from the ledger, so what the ledger holds here is
-# the record of the rules rather than the facts.
-config :example_fga, ledger: {Turnstile.Ledger.Ecto, repo: Example.Repo, owner_repo: Example.OwnerRepo}
-
 if config_env() == :test do
   import_config "test.exs"
 end

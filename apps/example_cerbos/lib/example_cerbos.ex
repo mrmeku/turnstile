@@ -4,7 +4,7 @@ defmodule ExampleCerbos do
   what the policies may read, the subqueries behind them, the policy files
   the sidecar serves, the boot that binds them to `Example.Repo`, the
   capability declaration, and the migrations that create the example's
-  tables and the ledger's counter. Nothing of the domain lives here.
+  tables. Nothing of the domain lives here.
 
   The version identifier is the commit of the repository the policy files
   come from, since a directory a sidecar reads carries no history of its

@@ -3,7 +3,7 @@ defmodule ExampleCerbos.Rules do
   The policy operations the scenarios need from this binding. The rules are
   policy files a sidecar reads, so a rule change is a file written into the
   directory the sidecar watches and a commit the binding names from then on.
-  Publishing writes the file, overrides the commit, and appends the version;
+  Publishing writes the file, overrides the commit, and emits the version;
   restoring puts the file back and waits for the sidecar to be serving the
   boot rules again, since the scenario asks its next question with no poll.
   """
@@ -36,17 +36,16 @@ defmodule ExampleCerbos.Rules do
   @swapped {__MODULE__, :swapped}
 
   @impl Rules
+  def version_event, do: Version.telemetry_event()
+
+  @impl Rules
   def publish_tightened do
     {:ok, binding} = Binding.resolve()
     previous = Propagation.swap!(binding.policies, [{Tightened.path(), Tightened.document()}])
     _replaced = Process.put(@swapped, {binding.policies, previous})
     :ok = Binding.override(commit: Tightened.commit())
 
-    with {:ok, _published} <- Turnstile.Cerbos.publish() do
-      {:ok, tightened} = Binding.resolve()
-      {:ok, config} = Config.resolve()
-      Version.of(Turnstile.Cerbos, tightened, config, config.clock.())
-    end
+    Turnstile.Cerbos.publish()
   end
 
   @impl Rules
@@ -63,12 +62,6 @@ defmodule ExampleCerbos.Rules do
 
     :ok = Binding.override(commit: Application.fetch_env!(:example_cerbos, :commit))
     in_force!()
-  end
-
-  @impl Rules
-  def publish_boot do
-    {:ok, _published} = Turnstile.Cerbos.publish()
-    :ok
   end
 
   # Nothing tells a sidecar that its directory changed and nothing answers

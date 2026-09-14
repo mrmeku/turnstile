@@ -10,8 +10,8 @@ defmodule ExampleFga.Tightened do
   of the whole of it, because every tuple in the store was written against the
   boot text and stays valid only while the rest of the model is unchanged. A
   boot text that no longer carries the line raises here, since a replacement
-  that matched nothing would publish a model identical to the boot one and the
-  publish would answer that the ledger is current.
+  that matched nothing would publish a model identical to the boot one and a
+  scenario that tightened the rules would read the answers it read before.
   """
 
   use Boundary, top_level?: true, deps: [ExampleFga]

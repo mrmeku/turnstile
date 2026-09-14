@@ -6,11 +6,10 @@ defmodule ExamplePostgres do
   that binds the example's schemas to `Example.Repo`, and the capability
   declaration. Nothing of the domain lives here.
 
-  The policy version is the migration number. A migration runs before the
-  application is up, so it has no repo to write a ledger event through;
-  the version reaches the ledger from `publish/0`, which the boot calls
-  once the repos are started and which answers `{:ok, :current}` when the
-  ledger already names the version the database is at.
+  The policy version is the migration number. A migration reads the
+  policies it has written back and emits the version they are at; `publish/0`
+  does the same from the loaded catalog, which is what the boot calls once
+  the repos are started.
   """
 
   use Boundary,
@@ -34,17 +33,16 @@ defmodule ExamplePostgres do
   def approval, do: @approval
 
   @doc """
-  Publish the version the database is at into the ledger the configuration
-  names, from the policies the loaded catalog holds.
+  Emit the version the database is at, from the policies the loaded catalog
+  holds.
   """
   @spec publish() :: {:ok, Turnstile.PolicyVersion.t()}
   def publish do
     %Catalog{} = catalog = Turnstile.Postgres.load!()
     {:ok, config} = Config.resolve()
     fields = [at: config.clock.()] ++ published(catalog.version)
-    version = Version.of(Turnstile.Postgres, catalog.policies, fields)
-    {:ok, _result} = Version.publish(version, config.ledger)
-    {:ok, version}
+
+    Version.publish(Version.of(Turnstile.Postgres, catalog.policies, fields))
   end
 
   @doc """

@@ -3,7 +3,6 @@ defmodule ExamplePostgres.Repo.Migrations.Rules do
   use Ecto.Migration
 
   alias ExamplePostgres.Policies
-  alias Turnstile.Config
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Migration
 
@@ -100,28 +99,14 @@ defmodule ExamplePostgres.Repo.Migrations.Rules do
 
   # The application's own statements outside a decision, which is what the
   # seam leaves behind when it admits a call under a declared exemption,
-  # and the owner's reads, which the accessor functions and the reconcile
-  # run under.
+  # and the owner's reads, which the accessor functions and the truncation
+  # between committed tests run under.
   defp exempt(repo, table, commands) do
     :ok = Migration.exempt!(repo, table: table, to: @app, commands: commands)
     :ok = Migration.exempt!(repo, table: table, to: @owner, commands: [:select], outside_decision: false)
   end
 
   defp published do
-    [tables: Policies.protected(), ledger: ledger()] ++ ExamplePostgres.published(to_string(@version))
-  end
-
-  # A migration runs with nothing booted, as the schema dump runs it, and
-  # before the repo an event is written through is started, as the test
-  # cluster runs it. Either way there is no ledger to append to here and
-  # the version is recorded by telemetry alone; the boot that follows
-  # publishes it into the ledger it then has.
-  defp ledger do
-    with {:ok, %Config{ledger: {module, options}}} <- Config.resolve(),
-         true <- is_pid(Process.whereis(options[:repo])) do
-      {module, options}
-    else
-      _unavailable -> :none
-    end
+    [tables: Policies.protected()] ++ ExamplePostgres.published(to_string(@version))
   end
 end

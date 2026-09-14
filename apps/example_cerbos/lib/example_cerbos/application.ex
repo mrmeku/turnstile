@@ -1,12 +1,11 @@
 defmodule ExampleCerbos.Application do
   @moduledoc """
-  Boot: the configuration names the sidecar's address and the ledger mode,
-  the binding names the repo, the attribute declarations, the policy
-  directory, and the commit that directory is at, the supervisor starts the
-  repos and the consumer of the events, and the commit is published as a policy version
-  once the tree is up. The test configuration leaves the repos to the
-  ephemeral cluster, and with them the publish: a ledger mode writes the
-  version as an event, which needs a repo to write it through.
+  Boot: the configuration names the sidecar's address, the binding names the
+  repo, the attribute declarations, the policy directory, and the commit that
+  directory is at, the supervisor starts the repos and the consumer of the
+  events, and the commit is emitted as a policy version once the tree is up.
+  The test configuration leaves the repos to the ephemeral cluster, and with
+  them the publish, so a run has one policy-version event rather than two.
   """
 
   use Application
@@ -16,9 +15,8 @@ defmodule ExampleCerbos.Application do
 
   @impl Application
   def start(_type, _args) do
-    ledger = Application.fetch_env!(:example_cerbos, :ledger)
     address = Application.fetch_env!(:example_cerbos, :address)
-    _config = Turnstile.Config.boot!(adapter: {Turnstile.Cerbos, address: address}, ledger: ledger)
+    _config = Turnstile.Config.boot!(adapter: {Turnstile.Cerbos, address: address})
 
     _binding =
       Binding.bind!(
@@ -51,8 +49,8 @@ defmodule ExampleCerbos.Application do
     end
   end
 
-  # A ledger mode writes the policy version as an event, so the publish
-  # belongs to whoever starts the repos: this tree, or the test cluster.
+  # The publish belongs to whoever starts the repos: this tree, or the test
+  # cluster.
   defp publish([]), do: :ok
 
   defp publish(_repos) do

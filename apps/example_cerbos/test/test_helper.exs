@@ -22,7 +22,7 @@ Turnstile.Test.Cluster.start(
     {Example.OwnerRepo, role: :owner, database: :sandboxed, pool_size: 2}
   ],
   migrate: fn repo ->
-    [_domain, _counter, _events, _genesis, _rules] = Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
+    [_domain, _rules] = Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
     :ok
   end
 )
@@ -43,11 +43,7 @@ sidecar = Turnstile.Dev.Cerbos.start_shared(policies: policies, dir: run)
 # its decision log to, put where every test reads them: the application
 # booted against the configured address, which is a deployment's, and the
 # sidecar the run raised takes a free port of its own.
-_config =
-  Turnstile.Config.boot!(
-    adapter: {Turnstile.Cerbos, address: sidecar.address},
-    ledger: Application.fetch_env!(:example_cerbos, :ledger)
-  )
+_config = Turnstile.Config.boot!(adapter: {Turnstile.Cerbos, address: sidecar.address})
 
 _binding =
   Turnstile.Cerbos.Binding.bind!(
@@ -60,17 +56,11 @@ _binding =
     decision_log: sidecar.audit_log
   )
 
-# The commit the sidecar is serving, published once the repos are up: in a
-# ledger mode it is an event, and the application starts no repo to write it
-# through when the cluster owns them.
+# The commit the sidecar is serving, emitted once the run's sidecar is up:
+# the application publishes nothing when the cluster owns the repos, so a run
+# has one policy-version event rather than two.
 {:ok, _published} = Turnstile.Cerbos.publish()
 
 Sandbox.mode(Example.Repo, :manual)
 
-exclude =
-  case Application.fetch_env!(:example_cerbos, :ledger) do
-    :none -> [needs_ledger: true]
-    _ledger -> []
-  end
-
-ExUnit.start(exclude: exclude)
+ExUnit.start()

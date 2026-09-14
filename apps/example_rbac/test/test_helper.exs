@@ -20,22 +20,16 @@ Turnstile.Test.Cluster.start(
     {Example.OwnerRepo, role: :owner, database: :sandboxed, pool_size: 2}
   ],
   migrate: fn repo ->
-    [_domain, _counter, _events, _genesis] = Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
+    [_domain] = Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
     :ok
   end
 )
 
-# The version the policy is at, published once the repos are up: in a ledger
-# mode it is an event, and the application starts no repo to write it
-# through when the cluster owns them.
+# The version the policy is at, emitted once the repos are up: the
+# application publishes nothing when the cluster owns them, so a run has one
+# policy-version event rather than two.
 {:ok, _published} = Turnstile.Code.publish()
 
 Sandbox.mode(Example.Repo, :manual)
 
-exclude =
-  case Application.fetch_env!(:example_rbac, :ledger) do
-    :none -> [needs_ledger: true]
-    _ledger -> []
-  end
-
-ExUnit.start(exclude: exclude)
+ExUnit.start()

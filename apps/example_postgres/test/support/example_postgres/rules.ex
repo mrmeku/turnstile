@@ -4,8 +4,8 @@ defmodule ExamplePostgres.Rules do
   the database's own, so a rule change is a schema change: the read policy
   of a document is dropped and written again under a tightened expression,
   a migration row records the version the database is now at, the loaded
-  catalog is read again so calls see it, and the version reaches the ledger.
-  The statements run through the owner-role repo, which is what owns the
+  catalog is read again so calls see it, and the version is emitted. The
+  statements run through the owner-role repo, which is what owns the
   protected tables.
   """
 
@@ -25,11 +25,15 @@ defmodule ExamplePostgres.Rules do
   alias Example.Scenarios.Rules
   alias ExamplePostgres.Policies
   alias Turnstile.Postgres.Migration
+  alias Turnstile.Postgres.Version
 
   @tightened ~w(lead)
   @version 20_260_909_000_006
   @read "turnstile_scope_read"
   @documents "documents"
+
+  @impl Rules
+  def version_event, do: Version.telemetry_event()
 
   @impl Rules
   def publish_tightened do
@@ -46,12 +50,6 @@ defmodule ExamplePostgres.Rules do
     :ok = read(Policies.document_read(Policies.readers()))
     :ok = forget(@version)
     _catalog = Turnstile.Postgres.reload!()
-    :ok
-  end
-
-  @impl Rules
-  def publish_boot do
-    {:ok, _published} = ExamplePostgres.publish()
     :ok
   end
 

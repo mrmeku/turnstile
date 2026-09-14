@@ -22,7 +22,7 @@ Turnstile.Test.Cluster.start(
     {Example.OwnerRepo, role: :owner, database: :sandboxed, pool_size: 2}
   ],
   migrate: fn repo ->
-    [_domain, _counter, _events, _genesis, _rules] = Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
+    [_domain, _rules] = Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
     :ok
   end
 )
@@ -30,15 +30,11 @@ Turnstile.Test.Cluster.start(
 # One server for the run, on a free port with the in-memory datastore, and a
 # store on it for the boot the application would do: the store every test
 # reads is one of its own, which `ExampleFga.Rules` creates per test, and this
-# one carries the model the ledger's boot version names.
+# one carries the model the run's boot version names.
 server = Turnstile.Dev.Fga.start_shared([])
 {:ok, store} = Turnstile.Fga.Client.Http.create_store(server.address, "example-fga-boot")
 
-_config =
-  Turnstile.Config.boot!(
-    adapter: {Turnstile.Fga, endpoint: server.address, store_id: store},
-    ledger: Application.fetch_env!(:example_fga, :ledger)
-  )
+_config = Turnstile.Config.boot!(adapter: {Turnstile.Fga, endpoint: server.address, store_id: store})
 
 _binding =
   Turnstile.Fga.Binding.bind!(
@@ -50,17 +46,15 @@ _binding =
     approval: ExampleFga.approval()
   )
 
-# The model published once the repos are up, which a ledger mode writes as an
-# event: the application starts no repo to write it through when the cluster
-# owns them. The id it comes back with is pinned for the boot, so a process
-# that asks without a store of its own asks under the model of this store.
-{:ok, %Turnstile.FactEvent{new: %Turnstile.PolicyVersion{version: model}}} = Turnstile.Fga.publish()
+# The model published into that store, which the application leaves to the
+# helper because a publication writes a model and every model the server is
+# given is one it keeps. The id it comes back with is pinned for the boot, so
+# a process that asks without a store of its own asks under the model of this
+# store.
+{:ok, %Turnstile.PolicyVersion{version: model}} = Turnstile.Fga.publish()
 
 _pinned =
-  Turnstile.Config.boot!(
-    adapter: {Turnstile.Fga, endpoint: server.address, store_id: store, model_id: model},
-    ledger: Application.fetch_env!(:example_fga, :ledger)
-  )
+  Turnstile.Config.boot!(adapter: {Turnstile.Fga, endpoint: server.address, store_id: store, model_id: model})
 
 Sandbox.mode(Example.Repo, :manual)
 

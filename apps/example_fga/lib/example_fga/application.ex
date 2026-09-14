@@ -1,19 +1,19 @@
 defmodule ExampleFga.Application do
   @moduledoc """
-  Boot: the configuration names the server, the store, and the ledger, the
-  binding names the repo the markers and the tables are read through, the
-  model file, the mapping, and the guard, the handler that writes a marker
-  for every change is attached, the supervisor starts the repos and the
-  runner that delivers those markers, and the model is published as a policy
-  version once the tree is up.
+  Boot: the configuration names the server and the store, the binding names
+  the repo the markers and the tables are read through, the model file, the
+  mapping, and the guard, the handler that writes a marker for every change
+  is attached, the supervisor starts the repos and the runner that delivers
+  those markers, and the model is published as a policy version once the tree
+  is up.
 
   The runner is the process that drains the outbox into the store on its
   interval. It starts here rather than in a test, because a test settles the
   store itself and a process draining beside it would read the same markers
   from a connection of its own. The test configuration therefore leaves the
   repos to the ephemeral cluster and the runner to the tests, and with them
-  the publish, which a ledger mode writes as an event and so needs a repo to
-  write through.
+  the publish, since a publication writes a model and every model the server
+  is given is one it keeps.
 
   The handler is attached either way. A marker is written on the connection
   the change was made on, so what it needs is a binding and the write's own
@@ -27,11 +27,7 @@ defmodule ExampleFga.Application do
 
   @impl Application
   def start(_type, _args) do
-    _config =
-      Turnstile.Config.boot!(
-        adapter: {Turnstile.Fga, entry()},
-        ledger: Application.fetch_env!(:example_fga, :ledger)
-      )
+    _config = Turnstile.Config.boot!(adapter: {Turnstile.Fga, entry()})
 
     _binding =
       Binding.bind!(
@@ -62,8 +58,8 @@ defmodule ExampleFga.Application do
     ]
   end
 
-  # A ledger mode writes the policy version as an event, so the publish
-  # belongs to whoever starts the repos: this tree, or the test cluster.
+  # A publication writes a model to the server, so it belongs to whoever
+  # raises the tree: this one, or the test helper.
   defp publish([]), do: :ok
 
   defp publish(_children) do

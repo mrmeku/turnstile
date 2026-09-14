@@ -1,11 +1,11 @@
 defmodule ExamplePostgres.Application do
   @moduledoc """
-  Boot: the configuration names the adapter and the ledger mode, the
-  binding names the repo and the schemas whose tables the policies protect,
-  the supervisor starts the repos and the consumer of the events, and the policies and
-  their version are read from the database once the tree is up. The test
-  configuration leaves the repos to the ephemeral cluster, and with them
-  the read: the catalog is a query, which needs a repo to run through.
+  Boot: the configuration names the adapter, the binding names the repo and
+  the schemas whose tables the policies protect, the supervisor starts the
+  repos and the consumer of the events, and the policies and their version
+  are read from the database once the tree is up. The test configuration
+  leaves the repos to the ephemeral cluster, and with them the read: the
+  catalog is a query, which needs a repo to run through.
   """
 
   use Application
@@ -16,8 +16,7 @@ defmodule ExamplePostgres.Application do
 
   @impl Application
   def start(_type, _args) do
-    ledger = Application.fetch_env!(:example_postgres, :ledger)
-    _config = Turnstile.Config.boot!(adapter: Turnstile.Postgres, ledger: ledger)
+    _config = Turnstile.Config.boot!(adapter: Turnstile.Postgres)
     _binding = Binding.bind!(repo: Example.Repo, schemas: Policies.schemas())
     repos = repos()
     children = [{Siem, name: Siem, attach: true} | repos]

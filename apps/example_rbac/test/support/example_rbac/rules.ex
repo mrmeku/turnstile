@@ -2,8 +2,8 @@ defmodule ExampleRbac.Rules do
   @moduledoc """
   The policy operations the scenarios need from this binding: a tightened
   policy, under which a program member no longer reads, bound and published
-  for the calling process; the boot policy restored; the boot policy
-  published again, which is what the boot itself does.
+  for the calling process; the boot policy restored; and the event a
+  published version is emitted on.
   """
 
   @behaviour Example.Scenarios.Rules
@@ -25,21 +25,15 @@ defmodule ExampleRbac.Rules do
   alias Turnstile.Code.Version
 
   @impl Rules
+  def version_event, do: Version.telemetry_event()
+
+  @impl Rules
   def publish_tightened do
     :ok = Binding.override(policy: ExampleRbac.Tightened)
-    {:ok, config} = Turnstile.Config.resolve()
 
-    with {:ok, _published} <- Turnstile.Code.publish() do
-      {:ok, Version.of(Turnstile.Code, ExampleRbac.Tightened, config, config.clock.())}
-    end
+    Turnstile.Code.publish()
   end
 
   @impl Rules
   def restore, do: Binding.override(policy: ExampleRbac.Policy)
-
-  @impl Rules
-  def publish_boot do
-    {:ok, _published} = Turnstile.Code.publish()
-    :ok
-  end
 end
