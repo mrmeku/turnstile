@@ -2,7 +2,7 @@
 
 ## Read first
 
-`PLAN.md`, then `docs/writing.md`, `docs/reference.md`, `docs/testing.md`, and `docs/code.md`, in that order, before starting any stage. `docs/delivery.md` names the stages and their gates.
+`PLAN.md`, then `docs/writing.md`, `docs/reference.md`, `docs/testing.md`, and `docs/code.md`, in that order, before starting any stage. `docs/delivery.md` says how a stage runs, what it records, and which gate each package passes.
 
 ## Prose
 
@@ -11,7 +11,8 @@ Sentence-case headings. None of these words: *simply, just, obviously, easy, eas
 ## Placement
 
 - A package's concepts appear only in that package's directory. Adapter packages are domain-free: no adapter names a Document, a Marking, or a rule id from the example.
-- Capability declarations per rule live in the thin apps (`apps/example_<adapter>/`), never in an adapter package.
+- Before adding a module, decide whether it decides or touches the world, and put it in the matching place: the package's public modules sit at the root of its `lib/`, a module that decides and holds nothing and calls nothing outside the package goes under `core/`, and a module that touches a database, an engine, a file, a clock, or a process goes under `adapter/`. Calls run one way: the root reaches `adapter/` and `core/`, and `adapter/` reaches `core/`.
+- What each rule of the example is enforced by is stated in the thin apps (`apps/example_<adapter>/`), never in an adapter package.
 - Library packages ship migration helpers. Migrations exist only in the thin apps, one set each.
 - Adapters own mechanism. No sentence in an adapter's docs tells the application what it may do.
 - Test names are scenario ids and sentences from `docs/reference.md` §1 and §3a.
@@ -20,9 +21,9 @@ Sentence-case headings. None of these words: *simply, just, obviously, easy, eas
 
 ## Process
 
-- Stages run one at a time, on `main`, no worktrees, in the order `docs/delivery.md` §4 gives.
+- Stages run one at a time, on `main`, no worktrees, by the steps `docs/delivery.md` §1 gives.
 - Each stage ends with its gate from `docs/delivery.md` run and passing, then one or more commits, unsigned: `git -c commit.gpgsign=false commit`. One idea per commit. The last commit message quotes the gate's output and records what `docs/delivery.md` asks the stage to record.
-- The prose gate, run on every changed document, must print `exit=1`:
+- The prose gate, run on every changed document, must print `exit=1`. `docs/writing.md` is the one exception, because it is where the banned words are listed:
 
 ```
 grep -rniE "\b(simply|just|obviously|easy|easily|of course|basically|note that|in order to)\b|!|—" <files> ; echo "exit=$?"
