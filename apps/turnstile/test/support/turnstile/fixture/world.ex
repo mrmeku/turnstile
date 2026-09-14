@@ -8,9 +8,8 @@ defmodule Turnstile.Fixture.World do
   membership on it, `:edit` needs an editor membership, an item answers as
   its folder does, and an account without clearance is denied everything.
 
-  Every write goes through the seam under a declared exemption, so a ledger
-  configured for the test records the population as fact events, and the
-  fold of those events is the state `facts/1` computes from the world.
+  Every write goes through the seam under a declared exemption, so the
+  population reaches the tables the way an application's own writes do.
   """
 
   @behaviour Turnstile.Conformance.World
@@ -112,18 +111,6 @@ defmodule Turnstile.Fixture.World do
   @spec scoped() :: t()
   def scoped, do: %{granted() | folders: [1, 2, 3]}
 
-  @doc "Two accounts, two folders, an item inside one, and three memberships."
-  @impl World
-  @spec layered() :: t()
-  def layered do
-    %__MODULE__{
-      accounts: %{"acct-a" => @cleared, "acct-b" => @cleared},
-      folders: [1, 2],
-      items: %{1 => 1},
-      memberships: %{{"acct-a", 1} => :editor, {"acct-b", 2} => :reader, {"acct-a", 2} => :reader}
-    }
-  end
-
   @doc "The account the fixed worlds grant to, and the folder they grant it on."
   @impl World
   @spec focus(t()) :: {Turnstile.subject(), pos_integer()}
@@ -180,21 +167,6 @@ defmodule Turnstile.Fixture.World do
         do: {subject, operation, object}
   end
 
-  @doc "The fold a ledger of this world's writes reaches: memberships and clearances by their fact keys."
-  @impl World
-  @spec facts(t()) :: %{Turnstile.Ledger.Fold.key() => term()}
-  def facts(%__MODULE__{} = world) do
-    memberships =
-      Map.new(world.memberships, fn {{account, folder}, role} -> {{{:user, account}, {:folder, folder}, nil}, role} end)
-
-    clearances =
-      for {account, clearance} <- world.accounts, not is_nil(clearance), into: %{} do
-        {{{:user, account}, nil, :clearance}, clearance}
-      end
-
-    Map.merge(memberships, clearances)
-  end
-
   @doc "Write the world through the seam, accounts and folders first."
   @impl World
   @spec insert(module(), t()) :: :ok
@@ -204,7 +176,7 @@ defmodule Turnstile.Fixture.World do
     |> Enum.each(&repo.insert!(&1, turnstile: @exemption))
   end
 
-  @doc "Delete every fixture row through the seam, fact rows one at a time so the ledger records their erasure."
+  @doc "Delete every fixture row through the seam, fact rows one at a time so the seam records each erasure."
   @impl World
   @spec clear(module()) :: :ok
   def clear(repo) when is_atom(repo) do

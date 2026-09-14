@@ -3,9 +3,8 @@ defmodule Turnstile.Conformance.Case do
   The `scenario` macro: a `test` named by the scenario's id and sentence,
   tagged with its rule, its controls, and the capability record the
   application's declaration returns for the rule. An `unsupported` rule
-  skips the scenario with the declaration's note as the reason; a scenario
-  that needs a ledger carries `needs_ledger: true`, which a mode-none run
-  excludes. Every declaration is checked against
+  skips the scenario with the declaration's note as the reason. Every
+  declaration is checked against
   `Turnstile.Conformance.Scenarios` when the module compiles, so a scenario
   cannot drift from the table.
 
@@ -65,7 +64,7 @@ defmodule Turnstile.Conformance.Case do
     {level, by_and_note} = capabilities.capability(rule)
 
     [scenario: id, rule: rule, controls: controls, capability: {level, by_and_note}] ++
-      ledger_tag(scenario) ++ skip_tag(level, by_and_note)
+      skip_tag(level, by_and_note)
   end
 
   defp fetch!(id) do
@@ -98,9 +97,6 @@ defmodule Turnstile.Conformance.Case do
       raise ArgumentError, "scenario #{id} cites #{inspect(expected)}, got: #{inspect(controls)}"
     end
   end
-
-  defp ledger_tag(%Scenario{needs_ledger: true}), do: [needs_ledger: true]
-  defp ledger_tag(%Scenario{needs_ledger: false}), do: []
 
   defp skip_tag(:unsupported, by_and_note), do: [skip: Keyword.fetch!(by_and_note, :note)]
   defp skip_tag(_level, _by_and_note), do: []

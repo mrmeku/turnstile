@@ -1,4 +1,4 @@
-defmodule Turnstile.Ledger.SchemaDump do
+defmodule Turnstile.Test.SchemaDump do
   @moduledoc """
   The mechanism behind `mix turnstile.schema_dump`: an ephemeral cluster,
   the caller's migrations run as the owner role, `pg_dump --schema-only`
@@ -11,8 +11,6 @@ defmodule Turnstile.Ledger.SchemaDump do
   `\\unrestrict` lines carrying a random token; they are removed so the
   file is the same on every run.
   """
-
-  use Boundary, top_level?: true, deps: [Turnstile.Test, Ecto.Migrator]
 
   alias Turnstile.Test.Cluster
 

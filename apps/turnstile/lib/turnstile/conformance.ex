@@ -16,7 +16,6 @@ defmodule Turnstile.Conformance do
       AdapterCase.Laws,
       Case,
       Gen,
-      LedgerCase,
       RepoCase,
       RepoCase.Rows,
       Scenario,

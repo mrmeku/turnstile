@@ -6,10 +6,8 @@ defmodule Turnstile.FreezeTest do
 
   use ExUnit.Case, async: true
 
-  alias Ecto.Adapters.SQL
   alias Turnstile.Conformance.Scenario
   alias Turnstile.Conformance.Scenarios
-  alias Turnstile.TestRepos.Owner
 
   @moduletag :freeze
 
@@ -25,7 +23,6 @@ defmodule Turnstile.FreezeTest do
                explain: 5,
                around_query: 3,
                options_schema: 0,
-               requires_ledger: 0,
                scope_cap: 0,
                settle: 0
              )
@@ -34,34 +31,15 @@ defmodule Turnstile.FreezeTest do
              Enum.sort(explain: 5, around_query: 3, options_schema: 0, settle: 0)
   end
 
-  test "Turnstile.Ledger has the frozen callbacks" do
-    assert Enum.sort(Turnstile.Ledger.behaviour_info(:callbacks)) ==
-             Enum.sort(append: 2, read: 3, head: 1, options_schema: 0)
-  end
-
   test "the structs have the frozen fields" do
-    assert fields(Turnstile.FactEvent) ==
-             ~w(at attribute by kind new object_ref old operation_id position subject_ref)a
-
     assert fields(Turnstile.Answer) == ~w(meta reason verdict version)a
     assert fields(Turnstile.Exemption) == ~w(caller kind on reason)a
     assert Turnstile.Exemption.kinds() == [:declared, :library]
 
     assert fields(Turnstile.Decision) ==
-             ~w(adapter applied_position at head_position id object operation operation_id policy_version reason subject verdict)a
+             ~w(adapter at id object operation operation_id policy_version reason subject verdict)a
 
-    assert fields(Turnstile.Config) == ~w(adapter caps clock ledger ledger_counter)a
-  end
-
-  test "turnstile_ledger_counter has the frozen columns" do
-    %{rows: rows} =
-      SQL.query!(
-        Owner,
-        "SELECT column_name::text, data_type::text FROM information_schema.columns " <>
-          "WHERE table_name = 'turnstile_ledger_counter' ORDER BY ordinal_position"
-      )
-
-    assert rows == [["name", "text"], ["position", "bigint"]]
+    assert fields(Turnstile.Config) == ~w(adapter caps clock)a
   end
 
   test "the scenario ids are the frozen list" do
@@ -103,7 +81,7 @@ defmodule Turnstile.FreezeTest do
   end
 
   defp row(line) do
-    [id, sentence, group, controls, tests, needs] =
+    [id, sentence, group, controls, tests] =
       line
       |> String.split("|")
       |> Enum.drop(1)
@@ -115,8 +93,7 @@ defmodule Turnstile.FreezeTest do
       sentence: sentence,
       group: atomize(group),
       controls: String.split(controls, ", "),
-      tests: tests(tests),
-      needs_ledger: needs == "ledger"
+      tests: tests(tests)
     }
   end
 

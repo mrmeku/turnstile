@@ -1,10 +1,9 @@
-defmodule Turnstile.Test.LedgerAdapter do
+defmodule Turnstile.Test.SettlingAdapter do
   @moduledoc """
-  The fake adapter that requires a ledger, which is what an adapter whose
-  state is a projection of the ledger declares. Everything else is the
-  fake's: the point of this module is the declaration, so the template's
-  shape cases for such an adapter have one to run against. Test support
-  only.
+  The fake adapter that declares `settle/0`, which is what an adapter with
+  state of its own to bring into step declares. Everything else is the
+  fake's: the point of this module is the declaration, so a template's cases
+  for such an adapter have one to run against. Test support only.
 
   What settling does is whatever `bind/1` put in the calling process, the way
   a real adapter reaches its own state through its binding, and `:none` until
@@ -20,9 +19,6 @@ defmodule Turnstile.Test.LedgerAdapter do
 
   @impl Turnstile.Adapter
   defdelegate options_schema, to: Fake
-
-  @impl Turnstile.Adapter
-  def requires_ledger, do: true
 
   @impl Turnstile.Adapter
   defdelegate scope_cap, to: Fake

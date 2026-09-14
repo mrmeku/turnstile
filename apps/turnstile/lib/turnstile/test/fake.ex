@@ -71,9 +71,6 @@ defmodule Turnstile.Test.Fake do
   def options_schema, do: @schema
 
   @impl Turnstile.Adapter
-  def requires_ledger, do: false
-
-  @impl Turnstile.Adapter
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter

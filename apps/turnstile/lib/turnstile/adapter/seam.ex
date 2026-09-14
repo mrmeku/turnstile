@@ -9,10 +9,9 @@ defmodule Turnstile.Adapter.Seam do
   #
   # A write to an audited schema on an application-role repo runs in a
   # transaction, and the change it made is published inside that transaction
-  # (`Turnstile.Change`). Where a ledger is configured, a write to a
-  # fact schema runs in the same transaction with the row re-read under the
-  # ledger's lock clause and the events appended. The owner-role repo records
-  # nothing: it is the library's own channel.
+  # (`Turnstile.Change`), so a handler that writes from the same repository
+  # joins it. The owner-role repo records nothing: it is the library's own
+  # channel.
 
   alias Turnstile.Adapter.Caller
   alias Turnstile.Adapter.Option
@@ -23,8 +22,6 @@ defmodule Turnstile.Adapter.Seam do
   alias Turnstile.Core.Source
   alias Turnstile.Decision
   alias Turnstile.Error
-  alias Turnstile.FactEvent
-  alias Turnstile.Facts
   alias Turnstile.Id
   alias Turnstile.Schema
 
@@ -121,19 +118,16 @@ defmodule Turnstile.Adapter.Seam do
 
   defp recorded(repo, {name, _arity}, changeset, mediation, opts, continue) do
     schema = changeset.data.__struct__
-    ledger = ledger(repo, schema)
 
-    if ledger == :none and not audited?(repo, schema) do
-      continue.(opts)
+    if audited?(repo, schema) do
+      transactional(repo, fn -> record(repo, action(name, changeset), changeset, mediation, opts, continue) end)
     else
-      action = action(name, changeset)
-      transactional(repo, fn -> record(repo, action, changeset, mediation, opts, continue, ledger) end)
+      continue.(opts)
     end
   end
 
-  defp record(repo, action, changeset, mediation, opts, continue, ledger) do
+  defp record(repo, action, changeset, mediation, opts, continue) do
     schema = changeset.data.__struct__
-    old = reread(repo, ledger, action, changeset, opts)
     result = continue.(opts)
 
     case written(result) do
@@ -141,23 +135,9 @@ defmodule Turnstile.Adapter.Seam do
         result
 
       row ->
-        stamp = stamp(mediation)
-        :ok = appended(ledger, schema, old, new(action, old, changeset, row), stamp)
-        :ok = published(repo, schema, action, changeset.data, row, stamp)
+        :ok = published(repo, schema, action, changeset.data, row, stamp(mediation))
         result
     end
-  end
-
-  defp reread(_repo, :none, _action, _changeset, _opts), do: nil
-
-  defp reread(repo, {_ledger, options}, action, changeset, opts) do
-    if action in [:update, :delete], do: Facts.reread(repo, changeset.data, options[:lock], opts)
-  end
-
-  defp appended(:none, _schema, _old, _new, _stamp), do: :ok
-
-  defp appended({ledger, options}, schema, old, new, stamp) do
-    append(ledger, options, Facts.events(schema, old, new, stamp))
   end
 
   # The event a consumer builds a record from, published inside the
@@ -179,21 +159,6 @@ defmodule Turnstile.Adapter.Seam do
   defp operation(:insert), do: :create
   defp operation(action), do: action
 
-  # The row after the write: nothing after a delete, the re-read row with
-  # the changes applied after an update, the returned row after an insert.
-  defp new(:delete, _old, _changeset, _row), do: nil
-  defp new(:update, %{} = old, changeset, _row), do: Map.merge(old, changeset.changes)
-  defp new(_action, _old, _changeset, row), do: row
-
-  defp append(_ledger, _options, []), do: :ok
-
-  defp append(ledger, options, events) do
-    case ledger.append(options, events) do
-      {:ok, _stamped} -> :ok
-      {:error, error} when is_exception(error) -> raise error
-    end
-  end
-
   defp written({:ok, %{__struct__: _schema} = row}), do: row
   defp written(%{__struct__: schema} = row) when schema != Ecto.Changeset, do: row
   defp written(_other), do: nil
@@ -211,10 +176,10 @@ defmodule Turnstile.Adapter.Seam do
     %{by: decision.subject, operation_id: decision.operation_id, at: config!().clock.()}
   end
 
-  defp stamp(_mediation), do: %{by: FactEvent.library(), operation_id: Id.new(), at: config!().clock.()}
+  defp stamp(_mediation), do: %{by: Change.library(), operation_id: Id.new(), at: config!().clock.()}
 
-  # A fact write runs inside a transaction so the re-read's lock, the write,
-  # and the append commit together; a write that reports an error rolls it
+  # An audited write runs inside a transaction so the write and the change
+  # it publishes commit together; a write that reports an error rolls it
   # back and the error comes out as the write returned it.
   defp transactional(repo, fun) do
     if repo.in_transaction?(), do: fun.(), else: in_transaction(repo, fun)
@@ -238,10 +203,6 @@ defmodule Turnstile.Adapter.Seam do
   defp settle(_repo, {:ok, _row} = result), do: result
   defp settle(repo, {:error, _reason} = result), do: repo.rollback({__MODULE__, result})
   defp settle(_repo, result), do: result
-
-  defp ledger(repo, schema) do
-    if repo.__turnstile__(:role) == :app and Schema.fact_schema?(schema), do: config!().ledger, else: :none
-  end
 
   # The owner-role repo is the library's own channel, so what it writes is
   # not a change the application made.

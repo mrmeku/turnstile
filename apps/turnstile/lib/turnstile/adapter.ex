@@ -10,11 +10,10 @@ defmodule Turnstile.Adapter do
   values everywhere: `scope/5` answers the rule with its answer, and
   `explain/5` answers with what matched on the answer's `meta`.
 
-  Three declarations are true of an adapter in any domain: whether it
-  requires a ledger, the cap on the number of objects `scope` can return,
-  `:none` where the rule is a query the database runs, and whether it has
-  state of its own to settle, which an adapter reading the application's own
-  tables has not.
+  Two declarations are true of an adapter in any domain: the cap on the
+  number of objects `scope` can return, `:none` where the rule is a query
+  the database runs, and whether it has state of its own to settle, which
+  an adapter reading the application's own tables has not.
   """
 
   alias Turnstile.Answer
@@ -58,9 +57,6 @@ defmodule Turnstile.Adapter do
 
   @doc "The schema for the adapter's entry in `Turnstile.Config`. Absent, the entry must be the bare module."
   @callback options_schema() :: NimbleOptions.t()
-
-  @doc "Whether the adapter can be bound without a ledger."
-  @callback requires_ledger() :: boolean()
 
   @doc "The cap on objects `scope` can return, or `:none`."
   @callback scope_cap() :: pos_integer() | :none

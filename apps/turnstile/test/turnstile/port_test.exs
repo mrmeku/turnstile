@@ -8,36 +8,17 @@ defmodule Turnstile.PortTest do
   alias Turnstile.Port
   alias Turnstile.Test.Fake
 
-  defmodule DownLedger do
-    @moduledoc false
-    @behaviour Turnstile.Ledger
-
-    @impl Turnstile.Ledger
-    def options_schema, do: NimbleOptions.new!([])
-
-    @impl Turnstile.Ledger
-    def append(_options, _events), do: {:error, down(:append)}
-
-    @impl Turnstile.Ledger
-    def read(_options, _from, _limit), do: {:error, down(:read)}
-
-    @impl Turnstile.Ledger
-    def head(_options), do: {:error, down(:head)}
-
-    defp down(operation) do
-      %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{operation}: ledger down"}
-    end
-  end
-
   defmodule Explaining do
     @moduledoc false
     @behaviour Turnstile.Adapter
 
     @impl Turnstile.Adapter
-    def options_schema, do: Fake.options_schema()
-
-    @impl Turnstile.Adapter
-    def requires_ledger, do: false
+    def options_schema do
+      NimbleOptions.new!(
+        verdict: [type: {:in, [:allow, :deny]}, default: :deny],
+        reachable?: [type: :boolean, default: true]
+      )
+    end
 
     @impl Turnstile.Adapter
     def scope_cap, do: :none
@@ -60,17 +41,18 @@ defmodule Turnstile.PortTest do
 
     @impl Turnstile.Adapter
     def explain(_subject, _operation, _object, _environment, options) do
-      answer = Fake.answer(options)
-      {:ok, %{answer | meta: Map.put(answer.meta, :matched, ["rule one"])}}
+      if options[:reachable?] do
+        answer = Fake.answer(options)
+        {:ok, %{answer | meta: Map.put(answer.meta, :matched, ["rule one"])}}
+      else
+        {:error, %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} is out of reach"}}
+      end
     end
   end
 
   defmodule Silent do
     @moduledoc false
     @behaviour Turnstile.Adapter
-
-    @impl Turnstile.Adapter
-    def requires_ledger, do: false
 
     @impl Turnstile.Adapter
     def scope_cap, do: :none
@@ -97,9 +79,6 @@ defmodule Turnstile.PortTest do
     @behaviour Turnstile.Adapter
 
     @impl Turnstile.Adapter
-    def requires_ledger, do: false
-
-    @impl Turnstile.Adapter
     def scope_cap, do: :none
 
     @impl Turnstile.Adapter
@@ -124,14 +103,14 @@ defmodule Turnstile.PortTest do
   setup do
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})
     :ok = Fake.allow(rules, "acct-a", :read, {:folder, 1})
-    :ok = Turnstile.Test.with_config(adapter: {Fake, rules: rules}, ledger: :none)
+    :ok = Turnstile.Test.with_config(adapter: {Fake, rules: rules})
     handler = :telemetry_test.attach_event_handlers(self(), [Port.event()])
     on_exit(fn -> :telemetry.detach(handler) end)
     {:ok, rules: rules}
   end
 
   test "a call publishes one decision event carrying who asked, what was answered, and how long it took" do
-    assert {:ok, %Decision{verdict: :allow, head_position: nil}} = Port.authorize(@user, :read, @folder, [])
+    assert {:ok, %Decision{verdict: :allow}} = Port.authorize(@user, :read, @folder, [])
 
     assert_received {[:turnstile, :decision], _ref, %{duration: duration}, metadata}
     assert duration >= 0
@@ -161,18 +140,6 @@ defmodule Turnstile.PortTest do
 
     assert_received {[:turnstile, :decision], _ref, _measurements,
                      %{subject_kind: :unknown, verdict: :deny, reason: :unknown_subject_kind}}
-  end
-
-  test "an unreachable ledger head fails every call closed with engine_unreachable" do
-    :ok = Turnstile.Test.with_config(ledger: {DownLedger, []})
-    assert Port.check(@user, :read, @folder, []) == false
-
-    assert {:error, %Error{reason: :engine_unreachable}} =
-             Port.authorize(@user, :read, @folder, [])
-
-    assert Port.batch(@user, :read, [@folder], []) == %{{:folder, 1} => :deny}
-    assert {_rule, %Decision{verdict: :deny, head_position: nil}} = Port.scope(@user, :read, :folder, [])
-    assert_received {[:turnstile, :decision], _ref, _measurements, %{reason: :engine_unreachable}}
   end
 
   test "an engine error from the adapter denies with the detail as the reason", %{rules: rules} do
@@ -243,7 +210,7 @@ defmodule Turnstile.PortTest do
     assert {:ok, %Answer{meta: %{matched: ["rule one"]}}, %Decision{verdict: :allow, adapter: Explaining}} =
              Port.explain(@user, :read, @folder, [])
 
-    :ok = Turnstile.Test.with_config(ledger: {DownLedger, []})
+    :ok = Turnstile.Test.with_config(adapter: {Explaining, reachable?: false})
 
     assert {:ok, %Answer{verdict: :deny, reason: :engine_unreachable}, %Decision{verdict: :deny}} =
              Port.explain(@user, :read, @folder, [])

@@ -3,9 +3,9 @@ defmodule Turnstile.Conformance.AdapterCase do
   The Tier 1 case template. `use Turnstile.Conformance.AdapterCase,
   adapter: Turnstile.Code, repo: Example.Repo, world: Example.World`
   defines an async test module whose setup prepares the repo for the test,
-  starts a ledger for the test, stubs the clock, and binds the adapter
-  through the configuration override, so each adapter's conformance run is
-  its own module and all of them run in one `mix test`.
+  stubs the clock, and binds the adapter through the configuration
+  override, so each adapter's conformance run is its own module and all of
+  them run in one `mix test`.
 
   The template names no schema and no rule. `world:` is a
   `Turnstile.Conformance.World`: the module that says what a population
@@ -16,9 +16,8 @@ defmodule Turnstile.Conformance.AdapterCase do
   The tests are the port's invariants as properties over
   `Turnstile.Conformance.Gen`, each iteration writing a population through
   the seam and, when the adapter keeps state of its own, seeding it through
-  the `seed:` module; the shape tests, of ledger mode none for an adapter
-  that admits it and of the ledger for one that requires it; the
-  fail-closed case; and the revocation-latency template.
+  the `seed:` module; the two shape tests; the fail-closed case; and the
+  revocation-latency template.
 
   Options:
 
@@ -30,10 +29,6 @@ defmodule Turnstile.Conformance.AdapterCase do
     of its own before the test runs. Omit it for a repo that needs none.
   - `async:` default `true`, and `false` when `committed:` is given, since
     the committed cases truncate tables every module shares.
-  - `ledger:` `:memory` (default: a `Turnstile.Ledger.Memory` per test),
-    `:none`, or `{module, options}`. The record-then-erase and
-    fold-then-state properties need a ledger and are not defined under
-    `:none`.
   - `seed:` a `Turnstile.Conformance.Seed` module, called after every
     population the template writes. Omit it for an adapter that reads the
     world's own tables.
@@ -47,7 +42,6 @@ defmodule Turnstile.Conformance.AdapterCase do
   """
 
   alias Turnstile.Conformance.AdapterCase.Laws
-  alias Turnstile.Ledger.Memory
 
   @doc false
   defmacro __using__(opts) do
@@ -58,7 +52,6 @@ defmodule Turnstile.Conformance.AdapterCase do
       repo: Keyword.fetch!(opts, :repo),
       world: Keyword.fetch!(opts, :world),
       sandbox: Keyword.get(opts, :sandbox),
-      ledger: Keyword.get(opts, :ledger, :memory),
       seed: Keyword.get(opts, :seed),
       outage: Keyword.get(opts, :outage),
       setup_queries: Keyword.get(opts, :setup_queries, 0),
@@ -71,9 +64,8 @@ defmodule Turnstile.Conformance.AdapterCase do
       preamble(config, async),
       declaration(),
       properties(),
-      ledger_properties(config.ledger),
       round_trips(),
-      shapes(config),
+      shapes(),
       fail_closed(config.outage),
       latency(config.committed)
     ]
@@ -85,9 +77,8 @@ defmodule Turnstile.Conformance.AdapterCase do
     repo = if tags[:committed], do: committed_repo!(config), else: config.repo
     if config.sandbox, do: :ok = config.sandbox.setup(repo, tags)
     if tags[:committed], do: truncate!(config)
-    ledger = start_ledger!(config.ledger)
-    :ok = Turnstile.Test.with_config(adapter: config.adapter, ledger: ledger, clock: &DateTime.utc_now/0)
-    {:ok, adapter: config.adapter, repo: repo, ledger: ledger, case: config}
+    :ok = Turnstile.Test.with_config(adapter: config.adapter, clock: &DateTime.utc_now/0)
+    {:ok, adapter: config.adapter, repo: repo, case: config}
   end
 
   defp preamble(config, async) do
@@ -110,8 +101,7 @@ defmodule Turnstile.Conformance.AdapterCase do
 
   defp declaration do
     quote do
-      test "the adapter declares whether it requires a ledger and its scope cap", %{adapter: adapter} do
-        assert is_boolean(adapter.requires_ledger())
+      test "the adapter declares its scope cap", %{adapter: adapter} do
         assert adapter.scope_cap() == :none or is_integer(adapter.scope_cap())
       end
     end
@@ -182,45 +172,7 @@ defmodule Turnstile.Conformance.AdapterCase do
     end
   end
 
-  defp ledger_properties(:none), do: []
-  defp ledger_properties(_ledger), do: [record_then_erase(), fold_then_state()]
-
-  defp record_then_erase do
-    quote do
-      property "record-then-erase: a grant written and erased leaves two events, no fact, and a denial", context do
-        check all(
-                world <- Gen.world(@conformance_world),
-                subject <- Gen.grantee(world),
-                grantable <- Gen.grantable(world),
-                grant_type <- Gen.grant_type(@conformance_world),
-                max_runs: 25
-              ) do
-          Laws.record_then_erase(context, world, subject, grantable, grant_type)
-        end
-      end
-    end
-  end
-
-  defp fold_then_state do
-    quote do
-      property "fold-then-state: the fold equals the state and the fold at t equals the state at t", context do
-        check all(world <- Gen.world(@conformance_world), steps <- Gen.steps(world), max_runs: 25) do
-          Laws.fold_then_state(context, world, steps)
-        end
-      end
-    end
-  end
-
-  defp round_trips do
-    Enum.map(
-      [
-        {"decision", Turnstile.Decision, :decision},
-        {"fact event", Turnstile.FactEvent, :fact_event},
-        {"policy version", Turnstile.PolicyVersion, :policy_version}
-      ],
-      &round_trip/1
-    )
-  end
+  defp round_trips, do: [round_trip({"decision", Turnstile.Decision, :decision})]
 
   defp round_trip({name, module, generator}) do
     quote do
@@ -232,36 +184,14 @@ defmodule Turnstile.Conformance.AdapterCase do
     end
   end
 
-  # An adapter that requires a ledger has no mode none to count a shape in,
-  # so its shape is counted under the ledger the template started, and the
-  # refusal of mode none is the case in place of the two mode-none ones
-  # (`docs/reference.md` §7).
-  defp shapes(config) do
-    {:module, adapter} = Code.ensure_compiled(config.adapter)
-
-    if adapter.requires_ledger(), do: ledger_shapes(), else: mode_none_shapes()
-  end
-
-  defp mode_none_shapes do
+  defp shapes do
     quote do
-      test "shape: a scoped all over 1,000 rows in mode none is one query, one record, no ledger row", context do
+      test "shape: a scoped all over 1,000 rows is one query plus the adapter's own, and one record", context do
         Laws.scoped_all_shape(context)
       end
 
-      test "shape: a single-row fact write in mode none is the write alone, no re-read, no ledger row", context do
+      test "shape: a single-row fact write is the write alone, and one record", context do
         Laws.fact_write_shape(context)
-      end
-    end
-  end
-
-  defp ledger_shapes do
-    quote do
-      test "shape: a scoped all over 1,000 rows is the query and the adapter's own, one record, no ledger row", context do
-        Laws.scoped_all_ledger_shape(context)
-      end
-
-      test "mode none: an adapter that requires a ledger refuses the configuration", context do
-        Laws.mode_none_refused(context)
       end
     end
   end
@@ -299,20 +229,10 @@ defmodule Turnstile.Conformance.AdapterCase do
 
     truncate = fn ->
       owner.query!("TRUNCATE #{tables} RESTART IDENTITY CASCADE")
-      owner.query!("UPDATE turnstile_ledger_counter SET position = 0 WHERE name = 'default'")
       :ok
     end
 
     :ok = truncate.()
     ExUnit.Callbacks.on_exit(truncate)
   end
-
-  defp start_ledger!(:none), do: :none
-
-  defp start_ledger!(:memory) do
-    pid = ExUnit.Callbacks.start_supervised!(%{id: Memory, start: {Memory, :start_link, []}})
-    {Memory, agent: pid}
-  end
-
-  defp start_ledger!({module, options}) when is_atom(module) and is_list(options), do: {module, options}
 end

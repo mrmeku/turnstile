@@ -16,8 +16,6 @@ defmodule Turnstile.Decision do
     :reason,
     :adapter,
     :policy_version,
-    :head_position,
-    :applied_position,
     :operation_id,
     :at
   ]
@@ -26,11 +24,7 @@ defmodule Turnstile.Decision do
   @typedoc "`:scoped` is the verdict of a `scope` decision, whose rule narrows rather than allows."
   @type verdict :: :allow | :deny | :scoped
 
-  @typedoc """
-  Two positions, not one: the head at decision time and the position the
-  adapter's state had applied, equal unless the adapter projects, both `nil`
-  in ledger mode none.
-  """
+  @typedoc "`policy_version` is `nil` where the adapter names no version for the answer."
   @type t :: %__MODULE__{
           id: Turnstile.Id.t(),
           subject: Turnstile.subject(),
@@ -40,8 +34,6 @@ defmodule Turnstile.Decision do
           reason: Answer.reason(),
           adapter: module(),
           policy_version: Turnstile.PolicyVersion.ref() | nil,
-          head_position: non_neg_integer() | nil,
-          applied_position: non_neg_integer() | nil,
           operation_id: Turnstile.Id.t(),
           at: DateTime.t()
         }
@@ -62,8 +54,6 @@ defmodule Turnstile.Decision do
       reason: Atom.to_string(decision.reason),
       adapter: Edge.module_out(decision.adapter),
       policy_version: decision.policy_version,
-      head_position: decision.head_position,
-      applied_position: decision.applied_position,
       operation_id: decision.operation_id,
       at: Edge.time_out(decision.at)
     }
@@ -87,8 +77,6 @@ defmodule Turnstile.Decision do
       reason: {:in, Answer.reasons()},
       adapter: :module,
       policy_version: {:string, :nil_ok},
-      head_position: {:integer, :nil_ok},
-      applied_position: {:integer, :nil_ok},
       operation_id: :string,
       at: :time
     ]

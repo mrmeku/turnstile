@@ -12,7 +12,7 @@ defmodule TurnstileTest do
   setup do
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})
     :ok = Fake.allow(rules, "acct-a", :read, {:folder, 1})
-    :ok = Turnstile.Test.with_config(adapter: {Fake, rules: rules}, ledger: :none)
+    :ok = Turnstile.Test.with_config(adapter: {Fake, rules: rules})
     :ok
   end
 

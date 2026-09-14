@@ -10,7 +10,6 @@ defmodule Turnstile.Test.AroundAdapterTest do
 
   test "every callback but around_query answers as the fake adapter does" do
     assert AroundAdapter.options_schema() == Fake.options_schema()
-    assert AroundAdapter.requires_ledger() == Fake.requires_ledger()
     assert AroundAdapter.scope_cap() == Fake.scope_cap()
     args = [@subject, :read, @object, @environment, [verdict: :allow]]
     assert apply(AroundAdapter, :authorize, args) == apply(Fake, :authorize, args)

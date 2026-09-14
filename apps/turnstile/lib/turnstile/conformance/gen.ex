@@ -13,9 +13,7 @@ defmodule Turnstile.Conformance.Gen do
   alias Turnstile.Answer
   alias Turnstile.Conformance.World
   alias Turnstile.Decision
-  alias Turnstile.FactEvent
   alias Turnstile.Id
-  alias Turnstile.PolicyVersion
   alias Turnstile.Port
 
   @unknown_operations [:teleport, :frobnicate, :launch]
@@ -105,23 +103,6 @@ defmodule Turnstile.Conformance.Gen do
   @spec reason() :: StreamData.t(Answer.reason())
   def reason, do: member_of(Answer.reasons())
 
-  @doc "A policy version, with content by value or by pointer."
-  @spec policy_version() :: StreamData.t(PolicyVersion.t())
-  def policy_version do
-    %{
-      adapter: member_of(@adapters),
-      version: text(),
-      content_hash: text(),
-      content: one_of([constant(nil), text()]),
-      pointer: one_of([constant(nil), text()]),
-      author: text(),
-      approval: text(),
-      at: time()
-    }
-    |> fixed_map()
-    |> map(&struct!(PolicyVersion, &1))
-  end
-
   @doc "A decision of any verdict."
   @spec decision() :: StreamData.t(Decision.t())
   def decision do
@@ -134,44 +115,16 @@ defmodule Turnstile.Conformance.Gen do
       reason: reason(),
       adapter: member_of(@adapters),
       policy_version: one_of([constant(nil), text()]),
-      head_position: one_of([constant(nil), positive_integer()]),
       operation_id: id(),
       at: time()
     }
     |> fixed_map()
-    |> map(&struct!(Decision, Map.put(&1, :applied_position, &1.head_position)))
-  end
-
-  @doc "A fact event of any kind, a policy-version event carrying versions as its values."
-  @spec fact_event() :: StreamData.t(FactEvent.t())
-  def fact_event do
-    bind(member_of(FactEvent.kinds()), fn kind ->
-      %{
-        kind: constant(kind),
-        subject_ref: one_of([constant(nil), ref()]),
-        object_ref: one_of([constant(nil), ref()]),
-        attribute: one_of([constant(nil), member_of([:role, :clearance, :level])]),
-        values: values(kind),
-        position: one_of([constant(nil), positive_integer()]),
-        operation_id: id(),
-        at: time(),
-        by: subject()
-      }
-      |> fixed_map()
-      |> map(&event_of/1)
-    end)
+    |> map(&struct!(Decision, &1))
   end
 
   @doc "A time with microsecond precision, as the ISO 8601 edge keeps it."
   @spec time() :: StreamData.t(DateTime.t())
   def time, do: map(integer(0..4_000_000_000_000_000), &DateTime.from_unix!(&1, :microsecond))
-
-  defp event_of(%{values: {old, new}} = fields) do
-    fields
-    |> Map.delete(:values)
-    |> Map.merge(%{old: old, new: new})
-    |> then(&struct!(FactEvent, &1))
-  end
 
   defp id, do: repeatedly(&Id.new/0)
 
@@ -182,9 +135,4 @@ defmodule Turnstile.Conformance.Gen do
       {type, id}
     end
   end
-
-  defp values(:policy_version), do: tuple({one_of([constant(nil), policy_version()]), policy_version()})
-  defp values(_kind), do: tuple({plain(), plain()})
-
-  defp plain, do: one_of([constant(nil), text(), integer()])
 end

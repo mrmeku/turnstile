@@ -23,10 +23,10 @@ defmodule Mix.Tasks.Turnstile.SchemaDump do
   application's repo. Takes no arguments.
   """
 
-  use Boundary, top_level?: true, deps: [Mix, Turnstile.Ledger.SchemaDump]
+  use Boundary, top_level?: true, deps: [Mix, Turnstile.Test]
   use Mix.Task
 
-  alias Turnstile.Ledger.SchemaDump
+  alias Turnstile.Test.SchemaDump
 
   @requirements ["app.config"]
 

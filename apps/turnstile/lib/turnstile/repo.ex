@@ -17,8 +17,8 @@ defmodule Turnstile.Repo do
     channel. Defaults to `:app`.
 
   An owner-role repo is the library's own channel: it runs migrations and
-  the ledger's writes, every call on it carries the library exemption, and
-  it records nothing. An application-role repo, the default, is the one
+  the library's own writes, every call on it carries the library exemption,
+  and it records nothing. An application-role repo, the default, is the one
   the application queries through.
   """
 

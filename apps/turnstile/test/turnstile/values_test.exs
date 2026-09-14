@@ -3,10 +3,8 @@ defmodule Turnstile.ValuesTest do
 
   alias Turnstile.Answer
   alias Turnstile.Error
-  alias Turnstile.FactEvent
   alias Turnstile.Id
   alias Turnstile.Port
-  alias Turnstile.Projection.Drift
 
   test "ids are UUIDs" do
     id = Id.new()
@@ -15,9 +13,7 @@ defmodule Turnstile.ValuesTest do
     refute Id.valid?(:not_a_string)
   end
 
-  test "subjects have refs and kinds" do
-    id = Id.new()
-    assert FactEvent.subject_ref({:privileged, id}) == {:user, id}
+  test "the port knows three subject kinds" do
     assert Port.subject_kinds() == [:user, :non_person_entity, :privileged]
   end
 
@@ -44,10 +40,5 @@ defmodule Turnstile.ValuesTest do
 
     assert Exception.message(Error.denied(subject, :read, {:thing, "1"}, :engine_unreachable, "down")) =~
              "engine_unreachable (down)"
-  end
-
-  test "drift is clean when nothing is missing or extra" do
-    assert Drift.clean?(%Drift{missing: [], extra: [], checked_to: 0})
-    refute Drift.clean?(%Drift{missing: [{:user, "1"}], extra: [], checked_to: 0})
   end
 end

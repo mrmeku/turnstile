@@ -12,37 +12,21 @@ defmodule Turnstile.Config do
   alias Turnstile.Core.ConfigSchema
   alias Turnstile.Error
 
-  @enforce_keys [:adapter, :ledger, :ledger_counter, :clock, :caps]
+  @enforce_keys [:adapter, :clock, :caps]
   defstruct @enforce_keys
 
   @type adapter :: module() | {module(), keyword()}
   @type clock :: (-> DateTime.t())
-  @type ledger :: {module(), keyword()} | :none
   @type caps :: [policy_content_bytes: pos_integer()]
 
-  @type t :: %__MODULE__{
-          adapter: adapter(),
-          ledger: ledger(),
-          ledger_counter: String.t(),
-          clock: clock(),
-          caps: caps()
-        }
+  @type t :: %__MODULE__{adapter: adapter(), clock: clock(), caps: caps()}
 
   @doc "Validate a keyword list into the struct."
   @spec new(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def new(options) when is_list(options) do
     with {:ok, validated} <- validate(options),
-         {:ok, adapter} <- validate_adapter(validated[:adapter]),
-         {:ok, ledger} <- validate_ledger(validated[:ledger]),
-         :ok <- check_ledger_requirement(adapter, ledger) do
-      {:ok,
-       %__MODULE__{
-         adapter: adapter,
-         ledger: ledger,
-         ledger_counter: validated[:ledger_counter],
-         clock: validated[:clock],
-         caps: validated[:caps]
-       }}
+         {:ok, adapter} <- validate_adapter(validated[:adapter]) do
+      {:ok, %__MODULE__{adapter: adapter, clock: validated[:clock], caps: validated[:caps]}}
     end
   end
 
@@ -78,13 +62,7 @@ defmodule Turnstile.Config do
   @doc "The struct as the keyword list `new/1` accepts."
   @spec to_keyword(t()) :: keyword()
   def to_keyword(%__MODULE__{} = config) do
-    [
-      adapter: config.adapter,
-      ledger: config.ledger,
-      ledger_counter: config.ledger_counter,
-      clock: config.clock,
-      caps: config.caps
-    ]
+    [adapter: config.adapter, clock: config.clock, caps: config.caps]
   end
 
   @doc "The adapter module and its options."
@@ -111,26 +89,6 @@ defmodule Turnstile.Config do
   end
 
   defp validate_adapter(module) when is_atom(module), do: validate_adapter({module, []})
-
-  defp validate_ledger(:none), do: {:ok, :none}
-
-  defp validate_ledger({module, options}) when is_atom(module) and is_list(options) do
-    with :ok <- implements(module, Turnstile.Ledger, :ledger),
-         {:ok, options} <- validate_options(module, options, :ledger) do
-      {:ok, {module, options}}
-    end
-  end
-
-  defp check_ledger_requirement({adapter, _options}, :none) do
-    if adapter.requires_ledger() do
-      {:error,
-       %Error{reason: :unsupported, detail: "#{inspect(adapter)} requires a ledger, and the configuration names none"}}
-    else
-      :ok
-    end
-  end
-
-  defp check_ledger_requirement({_adapter, _options}, {_ledger, _ledger_options}), do: :ok
 
   defp implements(module, behaviour, what) do
     behaviours =

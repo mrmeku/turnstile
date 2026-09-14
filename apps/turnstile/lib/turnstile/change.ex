@@ -29,6 +29,7 @@ defmodule Turnstile.Change do
   alias Turnstile.Schema
 
   @event [:turnstile, :change]
+  @library {:non_person_entity, "00000000-0000-0000-0000-000000000000"}
 
   @typedoc "What the write did to the row."
   @type operation :: :create | :update | :delete
@@ -39,6 +40,14 @@ defmodule Turnstile.Change do
   @doc "The telemetry event a change publishes, which is what a consumer attaches to."
   @spec event() :: [atom()]
   def event, do: @event
+
+  @doc """
+  The actor of a change no decision named, which is the library itself: a
+  non-person entity with the nil identifier. A write through the seam under
+  an exemption carries this.
+  """
+  @spec library() :: Turnstile.subject()
+  def library, do: @library
 
   @doc "Publish one change. The row before an insert and the row after a delete are `nil`."
   @spec publish(module(), operation(), struct() | nil, struct() | nil, stamp()) :: :ok

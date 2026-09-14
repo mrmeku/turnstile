@@ -15,9 +15,6 @@ defmodule Turnstile.Test.AroundAdapter do
   defdelegate options_schema, to: Fake
 
   @impl Turnstile.Adapter
-  defdelegate requires_ledger, to: Fake
-
-  @impl Turnstile.Adapter
   defdelegate scope_cap, to: Fake
 
   @impl Turnstile.Adapter

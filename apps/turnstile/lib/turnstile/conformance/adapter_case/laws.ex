@@ -7,7 +7,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   `Turnstile.Conformance.World` through the struct, and a law that needs a
   fixed one asks the module the template was given. Every writer of a
   population calls `tick/0` first, so the stubbed clock moves forward
-  through a test and the fold at a time has one state to answer with.
+  through a test and two writes never share a moment.
   """
 
   import Ecto.Query, only: [where: 2]
@@ -16,8 +16,6 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   alias Turnstile.Conformance.World
   alias Turnstile.Decision
   alias Turnstile.Error
-  alias Turnstile.FactEvent
-  alias Turnstile.Ledger.Fold
   alias Turnstile.Schema
   alias Turnstile.Test.Clock
 
@@ -26,12 +24,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   @rows 1_000
 
   @typedoc "The test context the template's setup builds."
-  @type context :: %{
-          required(:repo) => module(),
-          required(:ledger) => {module(), keyword()} | :none,
-          required(:case) => map(),
-          optional(atom()) => term()
-        }
+  @type context :: %{required(:repo) => module(), required(:case) => map(), optional(atom()) => term()}
 
   @doc "Advance the stubbed clock one second and return the new time."
   @spec tick() :: DateTime.t()
@@ -101,84 +94,36 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert Turnstile.filter(subject, operation, objects) == Enum.filter(objects, &Turnstile.check(subject, operation, &1))
   end
 
-  @doc "A grant written and taken away through the seam leaves two events, an empty fold, and a denial."
-  @spec record_then_erase(context(), World.t(), Turnstile.subject(), World.grantable(), atom()) :: true
-  def record_then_erase(%{repo: repo} = context, world, subject, grantable, grant_type) do
-    module = World.module(world)
-    populate(context, world)
-    world = module.revoke(repo, world, subject, grantable)
-    :ok = seed(context, world)
-    before = head(context)
-    object = module.object_of(grantable)
-    operation = hd(module.operations())
-
-    granted = module.grant(repo, world, subject, grantable, grant_type)
-    seed(context, granted)
-    assert Turnstile.check(subject, operation, object) == module.allowed?(granted, subject, operation, object)
-
-    revoked = module.revoke(repo, granted, subject, grantable)
-    seed(context, revoked)
-    assert_erased(events_after(context, before), subject, object, grant_type)
-    assert Turnstile.check(subject, operation, object) == false
-  end
-
-  @doc "After a sequence of changes, the fold of the ledger equals the tables, and the fold at each time equals the state then."
-  @spec fold_then_state(context(), World.t(), [World.step()]) :: :ok
-  def fold_then_state(%{repo: repo} = context, world, steps) do
-    module = World.module(world)
-    populate(context, world)
-    snapshots = snapshots(module, repo, world, steps)
-    events = events_after(context, 0)
-    folded = Fold.fold(events)
-    assert folded.facts == module.facts(module.read(repo))
-    assert folded.position == head(context)
-    Enum.each(snapshots, fn {at, facts} -> assert Fold.at(events, at).facts == facts end)
-  end
-
   @doc "`from_map` of `to_map` is the struct."
   @spec round_trip(module(), struct()) :: true
   def round_trip(module, %{} = struct) do
     assert module.from_map(module.to_map(struct)) == {:ok, struct}
   end
 
-  @doc "A scoped `all` over 1,000 rows in mode none: one query plus the adapter's, one decision record, no ledger row."
+  @doc "A scoped `all` over 1,000 rows: one query plus the adapter's own, and one decision record."
   @spec scoped_all_shape(context()) :: true
-  def scoped_all_shape(context) do
-    scoped_all_over_rows(context, &Turnstile.Test.with_config([ledger: :none], &1))
+  def scoped_all_shape(%{repo: repo, case: %{world: module}} = context) do
+    world = module.scoped()
+    populate(context, world)
+    :ok = module.fill(repo, world, @rows)
+    {subject, _grantable} = module.focus(world)
+
+    scoped_all_counted(context, world, subject, hd(module.operations()))
   end
 
-  @doc "A single grant written in mode none: the write, no re-read, no ledger row."
+  @doc "A single grant written through the seam: the write and nothing beside it."
   @spec fact_write_shape(context()) :: true
   def fact_write_shape(%{repo: repo, case: %{world: module}} = context) do
     world = module.ungranted()
     populate(context, world)
-    before = head(context)
     {subject, grantable} = module.focus(world)
     grant_type = hd(module.grant_types())
 
-    Turnstile.Test.with_config([ledger: :none], fn ->
-      {_written, queries} =
-        Turnstile.Test.queries(repo, fn -> module.insert_grant(repo, subject, grantable, grant_type) end)
+    {_written, queries} =
+      Turnstile.Test.queries(repo, fn -> module.insert_grant(repo, subject, grantable, grant_type) end)
 
-      assert [insert] = queries
-      assert insert =~ ~r/^INSERT/i
-    end)
-
-    assert head(context) == before
-  end
-
-  @doc "A scoped `all` over 1,000 rows under the ledger: the query and the adapter's own, one decision record, no ledger row."
-  @spec scoped_all_ledger_shape(context()) :: true
-  def scoped_all_ledger_shape(context), do: scoped_all_over_rows(context, & &1.())
-
-  @doc "An adapter that requires a ledger refuses mode none, rather than answer from state nothing fills."
-  @spec mode_none_refused(context()) :: true
-  def mode_none_refused(%{case: %{adapter: adapter}}) do
-    Turnstile.Test.with_config([ledger: :none], fn ->
-      assert {:error, %Error{reason: :unsupported, detail: detail}} = Turnstile.Config.resolve()
-      assert detail =~ inspect(adapter)
-      assert detail =~ "ledger"
-    end)
+    assert [insert] = queries
+    assert insert =~ ~r/^INSERT/i
   end
 
   @doc "With the engine unreachable, every call denies with `engine_unreachable` and no policy version."
@@ -256,42 +201,6 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert allowed == []
     assert_raise Error, ~r/may not/, fn -> repo.all(query, turnstile: decision) end
     assert repo.all(query, turnstile: module.exemption()) == []
-  end
-
-  defp assert_erased(events, subject, object, grant_type) do
-    assert [%{old: nil, new: ^grant_type}, %{old: ^grant_type, new: nil}] = events
-    assert Enum.all?(events, &(&1.subject_ref == FactEvent.subject_ref(subject) and &1.object_ref == object))
-    assert Enum.all?(events, &(&1.by == FactEvent.library() and &1.attribute == nil and &1.kind == :relationship))
-    assert Fold.fold(events).facts == %{}
-  end
-
-  defp snapshots(module, repo, world, steps) do
-    started = tick()
-
-    {_final, snapshots} =
-      Enum.reduce(steps, {world, [{started, module.facts(world)}]}, fn step, {current, snapshots} ->
-        at = tick()
-        next = module.apply_step(repo, current, step)
-        {next, [{at, module.facts(next)} | snapshots]}
-      end)
-
-    snapshots
-  end
-
-  # The two shape laws over a filled table differ in the ledger mode the
-  # scoped read runs under and in nothing else, so the population, the count,
-  # and the three assertions are written once. The population itself is
-  # written under the configured mode in both, since a mode the law is not
-  # about is no part of what it counts.
-  defp scoped_all_over_rows(%{repo: repo, case: %{world: module}} = context, run) do
-    world = module.scoped()
-    populate(context, world)
-    :ok = module.fill(repo, world, @rows)
-    before = head(context)
-    {subject, _grantable} = module.focus(world)
-    operation = hd(module.operations())
-    run.(fn -> scoped_all_counted(context, world, subject, operation) end)
-    assert head(context) == before
   end
 
   defp scoped_all_counted(%{repo: repo, case: %{setup_queries: queries_added, world: module}}, world, subject, operation) do
@@ -377,18 +286,6 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
 
   defp verdict(true), do: :allow
   defp verdict(false), do: :deny
-
-  defp head(%{ledger: :none}), do: nil
-
-  defp head(%{ledger: {module, options}}) do
-    {:ok, head} = module.head(options)
-    head
-  end
-
-  defp events_after(%{ledger: {module, options}}, position) do
-    {:ok, events} = module.read(options, position, 1_000_000)
-    events
-  end
 
   defp decisions(handler) do
     receive do

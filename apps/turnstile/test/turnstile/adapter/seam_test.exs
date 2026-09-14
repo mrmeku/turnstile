@@ -14,15 +14,14 @@ defmodule Turnstile.Adapter.SeamTest do
 
   alias Ecto.Changeset
   alias Ecto.Multi
+  alias Turnstile.Change
   alias Turnstile.Decision
   alias Turnstile.Error
-  alias Turnstile.FactEvent
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
   alias Turnstile.Id
-  alias Turnstile.Ledger.Memory
   alias Turnstile.Test.AroundAdapter
   alias Turnstile.Test.Fake
   alias Turnstile.Test.Sandbox
@@ -31,11 +30,10 @@ defmodule Turnstile.Adapter.SeamTest do
 
   setup tags do
     :ok = Sandbox.setup(Sandboxed, tags)
-    {:ok, agent} = Memory.start_link()
-    :ok = Turnstile.Test.with_config(adapter: Fake, ledger: {Memory, agent: agent})
+    :ok = Turnstile.Test.with_config(adapter: Fake)
     folder = Sandboxed.insert!(%Folder{name: "root"}, turnstile: {:exempt, "seed"})
     item = Sandboxed.insert!(%Item{title: "first", folder_id: folder.id}, turnstile: {:exempt, "seed"})
-    %{agent: agent, folder: folder, item: item, decision: decision(:folder, folder.id)}
+    %{folder: folder, item: item, decision: decision(:folder, folder.id)}
   end
 
   describe "the query bucket" do
@@ -255,7 +253,7 @@ defmodule Turnstile.Adapter.SeamTest do
       assert Exception.message(error) =~ "write the rows one at a time"
     end
 
-    test "a bulk write to an audited schema is refused, exemption or not, ledger or not", %{folder: folder} do
+    test "a bulk write to an audited schema is refused, exemption or not", %{folder: folder} do
       error = assert_raise(Error, fn -> Sandboxed.update_all(Membership, set: [role: :editor]) end)
       assert %Error{reason: :invalid} = error
       assert Exception.message(error) =~ "is a bulk write to an audited schema"
@@ -269,9 +267,6 @@ defmodule Turnstile.Adapter.SeamTest do
       assert_raise Error, ~r/audited schema/, fn ->
         Sandboxed.update_all(Account, set: [clearance: "none"], turnstile: {:exempt, "unchanged"})
       end
-
-      Turnstile.Test.with_config(ledger: :none)
-      assert_raise Error, ~r/audited schema/, fn -> Sandboxed.update_all(Account, set: [clearance: "none"]) end
     end
 
     test "a bulk write to a schema that declares no kind runs", %{folder: folder} do
@@ -280,81 +275,6 @@ defmodule Turnstile.Adapter.SeamTest do
 
       assert {1, nil} =
                Sandboxed.insert_all(Item, [%{title: "third", folder_id: folder.id}], turnstile: {:exempt, "seed"})
-    end
-  end
-
-  describe "fact recording" do
-    test "a relationship insert, update, and delete append events with old from the re-read row",
-         %{folder: folder, agent: agent} do
-      subject = {:user, "user-9"}
-      decision = %{decision(:folder, folder.id) | subject: subject}
-
-      membership =
-        Sandboxed.insert!(%Membership{account_id: "acct-1", role: :reader, folder_id: folder.id},
-          turnstile: {:exempt, "grant"}
-        )
-
-      assert {:ok, [%FactEvent{kind: :relationship, old: nil, new: :reader, position: 1} = inserted]} =
-               Memory.read([agent: agent], 0, 10)
-
-      assert inserted.subject_ref == {:user, "acct-1"}
-      assert inserted.object_ref == {:folder, folder.id}
-      assert inserted.by == FactEvent.library()
-
-      assert {:ok, _updated} =
-               membership
-               |> Changeset.change(role: :editor)
-               |> Sandboxed.update(turnstile: decision)
-
-      assert {:ok, [_inserted, %FactEvent{attribute: :role, old: :reader, new: :editor, by: ^subject} = updated]} =
-               Memory.read([agent: agent], 0, 10)
-
-      assert updated.operation_id == decision.operation_id
-
-      # The stale struct still says reader; old comes from the re-read row, which says editor.
-      assert {:ok, _deleted} = Sandboxed.delete(membership, turnstile: {:exempt, "revoke"})
-
-      assert {:ok, [_inserted, _updated, %FactEvent{old: :editor, new: nil, position: 3}]} =
-               Memory.read([agent: agent], 0, 10)
-    end
-
-    test "a fact column write appends one event per changed column and an unchanged write appends none", %{agent: agent} do
-      account = Sandboxed.insert!(%Account{id: "acct-2", clearance: "secret"})
-
-      assert {:ok, [%FactEvent{kind: :subject_attribute, attribute: :clearance, old: nil, new: "secret"}]} =
-               Memory.read([agent: agent], 0, 10)
-
-      assert {:ok, _same} =
-               account
-               |> Changeset.change(clearance: "secret")
-               |> Sandboxed.update()
-
-      assert {:ok, [_one]} = Memory.read([agent: agent], 0, 10)
-
-      assert %Account{} =
-               account
-               |> Changeset.change(clearance: "top")
-               |> Sandboxed.update!()
-
-      assert {:ok, [_one, %FactEvent{old: "secret", new: "top", subject_ref: {:user, "acct-2"}}]} =
-               Memory.read([agent: agent], 0, 10)
-    end
-
-    test "a write that fails appends nothing and returns the error", %{agent: agent} do
-      changeset =
-        %Account{id: "acct-3"}
-        |> Changeset.change(clearance: "x")
-        |> Changeset.add_error(:clearance, "no")
-
-      assert {:error, %Changeset{}} = Sandboxed.insert(changeset)
-      assert {:ok, []} = Memory.read([agent: agent], 0, 10)
-      refute Sandboxed.in_transaction?()
-    end
-
-    test "in ledger mode none a fact write records nothing", %{agent: agent} do
-      Turnstile.Test.with_config(ledger: :none)
-      assert %Account{} = Sandboxed.insert!(%Account{id: "acct-4", clearance: "secret"})
-      assert {:ok, []} = Memory.read([agent: agent], 0, 10)
     end
   end
 
@@ -375,7 +295,7 @@ defmodule Turnstile.Adapter.SeamTest do
       assert created.kind == :role
       assert created.target == {:role, membership.id}
       assert created.changes == %{account_id: {nil, "acct-5"}, folder_id: {nil, folder.id}, role: {nil, :reader}}
-      assert created.actor == FactEvent.library()
+      assert created.actor == Change.library()
       assert created.actor_kind == :non_person_entity
       assert created.schema == Membership
       assert %DateTime{} = created.time
@@ -430,15 +350,6 @@ defmodule Turnstile.Adapter.SeamTest do
         |> Changeset.add_error(:clearance, "no")
 
       assert {{:error, %Changeset{}}, []} = Turnstile.Test.changes(fn -> Sandboxed.insert(changeset) end)
-    end
-
-    test "in ledger mode none a write to an audited schema publishes its change" do
-      Turnstile.Test.with_config(ledger: :none)
-
-      {_account, [published]} =
-        Turnstile.Test.changes(fn -> Sandboxed.insert!(%Account{id: "acct-9", clearance: "secret"}) end)
-
-      assert published.changes == %{clearance: {nil, "secret"}}
     end
   end
 
@@ -515,8 +426,6 @@ defmodule Turnstile.Adapter.SeamTest do
       reason: :allowed,
       adapter: Fake,
       policy_version: nil,
-      head_position: nil,
-      applied_position: nil,
       operation_id: Id.new(),
       at: DateTime.utc_now()
     }

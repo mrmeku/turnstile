@@ -52,8 +52,6 @@ defmodule Turnstile.Core.MediationTest do
       reason: :allowed,
       adapter: Fake,
       policy_version: nil,
-      head_position: nil,
-      applied_position: nil,
       operation_id: Id.new(),
       at: DateTime.utc_now()
     }

@@ -18,7 +18,8 @@ defmodule Turnstile.MixProject do
       aliases: aliases(),
       hex: hex(),
       deps: deps(),
-      docs: docs()
+      docs: docs(),
+      turnstile: turnstile(Mix.env())
     ]
   end
 
@@ -32,6 +33,21 @@ defmodule Turnstile.MixProject do
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]
+
+  # The schema-dump task reads this key from the thin application that runs
+  # it. This package's own run points it at a test repo and the fixture
+  # tables as a migration.
+  defp turnstile(:test) do
+    [
+      schema_dump: [
+        repo: Turnstile.TestRepos.Dump,
+        output: "tmp/schema/fixture.sql",
+        migrations: [{1, Turnstile.Fixture.Migrations.Tables}]
+      ]
+    ]
+  end
+
+  defp turnstile(_env), do: []
 
   # The conformance templates, the cluster, and the sandbox setup ship in
   # lib, so an adapter outside this repository can run them, and the

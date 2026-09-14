@@ -20,7 +20,7 @@ defmodule Turnstile.Fixture.Rows do
   @impl Rows
   def setup(tags) when is_map(tags) do
     :ok = Sandbox.setup(Sandboxed, tags)
-    Turnstile.Test.with_config(adapter: Fake, ledger: :none)
+    Turnstile.Test.with_config(adapter: Fake)
   end
 
   @impl Rows

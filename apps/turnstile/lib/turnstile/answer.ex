@@ -12,7 +12,6 @@ defmodule Turnstile.Answer do
   |---|---|
   | `:rule` | The rule, clause, policy, or relation the verdict came from |
   | `:matched` | The rules, clauses, or path an explanation lists |
-  | `:applied` | The ledger position the decider's state had applied |
   | `:detail` | The engine's own text, where the reason is `:engine_unreachable` |
   | `:kind` | The subject kind the port does not know |
   """

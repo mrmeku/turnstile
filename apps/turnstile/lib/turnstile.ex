@@ -1,8 +1,7 @@
 defmodule Turnstile do
   @moduledoc """
   The port: the one place an application asks whether a subject may perform
-  an operation on an object, and the contracts every adapter, ledger, and
-  projection implements.
+  an operation on an object, and the contract every adapter implements.
 
   This module is the top-layer boundary. Everything under `Turnstile` that is
   not `Turnstile.Test` or `Turnstile.Conformance` belongs to it, and it may
@@ -26,15 +25,9 @@ defmodule Turnstile do
       Edge,
       Error,
       Exemption,
-      FactEvent,
-      Facts,
       Id,
-      Ledger,
-      Ledger.Fold,
-      Ledger.Memory,
       PolicyVersion,
       Port,
-      Projection.Drift,
       Repo,
       Schema,
       Schema.Fact,

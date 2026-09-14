@@ -1,10 +1,9 @@
 defmodule Turnstile.Port do
   @moduledoc """
   The mechanism behind `Turnstile`'s functions: resolve the configuration,
-  build the environment from the caller's map and the clock, read the
-  ledger head, ask the adapter, fail closed on an engine error or on an
-  exception the decider raised, stamp a `Turnstile.Decision`, and publish
-  it.
+  build the environment from the caller's map and the clock, ask the
+  adapter, fail closed on an engine error or on an exception the decider
+  raised, stamp a `Turnstile.Decision`, and publish it.
 
   Every call publishes one `[:turnstile, :decision]` event, whose metadata
   is what PLAN §4 states: who asked and of what kind, the operation, the
@@ -196,16 +195,12 @@ defmodule Turnstile.Port do
       kind: kind(subject),
       env: validated[:env],
       environment: Map.put(validated[:env], :now, config.clock.()),
-      operation_id: Keyword.get_lazy(validated, :operation_id, &Id.new/0),
-      head: head(config)
+      operation_id: Keyword.get_lazy(validated, :operation_id, &Id.new/0)
     }
   end
 
   defp kind({kind, _account}) when kind in @kinds, do: kind
   defp kind({_kind, _account}), do: :unknown
-
-  defp head(%Config{ledger: :none}), do: {:ok, nil}
-  defp head(%Config{ledger: {ledger, options}}), do: ledger.head(options)
 
   # The adapter's answer for one object, or the denial the port gives in
   # its place: an unknown subject kind before the adapter is asked, an
@@ -220,14 +215,10 @@ defmodule Turnstile.Port do
   end
 
   # The adapter's answer, or the error the port answers in its place: the
-  # ledger head it could not read, the engine error the adapter gave, or
-  # the exception the adapter raised, which the third element carries so
-  # the event names what broke. A decider that raises closes the door
-  # rather than reaching the caller, so no decider carries a rescue clause
-  # for the driver underneath it.
-  defp asked(%{head: {:error, %Error{reason: :engine_unreachable} = error}}, _function, _subject, _operation, _object),
-    do: {:error, error, nil}
-
+  # engine error the adapter gave, or the exception the adapter raised,
+  # which the third element carries so the event names what broke. A
+  # decider that raises closes the door rather than reaching the caller, so
+  # no decider carries a rescue clause for the driver underneath it.
   defp asked(call, function, subject, operation, object) do
     case answered(call, function, subject, operation, object) do
       {:ok, answer} -> {:ok, answer}
@@ -341,8 +332,6 @@ defmodule Turnstile.Port do
   end
 
   defp stamp(call, subject, operation, object, %Answer{} = answer, verdict) do
-    head = head_position(call.head)
-
     %Decision{
       id: Id.new(),
       subject: subject,
@@ -352,8 +341,6 @@ defmodule Turnstile.Port do
       reason: answer.reason,
       adapter: call.adapter,
       policy_version: answer.version,
-      head_position: head,
-      applied_position: Map.get(answer.meta, :applied) || head,
       operation_id: call.operation_id,
       at: call.environment.now
     }
@@ -407,9 +394,6 @@ defmodule Turnstile.Port do
   defp verdict_out(%Decision{} = decision) do
     %{verdict: decision.verdict, reason: decision.reason, version: decision.policy_version}
   end
-
-  defp head_position({:ok, head}), do: head
-  defp head_position({:error, _error}), do: nil
 
   defp population_type([{type, _id} | _rest]), do: type
   defp population_type(type) when is_atom(type), do: type

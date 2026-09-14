@@ -17,9 +17,10 @@ defmodule Turnstile.Conformance.CaseTest do
     flunk("an unsupported scenario never runs")
   end
 
-  scenario "rev-07", "A revocation deletes nothing but the fact: the Document, the Program, and the history remain",
-    control: ["AC-2(4)"],
-    rule: :c11 do
+  scenario "rev-07",
+           "A revocation deletes nothing but the fact: the Document and the Program remain, and the grant and the revoke are both evented",
+           control: ["AC-2(4)"],
+           rule: :c11 do
     assert true
   end
 
@@ -43,7 +44,7 @@ defmodule Turnstile.Conformance.CaseTest do
     assert Case.__name__("enf-01", "sentence") == "enf-01 sentence"
   end
 
-  test "an unsupported rule adds a skip tag with the note, and a ledger scenario its needs_ledger tag" do
+  test "an unsupported rule adds a skip tag with the note, and a supported one none" do
     tags =
       Case.__tags__(
         "enf-09",
@@ -57,12 +58,11 @@ defmodule Turnstile.Conformance.CaseTest do
     tags =
       Case.__tags__(
         "rev-07",
-        "A revocation deletes nothing but the fact: the Document, the Program, and the history remain",
+        "A revocation deletes nothing but the fact: the Document and the Program remain, and the grant and the revoke are both evented",
         [control: ["AC-2(4)"], rule: :c11],
         Capabilities
       )
 
-    assert tags[:needs_ledger] == true
     refute Keyword.has_key?(tags, :skip)
   end
 
@@ -86,15 +86,13 @@ defmodule Turnstile.Conformance.CaseTest do
     end
   end
 
-  test "the table answers fetch, ids, and the expected count per ledger mode" do
+  test "the table answers fetch, ids, and the expected count" do
     assert {:ok, %Scenario{id: "enf-01", group: :enforcement}} = Scenarios.fetch("enf-01")
     assert :error = Scenarios.fetch("enf-99")
     assert length(Scenarios.ids()) == length(Scenarios.all())
     unsupported = Enum.count(Scenarios.all(), &Scenarios.unsupported?(Capabilities, &1))
     assert unsupported == 1
-    ledger_only = Enum.count(Scenarios.all(), & &1.needs_ledger)
-    assert Scenarios.expected_count(Capabilities, :ecto) == length(Scenarios.all()) - unsupported
-    assert Scenarios.expected_count(Capabilities, :none) == length(Scenarios.all()) - unsupported - ledger_only
+    assert Scenarios.expected_count(Capabilities) == length(Scenarios.all()) - unsupported
     assert Turnstile.Capabilities.levels() == [:native, :limited, :unsupported]
     assert Turnstile.Capabilities.components() == [:adapter, :seam, :database, :engine, :application]
   end

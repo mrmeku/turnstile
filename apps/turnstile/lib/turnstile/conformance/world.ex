@@ -16,14 +16,11 @@ defmodule Turnstile.Conformance.World do
   in: the protected schemas, the operations, the kinds of grant, the
   exemption every write declares, and the object a grant covers. The
   populations are one generator, for the properties, and four fixed worlds
-  the shape, fail-closed, latency, and projection cases are written over,
-  with `focus/1` naming the subject and the grant those four are built
-  around. Reading a population answers what it holds and what its rule
+  the shape, fail-closed, and latency cases are written over, with
+  `focus/1` naming the subject and the grant those four are built around. Reading a population answers what it holds and what its rule
   says. Writing one puts it in the tables, changes it there, and reads it
   back.
   """
-
-  alias Turnstile.Ledger.Fold
 
   @typedoc "A population: a struct of the module that implements this behaviour."
   @type t :: struct()
@@ -64,9 +61,6 @@ defmodule Turnstile.Conformance.World do
   @doc "`granted/0` with more objects in the scope schema than the grant covers, for the shape cases."
   @callback scoped() :: t()
 
-  @doc "Several subjects, several objects, one of them reached through another, and several grants: the projection cases."
-  @callback layered() :: t()
-
   @doc "The subject the fixed worlds grant to, and what they grant it on."
   @callback focus(t()) :: {Turnstile.subject(), grantable()}
 
@@ -82,10 +76,7 @@ defmodule Turnstile.Conformance.World do
   @doc "The rule: what the population says about one subject, operation, and object."
   @callback allowed?(t(), Turnstile.subject(), atom(), Turnstile.object()) :: boolean()
 
-  @doc "The fold a ledger of this population's writes reaches."
-  @callback facts(t()) :: %{Fold.key() => term()}
-
-  @doc "Delete every row of the population through the seam, one at a time where the ledger must record it."
+  @doc "Delete every row of the population through the seam, one row at a time, so the seam records each."
   @callback clear(module()) :: :ok
 
   @doc "Write the population through the seam."

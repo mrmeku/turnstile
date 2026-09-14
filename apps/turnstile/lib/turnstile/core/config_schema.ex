@@ -10,16 +10,6 @@ defmodule Turnstile.Core.ConfigSchema do
               required: true,
               doc: "The module implementing `Turnstile.Adapter`, bare or with its options."
             ],
-            ledger: [
-              type: {:or, [{:in, [:none]}, {:tuple, [:atom, :keyword_list]}]},
-              required: true,
-              doc: "`{module, options}` for a module implementing `Turnstile.Ledger`, or `:none`."
-            ],
-            ledger_counter: [
-              type: :string,
-              default: "default",
-              doc: "The counter row's name; a test override, left at the default by applications."
-            ],
             clock: [
               type: {:fun, 0},
               doc: "A zero-arity function answering the current time in UTC; `&DateTime.utc_now/0` when absent."

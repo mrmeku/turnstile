@@ -46,8 +46,7 @@ defmodule Turnstile.Test.FakeTest do
     assert Exception.message(error) =~ "does not support explain"
   end
 
-  test "it declares no ledger requirement, no scope cap, and its options schema" do
-    assert Fake.requires_ledger() == false
+  test "it declares no scope cap and its options schema" do
     assert Fake.scope_cap() == :none
     assert {:ok, [verdict: :deny]} = NimbleOptions.validate([], Fake.options_schema())
   end

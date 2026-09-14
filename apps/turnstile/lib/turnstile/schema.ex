@@ -2,7 +2,7 @@ defmodule Turnstile.Schema.Fact do
   @moduledoc """
   One declared fact column: its kind, the column that names the subject, the
   column that names the object, and the element type of a set-valued column.
-  Recorded by `Turnstile.Schema.fact/2` and read by the seam and the ledger.
+  Recorded by `Turnstile.Schema.fact/2` and read by the seam.
   """
 
   @enforce_keys [:column, :kind, :subject, :object, :element]
@@ -37,7 +37,7 @@ defmodule Turnstile.Schema do
   Declarations on an Ecto schema: the object type it protects, the
   associations its decision covers, what kind of thing its rows are, and
   the fact mapping column by column. Each macro records its declaration and
-  does nothing else; the seam and the ledger read them back through
+  does nothing else; the seam reads them back through
   `__turnstile__/1`.
 
       defmodule Example.Marking do

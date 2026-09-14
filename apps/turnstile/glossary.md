@@ -24,9 +24,10 @@ The words `turnstile` owns. A word with a second meaning elsewhere is listed in 
 | RepoCase | The conformance test that holds a Repo to the surface and refuses each non-plumbing function without a decision |
 | Protected schema / carried relation | A schema that declares an object type / an association the parent's decision covers |
 | Audited schema / kind | A schema that declares what kind of thing its rows are / `:user`, `:group`, `:role`, or `:entity`, which is the kind a change event carries |
-| Fact event (four kinds) | Subject attribute; object attribute; relationship; policy version, each with old and new |
-| Fact mapping | The declaration, column by column, from an application's schemas to the four kinds |
-| Projection / projector / checkpoint | How an adapter's state relates to the ledger / the process that drains it / the position it has applied |
+| Fact kind (three) | Subject attribute; object attribute; relationship: what a declared fact column holds |
+| Fact mapping | The declaration, column by column, from an application's schemas to the three kinds |
+| Change event | One single-row write to an audited schema as telemetry: `[:turnstile, :change]`, carrying the operation, the kind, the row, each changed fact field as old and new, who asked, and when |
+| Settle | Bringing an adapter's own state into step with the tables, which an adapter reading those tables has nothing to do for |
 | Audit record | A log entry with the shape AU-3 requires |
 | Telemetry | Elixir's convention for a library to publish events that handlers consume |
 | SIEM | The security team's central log system; a sink |
@@ -37,18 +38,15 @@ The words `turnstile` owns. A word with a second meaning elsewhere is listed in 
 | Control / enhancement / family | A requirement (AC-2) / an optional sharpening (AC-2(4)) / a group (AC) |
 | ODP / FedRAMP-assigned parameter | A blank in a control / a blank FedRAMP fills |
 | Baseline / beyond baseline | The subset required at an impact level / cited but not required |
-| The line | Opinionated below the port; above it the database is reached only through the ledger behaviour and `around_query/3`, checked at compile time |
+| The line | Opinionated below the port; above it the database is reached only through `around_query/3`, checked at compile time |
 | Declaration / scenario / capability | What an adapter or thin app states about itself / a cited test / a rule's level with the enforcing component |
 | Tier 1 / Tier 2 | Port guarantees over a neutral fixture / CUI scenarios per thin app |
 | `review` | Who can do what today |
 | Configuration override | The keyword list `Turnstile.Test.with_config/1,2` puts in a process's dictionary, read by the resolver from the caller and its `$callers` chain over the boot struct |
-| Counter name | The `ledger_counter` field of the configuration: which row of `turnstile_ledger_counter` a transaction takes positions from; `default` in production, a per-test row in the sandbox |
 | Answer / `meta` | What a decider says about one question: a verdict, a reason in one word, the version of the rules, and `meta` / the decider's own map beside the reason, where what only one decider can say travels |
 | Edge | A struct's map form: `to_map/1` and `from_map/1`, atoms as strings, modules by name, references as maps, times in ISO 8601 |
 | Decision event | One port call as telemetry: `[:turnstile, :decision]`, its duration the one measurement, and who asked, what was answered, and which decider answered its metadata |
 | Rule table | The fake adapter's `Agent`: entries allowing one subject, or any, one operation, on one object, or any of a type |
-| Fold | The facts a list of events leaves: the whole ledger, the events up to a position, or those at a time |
 | World | A population of the neutral fixture: accounts with clearances, folders, items, and memberships; the generators draw one, the template writes it through the seam |
 | Seed / outage hook | The `Turnstile.Conformance.Seed` module a template option names: `seed/1` loads a world into an adapter's own state, `outage/0` makes its engine unreachable |
-| Projected | What a projection under conformance exposes beyond `Turnstile.Projection`: `disturb/1` and `interrupt/1` |
-| Shape test | A test of what a call does, not what it answers: the queries it runs, the records it emits, the ledger rows it leaves |
+| Shape test | A test of what a call does, not what it answers: the queries it runs and the records it emits |
