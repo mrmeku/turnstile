@@ -26,8 +26,11 @@ defmodule Turnstile.Fga.MixProject do
     [preferred_envs: [quality: :test]]
   end
 
+  # `:inets` carries `httpc`, which `Turnstile.Fga.Client.Http` asks the
+  # server with. A package that calls it starts it, so an adopter who takes
+  # this package does not have to know what its transport is.
   def application do
-    [extra_applications: [:logger]]
+    [extra_applications: [:logger, :inets]]
   end
 
   # The fake client, the probe that appends fact events, the checkpoint
