@@ -45,11 +45,11 @@ defmodule ExampleFga.MixProject do
     ]
   end
 
-  # The example, the adapter, and the ledger, which this adapter requires
-  # because its store is a projection of the ledger rather than the
-  # application's tables. `muontrap` starts the server the suite asks, through
-  # the test support of the adapter. Every pin is exact. Versions verified
-  # against https://hex.pm/api/packages/<name> on 2026-09-09.
+  # The example, the adapter, the relay the drain is a runner of, and the
+  # ledger the policy version is recorded in. `muontrap` starts the server
+  # the suite asks, through the test support of the adapter. Every pin is
+  # exact. Versions verified against https://hex.pm/api/packages/<name> on
+  # 2026-09-09.
   defp deps do
     [
       {:turnstile, in_umbrella: true},
@@ -57,6 +57,7 @@ defmodule ExampleFga.MixProject do
       {:example, in_umbrella: true},
       {:turnstile_fga, in_umbrella: true},
       {:turnstile_ledger, in_umbrella: true},
+      {:turnstile_relay, in_umbrella: true},
       {:ecto, "3.14.2"},
       {:ecto_sql, "3.14.0"},
       {:postgrex, "0.22.4"},

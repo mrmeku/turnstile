@@ -443,16 +443,37 @@ CREATE TABLE public.schema_migrations (
 ALTER TABLE public.schema_migrations OWNER TO turnstile_owner;
 
 --
--- Name: turnstile_fga_checkpoint; Type: TABLE; Schema: public; Owner: turnstile_owner
+-- Name: turnstile_fga_outbox; Type: TABLE; Schema: public; Owner: turnstile_owner
 --
 
-CREATE TABLE public.turnstile_fga_checkpoint (
-    store text NOT NULL,
-    "position" bigint NOT NULL
+CREATE TABLE public.turnstile_fga_outbox (
+    id bigint NOT NULL,
+    object text NOT NULL
 );
 
 
-ALTER TABLE public.turnstile_fga_checkpoint OWNER TO turnstile_owner;
+ALTER TABLE public.turnstile_fga_outbox OWNER TO turnstile_owner;
+
+--
+-- Name: turnstile_fga_outbox_id_seq; Type: SEQUENCE; Schema: public; Owner: turnstile_owner
+--
+
+CREATE SEQUENCE public.turnstile_fga_outbox_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.turnstile_fga_outbox_id_seq OWNER TO turnstile_owner;
+
+--
+-- Name: turnstile_fga_outbox_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: turnstile_owner
+--
+
+ALTER SEQUENCE public.turnstile_fga_outbox_id_seq OWNED BY public.turnstile_fga_outbox.id;
+
 
 --
 -- Name: turnstile_ledger_counter; Type: TABLE; Schema: public; Owner: turnstile_owner
@@ -507,6 +528,18 @@ ALTER SEQUENCE public.turnstile_ledger_events_id_seq OWNER TO turnstile_owner;
 
 ALTER SEQUENCE public.turnstile_ledger_events_id_seq OWNED BY public.turnstile_ledger_events.id;
 
+
+--
+-- Name: turnstile_relay_cursor; Type: TABLE; Schema: public; Owner: turnstile_owner
+--
+
+CREATE TABLE public.turnstile_relay_cursor (
+    name text NOT NULL,
+    "position" bigint NOT NULL
+);
+
+
+ALTER TABLE public.turnstile_relay_cursor OWNER TO turnstile_owner;
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: turnstile_owner
@@ -599,6 +632,13 @@ ALTER TABLE ONLY public.portions ALTER COLUMN id SET DEFAULT nextval('public.por
 --
 
 ALTER TABLE ONLY public.programs ALTER COLUMN id SET DEFAULT nextval('public.programs_id_seq'::regclass);
+
+
+--
+-- Name: turnstile_fga_outbox id; Type: DEFAULT; Schema: public; Owner: turnstile_owner
+--
+
+ALTER TABLE ONLY public.turnstile_fga_outbox ALTER COLUMN id SET DEFAULT nextval('public.turnstile_fga_outbox_id_seq'::regclass);
 
 
 --
@@ -713,11 +753,11 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
--- Name: turnstile_fga_checkpoint turnstile_fga_checkpoint_pkey; Type: CONSTRAINT; Schema: public; Owner: turnstile_owner
+-- Name: turnstile_fga_outbox turnstile_fga_outbox_pkey; Type: CONSTRAINT; Schema: public; Owner: turnstile_owner
 --
 
-ALTER TABLE ONLY public.turnstile_fga_checkpoint
-    ADD CONSTRAINT turnstile_fga_checkpoint_pkey PRIMARY KEY (store);
+ALTER TABLE ONLY public.turnstile_fga_outbox
+    ADD CONSTRAINT turnstile_fga_outbox_pkey PRIMARY KEY (id);
 
 
 --
@@ -734,6 +774,14 @@ ALTER TABLE ONLY public.turnstile_ledger_counter
 
 ALTER TABLE ONLY public.turnstile_ledger_events
     ADD CONSTRAINT turnstile_ledger_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: turnstile_relay_cursor turnstile_relay_cursor_pkey; Type: CONSTRAINT; Schema: public; Owner: turnstile_owner
+--
+
+ALTER TABLE ONLY public.turnstile_relay_cursor
+    ADD CONSTRAINT turnstile_relay_cursor_pkey PRIMARY KEY (name);
 
 
 --
@@ -1084,10 +1132,17 @@ GRANT SELECT,USAGE ON SEQUENCE public.programs_id_seq TO turnstile_app;
 
 
 --
--- Name: TABLE turnstile_fga_checkpoint; Type: ACL; Schema: public; Owner: turnstile_owner
+-- Name: TABLE turnstile_fga_outbox; Type: ACL; Schema: public; Owner: turnstile_owner
 --
 
-GRANT SELECT,INSERT,UPDATE ON TABLE public.turnstile_fga_checkpoint TO turnstile_app;
+GRANT SELECT,INSERT,DELETE ON TABLE public.turnstile_fga_outbox TO turnstile_app;
+
+
+--
+-- Name: SEQUENCE turnstile_fga_outbox_id_seq; Type: ACL; Schema: public; Owner: turnstile_owner
+--
+
+GRANT USAGE ON SEQUENCE public.turnstile_fga_outbox_id_seq TO turnstile_app;
 
 
 --
@@ -1109,6 +1164,13 @@ GRANT SELECT,INSERT ON TABLE public.turnstile_ledger_events TO turnstile_app;
 --
 
 GRANT SELECT,USAGE ON SEQUENCE public.turnstile_ledger_events_id_seq TO turnstile_app;
+
+
+--
+-- Name: TABLE turnstile_relay_cursor; Type: ACL; Schema: public; Owner: turnstile_owner
+--
+
+GRANT SELECT,INSERT,UPDATE ON TABLE public.turnstile_relay_cursor TO turnstile_app;
 
 
 --

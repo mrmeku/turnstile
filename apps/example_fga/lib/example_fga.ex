@@ -1,24 +1,24 @@
 defmodule ExampleFga do
   @moduledoc """
   The example bound to a relationship graph: the model the store is published
-  from, the mapping that turns the example's fact events into tuples, the
-  guard that holds the re-authentication window outside the graph, the boot
-  that binds them to `Example.Repo`, the capability declaration, and the
-  migrations that create the example's tables, the ledger, and the
-  projector's checkpoint. Nothing of the domain lives in the adapter.
+  from, the mapping that turns the example's tables into tuples, the guard
+  that holds the re-authentication window outside the graph, the boot that
+  binds them to `Example.Repo`, the capability declaration, and the
+  migrations that create the example's tables, the ledger, and the marker
+  outbox the drain works from. Nothing of the domain lives in the adapter.
 
   The version identifier is the id the server gives a model when it is
   published, so a rule change needs no configuration: the text of
   `priv/fga/model.fga` is the artifact under review, and its digest is what
   decides whether a boot publishes anything.
 
-  This binding requires a ledger. The store is a projection of the ledger
-  rather than the application's tables, so there is no mode in which the
-  facts reach the engine without one.
+  The store this binding keeps is a copy of the example's own tables. A
+  change to a row leaves a marker in the transaction that made it, and the
+  drain brings the store to what those rows require, object by object.
   """
 
   use Boundary,
-    deps: [Example, Turnstile, Turnstile.Fga, Ecto],
+    deps: [Example, Turnstile, Turnstile.Fga, Turnstile.Relay, Ecto],
     exports: [Application, Capabilities, Guard, TupleMapping]
 
   @author "example_fga"

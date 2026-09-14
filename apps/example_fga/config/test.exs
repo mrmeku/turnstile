@@ -8,7 +8,7 @@ config :example_fga, endpoint: "127.0.0.1:8080", store_id: "turnstile-example"
 
 # The ephemeral cluster configures and starts the repos from the test
 # helper, after the application has started, so the application starts none
-# of its own, and with them the projector: a test drains by hand, and a
-# process draining beside it would read the ledger from a connection of its
-# own.
+# of its own, and with them the drain: a test settles the store by hand, and
+# a runner passing beside it would read the same markers from a connection
+# of its own.
 config :example_fga, start_repos: false
