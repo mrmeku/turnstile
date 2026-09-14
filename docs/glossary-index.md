@@ -1,49 +1,42 @@
 # Glossary index
 
-Every word that carries more than one meaning in this repository, and the one place each meaning lives. A package's glossary defines the words it owns; this index only points. Started at S1; each stage adds the words its package introduces.
+Every word that carries more than one meaning in this repository, and the one place each meaning lives. A package's glossary defines the words it owns; this index only points. A package that introduces a word with a second meaning adds its row here.
 
 | Word | Meaning | Where it lives |
 |---|---|---|
-| Scope | The port operation that narrows a query, and the `{dynamic, answer}` it returns | `apps/turnstile_core/glossary.md` |
+| Scope | The port operation that narrows a query, and the `{dynamic, answer}` it returns | `apps/turnstile/glossary.md` |
 | Scope | A Postgres row-level security policy's reach over a table | `apps/turnstile_postgres/glossary.md` |
 | Plan | A query plan from a Cerbos sidecar compiled into a `dynamic` over an object type's rows | `apps/turnstile_cerbos/glossary.md` |
 | Plan | The project's plan of record | `PLAN.md` |
-| Version | A policy version: an artifact an adapter decides under, named in every decision | `apps/turnstile_core/glossary.md` |
-| Version | A pinned dependency release in `docs/reference.md` §12 | `docs/reference.md` |
+| Version | A policy version: an artifact an adapter decides under, named in every decision | `apps/turnstile/glossary.md` |
+| Version | A pinned dependency release in `docs/reference.md` §11 | `docs/reference.md` |
 | Commit | The commit of the policy repository a Cerbos sidecar's directory is at, which is its policy version | `apps/turnstile_cerbos/glossary.md` |
 | Commit | The `commit` component of revocation latency, the time the revoking write itself takes | `docs/reference.md` §4 |
-| Check | The port operation `check/4`: a yes or no without a decision record | `apps/turnstile_core/glossary.md` |
+| Check | The port operation `check/4`: a yes or no without a decision record | `apps/turnstile/glossary.md` |
 | Check | A Credo check | `docs/code.md` §5 |
-| Position | A ledger position: the index of a fact event, taken from the counter row | `apps/turnstile_ledger/glossary.md` |
-| Position | The head position and the applied position a decision carries | `apps/turnstile_core/glossary.md` |
-| Position | The rising, unique number a job orders its rows by, which a runner's cursor holds | `apps/turnstile_relay/glossary.md` |
-| Review | The port's `review`: who can do what today | `apps/turnstile_core/glossary.md` |
+| Check | The OpenFGA request that answers one question about one tuple | `apps/turnstile_fga/glossary.md` |
+| Review | The port's `review`: who can do what today | `apps/turnstile/glossary.md` |
 | Review | Access review, the AC-2 activity the scenarios `rvw-01` and `rvw-04` cover | `docs/reference.md` §1 |
-| Record | An audit record, the AU-3 shape | `apps/turnstile_core/glossary.md` |
-| Record | A capability record: a rule's level with the enforcing component and a note | `apps/turnstile_core/glossary.md` |
-| Declaration | A capability declaration in a thin app | `apps/turnstile_core/glossary.md` |
-| Declaration | A fact-mapping declaration, `use Turnstile.Schema` | `apps/turnstile_core/glossary.md` |
+| Record | An audit record, the AU-3 shape | `apps/turnstile/glossary.md` |
+| Record | An OCSF record, what a consumer writes from one of the two events | `apps/example/glossary.md` |
+| Declaration | A fact-mapping declaration, `use Turnstile.Schema` | `apps/turnstile/glossary.md` |
 | Declaration | An attribute declaration, `use Turnstile.Cerbos.Attributes` | `apps/turnstile_cerbos/glossary.md` |
-| Attribute | A fact about a subject or object that a rule can test | `apps/turnstile_core/glossary.md` |
+| Attribute | A fact about a subject or object that a rule can test | `apps/turnstile/glossary.md` |
 | Attribute | A name the Cerbos policies read, declared against a column or a subquery | `apps/turnstile_cerbos/glossary.md` |
-| Scenario | A cited test: the case a capability declaration names as its evidence | `apps/turnstile_core/glossary.md` |
-| Scenario | One row of the reference's scenario table, defined in a thin application by `use Example.Scenarios` | `apps/turnstile_example/glossary.md` |
+| Scenario | A row of the Tier 2 table as the conformance suite holds it: an id, a sentence, a group, the controls cited, and what it tests | `apps/turnstile/glossary.md` |
+| Scenario | One row of the reference's scenario table, defined in a thin application by `use Example.Scenarios` | `apps/example/glossary.md` |
 | Owner | The owner role, `turnstile_owner`, and an owner-role repo | `docs/testing.md` §3, `docs/reference.md` §6 |
 | Owner | The project's owner, who answers questions | `CLAUDE.md` |
 | Sandbox | The Ecto SQL sandbox that wraps a test in a transaction | `docs/testing.md` §3 |
 | Sandbox | The sandboxed database, `turnstile_test`, as against the committed one | `docs/testing.md` §3 |
-| Caller | The module that called the Repo, as the seam reads it from the stack | `apps/turnstile_core/glossary.md` |
-| Caller | The process that called `Turnstile.Test.with_config/1,2`, followed through `$callers` | `apps/turnstile_core/glossary.md` |
-| Table | The fake adapter's rule table, an `Agent` per test | `apps/turnstile_core/glossary.md` |
+| Caller | The module that called the Repo, as the seam reads it from the stack | `apps/turnstile/glossary.md` |
+| Caller | The process that called `Turnstile.Test.with_config/1,2`, followed through `$callers` | `apps/turnstile/glossary.md` |
+| Table | The fake adapter's rule table, an `Agent` per test | `apps/turnstile/glossary.md` |
 | Table | A Postgres table, protected by the seam or truncated between committed tests | `docs/reference.md` §6, `docs/testing.md` §3 |
-| Fold | `Turnstile.Ledger.Fold`: the facts a list of events leaves | `apps/turnstile_core/glossary.md` |
-| Fold | The fold-then-state property of Tier 1 | `docs/testing.md` §6 |
-| Catalog | The bound tables' policies, the columns they reference, and the policy version, as the database reports them | `apps/turnstile_postgres/glossary.md` |
-| Catalog | The database's own catalog, read for a foreign key that would delete or blank a fact with no event to say so | `apps/turnstile_ledger/glossary.md` |
 | Rule | A protected schema's clauses built for one subject and operation, as one `dynamic` | `apps/turnstile_rbac/glossary.md` |
-| Rule | A rule of the example, C1 to C13, with its capability level | `docs/reference.md` §3 |
+| Rule | A rule of the example, C1 to C13, with the mechanisms that enforce it | `docs/reference.md` §3 |
 | Grant | A clause of a policy module that holds a role on a row through a relationship schema | `apps/turnstile_rbac/glossary.md` |
-| Grant | The fixture's write of a membership, and the grant steps the properties generate | `apps/turnstile_core/test/support`, `docs/testing.md` §6 |
+| Grant | The fixture's write of a membership, and the grant steps the properties generate | `apps/turnstile/test/support`, `docs/testing.md` §6 |
 | Predicate | A clause of a policy module: a named function returning a `dynamic` or a boolean | `apps/turnstile_rbac/glossary.md` |
 | Predicate | A Postgres row-level security policy's `USING` expression | `apps/turnstile_postgres/glossary.md` |
 | Coverage | The walk of every rule's `dynamic`, subqueries included, that fails on a column no declaration names | `apps/turnstile_rbac/glossary.md` |
@@ -56,20 +49,15 @@ Every word that carries more than one meaning in this repository, and the one pl
 | Binding | The repo, the protected schemas, and the migrations table `Turnstile.Postgres` reads through | `apps/turnstile_postgres/glossary.md` |
 | Binding | The repo, the declarations, the policy directory, and the commit `Turnstile.Cerbos` reads through | `apps/turnstile_cerbos/glossary.md` |
 | Binding | An Ecto query binding, the `[row]` of a `dynamic` | Ecto's own documentation |
-| Marking | A portion's or a document's categories, controls, and releasable-to list | `apps/turnstile_example/glossary.md` |
+| Marking | A portion's or a document's categories, controls, and releasable-to list | `apps/example/glossary.md` |
 | Marking | The CUI marking of 32 CFR Part 2002, the banner and portion marks on a page | `docs/reference.md` §2 |
-| Control | A dissemination control of the CUI Registry, a test on the subject | `apps/turnstile_example/glossary.md` |
+| Control | A dissemination control of the CUI Registry, a test on the subject | `apps/example/glossary.md` |
 | Control | A NIST SP 800-53 control, named by a scenario's `control:` tag | `docs/reference.md` §1 |
-| Fixture | The example's world every scenario starts from | `apps/turnstile_example/glossary.md` |
-| Fixture | The neutral fixture the conformance suite inserts | `apps/turnstile_core/glossary.md` |
-| Override | The audited privileged read of C10 | `apps/turnstile_example/glossary.md` |
+| Fixture | The example's world every scenario starts from | `apps/example/glossary.md` |
+| Fixture | The neutral fixture the conformance suite inserts | `apps/turnstile/glossary.md` |
+| Override | The audited privileged read of C10 | `apps/example/glossary.md` |
 | Override | `Turnstile.Code.Binding.override/1,2`, a per-process binding for tests | `apps/turnstile_rbac/glossary.md` |
-| Check | The OpenFGA request that answers one question about one tuple | `apps/turnstile_fga/glossary.md` |
-| Object | What a decision is about, as a `{type, id}` tuple: the thing a subject asks to act on | `apps/turnstile_core/glossary.md` |
+| Object | What a decision is about, as a `{type, id}` tuple: the thing a subject asks to act on | `apps/turnstile/glossary.md` |
 | Object | An OpenFGA object: the type and the id joined by a colon, which is the unit a store pages reads by | `apps/turnstile_fga/glossary.md` |
-| Projector | The process that drains an adapter's state toward the ledger | `apps/turnstile_core/glossary.md` |
-| Projector | The `Turnstile.Projection` implementation that keeps an OpenFGA store current | `apps/turnstile_fga/glossary.md` |
-| Checkpoint | The position a projection has applied | `apps/turnstile_core/glossary.md` |
-| Checkpoint | The position a store has been drained to, one row per store in the application's own database | `apps/turnstile_fga/glossary.md` |
-| Reconcile | Checking the ledger-fed tables against the ledger on an interval | `apps/turnstile_ledger/glossary.md` |
-| Reconcile | Comparing the fold with what a store reports, paged by object type | `apps/turnstile_fga/glossary.md` |
+| Reconcile | Comparing the tables with what an OpenFGA store reports, paged by object type | `apps/turnstile_fga/glossary.md` |
+| Reconcile | Reading a Cerbos sidecar's decision log and the port's records of the same window and reporting every difference | `apps/turnstile_cerbos/glossary.md` |

@@ -30,7 +30,8 @@ The words `turnstile` owns. A word with a second meaning elsewhere is listed in 
 | Settle | Bringing an adapter's own state into step with the tables, which an adapter reading those tables has nothing to do for |
 | Audit record | A log entry with the shape AU-3 requires |
 | Telemetry | Elixir's convention for a library to publish events that handlers consume |
-| SIEM | The security team's central log system; a sink |
+| Consumer | A handler that stores what an event carries; the library emits and the system stores, so a consumer is the system's, not the library's |
+| SIEM | The security team's central log system; the worked consumer |
 | Continuous evaluation | Attributes looked up on every check, never cached across requests |
 | Revocation latency | Time from a revoking change to the first denial; evidence, measured |
 | Environment fact (port-supplied / caller-supplied) | Time from the configured clock / facts only the caller knows |
@@ -39,13 +40,13 @@ The words `turnstile` owns. A word with a second meaning elsewhere is listed in 
 | ODP / FedRAMP-assigned parameter | A blank in a control / a blank FedRAMP fills |
 | Baseline / beyond baseline | The subset required at an impact level / cited but not required |
 | The line | Opinionated below the port; above it the database is reached only through `around_query/3`, checked at compile time |
-| Declaration / scenario / capability | What an adapter or thin app states about itself / a cited test / a rule's level with the enforcing component |
+| Declaration / scenario | What a schema states about itself through `use Turnstile.Schema` / one row of the Tier 2 table: an id, a sentence, a group, the controls cited, and what it tests |
 | Tier 1 / Tier 2 | Port guarantees over a neutral fixture / CUI scenarios per thin app |
 | `review` | Who can do what today |
 | Configuration override | The keyword list `Turnstile.Test.with_config/1,2` puts in a process's dictionary, read by the resolver from the caller and its `$callers` chain over the boot struct |
-| Answer / `meta` | What a decider says about one question: a verdict, a reason in one word, the version of the rules, and `meta` / the decider's own map beside the reason, where what only one decider can say travels |
+| Answer / `meta` | What an adapter says about one question: a verdict, a reason in one word, the version of the rules, and `meta` / the adapter's own map beside the reason, where what only one adapter can say travels |
 | Edge | A struct's map form: `to_map/1` and `from_map/1`, atoms as strings, modules by name, references as maps, times in ISO 8601 |
-| Decision event | One port call as telemetry: `[:turnstile, :decision]`, its duration the one measurement, and who asked, what was answered, and which decider answered its metadata |
+| Decision event | One port call as telemetry: `[:turnstile, :decision]`, its duration the one measurement, and who asked, what was answered, and which adapter answered its metadata |
 | Rule table | The fake adapter's `Agent`: entries allowing one subject, or any, one operation, on one object, or any of a type |
 | World | A population of the neutral fixture: accounts with clearances, folders, items, and memberships; the generators draw one, the template writes it through the seam |
 | Seed / outage hook | The `Turnstile.Conformance.Seed` module a template option names: `seed/1` loads a world into an adapter's own state, `outage/0` makes its engine unreachable |
