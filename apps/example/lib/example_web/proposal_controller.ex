@@ -1,4 +1,4 @@
-defmodule Example.ProposalController do
+defmodule ExampleWeb.ProposalController do
   @moduledoc "Marking proposals over JSON: propose on a document, approve by id."
 
   use Phoenix.Controller, formats: [:json]

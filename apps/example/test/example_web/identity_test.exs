@@ -1,10 +1,10 @@
-defmodule Example.Plug.IdentityTest do
+defmodule ExampleWeb.IdentityTest do
   use Example.FakeCase, async: true
 
   import Plug.Conn
   import Plug.Test
 
-  alias Example.Plug.Identity
+  alias ExampleWeb.Identity
 
   test "the subject and the facts come from the headers", %{} do
     conn =

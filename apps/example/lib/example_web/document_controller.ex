@@ -1,4 +1,4 @@
-defmodule Example.DocumentController do
+defmodule ExampleWeb.DocumentController do
   @moduledoc "Documents over JSON. The subject and the facts come from the identity plug; the verdict from the context."
 
   use Phoenix.Controller, formats: [:json]

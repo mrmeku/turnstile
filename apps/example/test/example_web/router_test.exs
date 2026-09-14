@@ -1,11 +1,11 @@
-defmodule Example.RouterTest do
+defmodule ExampleWeb.RouterTest do
   use Example.FakeCase, async: true
 
   import Plug.Conn
   import Plug.Test
 
   alias Example.Fixture
-  alias Example.Router
+  alias ExampleWeb.Router
 
   setup %{world: world} do
     {:ok, document: Fixture.document!(world, portions: [%{body: "open"}])}

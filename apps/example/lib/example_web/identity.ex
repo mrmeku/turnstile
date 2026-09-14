@@ -1,4 +1,4 @@
-defmodule Example.Plug.Identity do
+defmodule ExampleWeb.Identity do
   @moduledoc """
   The identity-only plug. It reads the caller's account id, session id, and
   re-authentication time from headers an authenticating proxy sets, builds

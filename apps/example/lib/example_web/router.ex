@@ -1,14 +1,14 @@
-defmodule Example.Router do
+defmodule ExampleWeb.Router do
   @moduledoc "The web layer: JSON routes behind the identity plug; every route's authorization is the context's."
 
   use Phoenix.Router
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug Example.Plug.Identity
+    plug ExampleWeb.Identity
   end
 
-  scope "/", Example do
+  scope "/", ExampleWeb do
     pipe_through :api
 
     get "/documents", DocumentController, :index
