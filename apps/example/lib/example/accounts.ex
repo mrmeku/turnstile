@@ -48,8 +48,9 @@ defmodule Example.Accounts do
   end
 
   @doc """
-  Revoke an account's assignment to a program, one row at a time so the
-  ledger receives the revocation. Returns the number of rows removed.
+  Revoke an account's assignment to a program, one row at a time so each
+  revocation is a change event of its own. Returns the number of rows
+  removed.
   """
   @spec unassign(String.t(), integer()) :: non_neg_integer()
   def unassign(user_id, program_id) when is_binary(user_id) do

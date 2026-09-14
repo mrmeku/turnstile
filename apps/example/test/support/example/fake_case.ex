@@ -35,7 +35,7 @@ defmodule Example.FakeCase do
   def setup(tags) when is_map(tags) do
     :ok = Sandbox.setup(Example.Repo, tags)
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})
-    :ok = Turnstile.Test.with_config(adapter: {Fake, rules: rules}, ledger: :none)
+    :ok = Turnstile.Test.with_config(adapter: {Fake, rules: rules})
     {:ok, rules: rules, world: Example.Fixture.world!()}
   end
 

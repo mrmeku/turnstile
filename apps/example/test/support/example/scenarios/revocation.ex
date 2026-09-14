@@ -1,5 +1,5 @@
 defmodule Example.Scenarios.Revocation do
-  @moduledoc "The revocation scenarios that need no ledger, rev-01 to rev-06."
+  @moduledoc "The revocation scenarios, rev-01 to rev-07."
 
   use Boundary,
     top_level?: true,
@@ -9,7 +9,11 @@ defmodule Example.Scenarios.Revocation do
   import ExUnit.Assertions
 
   alias Example.Accounts
+  alias Example.Assignment
+  alias Example.Document
   alias Example.Fixture
+  alias Example.Program
+  alias Example.Repo
   alias Turnstile.PolicyVersion
 
   @spec rev_01() :: term()
@@ -119,6 +123,42 @@ defmodule Example.Scenarios.Revocation do
 
     assert_read(subject("ann"), document)
   end
+
+  @spec rev_07() :: term()
+  def rev_07 do
+    {world, written} = Turnstile.Test.changes(&Fixture.world!/0)
+    document = Fixture.document!(world)
+
+    settle()
+    assert_read(subject("ann"), document)
+
+    {removed, revoked} = Turnstile.Test.changes(fn -> Accounts.unassign("ann", world.program.id) end)
+    assert removed == 1
+
+    settle()
+    assert_denied(subject("ann"), document)
+
+    assert_kept(world, document)
+    assert_paired(written, revoked)
+  end
+
+  # Revoking takes the assignment away and leaves the document and the
+  # program where they were.
+  defp assert_kept(world, document) do
+    assert %Document{} = Repo.get(Document, document.id, turnstile: Fixture.exemption())
+    assert %Program{} = Repo.get(Program, world.program.id, turnstile: Fixture.exemption())
+  end
+
+  # The revoke names the assignment the grant created, so the two change
+  # events read as one row's life.
+  defp assert_paired(written, revoked) do
+    assert [%{operation: :delete, target: target}] = assignments(revoked)
+    assert Enum.any?(assignments(written), &(&1.operation == :create and &1.target == target))
+  end
+
+  # The change events about an Assignment, which is what a grant and a
+  # revoke each leave behind.
+  defp assignments(changes), do: for(%{schema: Assignment} = change <- changes, do: change)
 
   # The share of the latency that reached the engine's own store: what the
   # drain took, where there was one to wait for.

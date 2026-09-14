@@ -180,17 +180,13 @@ defmodule Example.Fixture do
   end
 
   @doc """
-  Empty every domain table and the ledger's events, and reset the counter,
-  through the owner-role repo, after a committed test. The events go with
-  the rows they describe: a ledger kept beside emptied tables would report
-  every one of them as drift.
+  Empty every domain table through the owner-role repo, after a committed
+  test. A change event is already gone by then, since the library publishes
+  one and stores none.
   """
   @spec truncate!(module()) :: :ok
   def truncate!(owner_repo) when is_atom(owner_repo) do
-    tables = Enum.join(["turnstile_ledger_events" | @domain], ", ")
-
-    _result = owner_repo.query!("TRUNCATE #{tables} RESTART IDENTITY CASCADE")
-    _result = owner_repo.query!("UPDATE turnstile_ledger_counter SET position = 0 WHERE name = 'default'")
+    _result = owner_repo.query!("TRUNCATE #{Enum.join(@domain, ", ")} RESTART IDENTITY CASCADE")
     :ok
   end
 

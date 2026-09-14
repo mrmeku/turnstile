@@ -1,5 +1,5 @@
 defmodule Example.Scenarios.Audit do
-  @moduledoc "The decision-audit, access-review, and change-control scenarios that need no ledger."
+  @moduledoc "The decision-audit, access-review, and change-control scenarios."
 
   use Boundary,
     top_level?: true,
@@ -13,6 +13,7 @@ defmodule Example.Scenarios.Audit do
   alias Example.Documents
   alias Example.Fixture
   alias Example.Marking
+  alias Example.Program
   alias Example.Repo
   alias Example.Siem
   alias Example.Siem.Ocsf
@@ -75,6 +76,23 @@ defmodule Example.Scenarios.Audit do
     end
   end
 
+  @spec aud_04() :: term()
+  def aud_04 do
+    world = Fixture.world!()
+    document = Fixture.document!(world)
+    operation_id = Id.new()
+    :ok = watch_decisions()
+
+    settle()
+    {_result, changes} = Turnstile.Test.changes(fn -> assert_marking_changed(document, operation_id) end)
+
+    assert [decision] = decisions(operation_id)
+    assert decision.operation == :change_marking
+    assert [%{operation: :update, target: {:marking, _id}} = change] = banners(changes)
+    assert change.operation_id == operation_id
+    assert change.changes == %{categories: {[], ["PRVCY"]}, controls: {[], [:federal_only]}}
+  end
+
   @spec aud_05() :: term()
   def aud_05 do
     world = Fixture.world!()
@@ -92,6 +110,21 @@ defmodule Example.Scenarios.Audit do
     assert Exception.message(error) =~ "bulk write to an audited schema"
     assert changes == []
     assert Enum.map(markings(documents), & &1.controls) == [[], [], []]
+  end
+
+  @spec aud_06() :: term()
+  def aud_06 do
+    world = Fixture.world!()
+
+    {granted, grant} = Turnstile.Test.changes(fn -> Accounts.assign("frank", world.program.id, :member) end)
+    assert %Assignment{} = granted
+    assert [%{operation: :create, changes: %{role: {nil, :member}}} = created] = grant
+    assert created.target == {:assignment, granted.id}
+
+    {removed, revoke} = Turnstile.Test.changes(fn -> Accounts.unassign("frank", world.program.id) end)
+    assert removed == 1
+    assert [%{operation: :delete, changes: %{role: {:member, nil}}} = deleted] = revoke
+    assert deleted.target == created.target
   end
 
   @spec aud_07() :: term()
@@ -141,10 +174,56 @@ defmodule Example.Scenarios.Audit do
     assert readers[subject("bob")] == [open.id]
   end
 
+  @spec rvw_04() :: term()
+  def rvw_04 do
+    world = Fixture.world!()
+
+    {:ok, changes} = Turnstile.Test.changes(fn -> outside_the_seam("frank", world.program) end)
+
+    assert changes == []
+    assert Enum.any?(assignments(), &(&1.user_id == "frank"))
+  end
+
+  @spec cm_01(module()) :: term()
+  def cm_01(rules) do
+    event = rules.version_event()
+    ref = :telemetry_test.attach_event_handlers(self(), [event])
+
+    try do
+      assert {:ok, %PolicyVersion{} = version} = rules.publish_tightened()
+      assert_receive {^event, ^ref, _measurements, %{version: ^version}}
+      assert_version_fields(version)
+    after
+      :ok = rules.restore()
+    end
+  end
+
+  @spec cm_02(module()) :: term()
+  def cm_02(rules) do
+    world = Fixture.world!()
+    document = Fixture.document!(world)
+    under_n = Id.new()
+    :ok = watch_decisions()
+
+    settle()
+    assert_read(subject("ann"), document, operation_id: under_n)
+    assert [made_under_n] = decisions(under_n)
+
+    assert {:ok, %PolicyVersion{} = next} = rules.publish_tightened()
+
+    try do
+      assert next.version != made_under_n.version
+      assert_denied_under(next, document)
+    after
+      :ok = rules.restore()
+    end
+  end
+
   @spec cm_03(module()) :: term()
   def cm_03(rules) do
     world = Fixture.world!()
     document = Fixture.document!(world)
+    :ok = watch_decisions()
     assert {:ok, %PolicyVersion{} = version} = rules.publish_tightened()
 
     settle()
@@ -155,6 +234,19 @@ defmodule Example.Scenarios.Audit do
     after
       :ok = rules.restore()
     end
+  end
+
+  # The change events about a banner, which is the row a marking change
+  # writes the fields of; the document it hangs from is written too, and
+  # what that write changed is nothing.
+  defp banners(changes), do: for(%{schema: Marking} = change <- changes, do: change)
+
+  # An INSERT that never passes the seam, through the owner-role repo: what
+  # a patch applied by hand looks like to a record built from change events.
+  defp outside_the_seam(user_id, %Program{id: program_id}) do
+    sql = "INSERT INTO assignments (user_id, program_id, role) VALUES ($1, $2, $3)"
+    _result = Example.OwnerRepo.query!(sql, [user_id, program_id, "member"])
+    :ok
   end
 
   # The assignments the tables hold, in the order their ids were granted.
@@ -217,7 +309,6 @@ defmodule Example.Scenarios.Audit do
 
   defp assert_denied_under(%PolicyVersion{version: expected}, document) do
     operation_id = Id.new()
-    :ok = watch_decisions()
     assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end, propagation_deadline())
     assert_denied(subject("ann"), document, operation_id: operation_id)
     assert [%{version: recorded}] = decisions(operation_id)

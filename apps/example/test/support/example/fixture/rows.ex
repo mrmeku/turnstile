@@ -26,7 +26,7 @@ defmodule Example.Fixture.Rows do
   @impl Rows
   def setup(tags) when is_map(tags) do
     :ok = Sandbox.setup(Repo, tags)
-    :ok = Turnstile.Test.with_config(adapter: Fake, ledger: :none)
+    :ok = Turnstile.Test.with_config(adapter: Fake)
     _world = Fixture.world!()
     :ok
   end

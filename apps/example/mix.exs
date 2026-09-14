@@ -43,10 +43,9 @@ defmodule Example.MixProject do
     [~r/\.Generated\./, ~r/^Example\.Scenarios/, ~r/^Example\.Fixture/, ~r/^Example\.Cluster/]
   end
 
-  # lib depends on core, on the ledger, whose reader and reconcile the
-  # scenario bodies read the record through, on ecto, ecto_sql (the
-  # migration helper and preload),
-  # phoenix and plug (the web layer), and telemetry. stream_data is
+  # lib depends on core, on ecto and ecto_sql (the migration helper and
+  # preload), on phoenix and plug (the web layer), and on telemetry.
+  # stream_data is
   # unrestricted because core's conformance templates ship in lib, so core
   # carries it in every environment and a dependent that narrowed it would
   # disagree with core. Every pin is exact.
@@ -55,7 +54,6 @@ defmodule Example.MixProject do
   defp deps do
     [
       {:turnstile, in_umbrella: true},
-      {:turnstile_ledger, in_umbrella: true},
       {:ecto, "3.14.2"},
       {:ecto_sql, "3.14.0"},
       {:postgrex, "0.22.4"},

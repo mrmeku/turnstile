@@ -69,9 +69,9 @@ defmodule Example do
   ]
 
   @doc """
-  Every schema of the example, in the order its tables are created: what
-  the genesis backfill writes at position zero and what reconcile compares
-  the ledger with. The ones that declare no fact are ignored by both.
+  Every schema of the example, in the order its tables are created, which
+  is the order a migration creates them in and the reverse of the order it
+  drops them in.
   """
   @spec schemas() :: [module()]
   def schemas, do: @schemas

@@ -7,16 +7,16 @@ defmodule Example.Scenarios do
 
   Each scenario's body is a function in a module under this one, named by
   the scenario's id. Scenarios that measure latency, `rev-01` and `rev-06`,
-  the reconcile scenario `rvw-04`, and the change-management scenarios
-  `cm-01`, `cm-02` and `cm-03` run on the committed database in a nested
-  module that is not async; every other scenario runs in a sandbox
-  transaction. The change-management three publish a rule change, which for
-  an adapter whose rules are the database's own is a schema change, and a
-  schema change waits for every other connection reading the tables it
-  changes; the committed tier runs after the async ones, so it holds the
-  only connection there is. The last test counts: the scenarios defined without a skip
-  equal the table's rows less the ones the declaration marks `unsupported`
-  and, without a ledger, less the ones that need a ledger.
+  the drift scenario `rvw-04`, which writes through the owner-role repo, and
+  the change-management scenarios `cm-01`, `cm-02` and `cm-03` run on the
+  committed database in a nested module that is not async; every other
+  scenario runs in a sandbox transaction. The change-management three
+  publish a rule change, which for an adapter whose rules are the database's
+  own is a schema change, and a schema change waits for every other
+  connection reading the tables it changes; the committed tier runs after the
+  async ones, so it holds the only connection there is. The last test counts:
+  the scenarios defined without a skip equal the table's rows less the ones
+  the declaration marks `unsupported`.
 
   A thin application supplies through `Example.Scenarios.Rules` the policy
   operations a test cannot write without naming the adapter, and, where its
@@ -31,7 +31,6 @@ defmodule Example.Scenarios do
       Example.Scenarios.Audit,
       Example.Scenarios.Enforcement,
       Example.Scenarios.Identity,
-      Example.Scenarios.Ledger,
       Example.Scenarios.Privilege,
       Example.Scenarios.Revocation,
       Ecto.Adapters.SQL,
@@ -54,8 +53,7 @@ defmodule Example.Scenarios do
     Example.Scenarios.Privilege,
     Example.Scenarios.Revocation,
     Example.Scenarios.Audit,
-    Example.Scenarios.Identity,
-    Example.Scenarios.Ledger
+    Example.Scenarios.Identity
   ]
 
   @committed ~w[cm-01 cm-02 cm-03 rev-01 rev-06 rvw-04]
@@ -93,17 +91,13 @@ defmodule Example.Scenarios do
   end
 
   @doc """
-  The per-test setup: a sandbox connection and a counter row for an async
-  scenario; for a committed one, a real connection to the same repo, a
-  truncation through the owner repo before the test and another when it
-  ends, and the boot policy published into the ledger the truncation
-  emptied, so a scenario that reads the record of a rule change starts
-  where boot left it.
+  The per-test setup: a sandbox connection for an async scenario; for a
+  committed one, a real connection to the same repo and a truncation through
+  the owner repo before the test and another when it ends.
 
   A thin application whose `Example.Scenarios.Rules` defines `setup/1` has it
-  called between the two: after the connection is there and the tables are
-  empty, before anything is published, since what it prepares is where a
-  publish goes.
+  called after the connection is there and the tables are empty, since what
+  it prepares is where a publish goes.
   """
   @spec setup(map(), module()) :: :ok
   def setup(tags, rules) when is_map(tags) and is_atom(rules) do
@@ -111,7 +105,6 @@ defmodule Example.Scenarios do
       :ok = Sandbox.checkout(Example.Repo, sandbox: false)
       :ok = Example.Fixture.truncate!(Example.OwnerRepo)
       :ok = prepared(rules, tags)
-      :ok = rules.publish_boot()
       ExUnit.Callbacks.on_exit(fn -> Example.Fixture.truncate!(Example.OwnerRepo) end)
       :ok
     else
@@ -126,7 +119,7 @@ defmodule Example.Scenarios do
     declared = declared(modules)
     assert Enum.sort(Enum.map(declared, &elem(&1, 0))) == Enum.sort(Scenarios.ids())
     Enum.each(declared, fn {id, tags} -> assert_tags(id, tags, capabilities) end)
-    assert_count(declared, capabilities, ledger_mode())
+    assert_count(declared, capabilities)
   end
 
   # An application whose adapter needs nothing per test defines no `setup/1`,
@@ -152,10 +145,10 @@ defmodule Example.Scenarios do
     for module <- modules, %ExUnit.Test{tags: %{scenario: id} = tags} <- module.__ex_unit__().tests, do: {id, tags}
   end
 
-  defp assert_count(declared, capabilities, mode) do
-    defined = Enum.count(declared, fn {_id, tags} -> runs?(tags, mode) end)
+  defp assert_count(declared, capabilities) do
+    defined = Enum.count(declared, fn {_id, tags} -> not Map.has_key?(tags, :skip) end)
     assert defined > 0
-    assert defined == Scenarios.expected_count(capabilities, mode)
+    assert defined == Scenarios.expected_count(capabilities)
     :ok
   end
 
@@ -163,10 +156,7 @@ defmodule Example.Scenarios do
     {:ok, scenario} = Scenarios.fetch(id)
     unsupported? = Scenarios.unsupported?(capabilities, scenario)
     assert Map.has_key?(tags, :skip) == unsupported?, "#{id} is skipped without an unsupported declaration"
-    assert Map.get(tags, :needs_ledger, false) == scenario.needs_ledger
   end
-
-  defp runs?(tags, mode), do: not Map.has_key?(tags, :skip) and (mode == :ecto or not Map.get(tags, :needs_ledger, false))
 
   defp body(id) do
     function = String.replace(id, "-", "_")
@@ -178,23 +168,15 @@ defmodule Example.Scenarios do
       if Atom.to_string(name) == function, do: {module, name, arity}
     end)
   end
-
-  defp ledger_mode do
-    case Turnstile.Config.resolve() do
-      {:ok, %Turnstile.Config{ledger: :none}} -> :none
-      {:ok, %Turnstile.Config{}} -> :ecto
-    end
-  end
 end
 
 defmodule Example.Scenarios.Rules do
   @moduledoc """
   What a thin application supplies for the scenarios that name the rules
-  themselves: a tightened policy under which a program member no longer
-  reads, published as a policy version for the calling process, its
-  restoration, and the boot policy published again for a tier that empties
-  the ledger between tests. Where the engine keeps state of its own, the
-  per-test setup as well.
+  themselves: the telemetry event its adapter publishes a policy version on,
+  a tightened policy under which a program member no longer reads, published
+  as a policy version for the calling process, and its restoration. Where the
+  engine keeps state of its own, the per-test setup as well.
   """
 
   @doc """
@@ -207,14 +189,14 @@ defmodule Example.Scenarios.Rules do
   """
   @callback setup(tags :: map()) :: :ok
 
+  @doc "The telemetry event this application's adapter emits a policy version on."
+  @callback version_event() :: [atom()]
+
   @doc "Publish a policy under which `member` no longer holds `read`, returning the version."
   @callback publish_tightened() :: {:ok, Turnstile.PolicyVersion.t()}
 
   @doc "Restore the boot policy for the calling process."
   @callback restore() :: :ok
-
-  @doc "Publish the boot policy as the version the ledger starts from."
-  @callback publish_boot() :: :ok
 
   @optional_callbacks setup: 1
 end
