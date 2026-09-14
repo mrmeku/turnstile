@@ -8,5 +8,5 @@ defmodule ExampleRbac do
 
   use Boundary,
     deps: [Example, Turnstile, Turnstile.Code, Ecto],
-    exports: [Application, Policy, Predicates]
+    exports: [Application, Policy]
 end

@@ -1,16 +1,16 @@
-defmodule ExampleRbac.Predicates do
-  @moduledoc """
-  The predicates and the hop filter the policy names, as `dynamic`
-  expressions the adapter puts in every rule. Each reads the tables at the
-  time of the call (C11); none copies a fact.
-
-  The controls predicates are one subquery: the rows a control blocks for
-  the subject while the document is controlled. A row is blocked when any
-  effective control of its marking fails the subject, where the effective
-  controls are the marking's own and those a specified category it names
-  implies (C3). The document's list applies to the document and to each of
-  its portions.
-  """
+defmodule ExampleRbac.Core.Predicates do
+  @moduledoc false
+  # Hidden, because what the policy names is the policy's own surface, not
+  # this one. What is here is the predicates and the hop filter the policy
+  # gives the adapter, as `dynamic` expressions it puts in every rule. Each
+  # reads the tables at the time of the call (C11); none copies a fact.
+  #
+  # The controls predicates are one subquery: the rows a control blocks for
+  # the subject while the document is controlled. A row is blocked when any
+  # effective control of its marking fails the subject, where the effective
+  # controls are the marking's own and those a specified category it names
+  # implies (C3). The document's list applies to the document and to each of
+  # its portions.
 
   import Ecto.Query, only: [dynamic: 1, dynamic: 2, from: 2]
 

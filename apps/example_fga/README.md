@@ -20,7 +20,8 @@ rows require, object by object.
 ## What is here
 
 - `ExampleFga.Application`: boots `Turnstile.Config` with the server's address and the store, binds `Example.Repo`, the model file, the mapping, and the guard, attaches the handler that writes a marker per change, starts the repos and the runner that delivers those markers, and publishes the model as a policy version.
-- `ExampleFga.TupleMapping`: which object types this application writes, which objects of a type its tables hold, which objects one change can have affected, and which tuples an object requires. Every answer is read from the rows as they stand, which is what lets the drain write differences rather than translate changes.
+- `ExampleFga.TupleMapping`: which object types this application writes, which objects of a type its tables hold, which objects one change can have affected, and which rows an object's tuples are read from. Every answer is read from the rows as they stand, which is what lets the drain write differences rather than translate changes.
+- `lib/example_fga/core/tuples.ex`: what a row states, once the mapping has fetched it. It decides and touches nothing, so a test calls it directly.
 - `ExampleFga.Guard`: the re-authentication window, read from the environment before the server is asked, for a fact about the session that no tuple should carry.
 - `priv/fga/model.fga`: the model as text, which is the artifact under review and what a policy version carries as its content.
 - `priv/repo/migrations/`: the example's tables through the helpers the library packages ship, then the marker outbox and the cursor the drain keeps its place in.

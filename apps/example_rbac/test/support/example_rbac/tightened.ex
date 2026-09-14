@@ -18,7 +18,7 @@ defmodule ExampleRbac.Tightened do
   alias Example.Portion
   alias Example.Program
   alias Example.Proposal
-  alias ExampleRbac.Predicates
+  alias ExampleRbac.Core.Predicates
 
   role :member, [:read_redacted]
   role :lead, [:read, :read_redacted]
