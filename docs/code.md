@@ -21,7 +21,7 @@
 | Keep functions monomorphic: one shape in, one shape out | A function that accepts "a map or a struct or a keyword list" types as `dynamic()` everywhere it is used |
 | Confine `dynamic()` sources to the edge and narrow immediately: decode, validate, build a struct | Everything downstream of a struct is typed; everything downstream of a map is not |
 | Use `nil` only where "absent" is domain meaning, typed `t \| nil`, and handle it at every consumer | The checker will catch `nil.field`; it cannot tell you `nil` was a placeholder for "not computed yet" |
-| Write a capability declaration as one function clause per record plus a fallback, never a map lookup | The checker read an empty-map lookup as returning only the default; clauses give it one atom set per rule |
+| Write a declaration as generated function clauses, never as a module attribute a lookup reads | The checker reads an empty-map lookup as returning its default alone; clauses give it one atom set per case |
 | Type a role definition's actions as `[atom()]`, and every list literal as the checker allows | The checker cannot narrow a list literal from params; the declared type is the evidence |
 | Set `infer_signatures: true` in every app's `elixirc_options` | Compiler options do not propagate from dependencies; each app must ask for its own signatures. On 1.20.4 the default is already `true`, so the setting documents the intent and protects against a future change of default |
 | Recompile dependencies after an Elixir upgrade (`mix deps.compile --force`) | Signatures live in the compiled beams; stale deps mean stale inference |
@@ -37,36 +37,35 @@
 defmodule Turnstile.Decision do
   @moduledoc "What the port said, when, from what state, under which rules."
   @enforce_keys [:id, :subject, :object, :operation, :verdict, :reason, :adapter, :policy_version,
-                 :head_position, :applied_position, :operation_id, :at]
+                 :operation_id, :at]
   defstruct @enforce_keys
 
   @type verdict :: :allow | :deny | :scoped
   @type t :: %__MODULE__{
           id: Turnstile.Id.t(), subject: Turnstile.subject(), object: Turnstile.object(),
           operation: atom(), verdict: verdict(), reason: Turnstile.Answer.reason(), adapter: module(),
-          policy_version: Turnstile.PolicyVersion.ref(),
-          head_position: non_neg_integer() | nil, applied_position: non_neg_integer() | nil,
+          policy_version: Turnstile.PolicyVersion.ref() | nil,
           operation_id: Turnstile.Id.t(), at: DateTime.t()
         }
 end
 ```
 
-Two positions, not one: the head at decision time and the position the adapter's state had applied, equal unless the adapter projects, both `nil` in ledger mode none (`docs/reference.md` §7).
+`policy_version` is `nil` where the adapter names no version for the answer, and that is the only field of it that may be absent.
 
-**Structs the reference names**, each defined this way: `%Turnstile.Decision{}`, `%Turnstile.FactEvent{}` (§8), `%Turnstile.PolicyVersion{}` (§5), `%Turnstile.Exemption{kind: :declared | :library}` (§6), `%Turnstile.Config{}` (§15); the one exception `%Turnstile.Error{reason, detail}`; the behaviours `Turnstile.Adapter`, `Turnstile.Ledger`, `Turnstile.Ledger.Dialect` (seven questions, §11), `Turnstile.Projection` (`checkpoint/1`, `drain_once/1`, `rebuild/1`, `reconcile/1`), `Turnstile.Capabilities` (`capability/1`), `Turnstile.Fga.Client`, `Turnstile.Fga.TupleMapping`.
+**Structs the reference names**, each defined this way: `%Turnstile.Decision{}` (§7), `%Turnstile.Answer{verdict, reason, version, meta}`, what an adapter hands back, `%Turnstile.PolicyVersion{}` (§5), `%Turnstile.Exemption{kind: :declared | :library}` (§6), `%Turnstile.Config{}` (§14), `%Turnstile.Schema.Fact{}` and `%Turnstile.Schema.Relationship{}` (§8); the one exception `%Turnstile.Error{reason, detail}`; the behaviours `Turnstile.Adapter` (§4), `Turnstile.Relay.Job` (§9), `Turnstile.Fga.Client`, `Turnstile.Fga.TupleMapping`, `Turnstile.Fga.Guard`, and the conformance behaviours `Turnstile.Conformance.World` and `Turnstile.Conformance.Seed`.
 
 **On structs, these are banned:** `Map.put/3`, `Map.merge/2`, `Map.update/4`, `Map.delete/2`, `Access` (`s[:k]`), `Map.from_struct/1` outside serializers. Update with `%S{s | field: v}`; the checker verifies the key. Build with the literal, or at an edge with the raising variant of `struct/2`, never the plain one, which drops unknown keys silently.
 
 **Three things that are not records, and stay maps.**
 - *Dictionaries*: a map keyed by data, not by field name: `%{user_id => [permission]}`, `%{position => event}`. Typed by the checker since 1.20. Prefer `MapSet` for sets.
-- *Decider meta*: the `meta` of `%Turnstile.Answer{}`. Which keys it carries is the decider's to choose, so the set is open and no field list can stand for it. `Turnstile.Answer`'s moduledoc fixes what a key means where a decider sets one, and the reason beside it stays a word every decider shares.
+- *Adapter meta*: the `meta` of `%Turnstile.Answer{}`. Which keys it carries is the adapter's to choose, so the set is open and no field list can stand for it. `Turnstile.Answer`'s moduledoc fixes what a key means where an adapter sets one, and the reason beside it stays a word every adapter shares.
 - *Edges*: the top-level telemetry metadata and measurements maps (telemetry's contract), Ecto changeset params, decoded JSON and YAML, Cerbos request payloads, OpenFGA request and response bodies, `.credo.exs`-style config. Each edge has exactly one function that converts map to struct (`from_map/1`, validating, returning `{:ok, t} | {:error, %Turnstile.Error{reason: :invalid}}`) or struct to map (`to_map/1`, `Jason.Encoder` derived with `only:`). The struct is what travels; inside telemetry metadata the payload is `%{event: %Turnstile.Decision{}}`, a struct inside the contract map.
 
 **Options are schemas, not maps or free keyword lists.** Every function that takes options declares a `NimbleOptions` schema: compile-time documentation, runtime validation with a precise error, and a generated typespec. `Keyword.validate/2` is acceptable for two or three boolean flags. `opts[:foo]` without a schema is a Credo failure. The seam's `turnstile:` option is a schema accepting `%Turnstile.Decision{}`, `{:exempt, reason}` with a non-empty string, or `{:exempt, :library}`, the last accepted only from a `Turnstile.*` caller, which the seam checks.
 
-**Events.** A fact event is `%Turnstile.FactEvent{kind, subject_ref, object_ref, attribute, old, new, position, operation_id, at, by}` with `kind` one of `:subject_attribute`, `:object_attribute`, `:relationship`, `:policy_version`; `old` and `new` are typed per kind, and for `:policy_version` `new` is `%Turnstile.PolicyVersion{}`. A decision event is `%Turnstile.Decision{}`. Never `%{type: "assignment_granted", payload: %{}}`. Serialization to a map happens in the telemetry handler and the ledger writer, nowhere else.
+**Events.** Two, both telemetry, both published and neither stored (`docs/reference.md` §7). A telemetry payload is an edge by the rule above, so each is built in exactly one place: `Turnstile.Change` computes the change payload from the write itself, inside the write's transaction, and `Turnstile.Port` builds the decision payload from the call it answered. What travels inside the library is the struct, `%Turnstile.Decision{}`, which the seam reads from the `turnstile:` option; `to_map/1` and `from_map/1` are the only places it becomes a map and the only places it comes back. Never `%{type: "assignment_granted", payload: %{}}`.
 
-**Configuration**. `%Turnstile.Config{}` is validated once at boot from a `NimbleOptions` schema and is the only runtime configuration the library reads. Core reads the adapter from it at boot; one build serves every adapter, and Tier 1 binds one per test module through the override. Its fields, as `docs/reference.md` §15 lists them: `adapter` (`module | {module, keyword}`, the options validated by the adapter's own schema), `ledger` (`{Turnstile.Ledger.Ecto, repo: module, owner_repo: module} | :none`), `ledger_counter` (default `"default"`, a test override), `clock` (a zero-arity function answering the current time), and `caps` (one keyword list). `Application.get_env/2` inside a function body is banned; everything is read once into the struct. `Application.compile_env/3` is reserved for the example's generated per-operation functions and appears nowhere else. Tests override any field through `Turnstile.Test.with_config/1` (for the rest of the calling process) and `with_config/2` (around a function, restored after); both write one process-dictionary key, and the seam's resolver reads it from `self()` and then the `$callers` chain, falling back to the boot struct.
+**Configuration**. `%Turnstile.Config{}` is validated once at boot from a `NimbleOptions` schema, put in `:persistent_term`, and is the only runtime configuration the library reads. The port reads the adapter from it; one build serves every adapter, and Tier 1 binds one per test module through the override. Three fields, as `docs/reference.md` §14 lists them: `adapter` (`module | {module, keyword}`, required, the options validated by the adapter's own schema), `clock` (a zero-arity function answering the current time, default `&DateTime.utc_now/0`), and `caps` (one keyword list, `policy_content_bytes` its only key). `Application.get_env/2` inside a function body is banned; everything is read once into the struct. Tests override any field through `Turnstile.Test.with_config/1` (for the rest of the calling process) and `with_config/2` (around a function, restored after); both write one process-dictionary key, and the seam's resolver reads it from `self()` and then the `$callers` chain, falling back to the boot struct.
 
 ## 3. The knobs
 
@@ -81,7 +80,7 @@ Elixir has no `strict: true`; it has a dozen switches. All of them are on.
 | Undefined-call allowlist | `elixirc_options` | `no_warn_undefined: []`, empty | Nothing is silenced; the deprecated `xref: [exclude:]` is not used |
 | Full, fresh type check in CI | CI | `mix compile --force --warnings-as-errors --all-warnings` | Incremental compiles skip unchanged modules; CI checks all of them |
 | Tests fail on warnings | CI | `mix test --warnings-as-errors` | A warning printed during a test run is a failure |
-| Coverage threshold | `mix.exs` `test_coverage` | `[summary: [threshold: 90]]`, `ignore_modules` for the generated per-operation modules | `mix test --cover` fails below the line |
+| Coverage thresholds | each app's `mix.exs` `test_coverage` | 90% over the application, and 100% over every module under a `core/` in a run with `TURNSTILE_CORE_COVERAGE` set | `mix test --cover` fails below the line; `mix test.core` is the second of `PLAN.md` §5's two numbers |
 | Formatting | `.formatter.exs`, CI | `import_deps`, `plugins: [Styler]`; `mix format --check-formatted` | Styler rewrites to one set of idioms (alias order, pipe shape, `case` and `if` normalisation) so style is not reviewed by humans |
 | Credo | `.credo.exs`, CI | `mix credo --strict --all`; every check enabled, each disabled check carries a comment saying why | See the list below |
 | Module dependencies | each app's root module | `use Boundary` with explicit `deps:` and `exports:`; the top-layer rule keeps `authorize`, `check`, `batch`, `explain`, and `review` off `ecto_sql` | Architecture is compile-checked, not reviewed |
@@ -89,7 +88,7 @@ Elixir has no `strict: true`; it has a dozen switches. All of them are on.
 | Dependency hygiene | CI | `mix deps.unlock --check-unused`, `mix hex.audit`, `mix deps.audit` (`mix_audit`) | No orphaned locks, no retired packages, no known CVEs except one acknowledged by id in `mix.exs` with the reason it does not apply and the check that no patched release exists |
 | Docs | CI | `mix docs --warnings-as-errors` | A broken reference in `@doc` fails; `@moduledoc` and `@doc` on every public module and function (Credo enforces) |
 | Callbacks | code | `@impl true` on every callback implementation (Credo `ImplTrue`) | The compiler then warns on a callback that is not one and a function that should be |
-| Phoenix security | CI, `turnstile_example` and the thin apps | `mix sobelow --config --exit` | The example is the thing an assessor reads first |
+| Phoenix security | CI, `example` and the thin apps | `mix sobelow --config --exit` | The example is the thing a reader looks at first |
 | Property tests | Tier 1 | `stream_data` for the port guarantees | Scope fidelity and deny-by-default are properties over random subjects and objects, not five examples |
 
 **Hex pins**, verified against hex.pm on 2026-09-07; `mix.lock` is the pin and S0 re-verifies each one:
@@ -101,9 +100,9 @@ Elixir has no `strict: true`; it has a dozen switches. All of them are on.
 | `boundary` | 0.10.4 | 2024-09-25 | two years without a release; S1 confirms it compiles and reports on Elixir 1.20 before the top-layer rule depends on it |
 | `styler` | 1.12.2 | 2026-07-30 | |
 | `muontrap` | 2.0.0 | 2026-08-13 | a new major; 1.8.0 was the last 1.x. The `MuonTrap.Daemon` API the cluster and the Cerbos helper use is checked against the 2.0 changelog at S0 before either is written |
-| `mneme` | not used | 0.10.2, 2025-01-24 | dropped: no release in nineteen months, unverified on 1.20; golden files with plain assertions instead (`docs/testing.md` §6) |
+| `mneme` | not used | 0.10.2, 2025-01-24 | dropped: no release since before Elixir 1.20, and it rewrites test source files, a second formatter beside Styler; plain assertions instead (`docs/testing.md` §6) |
 
-Credo checks that are off by default and are on here: `Readability.Specs` (every public function has a `@spec`), `Readability.StrictModuleLayout`, `Readability.ImplTrue`, `Readability.WithSingleClause`, `Refactor.WithClauses`, `Refactor.Apply`, `Refactor.ABCSize`, `Refactor.CyclomaticComplexity`, `Refactor.Nesting` at strict thresholds, `Warning.UnsafeToAtom`, `Warning.MapGetUnsafePass`, `Design.AliasUsage`, `Design.TagTODO` and `TagFIXME` as failures. Custom, shipped in core: `Turnstile.Credo.NoRawSQL` and `UnmediatedRepo` (the plan's two; the second excepts the owner-role repo), plus `Turnstile.Credo.StructsEnforceKeys` (a `defstruct` without `@enforce_keys` and `@type t` fails) and `Turnstile.Credo.NoRecordMaps` (a map literal with two or more atom keys outside an edge module is flagged; advisory, because it is a heuristic).
+Credo checks that are off by default and are on here: `Readability.Specs` (every public function has a `@spec`), `Readability.StrictModuleLayout`, `Readability.ImplTrue`, `Readability.WithSingleClause`, `Refactor.WithClauses`, `Refactor.Apply`, `Refactor.ABCSize`, `Refactor.CyclomaticComplexity`, `Refactor.Nesting` at strict thresholds, `Warning.UnsafeToAtom`, `Warning.MapGetUnsafePass`, `Design.AliasUsage`, `Design.TagTODO` and `TagFIXME` as failures. Custom, shipped in `turnstile_credo`: `Turnstile.Credo.NoRawSQL` and `UnmediatedRepo` (the plan's two; the second excepts the owner-role repo), plus `Turnstile.Credo.StructsEnforceKeys` (a `defstruct` without `@enforce_keys` and `@type t` fails) and `Turnstile.Credo.NoRecordMaps` (a map literal with two or more atom keys outside an edge module is flagged; advisory, because it is a heuristic).
 
 **Deliberately off.** Dialyzer: the compiler's checker has the sound half of what Dialyzer offered and none of the noise, and the project does not carry PLTs. Runtime type-check libraries (Norm, TypeCheck, Domo): structs plus `NimbleOptions` at the edges cover what they would, without runtime cost inside the request path. `module_definition: :interpreted`: a compile-speed option, not a correctness one; leave the default unless build times say otherwise.
 
@@ -111,11 +110,11 @@ Credo checks that are off by default and are on here: `Readability.Specs` (every
 
 **Module layout**, enforced by `StrictModuleLayout` in the order Styler writes: `@moduledoc`; `@behaviour`; `use`; `import`; `alias`; `require`; module attributes; `@enforce_keys` and `defstruct`; `@type`s, after the struct because `@type t` names `%__MODULE__{}` and the compiler refuses that before `defstruct`; `@callback`s; public functions; private functions. A function with `@doc false` counts as private. One module, one concept; no `Helpers` or `Utils` modules; a function belongs to the struct or behaviour it serves.
 
-**Behaviours, not duck typing.** Every pluggable thing is a `@behaviour` with `@callback`s and `@optional_callbacks`; implementations mark `@impl true`; surfaces are enumerated with `Module.behaviour_info/1`, never hand-listed. Protocols only for dispatch on data type (`Turnstile.Explainable`), never as a substitute for a behaviour. **Optional callbacks are answered at runtime**: `explain` is optional, core checks `function_exported?/3` and returns `{:error, %Turnstile.Error{reason: :unsupported}}` when it is absent; no function is generated or omitted according to the adapter, so one build serves every adapter.
+**Behaviours, not duck typing.** Every pluggable thing is a `@behaviour` with `@callback`s and `@optional_callbacks`; implementations mark `@impl true`; surfaces are enumerated with `Module.behaviour_info/1`, never hand-listed. Protocols only for dispatch on a data type, and the library defines none, because every pluggable thing here is a module the application names. **Optional callbacks are answered at runtime**: `explain` is optional, core checks `function_exported?/3` and returns `{:error, %Turnstile.Error{reason: :unsupported}}` when it is absent; no function is generated or omitted according to the adapter, so one build serves every adapter.
 
-**Fakes**. A fake, stub, or in-memory implementation returns a value of the real type wherever the real implementation returns one; it never raises in its place. `Turnstile.Adapter.Fake`'s `scope` returns a real `dynamic`, its `explain` returns `{:error, %Turnstile.Error{reason: :unsupported}}`; `Turnstile.Fga.Client.Fake` returns the same `{:ok, t} | {:error, %Turnstile.Error{reason: :engine_unreachable}}` shapes as the real client; the in-memory ledger returns what the Ecto ledger returns. The reason is the checker: a stub that raised typed every call site as a certain crash under warnings-as-errors.
+**Fakes**. A fake, stub, or in-memory implementation returns a value of the real type wherever the real implementation returns one; it never raises in its place. `Turnstile.Test.Fake`'s `scope` returns a real `dynamic`, its `explain` returns `{:error, %Turnstile.Error{reason: :unsupported}}`, and a table told to fail answers `:engine_unreachable` rather than raising; `Turnstile.Fga.Client.Fake` returns the same `{:ok, t} | {:error, %Turnstile.Error{}}` shapes as the real client. The reason is the checker: a stub that raised typed every call site as a certain crash under warnings-as-errors.
 
-**Capability records**. A thin app's `Turnstile.Capabilities` implementation is one `capability/1` clause per record plus a fallback clause; the record is `{level, by: component, note: String.t()}` with `level` in `:native | :limited | :unsupported` and `component` in `:adapter | :seam | :database | :engine | :application`. Never a map lookup, never a module attribute holding the table.
+**Declarations are generated clauses**. `use Turnstile.Schema`'s `object_type/1`, `carries/1`, `audited/1`, `fact/2`, and `relationship/1` accumulate at compile time and a `@before_compile` writes `__turnstile__/1`, one clause per question the seam asks. The reason is the checker: a clause per case gives it an atom set, where a module attribute read through a lookup types as its default alone. The same rule holds for an adapter's own declarations, `scope_cap/0` and `settle/0` among them.
 
 **Errors.** An expected failure is a value: `{:error, %Turnstile.Error{reason: :rule_denied}}`. There is one error module, `defexception` with `@enforce_keys` and a `message/1` that answers the detail, and the reason is the word that says why: a denial's own reason where the failure follows a denial, and `:unsupported`, `:invalid`, or `:unmediated` where it is the library's. A programmer error raises. Bang variants raise the same struct. The port never raises on the request path, the plan's fail-closed guarantee, so port errors are values without exception; the seam's refusal, `reason: :unmediated`, raises, because an unmediated call is a programming error. No `{:error, :some_atom}`, no `{:error, "string"}`, no `nil` for "not found".
 
@@ -123,19 +122,19 @@ Credo checks that are off by default and are on here: `Readability.Specs` (every
 
 **Atoms.** Never created from external input: `String.to_atom/1` is banned; `String.to_existing_atom/1` only behind an explicit allowlist. `Ecto.Enum` for atom-valued schema fields, so the database column and the code agree on the set.
 
-**Nil.** Not a return value. In a struct, only as `t | nil` where absence is meaning (`head_position: nil` in ledger mode none), and every consumer branches on it explicitly.
+**Nil.** Not a return value. In a struct, only as `t | nil` where absence is meaning (`policy_version: nil` where the adapter names no version), and every consumer branches on it explicitly.
 
 **Control flow.** `with` for a chain of results; every `else` clause names the shape it handles; no `with` with one clause. `case` over `cond` where there is a value; `cond` over nested `if`. No `try/rescue` for control flow; `rescue` only at supervision or edge boundaries, and it re-raises what it does not understand.
 
-**Reflection and metaprogramming.** `apply/3`, `Module.definitions_in/1`, `__info__/1`, and `Code.*` are confined to the places the plan needs them and allowlisted in Credo by module: `Turnstile.Conformance.RepoCase` and the example's per-operation function generation. **The seam's overrides and `prepare_query/3` are defined in `@before_compile`** with `defoverridable` and `super`; the surface is a plain list in `Turnstile.Repo.Surface`, and `RepoCase` diffs it against `Repo.__info__(:functions)` at test time (`docs/reference.md` §6). Every macro has a function it calls; a macro's body is dispatch, not logic. `use Turnstile.Repo`, `use Turnstile.Schema` (`object_type/1`, `carries/1`, `fact/2`, `relationship/1`), the `scenario` macro, and the per-operation generator are the only public macros.
+**Reflection and metaprogramming.** `apply/3`, `Module.definitions_in/1`, `__info__/1`, and `Code.*` are confined to the places the plan needs them and allowlisted in Credo by module: the conformance templates, which read what they prove off the module they are pointed at. **The seam's overrides and `prepare_query/3` are defined in `@before_compile`** with `defoverridable` and `super`; the surface is a plain list in `Turnstile.Core.Surface`, and `RepoCase` diffs it against `Repo.__info__(:functions)` at test time (`docs/reference.md` §6). Every macro has a function it calls; a macro's body is dispatch, not logic. `use Turnstile.Repo`, `use Turnstile.Schema` (`object_type/1`, `carries/1`, `audited/1`, `fact/2`, `relationship/1`), the case templates, and the `scenario` macro are the only public macros.
 
-**Processes.** Library code owns no long-lived processes except the reconcile scheduler and the projector, both started by the thin app, both startable unnamed with injected repo, ledger, clock, and client; state in any GenServer is a struct; the process dictionary is touched in the seam's dynamic-repo entry and in the test configuration resolver, nowhere else. The RBAC adapter's boot-time policy-version append runs inside a transaction that takes the counter row, so it cannot race across nodes, and in mode none it emits telemetry only. No `Process.sleep/1` in tests: deadline loops with `assert_receive` or the polling helper, which is also how revocation latency is measured.
+**Processes.** Library code owns one long-lived process, the relay's runner, started by the thin app that wants it, startable unnamed with the repo, the job, and the clock injected; state in any GenServer is a struct; the process dictionary is touched in the seam's mediation entry, in the dynamic-repo entry, and in the test configuration resolver, nowhere else. A pass takes an advisory lock, so two runners on two nodes cannot deliver the same batch twice (`docs/reference.md` §9). No `Process.sleep/1` in tests: deadline loops with `assert_receive` or the polling helper, which is also how revocation latency is measured.
 
-**Ecto.** `@primary_key` and field types explicit in every schema; `Ecto.Enum` for atoms; changesets cast at the edge and validated before anything else sees the data; `Repo` only through the seam, or through the owner-role repo for the library's own writes. The `dynamic` that `scope` returns is opaque to the checker, the one place we accept it, and the adapter that builds it is covered by the scope-fidelity property, not by types. An upsert on a fact schema is refused; the bulk API is `Turnstile.Facts.bulk_update/3`, `bulk_delete/2`, `bulk_insert/3`.
+**Ecto.** `@primary_key` and field types explicit in every schema; `Ecto.Enum` for atoms; changesets cast at the edge and validated before anything else sees the data; `Repo` only through the seam, or through the owner-role repo for the library's own writes. The `dynamic` that `scope` returns is opaque to the checker, the one place we accept it, and the adapter that builds it is covered by the scope-fidelity property, not by types. A bulk write or an upsert on an audited schema raises, because one statement over many rows has no old value to record (`docs/reference.md` §8); an application with many rows to change writes them one at a time, goes through the owner-role repo, or reconsiders what it declared audited.
 
 **Documentation.** `@doc` on every public function, with a doctest where the example is cheap and true; `@doc false` for functions that must be public for a macro; `@typedoc` on every public type. Test names are the scenario id and sentence from `docs/reference.md` §1 and §3a.
 
-**Naming**. `Turnstile.` for library modules; `Example.` for `turnstile_example`; `ExampleRbac.`, `ExamplePostgres.`, `ExampleCerbos.`, `ExampleFga.` for the thin apps. A struct's module is a noun (`Decision`, `FactEvent`); a behaviour's is a role (`Adapter`, `Ledger`, `Dialect`, `Projection`); a Credo check's is `Turnstile.Credo.<Rule>`. "Adapter", never "provider". No abbreviations in public names.
+**Naming**. `Turnstile.` for library modules; `Example.` and `ExampleWeb.` for `example`; `ExampleRbac.`, `ExamplePostgres.`, `ExampleCerbos.`, `ExampleFga.` for the thin apps. A struct's module is a noun (`Decision`, `Answer`, `Exemption`); a behaviour's is a role (`Adapter`, `Job`, `Client`, `Guard`); a Credo check's is `Turnstile.Credo.<Rule>`. "Adapter", never "provider". No abbreviations in public names.
 
 ## 5. The gate
 
@@ -147,11 +146,22 @@ def project do
   [
     elixir: "~> 1.20.4",
     elixirc_options: [warnings_as_errors: true, infer_signatures: true, no_warn_undefined: []],
-    test_coverage: [summary: [threshold: 90], ignore_modules: [~r/\.Generated\./, ~r/TestRepos\./]],
+    test_coverage: test_coverage(),
     aliases: aliases(),
     hex: [ignore_advisories: ["CVE-2026-32686"]], # decimal, no patched release; the reason sits beside it in the real file
     ...
   ]
+end
+
+# A run with the variable set ignores every module whose name carries no
+# `.Core.` segment and holds what is left to every line; any other run is the
+# ordinary one, a floor under the application as a whole.
+defp test_coverage do
+  if System.get_env("TURNSTILE_CORE_COVERAGE") do
+    [summary: [threshold: 100], ignore_modules: [...]]
+  else
+    [summary: [threshold: 90], ignore_modules: [~r/\.Generated\./, ~r/TestRepos\./]]
+  end
 end
 
 defp aliases do
@@ -166,8 +176,10 @@ defp aliases do
       "deps.unlock --check-unused", # in the root alias only: the lock is the umbrella's, and a child's check flags what its siblings lock
       "deps.audit --ignore-advisory-ids GHSA-rhv4-8758-jx7v", # the same advisory, by its GitHub id
       "docs --warnings-as-errors",
-      "test --warnings-as-errors --cover" # test_helper starts the ephemeral Postgres, Cerbos, and OpenFGA (docs/testing.md §3 to §4)
-    ]
+      "test" # the function below, so CI adds --partitions through an environment variable rather than a second alias
+    ],
+    test: &run_tests/1, # mix cmd mix test --warnings-as-errors --cover, per app
+    "test.core": &run_core_tests/1 # the same, unpartitioned, over the apps that own a core/, with TURNSTILE_CORE_COVERAGE set
   ]
 end
 ```
@@ -181,7 +193,7 @@ end
 ]
 ```
 
-At the root the test step is `mix cmd mix test`, which runs each app's suite in an operating-system process of its own: the umbrella's recursion starts every application in one VM, and the two thin applications bind the same example modules, so one VM cannot hold both (`docs/testing.md` §3). `turnstile_example` and each thin app add `sobelow --config --exit` to their own alias. The lock check runs at the root alone, where every app's dependencies are known; the root's `quality` is part of every stage's gate. Tier 1's property tests and shape tests run under `mix test`, so the gate checks the seam's shape too; `mix turnstile.bench` is on demand and not part of the gate. The thin-app CI jobs (`docs/testing.md` §7) run after `quality` and add the schema dump.
+At the root the test step is `mix cmd mix test`, which runs each app's suite in an operating-system process of its own: the umbrella's recursion starts every application in one VM, and the thin applications bind the same example modules, so one VM cannot hold two of them (`docs/testing.md` §3). `run_core_tests/1` reads which apps own a `core/` off the tree rather than from a list kept by hand, so a new package with one is covered the day it appears. `example` and each thin app add `sobelow --config --exit` to their own alias. The lock check runs at the root alone, where every app's dependencies are known; the root's `quality` is part of every stage's gate. Tier 1's property tests and shape tests run under `mix test`, so the gate checks the seam's shape too. The thin-app CI jobs (`docs/testing.md` §7) run after `quality` and add the schema dump.
 
 ## 6. Known gaps, and what covers each
 
@@ -190,11 +202,11 @@ At the root the test step is `mix cmd mix test`, which runs each app's suite in 
 | `@spec` is not checker input yet | Credo `Specs` keeps them present; review keeps them true; the signature milestone will use them |
 | `Ecto.Query.DynamicExpr` is opaque | The scope-fidelity property test in Tier 1 |
 | Maps from JSON, YAML, params are `dynamic()` | One `from_map/1` per edge, validating into a struct |
-| `apply/3` and reflection hide call sites from the checker | Confined to the allowlisted modules, each with an enumeration-driven test; `RepoCase` reads the compiled Repo's exports at test time, where it sees everything |
-| An empty-map lookup types as its default alone | Capability declarations are function clauses |
+| `apply/3` and reflection hide call sites from the checker | Confined to the conformance templates, which read what they prove off the compiled module at test time, where they see everything |
+| An empty-map lookup types as its default alone | Declarations are generated function clauses |
 | A list literal cannot be narrowed from params | Declared list types, `[atom()]` for a role's actions |
 | A stub that raises types every call site as a crash | Fakes return values of the real type |
 | No parametric types, so `Result.t(inner)` cannot be expressed | Concrete `@type`s per use; not worth a workaround |
-| Compiler options do not propagate from dependencies | `infer_signatures: true` in every app; documented for adopters in core's README |
+| Compiler options do not propagate from dependencies | `infer_signatures: true` in every app; documented for adopters in `apps/turnstile/README.md` |
 | Signatures from stale dependency beams | `mix deps.compile --force` on Elixir upgrades, in the bump procedure |
 | The checker reports only verified bugs, not everything a stricter language would | Structs, guards, atom unions, and the `NoRecordMaps` check make more of the program verifiable; that is the whole of §1 and §2 |
