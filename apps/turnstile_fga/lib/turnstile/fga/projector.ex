@@ -39,11 +39,9 @@ defmodule Turnstile.Fga.Projector do
   alias Turnstile.Fga.Client
   alias Turnstile.Fga.Client.Page
   alias Turnstile.Fga.Client.Read
-  alias Turnstile.Fga.Client.Write
-  alias Turnstile.Fga.TupleKey
+  alias Turnstile.Fga.Core.Drain
   alias Turnstile.Ledger.Fold
   alias Turnstile.Ledger.Reader
-  alias Turnstile.Projection.Drain
   alias Turnstile.Projection.Drift
 
   @schema NimbleOptions.new!(
@@ -155,7 +153,7 @@ defmodule Turnstile.Fga.Projector do
   def rebuild(%__MODULE__{} = projector) do
     with {:ok, store} <- projector.client.create_store(projector.endpoint, projector.store_name),
          {:ok, _model} <- projector.client.write_model(projector.endpoint, store, projector.model),
-         {:ok, %Drain{}} <- drain_once(%{projector | store: store}) do
+         {:ok, %Turnstile.Projection.Drain{}} <- drain_once(%{projector | store: store}) do
       {:ok, store}
     end
   end
@@ -235,9 +233,9 @@ defmodule Turnstile.Fga.Projector do
 
   defp apply_object(projector, fold, object, positions) do
     with {:ok, present} <- present(projector, object) do
-      {deletes, writes} = difference(projector.mapping.tuples(fold, object), present)
+      {deletes, writes} = Drain.difference(projector.mapping.tuples(fold, object), present)
 
-      run_calls(projector, calls(deletes, writes, projector.batch), positions)
+      run_calls(projector, Drain.calls(deletes, writes, projector.batch), positions)
     end
   end
 
@@ -245,7 +243,7 @@ defmodule Turnstile.Fga.Projector do
     to = last_position(pending, from)
     :ok = advance(projector, to)
 
-    {:ok, %Drain{from: from, to: to, applied: length(pending)}}
+    {:ok, %Turnstile.Projection.Drain{from: from, to: to, applied: length(pending)}}
   end
 
   defp last_position([], from), do: from
@@ -295,44 +293,6 @@ defmodule Turnstile.Fga.Projector do
     end
   end
 
-  # A tuple is identified by its user, its relation, and its object, and a
-  # condition is a value on it, so a tuple whose condition changed is the
-  # same key with another value: a delete and a write of that key.
-  defp difference(required, present) do
-    wanted = by_key(required)
-    have = by_key(present)
-
-    deletes = for {key, tuple} <- have, Map.get(wanted, key) != tuple, do: tuple
-    writes = for {key, tuple} <- wanted, Map.get(have, key) != tuple, do: tuple
-
-    {sorted(deletes), sorted(writes)}
-  end
-
-  defp by_key(tuples), do: Map.new(tuples, &{TupleKey.key(&1), &1})
-
-  defp sorted(tuples), do: Enum.sort_by(tuples, &TupleKey.key/1)
-
-  # One call refuses a tuple key that appears in both its deletes and its
-  # writes, so a key on both sides is written in a call of its own after the
-  # deletion.
-  defp calls(deletes, writes, batch) do
-    keys = MapSet.new(deletes, &TupleKey.key/1)
-    {rewritten, plain} = Enum.split_with(writes, &MapSet.member?(keys, TupleKey.key(&1)))
-
-    packed(deletes, plain, batch) ++ packed([], rewritten, batch)
-  end
-
-  # Each call carries at most `batch` changes, its deletes and its writes
-  # counted together, which is how the server counts them.
-  defp packed([], [], _batch), do: []
-
-  defp packed(deletes, writes, batch) do
-    {call_deletes, rest_deletes} = Enum.split(deletes, batch)
-    {call_writes, rest_writes} = Enum.split(writes, batch - length(call_deletes))
-
-    [%Write{deletes: call_deletes, writes: call_writes} | packed(rest_deletes, rest_writes, batch)]
-  end
-
   defp stored(projector) do
     step = fn type, {:ok, done} ->
       case read_pages(projector, %Read{object_type: type, limit: projector.batch}, []) do
@@ -356,8 +316,8 @@ defmodule Turnstile.Fga.Projector do
     have = MapSet.new(present)
 
     %Drift{
-      missing: sorted(MapSet.difference(wanted, have)),
-      extra: sorted(MapSet.difference(have, wanted)),
+      missing: Drain.sorted(MapSet.difference(wanted, have)),
+      extra: Drain.sorted(MapSet.difference(have, wanted)),
       checked_to: position
     }
   end
