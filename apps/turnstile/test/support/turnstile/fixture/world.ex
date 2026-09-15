@@ -225,7 +225,7 @@ defmodule Turnstile.Fixture.World do
     expires_at = Keyword.get(attributes, :expires_at)
     role = Keyword.get(attributes, :role, :editor)
     row = %Membership{account_id: account, folder_id: folder, role: role, subject_kind: kind, expires_at: expires_at}
-    _inserted = repo.insert!(row, turnstile: @exemption)
+    _inserted = repo.insert!(row, turnstile: Keyword.get(attributes, :mediation, @exemption))
 
     held = %{role: role, kind: kind, expires_at: expires_at}
     %{world | memberships: Map.put(world.memberships, {account, folder}, held)}

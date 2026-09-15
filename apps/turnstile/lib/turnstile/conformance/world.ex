@@ -92,9 +92,11 @@ defmodule Turnstile.Conformance.World do
 
   @doc """
   Write one grant to the subject on the grantable through the seam and
-  nothing else, with the attributes given, of which `expires_at` is the one
-  the laws set, and answer the population it leaves. One write, so the case
-  that counts the queries a fact write costs can count it.
+  nothing else, with the attributes given, and answer the population it
+  leaves. The laws set `expires_at`, and `mediation`, which is the
+  `turnstile:` option the write carries and the world's exemption when
+  absent. One write, so the case that counts the queries a fact write costs
+  can count it.
   """
   @callback insert_grant(module(), t(), Turnstile.subject(), grantable(), keyword()) :: t()
 

@@ -239,7 +239,7 @@ defmodule Turnstile.Conformance.AdapterCase do
     end
   end
 
-  defp audit, do: [audit_events(), audit_content(), audit_seam()]
+  defp audit, do: [audit_events(), audit_content(), audit_seam(), audit_refusals()]
 
   defp audit_events do
     quote do
@@ -266,6 +266,14 @@ defmodule Turnstile.Conformance.AdapterCase do
       test unquote(Law.name("au3-02")), context do
         Laws.Audit.change_event(context)
       end
+
+      test unquote(Law.name("au3-03")), context do
+        Laws.Audit.access_event(context)
+      end
+
+      test unquote(Law.name("au3-04")), context do
+        Laws.Audit.one_operation(context)
+      end
     end
   end
 
@@ -282,13 +290,21 @@ defmodule Turnstile.Conformance.AdapterCase do
       test unquote(Law.name("au12-03")), context do
         Laws.Audit.around_seam(context)
       end
+    end
+  end
 
+  defp audit_refusals do
+    quote do
       test unquote(Law.name("au12-04")), context do
         Laws.Audit.refused_write(context)
       end
 
       test unquote(Law.name("au12-05")), context do
         Laws.Audit.unmediated_refused(context)
+      end
+
+      test unquote(Law.name("au12-06")), context do
+        Laws.Audit.mediated_reads(context)
       end
     end
   end

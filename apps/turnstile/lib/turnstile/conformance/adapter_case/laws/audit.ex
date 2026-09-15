@@ -1,9 +1,9 @@
 defmodule Turnstile.Conformance.AdapterCase.Laws.Audit do
   @moduledoc """
   The bodies of the audit laws, `au2`, `au3`, and `au12`: what a decision
-  event and a change event carry, and what the seam records or refuses of
-  a write. Each is a function of the test context, as
-  `Turnstile.Conformance.AdapterCase.Laws` describes.
+  event, a change event, and an access event carry, and what the seam
+  records or refuses of a read and a write. Each is a function of the test
+  context, as `Turnstile.Conformance.AdapterCase.Laws` describes.
   """
 
   import ExUnit.Assertions
@@ -12,6 +12,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws.Audit do
   alias Turnstile.Conformance.AdapterCase.Laws
   alias Turnstile.Decision
   alias Turnstile.Error
+  alias Turnstile.Schema
   alias Turnstile.Test
 
   @stamped ~w(subject subject_kind operation object verdict reason version operation_id time)a
@@ -97,6 +98,52 @@ defmodule Turnstile.Conformance.AdapterCase.Laws.Audit do
     assert delete.changes == reversed(create.changes)
   end
 
+  @doc """
+  `au3-03`: a `get` of the granted object under its decision is one access
+  event carrying the object type, the row's id, the decision's id, the
+  subject, the operation id, and the moment.
+  """
+  @spec access_event(Laws.context()) :: true
+  def access_event(%{repo: repo, case: %{world: module}} = context) do
+    {_world, subject, _grantable, {type, id} = object, operation} = Laws.granted_focus(context, module)
+    schema = schema_of(module, type)
+    {:ok, %Decision{} = decision} = Turnstile.authorize(subject, operation, object)
+
+    {read, events} = Test.accesses(fn -> repo.get(schema, id, turnstile: decision) end)
+    assert %{__struct__: ^schema} = read
+    assert [event] = events
+    assert event.object_type == type
+    assert event.ids == [id]
+    assert event.decision_id == decision.id
+    assert event.subject == subject
+    assert event.operation_id == decision.operation_id
+    assert %DateTime{} = event.time
+  end
+
+  @doc """
+  `au3-04`: a decision taken under a given operation id, a grant written
+  under that decision, and a read under it are three events, each carrying
+  the operation id and the decision's id.
+  """
+  @spec one_operation(Laws.context()) :: true
+  def one_operation(%{repo: repo, case: %{world: module}} = context) do
+    {world, subject, grantable, {type, id} = object, operation} = Laws.granted_focus(context, module)
+    operation_id = Turnstile.Id.new()
+
+    {{:ok, decision}, [decided]} =
+      Laws.recorded(fn -> Turnstile.authorize(subject, operation, object, operation_id: operation_id) end)
+
+    revoked = module.revoke(repo, world, subject, grantable)
+
+    {_world, [changed]} =
+      Test.changes(fn -> module.insert_grant(repo, revoked, subject, grantable, mediation: decision) end)
+
+    {_read, [accessed]} = Test.accesses(fn -> repo.get(schema_of(module, type), id, turnstile: decision) end)
+
+    assert Enum.map([decided, changed, accessed], & &1.operation_id) == List.duplicate(operation_id, 3)
+    assert Enum.map([decided, changed, accessed], & &1.decision_id) == List.duplicate(decision.id, 3)
+  end
+
   @doc "`au12-01`: the change event of a grant written is published while the repo is in the write's transaction."
   @spec inside_transaction(Laws.context()) :: :ok
   def inside_transaction(%{repo: repo, case: %{world: module}} = context) do
@@ -178,12 +225,58 @@ defmodule Turnstile.Conformance.AdapterCase.Laws.Audit do
     end)
   end
 
+  @doc """
+  `au12-06`: `get`, `all`, `exists?`, `aggregate`, `stream`, and `reload` of
+  the granted object's schema under its decision each publish one access
+  event, of the activity and the ids the read answers with, and the same
+  reads under the world's exemption publish none.
+  """
+  @spec mediated_reads(Laws.context()) :: true
+  def mediated_reads(%{repo: repo, case: %{world: module}} = context) do
+    {_world, subject, _grantable, {type, id} = object, operation} = Laws.granted_focus(context, module)
+    schema = schema_of(module, type)
+    {:ok, %Decision{} = decision} = Turnstile.authorize(subject, operation, object)
+    row = repo.get!(schema, id, turnstile: decision)
+
+    for {read, activity, expected} <- reads(repo, schema, row) do
+      {result, events} = Test.accesses(fn -> read.(decision) end)
+      assert [%{activity: ^activity, ids: ids, decision_id: decision_id}] = events
+      assert ids == expected.(result)
+      assert decision_id == decision.id
+    end
+
+    {_results, events} = Test.accesses(fn -> Enum.each(reads(repo, schema, row), &elem(&1, 0).(module.exemption())) end)
+    assert events == []
+  end
+
   @doc false
   @spec __transaction__([atom()], map(), map(), map()) :: :ok
   def __transaction__(_event, _measurements, _payload, %{pid: pid, repo: repo}) do
     if self() == pid, do: send(pid, {:change_published, repo.in_transaction?()})
     :ok
   end
+
+  # Each read of the schema under a mediation, with the activity and, from
+  # what the read answered, the ids its access event has to name. The
+  # stream is run inside a transaction, as Ecto asks, and is evented once,
+  # with no ids.
+  defp reads(repo, schema, %{__struct__: schema} = row) do
+    id = Schema.id_of(row)
+    one = fn _result -> [id] end
+    none = fn _result -> [] end
+    each = fn rows -> Enum.map(rows, &Schema.id_of/1) end
+
+    [
+      {fn mediation -> repo.get(schema, id, turnstile: mediation) end, :read, one},
+      {fn mediation -> repo.all(schema, turnstile: mediation) end, :query, each},
+      {fn mediation -> repo.exists?(schema, turnstile: mediation) end, :read, none},
+      {fn mediation -> repo.aggregate(schema, :count, turnstile: mediation) end, :query, none},
+      {fn mediation -> repo.transaction(fn -> repo.stream(schema, turnstile: mediation) end) end, :query, none},
+      {fn mediation -> repo.reload(row, turnstile: mediation) end, :read, one}
+    ]
+  end
+
+  defp schema_of(module, type), do: Enum.find(module.schemas(), &(Schema.object_type_of(&1) == type))
 
   # The ungranted world written and its focus granted through the seam:
   # the world the grant left, and the one change event the grant was.
