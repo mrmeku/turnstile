@@ -23,7 +23,7 @@ defmodule Turnstile.Cerbos.Propagation do
   milliseconds for whoever asked to record.
   """
 
-  alias Turnstile.Cerbos.Adapter.Wait
+  @interval 10
 
   @schema NimbleOptions.new!(
             timeout: [
@@ -60,7 +60,7 @@ defmodule Turnstile.Cerbos.Propagation do
     started = System.monotonic_time(:millisecond)
     published = publish.()
     at_publish = System.monotonic_time(:millisecond)
-    _in_force = Wait.until(until, validated[:timeout])
+    _in_force = until(until, validated[:timeout])
     finished = System.monotonic_time(:millisecond)
 
     {published,
@@ -68,8 +68,27 @@ defmodule Turnstile.Cerbos.Propagation do
        total: finished - started,
        publish: at_publish - started,
        poll: finished - at_publish,
-       floor: Wait.interval()
+       floor: @interval
      }}
+  end
+
+  @doc "The milliseconds between asks, the floor of any measurement `until/2` takes."
+  @spec interval() :: pos_integer()
+  def interval, do: @interval
+
+  @doc """
+  Asks `fun` until it answers something other than `nil` or `false`, or
+  until `timeout` milliseconds have passed. Comes back with that answer, or
+  raises with the last one. The clock is monotonic, so an adjustment of the
+  system clock between two asks cannot shorten or lengthen the deadline.
+  The interval between asks is the floor of any measurement taken this
+  way, since a change in force halfway through an interval is not seen
+  until the interval is over, and the measurement says so rather than
+  claiming a number it cannot hold.
+  """
+  @spec until((-> term()), pos_integer()) :: term()
+  def until(fun, timeout) when is_function(fun, 0) and is_integer(timeout) and timeout > 0 do
+    asked(fun, timeout, System.monotonic_time(:millisecond) + timeout, nil)
   end
 
   @doc "The measurement as the parts a report names, in milliseconds."
@@ -92,6 +111,21 @@ defmodule Turnstile.Cerbos.Propagation do
   @spec restore!(Path.t(), [{Path.t(), String.t() | nil}]) :: :ok
   def restore!(directory, previous) when is_binary(directory) and is_list(previous) do
     Enum.each(previous, fn {path, text} -> put_back!(Path.join(directory, path), text) end)
+  end
+
+  defp asked(fun, timeout, deadline, last) do
+    case fun.() do
+      unarrived when unarrived in [nil, false] ->
+        if System.monotonic_time(:millisecond) >= deadline do
+          raise "the change was not in force within #{timeout} ms; the last answer was #{inspect(last)}"
+        else
+          Process.sleep(@interval)
+          asked(fun, timeout, deadline, unarrived)
+        end
+
+      arrived ->
+        arrived
+    end
   end
 
   defp written!(full, text) do
