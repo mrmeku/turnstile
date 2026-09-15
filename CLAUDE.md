@@ -2,7 +2,7 @@
 
 ## Read first
 
-`PLAN.md`, then `docs/writing.md`, `docs/reference.md`, `docs/testing.md`, and `docs/code.md`, in that order, before starting any stage. `docs/delivery.md` says how a stage runs, what it records, and which gate each package passes.
+`README.md`, then `docs/design.md`, `docs/requirements.md`, `docs/conformance.md`, `docs/events.md`, and `docs/contributing.md`, in that order, before starting any stage. `docs/contributing.md` says how a stage runs, what it records, and which gate each package passes.
 
 ## Prose
 
