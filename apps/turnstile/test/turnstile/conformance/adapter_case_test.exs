@@ -50,6 +50,6 @@ defmodule Turnstile.Conformance.AdapterCaseSettlingTest do
   end
 
   test "the adapter this module runs has state of its own to settle" do
-    assert function_exported?(SettlingAdapter, :settle, 0)
+    assert Code.ensure_loaded?(SettlingAdapter) and function_exported?(SettlingAdapter, :settle, 0)
   end
 end
