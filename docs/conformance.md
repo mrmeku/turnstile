@@ -10,7 +10,7 @@ A repo is conformant when `Turnstile.Conformance.RepoCase` passes against it: it
 
 ## 2. The laws
 
-Frozen: `Turnstile.Conformance.Law.all/0` holds this table as data, and the freeze test in `turnstile` holds the module to this document row for row. Bodies are in `Turnstile.Conformance.AdapterCase.Laws`.
+Frozen: `Turnstile.Conformance.Law.all/0` holds this table as data, and the freeze test in `turnstile` holds the module to this document row for row. Bodies are in `Turnstile.Conformance.AdapterCase.Laws` and its modules: `Accounts` for the `ac2` and `ac6` laws, `Audit` for the `au` laws, `Versions` for the `cm3` laws, and the module itself for the `ac3` laws and the helpers they share.
 
 | Id | Sentence | Controls |
 |---|---|---|
@@ -43,7 +43,7 @@ Frozen: `Turnstile.Conformance.Law.all/0` holds this table as data, and the free
 | `cm3-03` | A tightened rule is a policy version whose event names the artifact it is on this adapter | CM-5(1) |
 | `cm3-04` | After a rule is tightened the reader it excludes is denied, and the propagation latency is printed and never asserted | CM-3(2) |
 
-**Beside the laws**, in the same template: the adapter declares its scope cap; a single-row fact write is the write alone and one change event; and `au12-07`, every column a rule reads is a declared fact, which is one coverage test per adapter package whose rules read columns (`Turnstile.Rbac.Coverage`, `Turnstile.Postgres.Coverage`, `Turnstile.Cerbos.Coverage`, each run by its thin application too) and the tuple mapping case for OpenFGA, whose declaration is the mapping itself.
+**Beside the laws**, in the same template: the adapter declares its scope cap; a single-row fact write is the write alone and one change event; and `au12-07`, every column a rule reads is a declared fact, which is one coverage test per adapter package whose rules read columns (`Turnstile.Rbac.Coverage`, `Turnstile.Postgres.Coverage`, `Turnstile.Cerbos.Coverage`, each run by its thin application too) and the tuple mapping case for OpenFGA, whose declaration is the mapping itself. The Postgres checker reads the bound schemas, so a Postgres binding names every schema its policies read beside the ones they protect.
 
 **Properties, shapes, and measurements.** `ac3-01`, `ac3-02`, and `ac3-03` are `stream_data` properties over populations `Turnstile.Conformance.Gen` draws from the world's generator. `ac3-04` and the fact-write shape count queries with `Turnstile.Test.queries/2` and events with `Turnstile.Test.changes/1`, so they are exact in the sandbox and cannot flap; an adapter that adds queries of its own to every call declares how many through `setup_queries:`. `ac2-05` and `cm3-04` write on the committed repo, read the monotonic clock, settle the adapter where it has state to settle, poll until the first denial with `Turnstile.Test.poll/2`, and print the total, its components, and the poll interval as the floor. Nothing in the suite fails on a latency number.
 
@@ -62,8 +62,9 @@ Frozen: `Turnstile.Conformance.Law.all/0` holds this table as data, and the free
 | `focus/1` | The subject the fixed worlds grant to, and what they grant it on |
 | `subjects/1`, `objects/1` | Every subject, including one of kind `:privileged`, and every object the population knows |
 | `allowed?/4` | The rule: what the population says about one subject, operation, and object |
+| `facts/1` | The values the rule reads from the population, which no decision event may carry |
 | `clear/1`, `insert/2`, `fill/3` | Delete every row through the seam one at a time; write the population; add rows to the scope schema |
-| `insert_grant/5`, `revoke/4`, `disqualify/3` | Write one grant with attributes such as `expires_at`; take a grant away; change the account fact the rule reads |
+| `insert_grant/5`, `revoke/4`, `disqualify/3` | Write one grant with attributes, of which the laws set `expires_at` and `mediation`, the `turnstile:` option the write carries in place of the exemption; take a grant away; change the account fact the rule reads |
 | `module/1` | The module behind a population |
 
 Each adapter package carries what the fixture needs on its own mechanism in its own `test/support`, under a `Conformance` module of the package's namespace: `turnstile_rbac` the role table and predicates, `turnstile_postgres` the row-level security migration for the fixture tables, `turnstile_cerbos` the attribute declarations, `turnstile_fga` the tuple mapping. What an engine reads as text stays under `priv/conformance/`: the Cerbos policies and the OpenFGA model. The example's domain appears in none of them.
@@ -84,7 +85,9 @@ Each adapter package carries what the fixture needs on its own mechanism in its 
 | E2 | A bulk write to an audited schema raises and emits nothing. |
 | E3 | A write that goes around the seam emits nothing. |
 | E4 | A consumer that writes to the same repository from its handler joins the write transaction. |
-| E5 | A mediated read of a protected schema emits one access event whose ids are the rows returned and whose decision id is the decision it ran under; `exists?` emits one with no ids; a read through the owner-role repo emits nothing. |
+| E5 | A mediated read of a protected schema emits one access event whose ids are the rows returned and whose decision id is the decision it ran under; `exists?` emits one with no ids; a read under an exemption emits nothing. |
+
+The `rows:` module is a `Turnstile.Conformance.RepoCase.Rows`: `row/0`, an unwritten row of an audited schema; `change/1`, a change of a written row that sets a fact field; `mediation/0`, the `turnstile:` option those writes carry; `around/1`, the way this deployment changes the row without passing the seam; `protected/0`, an unwritten row of a schema that declares an object type; `decision/1`, a decision from `Turnstile.authorize/4` that admits reading it; and the optional `setup/1`, run first in every test with the test's tags.
 
 ## 6. Running the suite
 

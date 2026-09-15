@@ -102,7 +102,7 @@ Published by the seam after every mediated read of a protected schema returns, a
 | `schema`, `repo` | the Ecto schema module and the repo the call went through |
 | `call` | `{name, arity}` of the repo function |
 | `activity` | `:read` for `get`, `one`, `reload`, `exists?`, and `preload`; `:query` for `all`, `stream`, and `aggregate` |
-| `ids` | the primary keys of the root structs returned, in order; the loaded association's keys for `preload` |
+| `ids` | the primary keys of the root structs returned, in order; for `preload`, the keys of the structs whose associations were loaded |
 | `count` | the length of `ids` |
 | `shape` | `:rows`, `:value` for a scalar, boolean, map, or tuple, or `:stream` |
 | `subject`, `subject_kind` | from the decision the read ran under |
@@ -134,7 +134,7 @@ Asserted by `Turnstile.Conformance.RepoCase` against every mediated repo.
 | E2 | A bulk write to an audited schema raises and emits nothing. |
 | E3 | A write that goes around the seam emits nothing. |
 | E4 | A consumer that writes to the same repository from its handler joins the write transaction. |
-| E5 | A mediated read of a protected schema emits one access event whose ids are the rows returned and whose decision id is the decision it ran under. |
+| E5 | A mediated read of a protected schema emits one access event whose ids are the rows returned and whose decision id is the decision it ran under; a read under an exemption emits nothing. |
 
 What it does not guarantee: that a record is stored, that a handler keeps running, that the change committed, or that the old value was current at the moment of the write. Every event is published, and nothing is sampled.
 
