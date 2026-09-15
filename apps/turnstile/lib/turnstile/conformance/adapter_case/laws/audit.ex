@@ -112,12 +112,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws.Audit do
     {read, events} = Test.accesses(fn -> repo.get(schema, id, turnstile: decision) end)
     assert %{__struct__: ^schema} = read
     assert [event] = events
-    assert event.object_type == type
-    assert event.ids == [id]
-    assert event.decision_id == decision.id
-    assert event.subject == subject
-    assert event.operation_id == decision.operation_id
-    assert %DateTime{} = event.time
+    assert_access(event, decision, type, [id])
   end
 
   @doc """
@@ -126,22 +121,16 @@ defmodule Turnstile.Conformance.AdapterCase.Laws.Audit do
   the operation id and the decision's id.
   """
   @spec one_operation(Laws.context()) :: true
-  def one_operation(%{repo: repo, case: %{world: module}} = context) do
-    {world, subject, grantable, {type, id} = object, operation} = Laws.granted_focus(context, module)
+  def one_operation(%{case: %{world: module}} = context) do
+    {world, subject, _grantable, object, operation} = Laws.granted_focus(context, module)
     operation_id = Turnstile.Id.new()
 
     {{:ok, decision}, [decided]} =
       Laws.recorded(fn -> Turnstile.authorize(subject, operation, object, operation_id: operation_id) end)
 
-    revoked = module.revoke(repo, world, subject, grantable)
-
-    {_world, [changed]} =
-      Test.changes(fn -> module.insert_grant(repo, revoked, subject, grantable, mediation: decision) end)
-
-    {_read, [accessed]} = Test.accesses(fn -> repo.get(schema_of(module, type), id, turnstile: decision) end)
-
-    assert Enum.map([decided, changed, accessed], & &1.operation_id) == List.duplicate(operation_id, 3)
-    assert Enum.map([decided, changed, accessed], & &1.decision_id) == List.duplicate(decision.id, 3)
+    events = [decided | under_decision(context, world, decision)]
+    assert Enum.map(events, & &1.operation_id) == List.duplicate(operation_id, 3)
+    assert Enum.map(events, & &1.decision_id) == List.duplicate(decision.id, 3)
   end
 
   @doc "`au12-01`: the change event of a grant written is published while the repo is in the write's transaction."
@@ -236,17 +225,10 @@ defmodule Turnstile.Conformance.AdapterCase.Laws.Audit do
     {_world, subject, _grantable, {type, id} = object, operation} = Laws.granted_focus(context, module)
     schema = schema_of(module, type)
     {:ok, %Decision{} = decision} = Turnstile.authorize(subject, operation, object)
-    row = repo.get!(schema, id, turnstile: decision)
+    reads = reads(repo, schema, repo.get!(schema, id, turnstile: decision))
 
-    for {read, activity, expected} <- reads(repo, schema, row) do
-      {result, events} = Test.accesses(fn -> read.(decision) end)
-      assert [%{activity: ^activity, ids: ids, decision_id: decision_id}] = events
-      assert ids == expected.(result)
-      assert decision_id == decision.id
-    end
-
-    {_results, events} = Test.accesses(fn -> Enum.each(reads(repo, schema, row), &elem(&1, 0).(module.exemption())) end)
-    assert events == []
+    Enum.each(reads, &assert_one_access(&1, decision))
+    assert_no_access(reads, module.exemption())
   end
 
   @doc false
@@ -254,6 +236,44 @@ defmodule Turnstile.Conformance.AdapterCase.Laws.Audit do
   def __transaction__(_event, _measurements, _payload, %{pid: pid, repo: repo}) do
     if self() == pid, do: send(pid, {:change_published, repo.in_transaction?()})
     :ok
+  end
+
+  # The grant revoked and written again under the decision, and the granted
+  # row read under it: the change event and the access event of one
+  # operation.
+  defp under_decision(%{repo: repo, case: %{world: module}}, world, decision) do
+    {subject, grantable} = module.focus(world)
+    {type, id} = module.object_of(grantable)
+    revoked = module.revoke(repo, world, subject, grantable)
+
+    {_world, [changed]} =
+      Test.changes(fn -> module.insert_grant(repo, revoked, subject, grantable, mediation: decision) end)
+
+    {_read, [accessed]} = Test.accesses(fn -> repo.get(schema_of(module, type), id, turnstile: decision) end)
+    [changed, accessed]
+  end
+
+  defp assert_access(event, decision, type, ids) do
+    assert event.object_type == type
+    assert event.ids == ids
+    assert event.decision_id == decision.id
+    assert event.subject == decision.subject
+    assert event.operation_id == decision.operation_id
+    assert %DateTime{} = event.time
+  end
+
+  defp assert_no_access(reads, exemption) do
+    {_results, events} = Test.accesses(fn -> Enum.each(reads, fn {read, _activity, _ids} -> read.(exemption) end) end)
+    assert events == []
+  end
+
+  # One read under the decision is one access event of the read's activity,
+  # naming the ids the read answered with.
+  defp assert_one_access({read, activity, expected}, decision) do
+    {result, events} = Test.accesses(fn -> read.(decision) end)
+    assert [%{activity: ^activity, ids: ids, decision_id: decision_id}] = events
+    assert ids == expected.(result)
+    assert decision_id == decision.id
   end
 
   # Each read of the schema under a mediation, with the activity and, from

@@ -412,7 +412,9 @@ defmodule Turnstile.Adapter.SeamTest do
 
       assert %{call: {:stream, 2}, activity: :query, ids: [], shape: :stream} = streamed
 
-      {%Folder{}, [preloaded]} = Turnstile.Test.accesses(fn -> Sandboxed.preload(folder, :items, turnstile: decision) end)
+      {%Folder{}, [preloaded]} =
+        Turnstile.Test.accesses(fn -> Sandboxed.preload(folder, :items, turnstile: decision) end)
+
       assert %{call: {:preload, 3}, activity: :read, ids: [_id], shape: :rows} = preloaded
     end
 
