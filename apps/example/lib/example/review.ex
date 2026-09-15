@@ -1,11 +1,13 @@
 defmodule Example.Review do
   @moduledoc """
   Access review (AC-2, AC-6(5), AC-6(7)): who can do what today, per
-  agency, and every privileged account. The port's `review` answers under
-  one record for the reviewer; the report is text a reviewer reads and a
-  test compares. The reviewer is administrative: the rows the review ranges
-  over are read under a declared exemption, and every verdict comes from
-  the port, so the report says what the adapter enforces.
+  agency, and every privileged account. The port's `review` answers a rule
+  and a decision per subject under one operation id, and the reviewer runs
+  the population query under each subject's decision, so every row the
+  report names is a read logged for the subject it is about. The rows the
+  review ranges over are read under a declared exemption, and every
+  verdict comes from the port, so the report says what the adapter
+  enforces.
 
   The review answers for today and for no other day. The tables hold today,
   and nothing here keeps what they held last March.
@@ -16,36 +18,50 @@ defmodule Example.Review do
   a reason that is the session's and not the role's.
   """
 
+  import Ecto.Query, only: [where: 2]
+
   alias Example.Accounts
   alias Example.Agency
   alias Example.Core.ReviewQuery
   alias Example.Documents
   alias Example.Repo
+  alias Turnstile.Decision
 
   @review {:exempt, "access review: the population the reviewer ranges over"}
+  @proposal_operations [:approve_marking]
 
-  @typedoc "Per subject, per operation, the ids of the documents the subject may act on."
+  @typedoc "Per subject, per operation, the ids of the rows the subject may act on."
   @type permissions :: %{Turnstile.subject() => %{atom() => [integer()]}}
 
   @doc "Who can read which documents of an agency, by subject, over every account."
   @spec readers(Turnstile.subject(), Agency.t(), keyword()) :: %{Turnstile.subject() => [integer()]}
   def readers({_kind, _account} = reviewer, %Agency{id: agency_id}, opts \\ []) when is_list(opts) do
-    reviewer
-    |> Turnstile.review(subjects(), :read, documents(agency_id), opts)
-    |> Map.new(fn {subject, refs} -> {subject, ids(refs)} end)
+    reviewed(reviewer, :read, :document, ReviewQuery.documents(agency_id), opts)
   end
 
-  @doc "Every permission every account holds on the documents of an agency, by operation."
+  @doc """
+  Every permission every account holds on the documents of an agency, by
+  operation, and on the proposals over those documents.
+  """
   @spec permissions(Turnstile.subject(), Agency.t(), keyword()) :: permissions()
   def permissions({_kind, _account} = reviewer, %Agency{id: agency_id}, opts \\ []) when is_list(opts) do
-    subjects = subjects()
-    documents = documents(agency_id)
+    documents = ReviewQuery.documents(agency_id)
+    proposals = ReviewQuery.proposals(agency_id)
 
-    Documents.operations()
-    |> Enum.flat_map(&reviewed(reviewer, subjects, &1, documents, opts))
+    over_documents = for operation <- Documents.operations(), do: {operation, :document, documents}
+    over_proposals = for operation <- @proposal_operations, do: {operation, :proposal, proposals}
+
+    (over_documents ++ over_proposals)
+    |> Enum.flat_map(fn {operation, type, query} ->
+      for {subject, ids} <- reviewed(reviewer, operation, type, query, opts), do: {subject, operation, ids}
+    end)
     |> Enum.group_by(fn {subject, _op, _ids} -> subject end, fn {_subject, op, ids} -> {op, ids} end)
     |> Map.new(fn {subject, entries} -> {subject, Map.new(entries)} end)
   end
+
+  @doc "The operations a permission line names, in report order."
+  @spec operations() :: [atom()]
+  def operations, do: Documents.operations() ++ @proposal_operations
 
   @doc """
   The report: readers per agency, then every operation of each account
@@ -76,7 +92,7 @@ defmodule Example.Review do
     |> Enum.reject(fn {_subject, by_op} -> Enum.all?(by_op, fn {_operation, ids} -> ids == [] end) end)
     |> Enum.sort_by(fn {{_kind, id}, _by_op} -> id end)
     |> Enum.flat_map(fn {{_kind, id}, by_op} ->
-      for operation <- Documents.operations() do
+      for operation <- operations() do
         "  #{id} may #{operation} #{listed(by_op[operation] || [])}"
       end
     end)
@@ -99,22 +115,20 @@ defmodule Example.Review do
     |> Enum.map(fn {id, kind} -> {kind, id} end)
   end
 
-  defp documents(agency_id) do
-    agency_id
-    |> ReviewQuery.documents()
-    |> Repo.all(turnstile: @review)
-    |> Enum.map(&{:document, &1})
-  end
-
-  defp ids(refs) when is_list(refs) do
-    refs
-    |> Enum.map(fn {:document, id} -> id end)
-    |> Enum.sort()
-  end
-
-  defp reviewed(reviewer, subjects, operation, documents, opts) do
+  # One review: a rule and a decision per subject, then the population
+  # narrowed by that rule and read under that decision.
+  defp reviewed(reviewer, operation, type, query, opts) do
     reviewer
-    |> Turnstile.review(subjects, operation, documents, opts)
-    |> Enum.map(fn {subject, refs} -> {subject, operation, ids(refs)} end)
+    |> Turnstile.review(subjects(), operation, type, opts)
+    |> Map.new(fn {subject, {rule, decision}} -> {subject, ids(query, rule, decision)} end)
+  end
+
+  defp ids(_query, _rule, %Decision{verdict: :deny}), do: []
+
+  defp ids(query, rule, %Decision{} = decision) do
+    query
+    |> where(^rule)
+    |> Repo.all(turnstile: decision)
+    |> Enum.sort()
   end
 end

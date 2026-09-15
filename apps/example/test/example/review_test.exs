@@ -1,7 +1,6 @@
 defmodule Example.ReviewTest do
   use Example.FakeCase, async: true
 
-  alias Example.Documents
   alias Example.Fixture
   alias Example.Review
 
@@ -21,6 +20,7 @@ defmodule Example.ReviewTest do
     assert permissions[Fixture.subject("dana")][:change_marking] == [document.id]
     assert permissions[Fixture.subject("dana")][:read] == []
     assert permissions[Fixture.subject("ann")][:read] == [document.id]
+    assert permissions[Fixture.subject("ann")][:approve_marking] == []
   end
 
   test "the report lists readers and permissions per agency, then the privileged accounts", ctx do
@@ -37,11 +37,11 @@ defmodule Example.ReviewTest do
                    do: "  #{id} reads #{if id == "ann", do: "[#{document.id}]", else: "[]"}"
                  ) ++
                  for(
-                   op <- Documents.operations(),
+                   op <- Review.operations(),
                    do: "  ann may #{op} #{if op == :read, do: "[#{document.id}]", else: "[]"}"
                  ) ++
                  for(
-                   op <- Documents.operations(),
+                   op <- Review.operations(),
                    do: "  dana may #{op} #{if op == :change_marking, do: "[#{document.id}]", else: "[]"}"
                  ) ++
                  ["agency Foreign"] ++

@@ -4,13 +4,15 @@ defmodule Example.Core.ReviewQuery do
   # here is the population `Example.Review` ranges over: every agency, every
   # account as the subject it stands for, and the documents an agency's
   # offices designated. The reviewer reads all three under a declared
-  # exemption, so the rows are the whole of what there is to review.
+  # exemption, so the rows are the whole of what there is to review. The
+  # proposals over those documents are the population of `approve_marking`.
 
   import Ecto.Query, only: [from: 2]
 
   alias Ecto.Query
   alias Example.Agency
   alias Example.Document
+  alias Example.Proposal
   alias Example.User
 
   @doc "Every agency, in id order."
@@ -29,6 +31,18 @@ defmodule Example.Core.ReviewQuery do
       where: o.agency_id == ^agency_id,
       order_by: d.id,
       select: d.id
+    )
+  end
+
+  @doc "The ids of the proposals over the documents the offices of an agency designated, in id order."
+  @spec proposals(integer()) :: Query.t()
+  def proposals(agency_id) when is_integer(agency_id) do
+    from(p in Proposal,
+      join: d in assoc(p, :document),
+      join: o in assoc(d, :designating_office),
+      where: o.agency_id == ^agency_id,
+      order_by: p.id,
+      select: p.id
     )
   end
 end
