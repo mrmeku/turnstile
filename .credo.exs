@@ -1,5 +1,5 @@
 # Credo 1.7.19. Every check the release ships is enabled unless a comment
-# beside it says why not. docs/code.md §5 names the checks that are off by
+# beside it says why not. docs/contributing.md §3 names the checks that are off by
 # default and on here. The two checks of `turnstile_credo` close the list;
 # every app takes that package as a dev and test dependency, so a run from
 # an app's own directory finds them as a run from the root does.
@@ -147,7 +147,7 @@
           # Module dependency counts do not describe a boundary; Boundary does.
           {Credo.Check.Refactor.ModuleDependencies, []},
           # Rebinding a name after a validating step is the house style
-          # (docs/code.md §2 asks for `opts = validate(opts)`).
+          # (docs/contributing.md §3 asks for `opts = validate(opts)`).
           {Credo.Check.Refactor.VariableRebinding, []}
         ]
       }

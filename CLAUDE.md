@@ -6,7 +6,7 @@
 
 ## Prose
 
-Sentence-case headings. None of these words: *simply, just, obviously, easy, easily, of course, basically, note that, in order to*. No exclamation marks. No em-dashes. `docs/writing.md` has the rest.
+Sentence-case headings. None of these words: *simply, just, obviously, easy, easily, of course, basically, note that, in order to*. No exclamation marks. No em-dashes. `docs/contributing.md` §4 has the rest.
 
 ## Placement
 
@@ -15,15 +15,15 @@ Sentence-case headings. None of these words: *simply, just, obviously, easy, eas
 - What each rule of the example is enforced by is stated in the thin apps (`apps/example_<adapter>/`), never in an adapter package.
 - Library packages ship migration helpers. Migrations exist only in the thin apps, one set each.
 - Adapters own mechanism. No sentence in an adapter's docs tells the application what it may do.
-- Test names are scenario ids and sentences from `docs/reference.md` §1 and §3a.
+- Test names are law ids and sentences from `docs/conformance.md` §2, or scenario ids and sentences from `docs/example.md` §4.
 - `warnings_as_errors: true` everywhere.
 - Pin every external version and say where you verified it. Do not guess a version.
 
 ## Process
 
-- Stages run one at a time, on `main`, no worktrees, by the steps `docs/delivery.md` §1 gives.
-- Each stage ends with its gate from `docs/delivery.md` run and passing, then one or more commits, unsigned: `git -c commit.gpgsign=false commit`. One idea per commit. The last commit message quotes the gate's output and records what `docs/delivery.md` asks the stage to record.
-- The prose gate, run on every changed document, must print `exit=1`. `docs/writing.md` is the one exception, because it is where the banned words are listed:
+- Stages run one at a time, on `main`, no worktrees, by the steps `docs/contributing.md` §5 gives.
+- Each stage ends with its gate from `docs/contributing.md` §5 run and passing, then one or more commits, unsigned: `git -c commit.gpgsign=false commit`. One idea per commit. The last commit message quotes the gate's output and records what `docs/contributing.md` §5 asks the stage to record.
+- The prose gate, run on every changed document, must print `exit=1`. `docs/contributing.md` §4 is the one exception, because it is where the banned words are listed:
 
 ```
 grep -rniE "\b(simply|just|obviously|easy|easily|of course|basically|note that|in order to)\b|!|—" <files> ; echo "exit=$?"

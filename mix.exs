@@ -35,7 +35,15 @@ defmodule Turnstile.Umbrella.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md": [title: "Turnstile"], "docs/glossary-index.md": [title: "Glossary index"]]
+      extras: [
+        "README.md": [title: "Turnstile"],
+        "docs/design.md": [title: "Design"],
+        "docs/requirements.md": [title: "Requirements"],
+        "docs/conformance.md": [title: "Conformance"],
+        "docs/events.md": [title: "Events"],
+        "docs/example.md": [title: "The example"],
+        "docs/contributing.md": [title: "Contributing"]
+      ]
     ]
   end
 
@@ -49,7 +57,7 @@ defmodule Turnstile.Umbrella.MixProject do
     [ignore_advisories: ["CVE-2026-32686"]]
   end
 
-  # docs/code.md §5. The test step is the `test` alias, so CI adds --partitions
+  # docs/contributing.md §5. The test step is the `test` alias, so CI adds --partitions
   # through MIX_TEST_PARTITION without a second alias.
   defp aliases do
     [

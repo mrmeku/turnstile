@@ -12,7 +12,7 @@ defmodule StructureTest do
   dots in the name, so `lib/mix/tasks/turnstile.schema_dump.ex` names
   `Mix.Tasks.Turnstile.SchemaDump`.
 
-  Three more rules over the two interior places `PLAN.md` §2 gives a
+  Three more rules over the two interior places `docs/design.md` §6 gives a
   package. A module under `core/` decides: it calls nothing that touches a
   process, a file, a clock, a table, or a node, and it names no module under
   `adapter/`, so the calls inside a package run one way. A module under
@@ -24,7 +24,7 @@ defmodule StructureTest do
   effect rule is read here and not from a dependency list.
 
   `@exceptions` names each file that cannot follow the path rule, with its
-  reason. `PLAN.md` §2 states the rules and the two dependency gates that
+  reason. `docs/design.md` §6 states the rules and the two dependency gates that
   shape the first.
   """
 
