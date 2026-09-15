@@ -20,15 +20,6 @@ defmodule Example.Accounts do
 
   @administration {:exempt, "role administration: no rule of the example governs who grants roles"}
 
-  @doc "The subject for an account id: its kind is the account's, or `nil` when there is no such account."
-  @spec subject(String.t()) :: Turnstile.subject() | nil
-  def subject(user_id) when is_binary(user_id) do
-    case Repo.get(User, user_id) do
-      %User{kind: kind} -> {kind, user_id}
-      nil -> nil
-    end
-  end
-
   @doc "Assign an account to a program with a role."
   @spec assign(String.t(), integer(), :lead | :member) :: Assignment.t()
   def assign(user_id, program_id, role) when is_binary(user_id) and role in [:lead, :member] do

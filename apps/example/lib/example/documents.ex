@@ -151,24 +151,6 @@ defmodule Example.Documents do
     end
   end
 
-  @doc """
-  Set the decontrol date of every document the subject may set it on: the
-  rule `scope` answers with narrows the rows, and each is written on its
-  own under that one decision, so every change event carries its operation
-  id. Answers how many documents changed.
-  """
-  @spec decontrol_all(Turnstile.subject(), DateTime.t(), keyword()) ::
-          {:ok, non_neg_integer()} | {:error, refusal()}
-  def decontrol_all({_kind, _account} = subject, %DateTime{} = at, opts \\ []) when is_list(opts) do
-    case Turnstile.scope(subject, :set_decontrol, :document, opts) do
-      {_rule, %Decision{verdict: :deny} = decision} ->
-        {:error, refused(subject, :set_decontrol, decision)}
-
-      {rule, decision} ->
-        {:ok, decontrolled(rule, decision, DateTime.truncate(at, :second))}
-    end
-  end
-
   @doc "Decontrol a document now, by the port's clock (C5, C7, C8)."
   @spec decontrol(Turnstile.subject(), integer(), keyword()) :: {:ok, Document.t()} | {:error, refusal()}
   def decontrol({_kind, _account} = subject, id, opts \\ []) when is_integer(id) do
@@ -230,19 +212,6 @@ defmodule Example.Documents do
   @doc "The object reference for a row of a type."
   @spec object(atom(), integer()) :: Turnstile.object()
   def object(type, id) when is_atom(type) and is_integer(id), do: {type, id}
-
-  # Each admitted document is written on its own, under the decision the
-  # scope answered with, which is what a bulk statement cannot do: the seam
-  # reads the row before and after and publishes the change it made.
-  defp decontrolled(rule, decision, at) do
-    admitted = Repo.all(DocumentQuery.admitted(rule), turnstile: decision)
-    Enum.each(admitted, &Repo.update!(Changeset.change(&1, decontrol: at), turnstile: decision))
-    length(admitted)
-  end
-
-  defp refused(subject, operation, %Decision{reason: reason}) do
-    Error.denied(subject, operation, :document, reason)
-  end
 
   defp covered(document_id, attrs) do
     portions = Repo.all(DocumentQuery.portions(document_id), turnstile: @banner)

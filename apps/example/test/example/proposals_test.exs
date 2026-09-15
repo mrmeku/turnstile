@@ -48,13 +48,4 @@ defmodule Example.ProposalsTest do
     assert {:error, %Documents.BannerViolation{}} = Proposals.approve(@eve, proposal.id)
     assert %Proposal{status: :pending} = Example.Repo.get(Proposal, proposal.id, turnstile: Fixture.exemption())
   end
-
-  test "pending lists a document's open proposals under the document's decision", ctx do
-    allow(ctx.rules, "dana", :propose_marking, {:document, ctx.document.id})
-    {:ok, proposal} = Proposals.propose(@dana, ctx.document.id, %{controls: [:no_foreign]})
-    allow(ctx.rules, "dana", :read, {:document, ctx.document.id})
-    {:ok, decision} = Turnstile.authorize(@dana, :read, Documents.object(ctx.document.id))
-    assert [%Proposal{id: id}] = Proposals.pending(ctx.document, decision)
-    assert id == proposal.id
-  end
 end

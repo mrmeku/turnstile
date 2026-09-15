@@ -6,12 +6,6 @@ defmodule Example.AccountsTest do
   alias Example.OfficeRole
   alias Example.User
 
-  test "the subject of an account carries the account's kind", %{} do
-    assert Accounts.subject("gil") == {:privileged, "gil"}
-    assert Accounts.subject("ann") == {:user, "ann"}
-    assert Accounts.subject("nobody") == nil
-  end
-
   test "assignments and office roles are granted and revoked as rows", %{world: world} do
     assert %Assignment{role: :lead} = Accounts.assign("frank", world.program.id, :lead)
     assert Accounts.unassign("frank", world.program.id) == 1

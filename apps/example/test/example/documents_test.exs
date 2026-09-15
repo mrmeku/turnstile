@@ -174,16 +174,4 @@ defmodule Example.DocumentsTest do
     assert Documents.object(:portion, 4) == {:portion, 4}
     assert Documents.override_event() == [:example, :override, :read]
   end
-
-  test "decontrol_all sets the date on every document the scope admits, or refuses under a denied scope", ctx do
-    other = Fixture.document!(ctx.world, title: "other")
-    at = DateTime.utc_now()
-    assert {:error, %Error{detail: "user dana may not set_decontrol" <> _rest}} = Documents.decontrol_all(@dana, at)
-    allow(ctx.rules, "dana", :set_decontrol, {:document, :any})
-    assert {:ok, 2} = Documents.decontrol_all(@dana, at)
-
-    for id <- [ctx.document.id, other.id] do
-      assert %Document{decontrol: %DateTime{}} = Example.Repo.get(Document, id, turnstile: Fixture.exemption())
-    end
-  end
 end

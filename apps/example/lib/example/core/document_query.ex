@@ -18,10 +18,6 @@ defmodule Example.Core.DocumentQuery do
   @spec listed(Query.dynamic_expr()) :: Query.t()
   def listed(rule), do: from(d in Document, where: ^rule, order_by: d.id, preload: :marking)
 
-  @doc "The documents a rule admits, which the caller writes one at a time."
-  @spec admitted(Query.dynamic_expr()) :: Query.t()
-  def admitted(rule), do: from(d in Document, where: ^rule)
-
   @doc "Every portion of a document, which the banner is derived from."
   @spec portions(integer()) :: Query.t()
   def portions(document_id) when is_integer(document_id), do: where(Portion, document_id: ^document_id)

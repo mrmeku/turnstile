@@ -43,16 +43,6 @@ defmodule Example.Proposals do
     end
   end
 
-  @doc "The pending proposals of a document, oldest first, under a decision on the document."
-  @spec pending(Document.t(), Turnstile.Decision.t()) :: [Proposal.t()]
-  def pending(%Document{} = document, %Turnstile.Decision{} = decision) do
-    document
-    |> Repo.preload(:proposals, turnstile: decision)
-    |> Map.fetch!(:proposals)
-    |> Enum.filter(&(&1.status == :pending))
-    |> Enum.sort_by(& &1.id)
-  end
-
   # Inside the transaction: the proposal, its document, and the document's marking as one nested write.
   defp approve_or_roll_back(%Proposal{} = proposal, approver, decision) do
     proposal = Repo.preload(proposal, [document: :marking], turnstile: decision)
