@@ -17,7 +17,7 @@ defmodule ExampleRbac.PolicyTest do
     assert Turnstile.Rbac.Version.ref(Policy) == "2026.09.1"
   end
 
-  test "the role table holds the permissions of the reference" do
+  test "the role table holds the permissions docs/example.md gives each role" do
     assert Turnstile.Rbac.Policy.roles_for(Policy, :read) == [:member, :lead, :designator, :approver]
     assert Turnstile.Rbac.Policy.roles_for(Policy, :change_marking) == [:designator]
     assert Turnstile.Rbac.Policy.roles_for(Policy, :approve_marking) == [:approver]

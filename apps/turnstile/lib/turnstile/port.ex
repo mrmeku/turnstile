@@ -40,7 +40,7 @@ defmodule Turnstile.Port do
   @typedoc "A review's answer per subject: the rule over the object type and the decision it runs under."
   @type reviewed :: %{Turnstile.subject() => {Ecto.Query.dynamic_expr(), Decision.t()}}
 
-  @doc "The three subject kinds the port knows, in the order the reference lists them."
+  @doc "The three subject kinds the port knows, in the order `docs/design.md` lists them."
   @spec subject_kinds() :: [Turnstile.subject_kind()]
   def subject_kinds, do: @kinds
 
