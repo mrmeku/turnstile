@@ -8,6 +8,12 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   fixed one asks the module the template was given. Every writer of a
   population calls `tick/0` first, so the stubbed clock moves forward
   through a test and two writes never share a moment.
+
+  This module carries the access-control laws (`ac3`), the revocation
+  latency (`ac2-05`), the fact-write shape, and what every law body shares:
+  writing a population, the granted focus, and reading the decision events
+  a call published. The account laws are in `Laws.Accounts`, the audit laws
+  in `Laws.Audit`, and the change-management laws in `Laws.Versions`.
   """
 
   import Ecto.Query, only: [where: 2]
@@ -49,14 +55,18 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
   def seed(%{case: %{seed: nil}}, _world), do: :ok
   def seed(%{case: %{seed: seed}}, world), do: seed.seed(world)
 
-  @doc "The adapter answers `check` as the world's rule does."
+  @doc "`ac3-01`: the adapter answers `check` as the world's rule does."
   @spec rule_agreement(context(), World.t(), Turnstile.subject(), atom(), Turnstile.object()) :: true
   def rule_agreement(context, world, subject, operation, object) do
     populate(context, world)
-    assert Turnstile.check(subject, operation, object) == World.module(world).allowed?(world, subject, operation, object)
+    module = World.module(world)
+    assert Turnstile.check(subject, operation, object) == module.allowed?(world, subject, operation, object)
   end
 
-  @doc "For each protected schema, the rows the scope admits are the objects `check` allows; a denied scope admits none."
+  @doc """
+  `ac3-03`: for each protected schema, the rows the scope admits are the
+  objects `check` allows; a denied scope admits none.
+  """
   @spec scope_fidelity(context(), World.t(), Turnstile.subject(), atom()) :: :ok
   def scope_fidelity(%{repo: repo} = context, world, subject, operation) do
     module = World.module(world)
@@ -64,7 +74,11 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     Enum.each(module.schemas(), &scope_of(repo, module, world, subject, operation, &1))
   end
 
-  @doc "An unknown operation, a subject of an unknown kind, and a subject the population does not know are denied."
+  @doc """
+  `ac3-02`: every object the rule does not grant the subject, an unknown
+  operation, a subject of an unknown kind, and a subject the population does
+  not know are denied, the unknown kind before the adapter is asked.
+  """
   @spec deny_by_default(
           context(),
           World.t(),
@@ -77,6 +91,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     module = World.module(world)
     populate(context, world)
     known = hd(module.operations())
+    Enum.each(ungranted(module, world, subject, known), &denied(subject, known, &1))
     denied_everywhere(subject, operation, object)
     denied_everywhere(stranger, known, object)
     denied_or_scoped_to_nothing(context, module, nobody, known, object)
@@ -85,7 +100,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
              Turnstile.authorize(stranger, known, object)
   end
 
-  @doc "A scoped `all` over 1,000 rows: one query plus the adapter's own, and one decision record."
+  @doc "`ac3-04`: a scoped `all` over 1,000 rows is one query plus the adapter's own, and one decision record."
   @spec scoped_all_shape(context()) :: true
   def scoped_all_shape(%{repo: repo, case: %{world: module}} = context) do
     world = module.scoped()
@@ -110,21 +125,31 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert insert =~ ~r/^INSERT/i
   end
 
-  @doc "With the engine unreachable, every call denies with `engine_unreachable` and no policy version."
-  @spec fail_closed(context()) :: true
+  @doc """
+  `ac3-05`: with the engine unreachable, every call denies with
+  `engine_unreachable` and no policy version, and each publishes one
+  decision event carrying what broke.
+  """
+  @spec fail_closed(context()) :: :ok
   def fail_closed(%{case: %{outage: outage, world: module}} = context) do
     {_world, subject, _grantable, object, operation} = granted_focus(context, module)
 
     :ok = outage.outage()
+    handler = :telemetry_test.attach_event_handlers(self(), [Turnstile.Port.event()])
     assert Turnstile.check(subject, operation, object) == false
 
     assert {:error, %Error{reason: :engine_unreachable}} =
              Turnstile.authorize(subject, operation, object)
 
     unreachable_scope(subject, operation, elem(object, 0))
+    :telemetry.detach(handler)
+
+    events = decision_events(handler)
+    assert length(events) == 3
+    Enum.each(events, &assert_closed/1)
   end
 
-  @doc "The revocation-latency template: written to the log, never asserted."
+  @doc "`ac2-05`: after a revocation the next check denies; the latency is written to the log, never asserted."
   @spec latency(context()) :: :ok
   def latency(%{repo: repo, case: %{adapter: adapter, world: module}} = context) do
     {world, subject, grantable, object, operation} = granted_focus(context, module)
@@ -147,10 +172,86 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     """)
   end
 
-  # The measurements are printed, never asserted, and the test logger sits
-  # at warning, so they go to standard output as the template promises.
+  @doc """
+  Print a measurement. The measurements are printed, never asserted, and
+  the test logger sits at warning, so they go to standard output as the
+  template promises.
+  """
+  @spec report(String.t()) :: :ok
   # credo:disable-for-next-line Credo.Check.Refactor.IoPuts
-  defp report(text), do: IO.puts(text)
+  def report(text) when is_binary(text), do: IO.puts(text)
+
+  @doc """
+  What a law that takes a grant away starts from: the granted world
+  written, the user it grants to, the grantable, the object it is over,
+  and an operation it allows, with the grant checked to be in force.
+  """
+  @spec granted_focus(context(), module()) ::
+          {World.t(), Turnstile.subject(), World.grantable(), Turnstile.object(), atom()}
+  def granted_focus(context, module) do
+    world = module.granted()
+    populate(context, world)
+    {subject, grantable} = module.focus(world)
+    object = module.object_of(grantable)
+    operation = hd(module.operations())
+    assert Turnstile.check(subject, operation, object)
+    {world, subject, grantable, object, operation}
+  end
+
+  @doc "The subject is denied the operation on the object by `check` and by `authorize`, with a reason and a detail."
+  @spec denied(Turnstile.subject(), atom(), Turnstile.object()) :: true
+  def denied(subject, operation, object) do
+    assert Turnstile.check(subject, operation, object) == false
+    assert {:error, %Error{reason: reason, detail: detail}} = Turnstile.authorize(subject, operation, object)
+    assert reason in Error.reasons()
+    assert detail =~ "may not #{operation}"
+  end
+
+  @doc """
+  The rows the query admits under the decision are exactly the ids allowed:
+  a scoped decision reads them, and a denied decision admits none, refuses
+  the read, and leaves the table readable under the world's exemption.
+  """
+  @spec assert_scope(module(), module(), Ecto.Queryable.t(), Decision.t(), [term()]) :: true
+  def assert_scope(repo, _module, query, %Decision{verdict: :scoped} = decision, allowed) do
+    rows = repo.all(query, turnstile: decision)
+    assert Enum.sort(Enum.map(rows, & &1.id)) == Enum.sort(allowed)
+  end
+
+  def assert_scope(repo, module, query, %Decision{verdict: :deny} = decision, allowed) do
+    assert allowed == []
+    assert_raise Error, ~r/may not/, fn -> repo.all(query, turnstile: decision) end
+    assert repo.all(query, turnstile: module.exemption()) == []
+  end
+
+  @doc "The function's result, and the decision events it published, in order."
+  @spec recorded((-> result)) :: {result, [map()]} when result: term()
+  def recorded(fun) when is_function(fun, 0) do
+    handler = :telemetry_test.attach_event_handlers(self(), [Turnstile.Port.event()])
+
+    try do
+      {fun.(), decision_events(handler)}
+    after
+      :telemetry.detach(handler)
+    end
+  end
+
+  @doc """
+  The decision events this process received on the handler, in order,
+  leaving out the one a call that raised published with no verdict.
+  """
+  @spec decision_events(reference()) :: [map()]
+  def decision_events(handler) do
+    receive do
+      {[:turnstile, :decision], ^handler, _measurements, %{verdict: nil}} ->
+        decision_events(handler)
+
+      {[:turnstile, :decision], ^handler, _measurements, metadata} ->
+        [metadata | decision_events(handler)]
+    after
+      0 -> []
+    end
+  end
 
   defp allowed_ids(module, world, subject, operation) do
     type = Schema.object_type_of(module.scope_schema())
@@ -174,18 +275,8 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert_scope(repo, module, where(schema, ^rule), decision, allowed)
   end
 
-  defp assert_scope(repo, _module, query, %Decision{verdict: :scoped} = decision, allowed) do
-    rows = repo.all(query, turnstile: decision)
-    assert Enum.sort(Enum.map(rows, & &1.id)) == Enum.sort(allowed)
-  end
-
-  defp assert_scope(repo, module, query, %Decision{verdict: :deny} = decision, allowed) do
-    assert allowed == []
-    assert_raise Error, ~r/may not/, fn -> repo.all(query, turnstile: decision) end
-    assert repo.all(query, turnstile: module.exemption()) == []
-  end
-
-  defp scoped_all_counted(%{repo: repo, case: %{setup_queries: queries_added, world: module}}, world, subject, operation) do
+  defp scoped_all_counted(context, world, subject, operation) do
+    %{repo: repo, case: %{setup_queries: queries_added, world: module}} = context
     {rows, queries, decisions} = scoped_all(module, repo, subject, operation)
     expected = 1 + queries_added
 
@@ -203,18 +294,6 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert decision.policy_version == nil
   end
 
-  # What a law that takes a grant away starts from: one grant in force, the
-  # subject and the object it is over, and an operation it allows.
-  defp granted_focus(context, module) do
-    world = module.granted()
-    populate(context, world)
-    {subject, grantable} = module.focus(world)
-    object = module.object_of(grantable)
-    operation = hd(module.operations())
-    assert Turnstile.check(subject, operation, object)
-    {world, subject, grantable, object, operation}
-  end
-
   defp scoped_all(module, repo, subject, operation) do
     schema = module.scope_schema()
     type = Schema.object_type_of(schema)
@@ -227,7 +306,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
       end)
 
     :telemetry.detach(handler)
-    {rows, queries, decisions(handler)}
+    {rows, queries, length(decision_events(handler))}
   end
 
   # What brings the adapter's own state into step after the revocation, and
@@ -257,22 +336,16 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert_scope(repo, module, where(schema, ^rule), decision, [])
   end
 
-  defp denied(subject, operation, object) do
-    assert Turnstile.check(subject, operation, object) == false
-    assert {:error, %Error{reason: reason, detail: detail}} = Turnstile.authorize(subject, operation, object)
-    assert reason in Error.reasons()
-    assert detail =~ "may not #{operation}"
+  # The objects the rule grants the subject nothing on, under the operation.
+  defp ungranted(module, world, subject, operation) do
+    Enum.reject(module.objects(world), &module.allowed?(world, subject, operation, &1))
   end
 
-  defp decisions(handler) do
-    receive do
-      {[:turnstile, :decision], ^handler, _measurements, %{verdict: nil}} ->
-        decisions(handler)
-
-      {[:turnstile, :decision], ^handler, _measurements, _metadata} ->
-        1 + decisions(handler)
-    after
-      0 -> 0
-    end
+  # A decision the outage closed: denied, for the engine being out of reach,
+  # with what broke on the event.
+  defp assert_closed(event) do
+    assert event.verdict == :deny
+    assert event.reason == :engine_unreachable
+    assert is_exception(event.exception), "the closed decision carries no exception: #{inspect(event.exception)}"
   end
 end

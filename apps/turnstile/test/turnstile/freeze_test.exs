@@ -6,12 +6,14 @@ defmodule Turnstile.FreezeTest do
 
   use ExUnit.Case, async: true
 
+  alias Turnstile.Conformance.Law
   alias Turnstile.Conformance.Scenario
   alias Turnstile.Conformance.Scenarios
 
   @moduletag :freeze
 
   @reference Path.expand("../../../../docs/example.md", __DIR__)
+  @conformance Path.expand("../../../../docs/conformance.md", __DIR__)
 
   test "Turnstile.Adapter has the frozen callbacks" do
     assert Enum.sort(Turnstile.Adapter.behaviour_info(:callbacks)) ==
@@ -67,6 +69,10 @@ defmodule Turnstile.FreezeTest do
     assert Scenarios.all() == reference_rows()
   end
 
+  test "the law table equals docs/conformance.md §2" do
+    assert Law.all() == law_rows()
+  end
+
   defp fields(module) do
     module.__struct__()
     |> Map.keys()
@@ -88,13 +94,33 @@ defmodule Turnstile.FreezeTest do
     |> Enum.map(&row/1)
   end
 
+  defp law_rows do
+    @conformance
+    |> File.read!()
+    |> String.split("\n## 2. The laws")
+    |> Enum.at(1)
+    |> String.split("\n## ")
+    |> hd()
+    |> String.split("\n")
+    |> Enum.filter(&String.starts_with?(&1, "| `"))
+    |> Enum.map(&law/1)
+  end
+
+  defp law(line) do
+    [id, sentence, controls] = cells(line)
+    %Law{id: String.trim(id, "`"), sentence: sentence, controls: String.split(controls, ", ")}
+  end
+
+  defp cells(line) do
+    line
+    |> String.split("|")
+    |> Enum.drop(1)
+    |> Enum.drop(-1)
+    |> Enum.map(&String.trim/1)
+  end
+
   defp row(line) do
-    [id, sentence, group, controls, tests] =
-      line
-      |> String.split("|")
-      |> Enum.drop(1)
-      |> Enum.drop(-1)
-      |> Enum.map(&String.trim/1)
+    [id, sentence, group, controls, tests] = cells(line)
 
     %Scenario{
       id: String.trim(id, "`"),

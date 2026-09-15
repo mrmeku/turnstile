@@ -16,11 +16,13 @@ defmodule Turnstile.Conformance do
       AdapterCase.Laws,
       Case,
       Gen,
+      Law,
       RepoCase,
       RepoCase.Rows,
       Scenario,
       Scenarios,
       Seed,
+      Versions,
       World
     ]
 end
