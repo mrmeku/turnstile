@@ -1,7 +1,7 @@
 defmodule Example.SiemTest do
   use Example.FakeCase, async: true
 
-  alias Example.Documents
+  alias Example.Application.Documents
   alias Example.Fixture
   alias Example.Siem
 

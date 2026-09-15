@@ -1,11 +1,11 @@
-defmodule Example.ProposalsTest do
+defmodule Example.Application.ProposalsTest do
   use Example.FakeCase, async: true
 
-  alias Example.Documents
+  alias Example.Application.Documents
+  alias Example.Application.Proposals
   alias Example.Domain.Marking
   alias Example.Domain.Proposal
   alias Example.Fixture
-  alias Example.Proposals
   alias Turnstile.Error
 
   @dana {:user, "dana"}

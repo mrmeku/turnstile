@@ -5,7 +5,7 @@ defmodule Example.Scenarios.Support do
 
   import ExUnit.Assertions
 
-  alias Example.Documents
+  alias Example.Application.Documents
   alias Example.Domain.Document
   alias Example.Domain.Sessions
   alias Example.Fixture

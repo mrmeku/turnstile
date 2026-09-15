@@ -58,7 +58,7 @@ The rules are a model a server holds. A model declares types, the relations of e
 | C1 Lawful purpose | `lawful_purpose`, the members of the document's program or of its designating office | the engine |
 | C2 Controls, all of | `can_read: lawful_purpose but not blocked`, where each flag that applies must be cleared and an absent flag blocks nobody | the engine |
 | C3 Specified categories | the category carries its own flags and the document inherits them through `from category`, so a category that is not specified implies nothing by having no flags | the engine |
-| C4 Banner | the document's flags include `from portion`, so a control a portion carries applies to the document by construction, while `relto_clear` reads the document's own country tuples, which are the banner `Example.Documents` keeps at write time, and the redacted read is `can_read_redacted` on the document with `can_read` per portion | the application |
+| C4 Banner | the document's flags include `from portion`, so a control a portion carries applies to the document by construction, while `relto_clear` reads the document's own country tuples, which are the banner `Example.Application.Documents` keeps at write time, and the redacted read is `can_read_redacted` on the document with `can_read` per portion | the application |
 | C5 Decontrol | the condition `before_decontrol` on the tuples a date lapses, holding the date, against the moment of the question in the context, so a date that passes needs no write | the engine |
 | C6 Named list | `listed`, a grant per document, with no path from it to `lawful_purpose` | the engine |
 | C7 Marking gates | `can_change_marking` and the relations computed from it; the write itself is refused by the seam before the model is asked | the seam |

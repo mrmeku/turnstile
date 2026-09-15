@@ -1,4 +1,4 @@
-defmodule Example.Proposals do
+defmodule Example.Application.Proposals do
   @moduledoc """
   Separation of duties on marking changes (C9): a designator proposes, a
   different approver approves, and the approval applies the marking under
@@ -7,7 +7,7 @@ defmodule Example.Proposals do
   A proposal without approval changes nothing.
   """
 
-  alias Example.Documents
+  alias Example.Application.Documents
   alias Example.Domain.Document
   alias Example.Domain.Proposal
   alias Example.Repo

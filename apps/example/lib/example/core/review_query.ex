@@ -1,7 +1,7 @@
 defmodule Example.Core.ReviewQuery do
   @moduledoc false
   # Hidden, because the queries a context runs are not its surface. What is
-  # here is the population `Example.Review` ranges over: every agency, every
+  # here is the population `Example.Application.Review` ranges over: every agency, every
   # account as the subject it stands for, and the documents an agency's
   # offices designated. The reviewer reads all three under a declared
   # exemption, so the rows are the whole of what there is to review. The

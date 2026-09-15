@@ -1,4 +1,4 @@
-defmodule Example.Accounts do
+defmodule Example.Application.Accounts do
   @moduledoc """
   Accounts and the roles they hold: assignments to programs, roles in
   offices, and the override permission. Role administration is not itself

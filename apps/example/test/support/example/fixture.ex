@@ -27,7 +27,7 @@ defmodule Example.Fixture do
 
   import Ecto.Query, only: [from: 2]
 
-  alias Example.Accounts
+  alias Example.Application.Accounts
   alias Example.Domain.Agency
   alias Example.Domain.Banner
   alias Example.Domain.Category

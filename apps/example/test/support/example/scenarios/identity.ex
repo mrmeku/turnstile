@@ -8,7 +8,7 @@ defmodule Example.Scenarios.Identity do
   import Example.Scenarios.Support
   import ExUnit.Assertions
 
-  alias Example.Documents
+  alias Example.Application.Documents
   alias Example.Domain.Document
   alias Example.Domain.Marking
   alias Example.Fixture

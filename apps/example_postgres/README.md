@@ -37,7 +37,7 @@ The rules are the database's own. A policy is a sentence on a table, and the dat
 | C1 Lawful purpose | `turnstile_scope_read` on `documents`, an `EXISTS` over `assignments` and one over `office_roles` | the database |
 | C2 Controls, all of | the blocked subquery in the same policy, reading `employment` and `nationality` from `users` at every statement | the database |
 | C3 Specified categories | the `LEFT JOIN` to `categories` on `specified`, whose `implied_controls` widen the declared ones | the database |
-| C4 Banner | the banner kept by `Example.Documents` at write time, beside `turnstile_scope_read` on `portions`, which reaches the document through the accessors so the document's own policy does not narrow it | the application and the database |
+| C4 Banner | the banner kept by `Example.Application.Documents` at write time, beside `turnstile_scope_read` on `portions`, which reaches the document through the accessors so the document's own policy does not narrow it | the application and the database |
 | C5 Decontrol | `turnstile.now`, set by the adapter for the length of the call, compared with `decontrol` | the database |
 | C6 Named list | membership of the document marking's `list` column, which no other clause reaches | the database |
 | C7 Marking gates | `turnstile_gate_change_marking`, `turnstile_gate_set_decontrol`, and `turnstile_gate_decontrol` as `WITH CHECK` policies on `documents`, `markings`, and `portions`, which carry no operation guard, so a write that never passed the seam meets them too | the database |

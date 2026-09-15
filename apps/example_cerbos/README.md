@@ -41,7 +41,7 @@ The rules are files a separate process evaluates. A policy names actions on a re
 | C1 Lawful purpose | the allow rule of each resource kind, over the two role subqueries | the engine |
 | C2 Controls, all of | one deny rule per control, each over the effective controls and the account's own columns | the engine |
 | C3 Specified categories | the derivation is in the subquery the declaration names, so the policy tests membership in a set the database widened (limited) | the engine |
-| C4 Banner | the banner kept by `Example.Documents` at write time, beside the `portion` resource kind, whose decontrol is its document's and so is tested inside its subqueries (limited) | the application and the engine |
+| C4 Banner | the banner kept by `Example.Application.Documents` at write time, beside the `portion` resource kind, whose decontrol is its document's and so is tested inside its subqueries (limited) | the application and the engine |
 | C5 Decontrol | the request's own moment, sent as an environment fact beside the account's attributes, compared with the document's date | the engine |
 | C6 Named list | the `listed` subquery, which selects the asking account's own identifier where the banner names it | the engine |
 | C7 Marking gates | the seam refuses a write with no decision for the operation before the policy is asked | the seam |

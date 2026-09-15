@@ -15,7 +15,7 @@ defmodule Example.Scenarios.Enforcement do
   import Example.Scenarios.Support
   import ExUnit.Assertions
 
-  alias Example.Documents
+  alias Example.Application.Documents
   alias Example.Domain.Document
   alias Example.Fixture
   alias Turnstile.Test.Clock

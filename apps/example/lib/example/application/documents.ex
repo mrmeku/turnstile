@@ -1,4 +1,4 @@
-defmodule Example.Documents.BannerViolation do
+defmodule Example.Application.Documents.BannerViolation do
   @moduledoc "A banner that would admit a subject a portion denies: the portions' banner is not covered."
 
   alias Example.Domain.Controls
@@ -13,7 +13,7 @@ defmodule Example.Documents.BannerViolation do
         }
 end
 
-defmodule Example.Documents.OverrideRefused do
+defmodule Example.Application.Documents.OverrideRefused do
   @moduledoc "Why an override was refused: the account is not privileged, lacks the permission, or gave no justification."
 
   @enforce_keys [:reason]
@@ -22,7 +22,7 @@ defmodule Example.Documents.OverrideRefused do
   @type t :: %__MODULE__{reason: :not_privileged | :no_permission | :no_justification}
 end
 
-defmodule Example.Documents do
+defmodule Example.Application.Documents do
   @moduledoc """
   Documents, their banners, their portions, and the audited override. Every
   read and write asks the port first and passes the decision to the seam;
@@ -36,9 +36,10 @@ defmodule Example.Documents do
   """
 
   alias Ecto.Changeset
+  alias Example.Application.Accounts
+  alias Example.Application.Documents.BannerViolation
+  alias Example.Application.Documents.OverrideRefused
   alias Example.Core.DocumentQuery
-  alias Example.Documents.BannerViolation
-  alias Example.Documents.OverrideRefused
   alias Example.Domain.Banner
   alias Example.Domain.Document
   alias Example.Domain.Marking
@@ -248,7 +249,9 @@ defmodule Example.Documents do
   end
 
   defp override_permitted({_kind, id}, _justification) do
-    if Example.Accounts.override_permitted?(id), do: :ok, else: {:error, %OverrideRefused{reason: :no_permission}}
+    if Accounts.override_permitted?(id),
+      do: :ok,
+      else: {:error, %OverrideRefused{reason: :no_permission}}
   end
 
   defp report_override(%Document{} = document, {_kind, user_id}, justification, operation_id) do

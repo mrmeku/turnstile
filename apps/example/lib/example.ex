@@ -19,10 +19,12 @@ defmodule Example do
       NimbleOptions
     ],
     exports: [
-      Accounts,
-      Documents,
-      Documents.BannerViolation,
-      Documents.OverrideRefused,
+      Application.Accounts,
+      Application.Documents,
+      Application.Documents.BannerViolation,
+      Application.Documents.OverrideRefused,
+      Application.Proposals,
+      Application.Review,
       Domain.AccountRole,
       Domain.Agency,
       Domain.Assignment,
@@ -41,9 +43,7 @@ defmodule Example do
       Domain.User,
       Migrations.Domain,
       OwnerRepo,
-      Proposals,
       Repo,
-      Review,
       Siem
     ]
 

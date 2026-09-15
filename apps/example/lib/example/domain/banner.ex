@@ -7,7 +7,7 @@ defmodule Example.Domain.Banner do
   denies. Categories and controls are the union of the portions'; the REL TO
   country list is the intersection of the lists of the portions that carry
   that control, so a country one portion withholds is released by no banner.
-  `Example.Documents` keeps the banner at write time and refuses a marking
+  The documents context keeps the banner at write time and refuses a marking
   change that would drop a portion's control.
 
   The arithmetic reads markings as values and holds nothing, so a property

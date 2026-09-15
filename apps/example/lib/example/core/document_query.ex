@@ -1,7 +1,7 @@
 defmodule Example.Core.DocumentQuery do
   @moduledoc false
   # Hidden, because the queries a context runs are not its surface. What is
-  # here is which rows `Example.Documents` asks for: the documents a rule
+  # here is which rows `Example.Application.Documents` asks for: the documents a rule
   # admits, the portions of a document, and the overrides reported to an
   # office. A rule is the `dynamic` the port's `scope` answered with, and it
   # is carried into the query rather than read, so nothing here decides who

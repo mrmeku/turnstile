@@ -8,12 +8,13 @@ defmodule Example.Scenarios.Privilege do
   import Example.Scenarios.Support
   import ExUnit.Assertions
 
-  alias Example.Accounts
-  alias Example.Documents
+  alias Example.Application.Accounts
+  alias Example.Application.Documents
+  alias Example.Application.Proposals
+  alias Example.Application.Review
   alias Example.Domain.Document
   alias Example.Domain.Proposal
   alias Example.Fixture
-  alias Example.Proposals
 
   @noforn %{controls: [:no_foreign]}
 
@@ -129,7 +130,7 @@ defmodule Example.Scenarios.Privilege do
     document = Fixture.document!(world, controls: [:federal_only])
 
     settle()
-    report = Example.Review.report(subject("eve"), fresh())
+    report = Review.report(subject("eve"), fresh())
     assert report =~ "agency Domestic"
     assert report =~ "ann reads [#{document.id}]"
     assert report =~ "bob reads []"

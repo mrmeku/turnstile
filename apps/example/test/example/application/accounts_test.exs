@@ -1,7 +1,7 @@
-defmodule Example.AccountsTest do
+defmodule Example.Application.AccountsTest do
   use Example.FakeCase, async: true
 
-  alias Example.Accounts
+  alias Example.Application.Accounts
   alias Example.Domain.Assignment
   alias Example.Domain.OfficeRole
   alias Example.Domain.User

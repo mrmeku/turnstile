@@ -8,7 +8,7 @@ defmodule Example.Scenarios.Revocation do
   import Example.Scenarios.Support
   import ExUnit.Assertions
 
-  alias Example.Accounts
+  alias Example.Application.Accounts
   alias Example.Domain.Assignment
   alias Example.Domain.Document
   alias Example.Domain.Program

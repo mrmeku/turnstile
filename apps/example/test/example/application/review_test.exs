@@ -1,8 +1,8 @@
-defmodule Example.ReviewTest do
+defmodule Example.Application.ReviewTest do
   use Example.FakeCase, async: true
 
+  alias Example.Application.Review
   alias Example.Fixture
-  alias Example.Review
 
   @eve {:user, "eve"}
 

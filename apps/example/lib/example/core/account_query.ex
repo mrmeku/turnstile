@@ -1,7 +1,7 @@
 defmodule Example.Core.AccountQuery do
   @moduledoc false
   # Hidden, because the queries a context runs are not its surface. What is
-  # here is which rows `Example.Accounts` asks for: an account's assignment
+  # here is which rows `Example.Application.Accounts` asks for: an account's assignment
   # to a program, the override permission it holds, and every privileged
   # account with the roles beside it.
 

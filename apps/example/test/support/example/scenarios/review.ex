@@ -8,6 +8,7 @@ defmodule Example.Scenarios.Review do
   import Example.Scenarios.Support
   import ExUnit.Assertions
 
+  alias Example.Application.Review
   alias Example.Fixture
 
   @spec rvw_01() :: term()
@@ -18,11 +19,11 @@ defmodule Example.Scenarios.Review do
     foreign = Fixture.document!(world, program: world.foreign_program, office: world.foreign_office)
 
     settle()
-    report = Example.Review.report(subject("eve"), fresh())
+    report = Review.report(subject("eve"), fresh())
     [_head, domestic, foreign_section] = String.split(report, ~r/^agency /m)
     assert_section(domestic, "Domestic", ann: [open, federal], bob: [open], frank: [], ivan: [])
     assert_section(foreign_section, "Foreign", ivan: [foreign], ann: [])
-    readers = Example.Review.readers(subject("eve"), world.agency, fresh())
+    readers = Review.readers(subject("eve"), world.agency, fresh())
     assert readers[subject("ann")] == [open.id, federal.id]
     assert readers[subject("bob")] == [open.id]
   end

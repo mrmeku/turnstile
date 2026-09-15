@@ -1,4 +1,4 @@
-defmodule Example.Review do
+defmodule Example.Application.Review do
   @moduledoc """
   Access review (AC-2, AC-6(5), AC-6(7)): who can do what today, per
   agency, and every privileged account. The port's `review` answers a rule
@@ -20,9 +20,9 @@ defmodule Example.Review do
 
   import Ecto.Query, only: [where: 2]
 
-  alias Example.Accounts
+  alias Example.Application.Accounts
+  alias Example.Application.Documents
   alias Example.Core.ReviewQuery
-  alias Example.Documents
   alias Example.Domain.Agency
   alias Example.Repo
   alias Turnstile.Decision

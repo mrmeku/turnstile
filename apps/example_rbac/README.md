@@ -31,7 +31,7 @@ The controlled-unclassified-information example of `example`, bound to the `Turn
 | C1 Lawful purpose | the `:assignment` and `:office` grants on every protected schema, which reach a document through its open program and its designating office | the adapter |
 | C2 Controls, all of | the `:controls` predicate, one subquery over the marking, the subject's row, and the designating agency, where any failing control blocks the row | the adapter |
 | C3 Specified categories | the left join to `categories` inside that subquery, whose `implied_controls` widen the marking's declared ones | the adapter |
-| C4 Banner | the banner kept by `Example.Documents` at write time, beside the `:controls` predicate on portions, which reads the portion's own marking under the document's list and decontrol date | the application and the adapter |
+| C4 Banner | the banner kept by `Example.Application.Documents` at write time, beside the `:controls` predicate on portions, which reads the portion's own marking under the document's list and decontrol date | the application and the adapter |
 | C5 Decontrol | the `controlled` clause of the same subquery, comparing `documents.decontrol` with the moment the port stamped the call with | the adapter |
 | C6 Named list | the `named_list` clause, membership of the document marking's `list`, which combines with nothing else | the adapter |
 | C7 Marking gates | the role table, which grants the marking operations to the designator alone; the write itself is refused by the seam without a decision for the operation | the seam |
