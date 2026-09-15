@@ -46,12 +46,9 @@ defmodule Turnstile.Cerbos.Adapter.Decide do
         %{now: _now} = request
       )
       when is_binary(address) and is_atom(operation) do
-    with {:ok, principal} <- Values.principal(binding, subject, request),
-         {:ok, by_id} <- Values.resources(binding, subject, type, [object]),
-         body = Request.check(subject, operation, principal, [{object, values(by_id, object)}]),
-         {:ok, answered} <- Client.check_resources(address, body),
-         {:ok, effects} <- effects(answered, operation) do
-      {:ok, explanation(binding, Map.get(effects, key(object)))}
+    with {:ok, body} <- asked(binding, subject, operation, type, object, request),
+         {:ok, answered} <- Client.check_resources(address, body) do
+      effect(binding, answered, operation, object)
     end
   end
 
@@ -69,6 +66,21 @@ defmodule Turnstile.Cerbos.Adapter.Decide do
          body = Request.plan(subject, operation, kind, principal),
          {:ok, answered} <- Client.plan_resources(address, body) do
       compiled(binding, subject, operation, kind, answered)
+    end
+  end
+
+  # The check request for one object: the principal and the resource, each
+  # with the values the declarations name.
+  defp asked(binding, subject, operation, type, object, request) do
+    with {:ok, principal} <- Values.principal(binding, subject, request),
+         {:ok, by_id} <- Values.resources(binding, subject, type, [object]) do
+      {:ok, Request.check(subject, operation, principal, [{object, values(by_id, object)}])}
+    end
+  end
+
+  defp effect(binding, answered, operation, object) do
+    with {:ok, effects} <- effects(answered, operation) do
+      {:ok, explanation(binding, Map.get(effects, key(object)))}
     end
   end
 

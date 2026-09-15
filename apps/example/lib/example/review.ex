@@ -39,29 +39,22 @@ defmodule Example.Review do
     reviewed(reviewer, :read, :document, ReviewQuery.documents(agency_id), opts)
   end
 
+  @doc "The operations a permission line names, in report order."
+  @spec operations() :: [atom()]
+  def operations, do: Documents.operations() ++ @proposal_operations
+
   @doc """
   Every permission every account holds on the documents of an agency, by
   operation, and on the proposals over those documents.
   """
   @spec permissions(Turnstile.subject(), Agency.t(), keyword()) :: permissions()
   def permissions({_kind, _account} = reviewer, %Agency{id: agency_id}, opts \\ []) when is_list(opts) do
-    documents = ReviewQuery.documents(agency_id)
-    proposals = ReviewQuery.proposals(agency_id)
-
-    over_documents = for operation <- Documents.operations(), do: {operation, :document, documents}
-    over_proposals = for operation <- @proposal_operations, do: {operation, :proposal, proposals}
-
-    (over_documents ++ over_proposals)
-    |> Enum.flat_map(fn {operation, type, query} ->
-      for {subject, ids} <- reviewed(reviewer, operation, type, query, opts), do: {subject, operation, ids}
-    end)
+    agency_id
+    |> populations()
+    |> Enum.flat_map(fn {operation, type, query} -> held(reviewer, operation, type, query, opts) end)
     |> Enum.group_by(fn {subject, _op, _ids} -> subject end, fn {_subject, op, ids} -> {op, ids} end)
     |> Map.new(fn {subject, entries} -> {subject, Map.new(entries)} end)
   end
-
-  @doc "The operations a permission line names, in report order."
-  @spec operations() :: [atom()]
-  def operations, do: Documents.operations() ++ @proposal_operations
 
   @doc """
   The report: readers per agency, then every operation of each account
@@ -105,6 +98,20 @@ defmodule Example.Review do
       Enum.map(Accounts.privileged(), fn {user, roles} ->
         "  #{user.id} (person #{user.person_id}) holds [#{Enum.join(roles, ", ")}]"
       end)
+  end
+
+  # Each operation over the rows it ranges over: the agency's documents,
+  # then the proposals over them.
+  defp populations(agency_id) do
+    documents = ReviewQuery.documents(agency_id)
+    proposals = ReviewQuery.proposals(agency_id)
+
+    for(operation <- Documents.operations(), do: {operation, :document, documents}) ++
+      for(operation <- @proposal_operations, do: {operation, :proposal, proposals})
+  end
+
+  defp held(reviewer, operation, type, query, opts) do
+    for {subject, ids} <- reviewed(reviewer, operation, type, query, opts), do: {subject, operation, ids}
   end
 
   defp subjects do
