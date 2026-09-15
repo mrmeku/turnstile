@@ -3,9 +3,9 @@ defmodule ExampleFga.Application do
   Boot: the configuration names the server and the store, the binding names
   the repo the markers and the tables are read through, the model file, the
   mapping, and the guard, the handler that writes a marker for every change
-  is attached, the supervisor starts the repos and the runner that delivers
-  those markers, and the model is published as a policy version once the tree
-  is up.
+  is attached, the supervisor starts the consumer of the events, the repos,
+  and the runner that delivers those markers, and the model is published as
+  a policy version once the tree is up.
 
   The runner is the process that drains the outbox into the store on its
   interval. It starts here rather than in a test, because a test settles the
@@ -22,6 +22,7 @@ defmodule ExampleFga.Application do
 
   use Application
 
+  alias Example.Siem
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Outbox
 
@@ -40,10 +41,11 @@ defmodule ExampleFga.Application do
       )
 
     :ok = Outbox.attach()
-    children = started()
+    started = started()
+    children = [{Siem, name: Siem, attach: true} | started]
 
     with {:ok, pid} <- Supervisor.start_link(children, strategy: :one_for_one, name: ExampleFga.Supervisor) do
-      :ok = publish(children)
+      :ok = publish(started)
       {:ok, pid}
     end
   end
