@@ -2,7 +2,7 @@ defmodule Turnstile.Cerbos.CodecTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Turnstile.Cerbos.Core.Codec
+  alias Turnstile.Cerbos.Infrastructure.Codec
 
   @scalars [:string, :integer, :float, :boolean, :date, :time, :naive_datetime, :utc_datetime]
 

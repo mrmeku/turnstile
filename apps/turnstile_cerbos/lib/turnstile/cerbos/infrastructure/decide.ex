@@ -1,4 +1,4 @@
-defmodule Turnstile.Cerbos.Adapter.Decide do
+defmodule Turnstile.Cerbos.Infrastructure.Decide do
   # The answers the adapter gives: the attribute values read, one request to
   # the sidecar, and the effects it answered turned into answers.
   #
@@ -22,10 +22,10 @@ defmodule Turnstile.Cerbos.Adapter.Decide do
   import Ecto.Query, only: [dynamic: 2]
 
   alias Turnstile.Answer
-  alias Turnstile.Cerbos.Adapter.Values
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Client
-  alias Turnstile.Cerbos.Core.Plan
+  alias Turnstile.Cerbos.Infrastructure.Plan
+  alias Turnstile.Cerbos.Infrastructure.Values
   alias Turnstile.Cerbos.Request
 
   @fallback [:turnstile, :cerbos, :scope_fallback]

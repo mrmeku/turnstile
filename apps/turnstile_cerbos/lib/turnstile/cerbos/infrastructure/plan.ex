@@ -1,4 +1,4 @@
-defmodule Turnstile.Cerbos.Core.Plan do
+defmodule Turnstile.Cerbos.Infrastructure.Plan do
   @moduledoc false
   # A query plan turned into a `dynamic` over the rows of the object type.
   #

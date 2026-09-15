@@ -1,4 +1,4 @@
-defmodule Turnstile.Cerbos.Core.Codec do
+defmodule Turnstile.Cerbos.Infrastructure.Codec do
   @moduledoc false
   # A value on its way to the sidecar. JSON carries numbers, strings,
   # booleans, and null; a value of any other shape crosses as text, so an

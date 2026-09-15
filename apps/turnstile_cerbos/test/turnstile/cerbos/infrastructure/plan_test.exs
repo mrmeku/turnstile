@@ -4,9 +4,9 @@ defmodule Turnstile.Cerbos.PlanTest do
   import Ecto.Query, only: [from: 2]
 
   alias Turnstile.Answer
-  alias Turnstile.Cerbos.Adapter.Decide
   alias Turnstile.Cerbos.Binding
-  alias Turnstile.Cerbos.Core.Plan
+  alias Turnstile.Cerbos.Infrastructure.Decide
+  alias Turnstile.Cerbos.Infrastructure.Plan
   alias Turnstile.Dev
   alias Turnstile.Dev.Sandbox
   alias Turnstile.Error

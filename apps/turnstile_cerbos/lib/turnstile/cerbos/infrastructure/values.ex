@@ -1,4 +1,4 @@
-defmodule Turnstile.Cerbos.Adapter.Values do
+defmodule Turnstile.Cerbos.Infrastructure.Values do
   @moduledoc false
   # The values of the declared attributes, read through the bound repo as a
   # library caller: one query for the columns of a kind, one for each
@@ -34,7 +34,7 @@ defmodule Turnstile.Cerbos.Adapter.Values do
   alias Turnstile.Cerbos.Attribute
   alias Turnstile.Cerbos.Attributes
   alias Turnstile.Cerbos.Binding
-  alias Turnstile.Cerbos.Core.Codec
+  alias Turnstile.Cerbos.Infrastructure.Codec
 
   @exemption {:exempt, :library}
 

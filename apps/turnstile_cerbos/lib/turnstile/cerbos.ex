@@ -41,9 +41,9 @@ defmodule Turnstile.Cerbos do
       Version
     ]
 
-  alias Turnstile.Cerbos.Adapter.Decide
-  alias Turnstile.Cerbos.Adapter.Version
   alias Turnstile.Cerbos.Binding
+  alias Turnstile.Cerbos.Infrastructure.Decide
+  alias Turnstile.Cerbos.Infrastructure.Version
   alias Turnstile.Error
   alias Turnstile.PolicyVersion
 

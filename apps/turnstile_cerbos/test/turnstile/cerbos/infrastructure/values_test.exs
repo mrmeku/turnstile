@@ -1,9 +1,9 @@
 defmodule Turnstile.Cerbos.ValuesTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Cerbos.Adapter.Values
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Conformance.Memberships
+  alias Turnstile.Cerbos.Infrastructure.Values
   alias Turnstile.Dev
   alias Turnstile.Dev.Sandbox
   alias Turnstile.Fixture.Account

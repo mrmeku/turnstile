@@ -1,4 +1,4 @@
-defmodule Turnstile.Cerbos.Adapter.Version do
+defmodule Turnstile.Cerbos.Infrastructure.Version do
   @moduledoc false
   # Publishing the policy version: resolve the binding and the
   # configuration, read the policy files the binding names, and emit the

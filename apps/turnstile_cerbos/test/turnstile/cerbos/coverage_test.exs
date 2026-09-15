@@ -3,10 +3,10 @@ defmodule Turnstile.Cerbos.CoverageTest do
 
   import Ecto.Query, only: [from: 2, subquery: 1, union_all: 2]
 
-  alias Turnstile.Cerbos.Adapter.Decide
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Conformance.Attributes
   alias Turnstile.Cerbos.Coverage
+  alias Turnstile.Cerbos.Infrastructure.Decide
   alias Turnstile.Dev
   alias Turnstile.Dev.Sandbox
   alias Turnstile.Fixture.Folder
