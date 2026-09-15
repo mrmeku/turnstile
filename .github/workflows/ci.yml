@@ -26,16 +26,16 @@ jobs:
 
   # The second of the two numbers, in a run of its own: a partitioned run
   # measures coverage over a part of the suite, so this one takes the whole
-  # of it, and holds every module under a `core/` to every line. The first
+  # of it, and holds every module under a `domain/` to every line. The first
   # number, the runtime dependency count of turnstile, is a test in that
   # package's own suite and runs in the job above.
-  core_coverage:
+  domain_coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: DeterminateSystems/nix-installer-action@v22
       - run: nix develop --command mix deps.get
-      - run: nix develop --command mix test.core
+      - run: nix develop --command mix test.domain
 
   # One job per thin application, each in its own directory. `nix develop`
   # reads the flake at the root, so a step enters the directory inside the

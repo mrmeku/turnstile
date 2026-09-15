@@ -75,7 +75,7 @@ defmodule Turnstile.Umbrella.MixProject do
         "test"
       ],
       test: &run_tests/1,
-      "test.core": &run_core_tests/1
+      "test.domain": &run_domain_tests/1
     ]
   end
 
@@ -95,18 +95,18 @@ defmodule Turnstile.Umbrella.MixProject do
     Mix.Task.run("cmd", ["mix", "test", "--warnings-as-errors", "--cover"] ++ partitions ++ args)
   end
 
-  # Every module under a `core/` covered to every line. A partitioned run
+  # Every module under a `domain/` covered to every line. A partitioned run
   # measures coverage over a part of the suite, so this one is unpartitioned
-  # and is a run of its own, over the applications that own a `core/`, which
+  # and is a run of its own, over the applications that own a `domain/`, which
   # it reads from the tree rather than from a list kept by hand.
-  defp run_core_tests(args) do
-    System.put_env("TURNSTILE_CORE_COVERAGE", "1")
+  defp run_domain_tests(args) do
+    System.put_env("TURNSTILE_DOMAIN_COVERAGE", "1")
 
-    Mix.Task.run("cmd", core_apps() ++ ["mix", "test", "--warnings-as-errors", "--cover"] ++ args)
+    Mix.Task.run("cmd", domain_apps() ++ ["mix", "test", "--warnings-as-errors", "--cover"] ++ args)
   end
 
-  defp core_apps do
-    "apps/*/lib/**/core"
+  defp domain_apps do
+    "apps/*/lib/**/domain"
     |> Path.wildcard()
     |> Enum.map(&Enum.at(Path.split(&1), 1))
     |> Enum.uniq()

@@ -30,14 +30,14 @@ defmodule Turnstile.MixProject do
     [extra_applications: [:logger]]
   end
 
-  # The coverage a run measures. A run with TURNSTILE_CORE_COVERAGE set
-  # ignores every module outside a `core/` and holds what is left to every
+  # The coverage a run measures. A run with TURNSTILE_DOMAIN_COVERAGE set
+  # ignores every module outside a `domain/` and holds what is left to every
   # line, which a module that decides and touches nothing can be held to.
   # Any other run is the ordinary one, whose threshold is a floor under the
   # application as a whole.
   defp test_coverage do
-    if System.get_env("TURNSTILE_CORE_COVERAGE") do
-      [summary: [threshold: 100], ignore_modules: [~r/^(?!.*\.Core\.)/]]
+    if System.get_env("TURNSTILE_DOMAIN_COVERAGE") do
+      [summary: [threshold: 100], ignore_modules: [~r/^(?!.*\.Domain\.)/]]
     else
       [summary: [threshold: 90], ignore_modules: ignore_modules()]
     end

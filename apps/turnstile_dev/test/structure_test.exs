@@ -12,11 +12,15 @@ defmodule StructureTest do
   dots in the name, so `lib/mix/tasks/turnstile.schema_dump.ex` names
   `Mix.Tasks.Turnstile.SchemaDump`.
 
-  Three more rules over the two interior places `docs/design.md` §6 gives a
-  package. A module under `core/` decides: it calls nothing that touches a
-  process, a file, a clock, a table, or a node, and it names no module under
-  `adapter/`, so the calls inside a package run one way. A module under
-  either place carries `@moduledoc false`, because neither is public.
+  Four more rules over the three interior places `docs/design.md` §6 gives a
+  package. A module under `domain/` is what the package knows: it calls
+  nothing that touches a process, a file, a clock, a table, or a node, and it
+  names no module under `application/` or `infrastructure/`. A module under
+  `infrastructure/` names no module under `application/`, so the calls inside
+  a package run one way. In a published package a module under any of the
+  three places carries `@moduledoc false`, because none of them is the
+  interface; the example and the thin applications keep their docs, because
+  their layers are what a reader opens them for.
 
   The test reads the syntax tree rather than the compiled modules, so it
   starts nothing and depends on nothing it reads. The `boundary` library
@@ -31,6 +35,9 @@ defmodule StructureTest do
   use ExUnit.Case, async: true
 
   @umbrella Path.expand("../../..", __DIR__)
+
+  # The packages that ship to Hex, whose interior is not their interface.
+  @published ~w(turnstile turnstile_rbac turnstile_postgres turnstile_cerbos turnstile_fga)
 
   @exceptions %{
     "apps/example/lib/example/document.ex" =>
@@ -95,21 +102,35 @@ defmodule StructureTest do
     assert violations == [], "\n" <> Enum.join(violations, "\n") <> "\n"
   end
 
-  test "a module in core/ makes no call to the outside world" do
-    violations = Enum.flat_map(place_files("core"), &effects_of/1)
+  test "a module in domain/ makes no call to the outside world" do
+    violations = Enum.flat_map(place_files("domain"), &effects_of/1)
 
     assert violations == [], "\n" <> Enum.join(violations, "\n") <> "\n"
   end
 
-  test "a module in core/ names no module in adapter/" do
-    adapters = place_modules("adapter")
-    violations = Enum.flat_map(place_files("core"), &adapters_named(&1, adapters))
+  test "a module in domain/ names no module in application/ or infrastructure/" do
+    violations =
+      Enum.flat_map(["application", "infrastructure"], fn place ->
+        modules = place_modules(place)
+        Enum.flat_map(place_files("domain"), &named_from(&1, modules, place))
+      end)
 
     assert violations == [], "\n" <> Enum.join(violations, "\n") <> "\n"
   end
 
-  test "a module in core/ or adapter/ carries @moduledoc false" do
-    violations = Enum.flat_map(place_files("core") ++ place_files("adapter"), &undocumented/1)
+  test "a module in infrastructure/ names no module in application/" do
+    modules = place_modules("application")
+    violations = Enum.flat_map(place_files("infrastructure"), &named_from(&1, modules, "application"))
+
+    assert violations == [], "\n" <> Enum.join(violations, "\n") <> "\n"
+  end
+
+  test "a module in domain/, application/, or infrastructure/ of a published package carries @moduledoc false" do
+    violations =
+      ["domain", "application", "infrastructure"]
+      |> Enum.flat_map(&place_files/1)
+      |> Enum.filter(&published?/1)
+      |> Enum.flat_map(&undocumented/1)
 
     assert violations == [], "\n" <> Enum.join(violations, "\n") <> "\n"
   end
@@ -197,6 +218,16 @@ defmodule StructureTest do
     MapSet.new(place_files(place), &expected_module(expected_path(&1)))
   end
 
+  defp published?(file) do
+    package =
+      file
+      |> Path.relative_to(@umbrella)
+      |> Path.split()
+      |> Enum.at(1)
+
+    package in @published
+  end
+
   defp effects_of(file) do
     aliases = aliases_of(file)
 
@@ -221,27 +252,27 @@ defmodule StructureTest do
     end
   end
 
-  defp adapters_named(file, adapters) do
+  defp named_from(file, modules, place) do
     aliases = aliases_of(file)
 
     file
     |> quoted(&references/2)
     |> Enum.map(&resolved(&1, aliases))
-    |> Enum.filter(&interior?(&1, adapters))
+    |> Enum.filter(&interior?(&1, modules))
     |> Enum.uniq()
-    |> Enum.map(&"#{Path.relative_to(file, @umbrella)} names #{&1}, which is a module in adapter/")
+    |> Enum.map(&"#{Path.relative_to(file, @umbrella)} names #{&1}, which is a module in #{place}/")
   end
 
-  defp interior?(nil, _adapters), do: false
+  defp interior?(nil, _modules), do: false
 
-  defp interior?(named, adapters) do
-    Enum.any?(adapters, &(named == &1 or String.starts_with?(named, &1 <> ".")))
+  defp interior?(named, modules) do
+    Enum.any?(modules, &(named == &1 or String.starts_with?(named, &1 <> ".")))
   end
 
   defp undocumented(file) do
     for {name, body} <- modules_of(file), !hidden?(body) do
       "#{Path.relative_to(file, @umbrella)} defines #{name} without @moduledoc false, " <>
-        "and neither core/ nor adapter/ is public"
+        "and no interior place of a published package is public"
     end
   end
 
