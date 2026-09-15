@@ -91,7 +91,7 @@ defmodule Turnstile.MixProject do
   end
 
   defp docs do
-    [main: "readme", extras: ["README.md": [title: "Turnstile core"], "glossary.md": [title: "Glossary"]]]
+    [main: "readme", extras: ["README.md": [title: "Turnstile core"]]]
   end
 
   # CVE-2026-32686 (GHSA-rhv4-8758-jx7v): an unbounded exponent when decimal

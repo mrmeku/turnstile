@@ -78,7 +78,7 @@ defmodule Turnstile.Relay.MixProject do
   end
 
   defp docs do
-    [main: "readme", extras: ["README.md": [title: "Turnstile relay"], "glossary.md": [title: "Glossary"]]]
+    [main: "readme", extras: ["README.md": [title: "Turnstile relay"]]]
   end
 
   # CVE-2026-32686 (GHSA-rhv4-8758-jx7v): an unbounded exponent when decimal

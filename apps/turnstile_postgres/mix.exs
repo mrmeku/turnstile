@@ -75,7 +75,7 @@ defmodule Turnstile.Postgres.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md": [title: "Turnstile on row-level security"], "glossary.md": [title: "Glossary"]]
+      extras: ["README.md": [title: "Turnstile on row-level security"]]
     ]
   end
 

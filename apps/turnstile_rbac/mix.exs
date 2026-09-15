@@ -72,7 +72,7 @@ defmodule Turnstile.Rbac.MixProject do
   end
 
   defp docs do
-    [main: "readme", extras: ["README.md": [title: "Turnstile RBAC in code"], "glossary.md": [title: "Glossary"]]]
+    [main: "readme", extras: ["README.md": [title: "Turnstile RBAC in code"]]]
   end
 
   # CVE-2026-32686 (GHSA-rhv4-8758-jx7v): an unbounded exponent when decimal

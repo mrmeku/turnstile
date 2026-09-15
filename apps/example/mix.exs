@@ -88,10 +88,7 @@ defmodule Example.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: [
-        "README.md": [title: "The example: controlled unclassified information"],
-        "glossary.md": [title: "Glossary"]
-      ]
+      extras: ["README.md": [title: "The example: controlled unclassified information"]]
     ]
   end
 
