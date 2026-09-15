@@ -14,7 +14,7 @@ defmodule ExamplePostgres do
 
   use Boundary,
     deps: [Example, Turnstile, Turnstile.Postgres, Ecto],
-    exports: [Application, Policies]
+    exports: [Application, Infrastructure.Policies]
 
   alias Turnstile.Config
   alias Turnstile.Postgres.Catalog

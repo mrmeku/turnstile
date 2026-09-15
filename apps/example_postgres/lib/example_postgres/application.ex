@@ -13,7 +13,7 @@ defmodule ExamplePostgres.Application do
   alias Example.Infrastructure.OwnerRepo
   alias Example.Infrastructure.Repo
   alias Example.Infrastructure.Siem
-  alias ExamplePostgres.Policies
+  alias ExamplePostgres.Infrastructure.Policies
   alias Turnstile.Postgres.Binding
 
   @impl Application

@@ -2,7 +2,7 @@ defmodule ExamplePostgres.Repo.Migrations.Rules do
   @moduledoc false
   use Ecto.Migration
 
-  alias ExamplePostgres.Policies
+  alias ExamplePostgres.Infrastructure.Policies
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Migration
 

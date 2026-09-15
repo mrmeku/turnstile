@@ -1,4 +1,4 @@
-defmodule ExamplePostgres.Policies do
+defmodule ExamplePostgres.Infrastructure.Policies do
   @moduledoc """
   The example's rules of `docs/example.md` §3 as Postgres policy
   expressions. Each function answers one SQL fragment, and the migration
