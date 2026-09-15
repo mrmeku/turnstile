@@ -1,3 +1,3 @@
 defmodule ExampleFga.ScenariosTest do
-  use Example.Scenarios, rules: ExampleFga.Rules
+  use Example.Scenarios, setup: ExampleFga.Store
 end

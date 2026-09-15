@@ -6,11 +6,7 @@ defmodule ExampleRbac do
   tables. Nothing of the domain lives here.
   """
 
-  # The predicates are exported although they are under `core/`, because the
-  # tightened policy the scenarios publish is a policy of this application
-  # and names what the boot policy names; it sits in test support, and so in
-  # a boundary of its own, which is the only reason this has to be said.
   use Boundary,
     deps: [Example, Turnstile, Turnstile.Rbac, Ecto],
-    exports: [Application, Core.Predicates, Policy]
+    exports: [Application, Policy]
 end

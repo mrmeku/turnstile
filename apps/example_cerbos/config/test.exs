@@ -1,8 +1,7 @@
 import Config
 
 # The commit the suite runs under, pinned rather than read from the
-# environment: a scenario reads the commit a decision was made under, and
-# compares it with the commit a tightened policy is published as.
+# environment, so every decision the suite records names one known commit.
 config :example_cerbos, commit: "policies-0001"
 
 # The ephemeral cluster configures and starts the repos from the test

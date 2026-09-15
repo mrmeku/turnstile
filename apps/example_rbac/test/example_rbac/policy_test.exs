@@ -8,7 +8,6 @@ defmodule ExampleRbac.PolicyTest do
 
   test "every fact a rule reads is declared on the schema it reads" do
     assert Coverage.check(Policy) == :ok
-    assert Coverage.check(ExampleRbac.Tightened) == :ok
   end
 
   test "the boot names the adapter, the policy, and the repo" do
@@ -22,6 +21,5 @@ defmodule ExampleRbac.PolicyTest do
     assert Turnstile.Rbac.Policy.roles_for(Policy, :read) == [:member, :lead, :designator, :approver]
     assert Turnstile.Rbac.Policy.roles_for(Policy, :change_marking) == [:designator]
     assert Turnstile.Rbac.Policy.roles_for(Policy, :approve_marking) == [:approver]
-    assert Turnstile.Rbac.Policy.roles_for(ExampleRbac.Tightened, :read) == [:lead, :designator, :approver]
   end
 end

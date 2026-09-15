@@ -29,7 +29,7 @@ Turnstile.Dev.Cluster.start(
 
 # One server for the run, on a free port with the in-memory datastore, and a
 # store on it for the boot the application would do: the store every test
-# reads is one of its own, which `ExampleFga.Rules` creates per test, and this
+# reads is one of its own, which `ExampleFga.Store` creates per test, and this
 # one carries the model the run's boot version names.
 server = Turnstile.Dev.Fga.start_shared([])
 {:ok, store} = Turnstile.Fga.Client.Http.create_store(server.address, "example-fga-boot")

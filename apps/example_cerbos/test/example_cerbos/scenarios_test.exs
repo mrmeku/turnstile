@@ -1,3 +1,3 @@
 defmodule ExampleCerbos.ScenariosTest do
-  use Example.Scenarios, rules: ExampleCerbos.Rules
+  use Example.Scenarios
 end
