@@ -4,7 +4,7 @@ defmodule Turnstile.Fga.DrainTest do
 
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.Condition
-  alias Turnstile.Fga.Core.Drain
+  alias Turnstile.Fga.Domain.Drain
   alias Turnstile.Fga.TupleKey
 
   property "the calls of a difference leave the store holding what the object requires" do

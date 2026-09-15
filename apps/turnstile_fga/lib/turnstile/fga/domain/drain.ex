@@ -1,4 +1,4 @@
-defmodule Turnstile.Fga.Core.Drain do
+defmodule Turnstile.Fga.Domain.Drain do
   @moduledoc false
   # The arithmetic of a drain: what the store is told about one object,
   # given the tuples that object requires and the tuples the store holds

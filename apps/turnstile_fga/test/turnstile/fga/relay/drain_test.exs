@@ -2,9 +2,9 @@ defmodule Turnstile.Fga.Relay.DrainTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Dev.Sandbox
-  alias Turnstile.Fga.Relay.Adapter.Drain
   alias Turnstile.Fga.Relay.Cursor
   alias Turnstile.Fga.Relay.FlakyJob
+  alias Turnstile.Fga.Relay.Infrastructure.Drain
   alias Turnstile.Fga.Relay.Job
   alias Turnstile.Fga.Relay.Options
   alias Turnstile.Fga.Relay.Pass

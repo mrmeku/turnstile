@@ -1,7 +1,7 @@
-defmodule Turnstile.Fga.Relay.Core.KeyTest do
+defmodule Turnstile.Fga.Relay.Domain.KeyTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Fga.Relay.Core.Key
+  alias Turnstile.Fga.Relay.Domain.Key
 
   @limit Integer.pow(2, 31)
 

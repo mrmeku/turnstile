@@ -45,8 +45,8 @@ defmodule Turnstile.Fga.Relay do
 
   use Supervisor
 
-  alias Turnstile.Fga.Relay.Adapter.Drain
-  alias Turnstile.Fga.Relay.Adapter.Runner
+  alias Turnstile.Fga.Relay.Infrastructure.Drain
+  alias Turnstile.Fga.Relay.Infrastructure.Runner
   alias Turnstile.Fga.Relay.Options
   alias Turnstile.Fga.Relay.Pass
 

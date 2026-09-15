@@ -1,4 +1,4 @@
-defmodule Turnstile.Fga.Core.Codec do
+defmodule Turnstile.Fga.Infrastructure.Codec do
   @moduledoc false
   # A tuple on its way to the server and back. The three fields that
   # identify a tuple are strings, and JSON carries a string as itself, so

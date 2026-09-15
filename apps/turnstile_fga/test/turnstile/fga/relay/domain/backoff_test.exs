@@ -1,7 +1,7 @@
-defmodule Turnstile.Fga.Relay.Core.BackoffTest do
+defmodule Turnstile.Fga.Relay.Domain.BackoffTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Fga.Relay.Core.Backoff
+  alias Turnstile.Fga.Relay.Domain.Backoff
   alias Turnstile.Fga.Relay.Pass
 
   @options [idle: 1_000, backoff: 100, backoff_max: 1_000]

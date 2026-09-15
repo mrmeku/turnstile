@@ -34,9 +34,9 @@ defmodule Turnstile.Fga.OutboxCase do
   import ExUnit.Assertions
 
   alias Turnstile.Fga
-  alias Turnstile.Fga.Adapter.Store
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.Drift
+  alias Turnstile.Fga.Infrastructure.Store
   alias Turnstile.Fga.Outbox
   alias Turnstile.Fga.Relay.Cursor
   alias Turnstile.Fga.TupleKey

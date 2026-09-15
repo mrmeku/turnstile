@@ -3,7 +3,7 @@ defmodule Turnstile.Fga.CodecTest do
   use ExUnitProperties
 
   alias Turnstile.Fga.Condition
-  alias Turnstile.Fga.Core.Codec
+  alias Turnstile.Fga.Infrastructure.Codec
   alias Turnstile.Fga.TupleKey
 
   property "a tuple the drain writes is the tuple reconcile reads back" do

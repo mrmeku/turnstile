@@ -18,7 +18,6 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Dev.Sandbox
   alias Turnstile.Error
   alias Turnstile.Fga
-  alias Turnstile.Fga.Adapter.Decide
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Client
   alias Turnstile.Fga.Client.Fake
@@ -28,6 +27,7 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Fga.Conformance.Mapping
   alias Turnstile.Fga.Conformance.Population
   alias Turnstile.Fga.Drift
+  alias Turnstile.Fga.Infrastructure.Decide
   alias Turnstile.Fga.TupleKey
   alias Turnstile.FgaTest.Guard
   alias Turnstile.Test

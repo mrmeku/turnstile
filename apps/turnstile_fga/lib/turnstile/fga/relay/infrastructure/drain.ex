@@ -1,5 +1,4 @@
-defmodule Turnstile.Fga.Relay.Adapter.Drain do
-  @moduledoc false
+defmodule Turnstile.Fga.Relay.Infrastructure.Drain do
   # One pass: take the lock, read a batch above the cursor, deliver it,
   # advance the cursor, commit. Everything but the moment the pass finished
   # happens inside one transaction, so what the cursor says was delivered is
@@ -17,10 +16,11 @@ defmodule Turnstile.Fga.Relay.Adapter.Drain do
   # The moment on the pass comes from the clock the runner was configured
   # with, read once the transaction has returned, so a test that stubs the
   # clock reads its own time and nothing here asks the system for one.
+  @moduledoc false
 
-  alias Turnstile.Fga.Relay.Adapter.Lock
   alias Turnstile.Fga.Relay.Cursor
   alias Turnstile.Fga.Relay.Entry
+  alias Turnstile.Fga.Relay.Infrastructure.Lock
   alias Turnstile.Fga.Relay.Pass
 
   @event [:turnstile, :relay, :pass]

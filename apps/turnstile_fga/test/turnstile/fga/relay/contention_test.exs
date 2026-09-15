@@ -1,9 +1,9 @@
 defmodule Turnstile.Fga.Relay.ContentionTest do
   use ExUnit.Case, async: false
 
-  alias Turnstile.Fga.Relay.Adapter.Drain
-  alias Turnstile.Fga.Relay.Adapter.Lock
   alias Turnstile.Fga.Relay.Cursor
+  alias Turnstile.Fga.Relay.Infrastructure.Drain
+  alias Turnstile.Fga.Relay.Infrastructure.Lock
   alias Turnstile.Fga.Relay.Options
   alias Turnstile.Fga.Relay.TestJob
   alias Turnstile.TestRepos.Committed

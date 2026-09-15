@@ -71,12 +71,12 @@ defmodule Turnstile.Fga do
     ]
 
   alias Turnstile.Error
-  alias Turnstile.Fga.Adapter.Decide
-  alias Turnstile.Fga.Adapter.Settle
-  alias Turnstile.Fga.Adapter.Store
-  alias Turnstile.Fga.Adapter.Version
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Drift
+  alias Turnstile.Fga.Infrastructure.Decide
+  alias Turnstile.Fga.Infrastructure.Settle
+  alias Turnstile.Fga.Infrastructure.Store
+  alias Turnstile.Fga.Infrastructure.Version
   alias Turnstile.Fga.Outbox
   alias Turnstile.Fga.Relay.Cursor
   alias Turnstile.PolicyVersion

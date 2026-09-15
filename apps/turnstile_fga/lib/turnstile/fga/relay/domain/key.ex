@@ -1,4 +1,4 @@
-defmodule Turnstile.Fga.Relay.Core.Key do
+defmodule Turnstile.Fga.Relay.Domain.Key do
   @moduledoc false
   # The pair of integers a pass takes its advisory lock on.
   #

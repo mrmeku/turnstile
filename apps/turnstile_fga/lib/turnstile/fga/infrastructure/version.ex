@@ -1,5 +1,4 @@
-defmodule Turnstile.Fga.Adapter.Version do
-  @moduledoc false
+defmodule Turnstile.Fga.Infrastructure.Version do
   # Publishing the bound model: read the model text the binding names,
   # compile it, write it to the server, and emit the version the server
   # gave it as telemetry. Nothing is stored, so the event is the whole of
@@ -7,11 +6,12 @@ defmodule Turnstile.Fga.Adapter.Version do
   # model is immutable and the server keeps every one, so nothing here can
   # tell a text that has been published before from one that has not. What
   # a version is, and what it holds, is `Turnstile.Fga.Version`'s.
+  @moduledoc false
 
   alias Turnstile.Config
   alias Turnstile.Error
-  alias Turnstile.Fga.Adapter.Store
   alias Turnstile.Fga.Binding
+  alias Turnstile.Fga.Infrastructure.Store
   alias Turnstile.Fga.Version
   alias Turnstile.PolicyVersion
 

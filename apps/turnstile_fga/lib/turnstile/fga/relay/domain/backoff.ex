@@ -1,4 +1,4 @@
-defmodule Turnstile.Fga.Relay.Core.Backoff do
+defmodule Turnstile.Fga.Relay.Domain.Backoff do
   @moduledoc false
   # How long the runner waits before its next pass, and how many failures in
   # a row it has counted.

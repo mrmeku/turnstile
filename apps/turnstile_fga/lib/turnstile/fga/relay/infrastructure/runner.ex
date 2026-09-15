@@ -1,9 +1,8 @@
-defmodule Turnstile.Fga.Relay.Adapter.Runner do
-  @moduledoc false
+defmodule Turnstile.Fga.Relay.Infrastructure.Runner do
   # The worker: one process per runner, a timer, and the wake-up.
   #
   # It holds no state a caller needs and answers no call. Each tick runs one
-  # pass and asks the arithmetic in `Turnstile.Fga.Relay.Core.Backoff` when the
+  # pass and asks the arithmetic in `Turnstile.Fga.Relay.Domain.Backoff` when the
   # next one is due: at once where a batch was full, after the idle interval
   # where it was not, and after a growing wait where the pass failed.
   #
@@ -19,11 +18,12 @@ defmodule Turnstile.Fga.Relay.Adapter.Runner do
   # The process is registered under the runner's name unless the options say
   # otherwise, so `Turnstile.Fga.Relay.wake/1` takes that name, and a test starts
   # one unregistered and wakes it by pid.
+  @moduledoc false
 
   use GenServer
 
-  alias Turnstile.Fga.Relay.Adapter.Drain
-  alias Turnstile.Fga.Relay.Core.Backoff
+  alias Turnstile.Fga.Relay.Domain.Backoff
+  alias Turnstile.Fga.Relay.Infrastructure.Drain
   alias Turnstile.Fga.Relay.Options
 
   @enforce_keys [:options, :failures, :timer]

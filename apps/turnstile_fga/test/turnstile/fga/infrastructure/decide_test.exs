@@ -1,15 +1,15 @@
-defmodule Turnstile.Fga.Adapter.DecideTest do
+defmodule Turnstile.Fga.Infrastructure.DecideTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [dynamic: 2]
 
   alias Turnstile.Answer
   alias Turnstile.Error
-  alias Turnstile.Fga.Adapter.Decide
   alias Turnstile.Fga.Client.Check
   alias Turnstile.Fga.Client.Fake
   alias Turnstile.Fga.Client.ListObjects
   alias Turnstile.Fga.Client.Write
+  alias Turnstile.Fga.Infrastructure.Decide
   alias Turnstile.Fga.TupleKey
 
   @now ~U[2026-09-09 12:00:00.000000Z]

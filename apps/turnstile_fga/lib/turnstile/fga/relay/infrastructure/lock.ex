@@ -1,4 +1,4 @@
-defmodule Turnstile.Fga.Relay.Adapter.Lock do
+defmodule Turnstile.Fga.Relay.Infrastructure.Lock do
   @moduledoc false
   # The advisory lock one pass takes, so that two nodes running the same
   # runner do not read and deliver the same batch at once.
@@ -12,7 +12,7 @@ defmodule Turnstile.Fga.Relay.Adapter.Lock do
 
   import Ecto.Query, only: [from: 2]
 
-  alias Turnstile.Fga.Relay.Core.Key
+  alias Turnstile.Fga.Relay.Domain.Key
 
   @exemption {:exempt, :library}
 

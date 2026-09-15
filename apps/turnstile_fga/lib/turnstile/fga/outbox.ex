@@ -48,8 +48,8 @@ defmodule Turnstile.Fga.Outbox do
 
   alias Turnstile.Change
   alias Turnstile.Error
-  alias Turnstile.Fga.Adapter.Store
   alias Turnstile.Fga.Binding
+  alias Turnstile.Fga.Infrastructure.Store
   alias Turnstile.Fga.Relay.Entry
   alias Turnstile.Fga.Relay.Job
 

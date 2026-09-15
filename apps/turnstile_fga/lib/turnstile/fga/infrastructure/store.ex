@@ -1,11 +1,11 @@
-defmodule Turnstile.Fga.Adapter.Store do
+defmodule Turnstile.Fga.Infrastructure.Store do
   @moduledoc false
   # The store as this adapter touches it: what the configuration and the
   # binding together say about it, what it holds for one object, and what it
   # is told so that it holds what the tables require.
   #
   # Every call to the server is here. The arithmetic of a difference is
-  # `Turnstile.Fga.Core.Drain`'s and is tested without a server; what is left
+  # `Turnstile.Fga.Domain.Drain`'s and is tested without a server; what is left
   # is reading a page, writing a call, and the order the two go in, which
   # needs one.
   #
@@ -22,7 +22,7 @@ defmodule Turnstile.Fga.Adapter.Store do
   alias Turnstile.Fga.Client.Page
   alias Turnstile.Fga.Client.Read
   alias Turnstile.Fga.Client.Write
-  alias Turnstile.Fga.Core.Drain
+  alias Turnstile.Fga.Domain.Drain
   alias Turnstile.Fga.Drift
   alias Turnstile.Fga.TupleKey
 

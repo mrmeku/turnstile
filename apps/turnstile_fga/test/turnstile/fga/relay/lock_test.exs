@@ -2,7 +2,7 @@ defmodule Turnstile.Fga.Relay.LockTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Dev.Sandbox
-  alias Turnstile.Fga.Relay.Adapter.Lock
+  alias Turnstile.Fga.Relay.Infrastructure.Lock
   alias Turnstile.TestRepos.Sandboxed
 
   setup tags do

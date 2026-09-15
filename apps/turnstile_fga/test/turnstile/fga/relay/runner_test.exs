@@ -3,9 +3,9 @@ defmodule Turnstile.Fga.Relay.RunnerTest do
 
   alias Turnstile.Dev.Sandbox
   alias Turnstile.Fga.Relay
-  alias Turnstile.Fga.Relay.Adapter.Drain
-  alias Turnstile.Fga.Relay.Adapter.Runner
   alias Turnstile.Fga.Relay.Cursor
+  alias Turnstile.Fga.Relay.Infrastructure.Drain
+  alias Turnstile.Fga.Relay.Infrastructure.Runner
   alias Turnstile.Fga.Relay.TestJob
   alias Turnstile.TestRepos.Sandboxed
 

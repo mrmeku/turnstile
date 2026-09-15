@@ -1,4 +1,4 @@
-defmodule Turnstile.Fga.Adapter.Decide do
+defmodule Turnstile.Fga.Infrastructure.Decide do
   @moduledoc false
   # The answers the adapter gives: an operation becomes a relation, a subject
   # and an object become the two ends of a tuple, and the server answers

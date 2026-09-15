@@ -1,4 +1,4 @@
-defmodule Turnstile.Fga.Adapter.Settle do
+defmodule Turnstile.Fga.Infrastructure.Settle do
   @moduledoc false
   # The drain loop, run in the calling process: pass after pass until one
   # delivers nothing. A runner in a supervision tree passes on its own
