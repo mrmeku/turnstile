@@ -36,8 +36,7 @@ defmodule ExampleFga.TupleMapping do
   the assignment tuples it held.
 
   A change names more objects than the row it was made on. A date that
-  decontrols a document changes what every portion of it requires, an account
-  granted the override permission is an operator of every agency, and a row
+  decontrols a document changes what every portion of it requires, and a row
   that moved between two parents names the parent it left and the parent it
   joined, the first from the change and the second from the row.
   """
@@ -46,7 +45,6 @@ defmodule ExampleFga.TupleMapping do
 
   import Ecto.Query, only: [from: 2]
 
-  alias Example.AccountRole
   alias Example.Agency
   alias Example.Assignment
   alias Example.Category
@@ -81,8 +79,6 @@ defmodule ExampleFga.TupleMapping do
   def changed(_repo, %{schema: User, changes: changes}) do
     Tuples.named("country", moved(changes, :nationality)) ++ Tuples.named("employment", moved(changes, :employment))
   end
-
-  def changed(repo, %{schema: AccountRole}), do: objects(repo, "agency")
 
   def changed(_repo, %{schema: Agency, target: {_kind, id}}), do: ["agency:#{id}"]
 
@@ -160,27 +156,20 @@ defmodule ExampleFga.TupleMapping do
   defp required(repo, "proposal", id), do: proposal_tuples(repo, id)
   defp required(_repo, _type, _id), do: []
 
-  # The agency's country, the employment its own staff hold, and the accounts
-  # holding the override permission, which is held outside any agency and so
-  # is an operator of each of them.
+  # The agency's country and the employment its own staff hold. The
+  # override permission is held outside any agency and outside the model,
+  # so an agency requires nothing of the accounts holding it.
   defp agency_tuples(repo, id) do
     case row(repo, Agency, id) do
       %Agency{nationality: nationality} when is_binary(nationality) ->
         [
           Tuples.key("country:#{nationality}", "domestic", "agency:#{id}"),
           Tuples.key(@federal, "federal", "agency:#{id}")
-          | operator_tuples(repo, id)
         ]
 
       _absent ->
         []
     end
-  end
-
-  defp operator_tuples(repo, id) do
-    query = from(role in AccountRole, where: role.role == :override, distinct: true, select: role.user_id)
-
-    for account <- all(repo, query), do: Tuples.key("user:#{account}", "operator", "agency:#{id}")
   end
 
   defp office_tuples(repo, id) do

@@ -15,7 +15,6 @@ type agency
   relations
     define domestic: [country]
     define federal: [employment]
-    define operator: [user]
     define domestic_member: member from domestic
     define federal_member: member from federal
 
@@ -27,7 +26,6 @@ type office
     define member: designator or approver
     define domestic_member: domestic_member from agency
     define federal_member: federal_member from agency
-    define operator: operator from agency
 
 type program
   relations
@@ -70,7 +68,6 @@ type document
     define can_set_decontrol: can_change_marking
     define can_decontrol: can_change_marking
     define can_propose_marking: can_change_marking
-    define can_override: operator from designating_office
 
 type portion
   relations

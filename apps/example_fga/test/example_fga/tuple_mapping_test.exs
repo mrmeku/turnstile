@@ -47,15 +47,6 @@ defmodule ExampleFga.TupleMappingTest do
     assert TupleMapping.tuples(Repo, "program:#{closed()}") == []
   end
 
-  test "an account holding the override permission is an operator of every agency" do
-    operators =
-      for object <- TupleMapping.objects(Repo, "agency"),
-          %TupleKey{relation: "operator"} = tuple <- TupleMapping.tuples(Repo, object),
-          do: {tuple.user, tuple.object}
-
-    assert Enum.sort(operators) == Enum.sort(for object <- TupleMapping.objects(Repo, "agency"), do: {"user:gil", object})
-  end
-
   test "an account's nationality and its employment are membership of objects of their own" do
     tuples = TupleMapping.tuples(Repo, "country:FR") ++ TupleMapping.tuples(Repo, "employment:contractor")
 
