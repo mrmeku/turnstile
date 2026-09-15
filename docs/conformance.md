@@ -76,7 +76,7 @@ Each adapter package carries what the fixture needs on its own mechanism in its 
 
 ## 5. The repo case
 
-`use Turnstile.Conformance.RepoCase, repo: MyApp.Repo` writes the tests itself. The repo answers `__turnstile__/1` and exports nothing outside `Turnstile.Core.Surface`'s list, where an export outside the list fails with the function's name and arity. Every query, write, and raw function is called on a protected schema without a decision and asserted to raise `%Turnstile.Error{reason: :unmediated}` before any SQL. With a `rows:` module, the five guarantees:
+`use Turnstile.Conformance.RepoCase, repo: MyApp.Repo` writes the tests itself. The repo answers `__turnstile__/1` and exports nothing outside the list in `core/surface.ex`, where an export outside the list fails with the function's name and arity. Every query, write, and raw function is called on a protected schema without a decision and asserted to raise `%Turnstile.Error{reason: :unmediated}` before any SQL. With a `rows:` module, the five guarantees:
 
 | Id | Guarantee |
 |---|---|

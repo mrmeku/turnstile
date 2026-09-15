@@ -73,7 +73,7 @@ Credo checks off by default and on here: `Readability.Specs`, `StrictModuleLayou
 **Idioms.**
 
 - Module layout in Styler's order: `@moduledoc`, `@behaviour`, `use`, `import`, `alias`, `require`, attributes, `@enforce_keys` and `defstruct`, `@type`s, `@callback`s, public functions, private functions. One module, one concept; no `Helpers` or `Utils`.
-- Every pluggable thing is a `@behaviour`; surfaces are enumerated with `Module.behaviour_info/1`; optional callbacks are answered at runtime with `function_exported?/3`, so one build serves every adapter. No protocols.
+- Every pluggable thing is a `@behaviour`; surfaces are enumerated with the behaviour's `behaviour_info/1`; optional callbacks are answered at runtime with `function_exported?/3`, so one build serves every adapter. No protocols.
 - Declarations are generated clauses: `use Turnstile.Schema` accumulates at compile time and a `@before_compile` writes `__turnstile__/1` one clause per question; an adapter's `scope_cap/0` and `settle/0` are the same.
 - Errors are values: `{:error, %Turnstile.Error{}}` with a reason atom. A programmer error raises. The port never raises on the request path; the seam's refusal raises, because an unmediated call is a programmer error. No `{:error, :atom}`, no strings, no `nil` for not found.
 - Predicates end in `?` and return exactly `true` or `false`. `String.to_atom/1` is banned; `Ecto.Enum` for atom-valued fields. `nil` in a struct only where absence is meaning, and every consumer branches on it.

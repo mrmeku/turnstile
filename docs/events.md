@@ -142,7 +142,7 @@ What it does not guarantee: that a record is stored, that a handler keeps runnin
 
 ## 6. The OCSF mapping the example shows
 
-`Example.Siem` attaches to all three events, maps each to an OCSF 1.3.0 record in `Example.Core.Ocsf`, and holds the result in memory, which keeps the mapping under test without putting a schema version in any published package. What OCSF names no field for travels under `unmapped`, which is where OCSF says to put it.
+`Example.Siem` attaches to all three events, maps each to an OCSF 1.3.0 record in `apps/example/lib/example/core/ocsf.ex`, and holds the result in memory, which keeps the mapping under test without putting a schema version in any published package. What OCSF names no field for travels under `unmapped`, which is where OCSF says to put it.
 
 | Event | Class | Activity | Status |
 |---|---|---|---|
