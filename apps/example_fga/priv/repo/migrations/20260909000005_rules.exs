@@ -3,7 +3,6 @@ defmodule ExampleFga.Repo.Migrations.Rules do
   use Ecto.Migration
 
   alias Turnstile.Fga.Migration
-  alias Turnstile.Fga.Relay
 
   # The rules of this binding are the model under `priv/fga`, which the server
   # holds and names by id, so the database holds no policy of its own. What it
@@ -12,11 +11,11 @@ defmodule ExampleFga.Repo.Migrations.Rules do
   # has got.
   def up do
     :ok = Migration.outbox_up(app_role: "turnstile_app")
-    :ok = Relay.Migration.cursor_up(app_role: "turnstile_app")
+    :ok = Migration.cursor_up(app_role: "turnstile_app")
   end
 
   def down do
-    :ok = Relay.Migration.cursor_down()
+    :ok = Migration.cursor_down()
     :ok = Migration.outbox_down()
   end
 end

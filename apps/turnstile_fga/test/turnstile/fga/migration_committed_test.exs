@@ -7,14 +7,18 @@ defmodule Turnstile.Fga.MigrationCommittedTest do
 
   @moduletag :committed
 
-  @exists "SELECT to_regclass('turnstile_fga_outbox') IS NOT NULL"
+  @outbox "SELECT to_regclass('turnstile_fga_outbox') IS NOT NULL"
+  @cursor "SELECT to_regclass('turnstile_relay_cursor') IS NOT NULL"
 
-  test "outbox_down drops the table and outbox_up brings it back" do
-    _versions = Ecto.Migrator.run(Owner, [{1, Outbox}], :down, all: true, log: false)
-    assert %{rows: [[false]]} = SQL.query!(Owner, @exists)
+  test "the outbox and cursor tables the helpers raise can be taken back down and raised again" do
+    assert Ecto.Migrator.run(Owner, [{1, Outbox}], :down, all: true, log: false) == [1]
+    assert %{rows: [[false]]} = SQL.query!(Owner, @outbox)
+    assert %{rows: [[false]]} = SQL.query!(Owner, @cursor)
 
-    _versions = Ecto.Migrator.run(Owner, [{1, Outbox}], :up, all: true, log: false)
-    assert %{rows: [[true]]} = SQL.query!(Owner, @exists)
+    assert Ecto.Migrator.run(Owner, [{1, Outbox}], :up, all: true, log: false) == [1]
+    assert %{rows: [[true]]} = SQL.query!(Owner, @outbox)
+    assert %{rows: [[true]]} = SQL.query!(Owner, @cursor)
     assert %{rows: []} = SQL.query!(Owner, "SELECT id, object FROM turnstile_fga_outbox")
+    assert %{rows: []} = SQL.query!(Owner, "SELECT name, position FROM turnstile_relay_cursor")
   end
 end

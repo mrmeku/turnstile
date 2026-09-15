@@ -1,6 +1,7 @@
 defmodule Turnstile.Fga.Relay.OptionsTest do
   use ExUnit.Case, async: true
 
+  alias Turnstile.Fga.Relay
   alias Turnstile.Fga.Relay.Options
   alias Turnstile.Fga.Relay.TestJob
   alias Turnstile.TestRepos.Sandboxed
@@ -35,6 +36,6 @@ defmodule Turnstile.Fga.Relay.OptionsTest do
   end
 
   test "the schema the package publishes is the one a runner is validated against" do
-    assert Turnstile.Fga.Relay.options_schema() == Options.schema()
+    assert Relay.options_schema() == Options.schema()
   end
 end
