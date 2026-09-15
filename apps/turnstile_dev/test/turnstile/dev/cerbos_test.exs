@@ -17,7 +17,7 @@ defmodule Turnstile.Dev.CerbosTest do
 
     assert Cerbos.healthy?(sidecar.address)
     assert sidecar.policies == policies
-    assert File.exists?(sidecar.audit_log) or File.dir?(sidecar.dir)
+    assert File.dir?(sidecar.dir)
     assert File.read!(sidecar.config_file) =~ ~s(httpListenAddr: "#{sidecar.address}")
     assert File.read!(sidecar.config_file) =~ "watchForChanges: true"
   end

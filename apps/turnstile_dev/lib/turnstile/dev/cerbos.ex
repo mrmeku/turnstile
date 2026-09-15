@@ -7,17 +7,16 @@ defmodule Turnstile.Dev.Cerbos do
   `MuonTrap.Daemon`, which kills the operating-system process when the
   Erlang process that owns it dies and when the virtual machine exits, so no
   sidecar outlives the run that started it. The server reads the policy
-  directory the caller names, writes its audit log to a file under `tmp/`,
-  and listens on a free port of the loopback interface, which is the address
-  the caller puts in the adapter's configuration entry. Called from
+  directory the caller names and listens on a free port of the loopback
+  interface, which is the address the caller puts in the adapter's
+  configuration entry. Called from
   `test_helper.exs`, once for the run; a second call returns the first
   sidecar.
 
   `start_supervised!/1` is the same server owned by one test, through
-  `ExUnit`'s supervisor, for a test that publishes a policy version or reads
-  the decision log: those tests write into a policy directory and read a log
-  file that the run's other tests are reading at the same time. It stops
-  when the test ends.
+  `ExUnit`'s supervisor, for a test that publishes a policy version: such a
+  test writes into a policy directory the run's other tests are reading at
+  the same time. It stops when the test ends.
 
   Both wait for the health endpoint to answer before returning, so a caller
   that gets a struct back has a server that answers. Nothing here speaks the
@@ -34,7 +33,7 @@ defmodule Turnstile.Dev.Cerbos do
             ],
             dir: [
               type: :string,
-              doc: "Where the configuration file and the audit log go; a directory under `tmp/` by default."
+              doc: "Where the configuration file goes; a directory under `tmp/` by default."
             ],
             watch: [
               type: :boolean,
@@ -48,14 +47,13 @@ defmodule Turnstile.Dev.Cerbos do
             ]
           )
 
-  @enforce_keys [:address, :dir, :policies, :audit_log, :config_file]
-  defstruct [:address, :dir, :policies, :audit_log, :config_file, :daemon]
+  @enforce_keys [:address, :dir, :policies, :config_file]
+  defstruct [:address, :dir, :policies, :config_file, :daemon]
 
   @type t :: %__MODULE__{
           address: String.t(),
           dir: Path.t(),
           policies: Path.t(),
-          audit_log: Path.t(),
           config_file: Path.t(),
           daemon: pid() | nil
         }
@@ -90,7 +88,7 @@ defmodule Turnstile.Dev.Cerbos do
     await!(%{sidecar | daemon: daemon}, timeout(options))
   end
 
-  @doc "The run's sidecar, for a test that reads its address or its audit log."
+  @doc "The run's sidecar, for a test that reads its address or its policy directory."
   @spec info() :: t()
   def info do
     case :persistent_term.get(__MODULE__, nil) do
@@ -160,7 +158,6 @@ defmodule Turnstile.Dev.Cerbos do
       address: "127.0.0.1:#{port}",
       dir: dir,
       policies: Path.expand(options[:policies]),
-      audit_log: Path.join(dir, "audit.log"),
       config_file: Path.join(dir, "config.yaml")
     }
 
@@ -169,9 +166,10 @@ defmodule Turnstile.Dev.Cerbos do
     sidecar
   end
 
-  # The server's configuration: the caller's policies on disk, a decision log
-  # in a file this run owns, and one listener per protocol, because Cerbos
-  # starts its gRPC listener whether or not anyone connects to it.
+  # The server's configuration: the caller's policies on disk and one
+  # listener per protocol, because Cerbos starts its gRPC listener whether
+  # or not anyone connects to it. Auditing stays off, because nothing reads
+  # what it would write.
   defp configuration(%__MODULE__{} = sidecar, port, watch?) do
     """
     server:
@@ -182,13 +180,6 @@ defmodule Turnstile.Dev.Cerbos do
       disk:
         directory: "#{sidecar.policies}"
         watchForChanges: #{watch?}
-    audit:
-      enabled: true
-      accessLogsEnabled: false
-      decisionLogsEnabled: true
-      backend: "file"
-      file:
-        path: "#{sidecar.audit_log}"
     """
   end
 

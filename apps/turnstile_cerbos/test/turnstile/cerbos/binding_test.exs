@@ -46,7 +46,6 @@ defmodule Turnstile.Cerbos.BindingTest do
     assert binding.commit == "conformance"
     assert binding.author == nil
     assert binding.approval == nil
-    assert binding.decision_log == nil
 
     assert Binding.to_keyword(binding) == [
              repo: Sandboxed,
@@ -54,8 +53,7 @@ defmodule Turnstile.Cerbos.BindingTest do
              policies: "priv/conformance",
              commit: "conformance",
              author: nil,
-             approval: nil,
-             decision_log: nil
+             approval: nil
            ]
   end
 

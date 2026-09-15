@@ -23,8 +23,7 @@ defmodule Turnstile.Cerbos.VersionTest do
         policies: sidecar.policies,
         commit: "conformance",
         author: "turnstile_cerbos",
-        approval: "the conformance suite",
-        decision_log: sidecar.audit_log
+        approval: "the conformance suite"
       )
 
     {:ok, sidecar: sidecar}

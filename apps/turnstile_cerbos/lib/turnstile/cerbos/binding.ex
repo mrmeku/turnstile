@@ -41,16 +41,11 @@ defmodule Turnstile.Cerbos.Binding do
               doc: "The commit of the policy repository at that directory, the version identifier."
             ],
             author: [type: {:or, [:string, nil]}, default: nil, doc: "Who wrote the commit."],
-            approval: [type: {:or, [:string, nil]}, default: nil, doc: "The approval the commit carries."],
-            decision_log: [
-              type: {:or, [:string, nil]},
-              default: nil,
-              doc: "The file the sidecar writes its decision log to, which reconciliation reads."
-            ]
+            approval: [type: {:or, [:string, nil]}, default: nil, doc: "The approval the commit carries."]
           )
 
   @enforce_keys [:repo, :attributes, :policies, :commit]
-  defstruct [:repo, :attributes, :policies, :commit, :author, :approval, :decision_log]
+  defstruct [:repo, :attributes, :policies, :commit, :author, :approval]
 
   @type t :: %__MODULE__{
           repo: module(),
@@ -58,8 +53,7 @@ defmodule Turnstile.Cerbos.Binding do
           policies: Path.t(),
           commit: String.t(),
           author: String.t() | nil,
-          approval: String.t() | nil,
-          decision_log: Path.t() | nil
+          approval: String.t() | nil
         }
 
   @doc "The schema of the binding's options."
@@ -135,8 +129,7 @@ defmodule Turnstile.Cerbos.Binding do
       policies: binding.policies,
       commit: binding.commit,
       author: binding.author,
-      approval: binding.approval,
-      decision_log: binding.decision_log
+      approval: binding.approval
     ]
   end
 

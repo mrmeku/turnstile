@@ -11,18 +11,18 @@ defmodule Turnstile.Cerbos do
 
   Every call reads the declared attribute values through the bound repo and
   then asks the sidecar once. `decide` asks for a decision over the row
-  named and answers with the policy the sidecar matched. `scope` asks for a query plan and compiles the filter it
-  answers into a `dynamic` over the object type; a plan this adapter does
-  not express fails, and the caller asks the port for each row instead,
-  which is the answer the declaration of a rule enforced this way records
-  as limited.
+  named and answers with the policy the sidecar matched. `scope` asks for a
+  query plan and compiles the filter it answers into a `dynamic` over the
+  object type; a plan this adapter does not express fails, and the caller
+  asks the port for each row instead, which is the answer the declaration
+  of a rule enforced this way records as limited.
 
   The commit is the version identifier of every decision, and `publish/0`
-  emits it the way a deploy is a version (`Turnstile.Cerbos.Version`). What reaches the sidecar is what the
-  declarations name, so a policy cannot come to depend on a value no one
-  declared: the moment the request carries, and each request-time fact an
-  `environment` block declared, go as one principal attribute beside the
-  subject's own.
+  emits it the way a deploy is a version (`Turnstile.Cerbos.Version`). What
+  reaches the sidecar is what the declarations name, so a policy cannot
+  come to depend on a value no one declared: the moment the request
+  carries, and each request-time fact an `environment` block declared, go
+  as one principal attribute beside the subject's own.
   """
 
   @behaviour Turnstile.Adapter
@@ -36,9 +36,6 @@ defmodule Turnstile.Cerbos do
       Binding,
       Client,
       Coverage,
-      Decisions,
-      Decisions.Line,
-      Finding,
       Propagation,
       Request,
       Version

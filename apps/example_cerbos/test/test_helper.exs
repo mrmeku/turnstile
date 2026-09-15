@@ -39,10 +39,10 @@ Enum.each(Path.wildcard("priv/policies/*.yaml"), &File.cp!(&1, Path.join(policie
 
 sidecar = Turnstile.Dev.Cerbos.start_shared(policies: policies, dir: run)
 
-# The address and the directory of the run's sidecar, and the file it writes
-# its decision log to, put where every test reads them: the application
-# booted against the configured address, which is a deployment's, and the
-# sidecar the run raised takes a free port of its own.
+# The address and the directory of the run's sidecar, put where every test
+# reads them: the application booted against the configured address, which
+# is a deployment's, and the sidecar the run raised takes a free port of
+# its own.
 _config = Turnstile.Config.boot!(adapter: {Turnstile.Cerbos, address: sidecar.address})
 
 _binding =
@@ -52,8 +52,7 @@ _binding =
     policies: sidecar.policies,
     commit: Application.fetch_env!(:example_cerbos, :commit),
     author: ExampleCerbos.author(),
-    approval: ExampleCerbos.approval(),
-    decision_log: sidecar.audit_log
+    approval: ExampleCerbos.approval()
   )
 
 # The commit the sidecar is serving, emitted once the run's sidecar is up:

@@ -43,8 +43,7 @@ defmodule Turnstile.Cerbos.ConformanceTest do
       repo: repo,
       attributes: Attributes,
       policies: sidecar.policies,
-      commit: "conformance",
-      decision_log: sidecar.audit_log
+      commit: "conformance"
     )
   end
 end

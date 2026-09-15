@@ -4,8 +4,8 @@ defmodule Turnstile.Cerbos.Sidecar do
 
   The run's sidecar reads the conformance policies where they sit in the
   repository, and the tests of the whole suite ask it at the same time. A
-  test that writes a policy or reads a decision log line by line cannot use
-  that one: it would change what another test is reading. So it gets a
+  test that writes a policy cannot use that one: it would change what
+  another test is reading. So it gets a
   directory under `tmp/` with a copy of the conformance policies, or with
   policy files of its own, and a server on that directory which stops when
   the test ends.
