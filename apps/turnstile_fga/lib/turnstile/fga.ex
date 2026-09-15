@@ -33,10 +33,10 @@ defmodule Turnstile.Fga do
   - `Turnstile.Fga.Version`, the model published as a policy version.
   - `Turnstile.Fga.Migration`, the outbox table, which a thin application's
     migration creates.
-  - `Turnstile.Fga.OutboxCase`, `Turnstile.Fga.TupleMappingCase`, and
-    `Turnstile.Fga.GuardCase`, which hold an application's mapping, drain,
-    and guard to what a decision relies on. The first two write and take
-    away a `Turnstile.Fga.Population` of the application's own rows.
+  - `Turnstile.Fga.OutboxCase` and `Turnstile.Fga.TupleMappingCase`, which
+    hold an application's mapping and drain to what a decision relies on.
+    Both write and take away a `Turnstile.Fga.Population` of the
+    application's own rows.
 
   Two declarations of this adapter in any domain: its scope is capped at
   what one `ListObjects` answers with, and settling it is draining its
@@ -60,7 +60,6 @@ defmodule Turnstile.Fga do
       Consistency,
       Drift,
       Guard,
-      GuardCase,
       Model,
       Outbox,
       OutboxCase,
