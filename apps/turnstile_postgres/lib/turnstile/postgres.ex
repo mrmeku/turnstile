@@ -17,11 +17,11 @@ defmodule Turnstile.Postgres do
   settings leave with the call and two subjects in one transaction each set
   their own. Policies read them with `current_setting(name, true)`.
 
-  *Answers.* `check`, `authorize`, and `batch` run one statement per object
-  type under those settings: a row the `SELECT` policy of the operation
-  does not admit is a denial, and where the operation has an `UPDATE` gate
-  its `USING` expression is read in the same statement, so an answer given
-  before a write agrees with what `WITH CHECK` will do to the write.
+  *Answers.* `decide` runs one statement under those settings: a row the
+  `SELECT` policy of the operation does not admit is a denial, and where
+  the operation has an `UPDATE` gate its `USING` expression is read in the
+  same statement, so an answer given before a write agrees with what
+  `WITH CHECK` will do to the write.
   `scope` runs no statement and answers the rule `true`, because the policy
   narrows the query when the repo runs it; the reason names the policy and
   the SHA-256 of the settings the database will read, which together are
@@ -31,10 +31,10 @@ defmodule Turnstile.Postgres do
   `Turnstile.Postgres.Migration.publish!/2` reads the policies back from
   `pg_policy` and appends the version in the same transaction as the DDL.
 
-  `explain/5` answers the verdict and names nothing further: the database
-  does not report which policy admitted a row. The replica-lag component of
-  revocation latency is reported "not measured", because every statement
-  goes to the primary.
+  The database does not report which policy admitted a row, so an answer
+  names the policy of the operation and nothing further. The replica-lag
+  component of revocation latency is reported "not measured", because
+  every statement goes to the primary.
   """
 
   @behaviour Turnstile.Adapter
@@ -88,24 +88,10 @@ defmodule Turnstile.Postgres do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, _options)
+  def decide({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, _options)
       when is_atom(operation) do
-    with {:ok, binding, catalog} <- ready(:authorize) do
+    with {:ok, binding, catalog} <- ready(:decide) do
       Decide.one(binding, catalog, subject, operation, object, environment)
-    end
-  end
-
-  @impl Turnstile.Adapter
-  def check({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
-      when is_atom(operation) do
-    authorize(subject, operation, object, environment, options)
-  end
-
-  @impl Turnstile.Adapter
-  def batch({_kind, _account} = subject, operation, objects, %{now: _now} = environment, _options)
-      when is_atom(operation) and is_list(objects) do
-    with {:ok, binding, catalog} <- ready(:batch) do
-      Decide.many(binding, catalog, subject, operation, objects, environment)
     end
   end
 
@@ -116,14 +102,6 @@ defmodule Turnstile.Postgres do
       settings = Settings.of(subject, operation, environment)
       :ok = Session.remember(subject, operation, settings)
       {:ok, scoped(Decide.scope(binding, catalog, operation, object_type, settings))}
-    end
-  end
-
-  @impl Turnstile.Adapter
-  def explain({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
-      when is_atom(operation) do
-    with {:ok, %Answer{} = answer} <- authorize(subject, operation, object, environment, options) do
-      {:ok, %{answer | meta: Map.put(answer.meta, :matched, [])}}
     end
   end
 

@@ -1,12 +1,11 @@
 defmodule Turnstile.Postgres.Adapter.Decide do
   @moduledoc false
-  # What the adapter asks the database. One statement per object type in the
-  # call, run under the session settings, selecting each object's primary key
-  # as text beside the update gate's `USING` expression where the operation
-  # has a gate:
+  # What the adapter asks the database. One statement per decision, run
+  # under the session settings, selecting the update gate's `USING`
+  # expression for the row asked about where the operation has a gate:
   #
-  #     SELECT id::text, coalesce((<gate using>), false)
-  #     FROM <table> WHERE id::text = ANY($1)
+  #     SELECT coalesce((<gate using>), false)
+  #     FROM <table> WHERE id::text = $1
   #
   # Visibility answers the read: the `SELECT` policy of the operation narrows
   # the statement, so a row that comes back is one the subject may see under
@@ -36,33 +35,20 @@ defmodule Turnstile.Postgres.Adapter.Decide do
 
   @exemption {:exempt, :library}
 
-  @doc "One answer per object, grouped by object type, under one set of settings."
-  @spec many(Binding.t(), Catalog.t(), Turnstile.subject(), atom(), [Turnstile.object()], Turnstile.environment()) ::
-          {:ok, %{Turnstile.object() => Answer.t()}}
-  def many(
+  @doc "The answer for one object, under the settings of the call, which the session remembers."
+  @spec one(Binding.t(), Catalog.t(), Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment()) ::
+          {:ok, Answer.t()}
+  def one(
         %Binding{} = binding,
         %Catalog{} = catalog,
         {_kind, _account} = subject,
         operation,
-        objects,
+        {type, id},
         %{now: _now} = env
       )
-      when is_atom(operation) and is_list(objects) do
+      when is_atom(operation) do
     settings = remembered(subject, operation, env)
-
-    if objects == [] do
-      {:ok, %{}}
-    else
-      {:ok, Session.around(binding.repo, settings, fn -> grouped(binding, catalog, operation, objects) end)}
-    end
-  end
-
-  @doc "The answer for one object."
-  @spec one(Binding.t(), Catalog.t(), Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment()) ::
-          {:ok, Answer.t()}
-  def one(%Binding{} = binding, %Catalog{} = catalog, {_kind, _account} = subject, operation, {_type, _id} = object, env) do
-    {:ok, answers} = many(binding, catalog, subject, operation, [object], env)
-    {:ok, Map.fetch!(answers, object)}
+    {:ok, Session.around(binding.repo, settings, fn -> of_type(binding, catalog, operation, type, id) end)}
   end
 
   @doc """
@@ -89,61 +75,51 @@ defmodule Turnstile.Postgres.Adapter.Decide do
     settings
   end
 
-  defp grouped(binding, catalog, operation, objects) do
-    objects
-    |> Enum.group_by(&elem(&1, 0))
-    |> Enum.reduce(%{}, fn {type, group}, answers ->
-      Map.merge(answers, of_type(binding, catalog, operation, type, group))
-    end)
-  end
-
   # An object type no bound schema declares, or one whose key is not a
   # single column, has no statement to run and is denied.
-  defp of_type(binding, catalog, operation, type, objects) do
+  defp of_type(binding, catalog, operation, type, id) do
     case Binding.target(binding, type) do
-      {_schema, table, key} -> against(binding, catalog, operation, {table, key}, objects)
-      nil -> denied(catalog, objects, :deny_by_default)
+      {_schema, table, key} -> against(binding, catalog, operation, {table, key}, id)
+      nil -> verdict(catalog, :deny, :deny_by_default)
     end
   end
 
-  defp against(binding, catalog, operation, {table, _key} = target, objects) do
+  defp against(binding, catalog, operation, {table, _key} = target, id) do
     case Catalog.scope(catalog, table, operation) do
-      %Policy{} = scope -> answered(binding, catalog, operation, target, scope, objects)
-      nil -> denied(catalog, objects, :unknown_operation)
+      %Policy{} = scope -> answered(binding, catalog, operation, target, scope, id)
+      nil -> verdict(catalog, :deny, :unknown_operation)
     end
   end
 
-  defp answered(binding, catalog, operation, {table, _key} = target, scope, objects) do
+  defp answered(binding, catalog, operation, {table, _key} = target, scope, id) do
     gate = Catalog.gate(catalog, table, operation)
-    rows = admitted(binding, target, gate, Enum.map(objects, &to_string(elem(&1, 1))))
-    Map.new(objects, &{&1, answer(catalog, scope, gate, rows, &1)})
+    answer(catalog, scope, gate, admitted(binding, target, gate, to_string(id)))
   end
 
-  defp admitted(%Binding{repo: repo}, {table, key}, gate, ids) do
+  defp admitted(%Binding{repo: repo}, {table, key}, gate, id) do
     column = Name.check!(key, :primary_key)
     from = Name.check!(table, :table)
-    statement = "SELECT #{column}::text, #{predicate(gate)} FROM #{from} WHERE #{column}::text = ANY($1)"
-    %{rows: rows} = repo.query!(statement, [ids], turnstile: @exemption)
-    Map.new(rows, fn [id, admitted] -> {id, admitted} end)
+    statement = "SELECT #{predicate(gate)} FROM #{from} WHERE #{column}::text = $1"
+
+    case repo.query!(statement, [id], turnstile: @exemption) do
+      %{rows: [[admitted]]} -> {:ok, admitted}
+      %{rows: []} -> :error
+    end
   end
 
   defp predicate(%Policy{using: using}) when is_binary(using), do: "coalesce((#{using}), false)"
   defp predicate(_ungated), do: "true"
 
-  defp answer(catalog, scope, gate, rows, {_type, id}) do
-    case Map.fetch(rows, to_string(id)) do
-      {:ok, true} -> verdict(catalog, :allow, :allowed, %{rule: scope.name})
-      {:ok, _refused} -> verdict(catalog, :deny, :rule_denied, %{rule: refusing(gate, scope)})
-      :error -> verdict(catalog, :deny, :rule_denied, %{rule: scope.name})
-    end
+  defp answer(catalog, scope, _gate, {:ok, true}), do: verdict(catalog, :allow, :allowed, %{rule: scope.name})
+
+  defp answer(catalog, scope, gate, {:ok, _refused}) do
+    verdict(catalog, :deny, :rule_denied, %{rule: refusing(gate, scope)})
   end
+
+  defp answer(catalog, scope, _gate, :error), do: verdict(catalog, :deny, :rule_denied, %{rule: scope.name})
 
   defp refusing(%Policy{name: name}, _scope), do: name
   defp refusing(nil, %Policy{name: name}), do: name
-
-  defp denied(catalog, objects, reason) do
-    Map.new(objects, &{&1, verdict(catalog, :deny, reason)})
-  end
 
   defp verdict(%Catalog{version: version}, verdict, reason, meta \\ %{}) do
     %Answer{verdict: verdict, reason: reason, version: version, meta: meta}

@@ -29,12 +29,9 @@ defmodule Turnstile.PostgresTest do
 
   test "with nothing bound every callback answers an engine error naming the callback" do
     assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
-             Postgres.authorize(@subject, :read, @object, environment(), [])
+             Postgres.decide(@subject, :read, @object, environment(), [])
 
-    assert detail == "#{inspect(Postgres)} failed during authorize: invalid binding: nothing bound and no override"
-
-    assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Postgres failed during batch" <> _rest}} =
-             Postgres.batch(@subject, :read, [@object], environment(), [])
+    assert detail == "#{inspect(Postgres)} failed during decide: invalid binding: nothing bound and no override"
 
     assert {:error, %Error{reason: :engine_unreachable, detail: "Turnstile.Postgres failed during scope" <> _rest}} =
              Postgres.scope(@subject, :read, :folder, environment(), [])
@@ -63,17 +60,17 @@ defmodule Turnstile.PostgresTest do
     bind(migrations_table: "turnstile_no_such_table")
 
     assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
-             Postgres.authorize(@subject, :read, @object, environment(), [])
+             Postgres.decide(@subject, :read, @object, environment(), [])
 
-    assert detail =~ "Turnstile.Postgres failed during authorize"
+    assert detail =~ "Turnstile.Postgres failed during decide"
     assert detail =~ "turnstile_no_such_table"
   end
 
-  test "an object type no bound schema declares is denied by default, and explain names nothing further" do
+  test "an object type no bound schema declares is denied by default" do
     bind()
 
-    assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default, meta: %{matched: []}}} =
-             Postgres.explain(@subject, :read, {:no_such_type, 1}, environment(), [])
+    assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
+             Postgres.decide(@subject, :read, {:no_such_type, 1}, environment(), [])
   end
 
   test "an operation with no policy on the type denies the scope" do
@@ -93,11 +90,6 @@ defmodule Turnstile.PostgresTest do
     assert answer.reason == :allowed
     assert answer.meta.rule == "turnstile_scope_read settings sha256:#{Settings.hash(settings)}"
     assert Session.recall(@subject, :read) == settings
-  end
-
-  test "a batch of no objects asks the database nothing" do
-    bind()
-    assert Postgres.batch(@subject, :read, [], environment(), []) == {:ok, %{}}
   end
 
   test "around_query runs the settings of the call that produced the decision" do
