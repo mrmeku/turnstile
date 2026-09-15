@@ -32,10 +32,6 @@ defmodule Turnstile.Conformance.Gen do
   @spec object(World.t()) :: StreamData.t(Turnstile.object())
   def object(world), do: member_of(World.module(world).objects(world))
 
-  @doc "A list of the population's objects, repeats allowed."
-  @spec objects(World.t()) :: StreamData.t([Turnstile.object()])
-  def objects(world), do: list_of(object(world), max_length: 6)
-
   @doc "An operation the world's rule knows."
   @spec operation(module()) :: StreamData.t(atom())
   def operation(module) when is_atom(module), do: member_of(module.operations())

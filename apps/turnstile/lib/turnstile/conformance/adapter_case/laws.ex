@@ -85,15 +85,6 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
              Turnstile.authorize(stranger, known, object)
   end
 
-  @doc "`batch` and `filter` agree with `check`, object by object."
-  @spec batch_agreement(context(), World.t(), Turnstile.subject(), atom(), [Turnstile.object()]) :: true
-  def batch_agreement(context, world, subject, operation, objects) do
-    populate(context, world)
-    verdicts = Map.new(objects, &{&1, verdict(Turnstile.check(subject, operation, &1))})
-    assert Turnstile.batch(subject, operation, objects) == verdicts
-    assert Turnstile.filter(subject, operation, objects) == Enum.filter(objects, &Turnstile.check(subject, operation, &1))
-  end
-
   @doc "A scoped `all` over 1,000 rows: one query plus the adapter's own, and one decision record."
   @spec scoped_all_shape(context()) :: true
   def scoped_all_shape(%{repo: repo, case: %{world: module}} = context) do
@@ -127,8 +118,6 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
 
     :ok = outage.outage()
     assert Turnstile.check(subject, operation, object) == false
-    assert Turnstile.batch(subject, operation, [object]) == %{object => :deny}
-    assert Turnstile.filter(subject, operation, [object]) == []
 
     assert {:error, %Error{reason: :engine_unreachable}} =
              Turnstile.authorize(subject, operation, object)
@@ -274,12 +263,7 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert {:error, %Error{reason: reason, detail: detail}} = Turnstile.authorize(subject, operation, object)
     assert reason in Error.reasons()
     assert detail =~ "may not #{operation}"
-    assert Turnstile.batch(subject, operation, [object]) == %{object => :deny}
-    assert Turnstile.filter(subject, operation, [object]) == []
   end
-
-  defp verdict(true), do: :allow
-  defp verdict(false), do: :deny
 
   defp decisions(handler) do
     receive do

@@ -18,19 +18,10 @@ defmodule Turnstile.Test.AroundAdapter do
   defdelegate scope_cap, to: Fake
 
   @impl Turnstile.Adapter
-  defdelegate authorize(subject, operation, object, environment, options), to: Fake
-
-  @impl Turnstile.Adapter
-  defdelegate check(subject, operation, object, environment, options), to: Fake
-
-  @impl Turnstile.Adapter
-  defdelegate batch(subject, operation, objects, environment, options), to: Fake
+  defdelegate decide(subject, operation, object, environment, options), to: Fake
 
   @impl Turnstile.Adapter
   defdelegate scope(subject, operation, object_type, environment, options), to: Fake
-
-  @impl Turnstile.Adapter
-  defdelegate explain(subject, operation, object, environment, options), to: Fake
 
   @impl Turnstile.Adapter
   def around_query(query_or_changeset, decision, fun) when is_function(fun, 0) do

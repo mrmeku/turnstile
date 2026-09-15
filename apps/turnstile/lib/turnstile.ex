@@ -64,37 +64,15 @@ defmodule Turnstile do
           {:ok, Decision.t()} | {:error, Error.t()}
   defdelegate authorize(subject, operation, object, opts \\ []), to: Port
 
-  @doc "`authorize/4`, raising `Turnstile.Error` on a denial."
-  @spec authorize!(subject(), atom(), object(), Port.options()) :: Decision.t()
-  def authorize!({_kind, _account} = subject, operation, {_type, _id} = object, opts \\ []) when is_atom(operation) do
-    case Port.authorize(subject, operation, object, opts) do
-      {:ok, decision} -> decision
-      {:error, error} -> raise error
-    end
-  end
-
   @doc "The verdict alone for one object."
   @spec check(subject(), atom(), object(), Port.options()) :: boolean()
   defdelegate check(subject, operation, object, opts \\ []), to: Port
-
-  @doc "Verdicts for many objects of one type."
-  @spec batch(subject(), atom(), [object()], Port.options()) :: Port.verdicts()
-  defdelegate batch(subject, operation, objects, opts \\ []), to: Port
-
-  @doc "The objects the subject may perform the operation on, from a list."
-  @spec filter(subject(), atom(), [object()], Port.options()) :: [object()]
-  defdelegate filter(subject, operation, objects, opts \\ []), to: Port
 
   @doc "The rule a row must satisfy and the decision the query carries."
   @spec scope(subject(), atom(), atom(), Port.options()) :: {Ecto.Query.dynamic_expr(), Decision.t()}
   defdelegate scope(subject, operation, object_type, opts \\ []), to: Port
 
-  @doc "The answer with what produced it on `meta`, where the adapter can say."
-  @spec explain(subject(), atom(), object(), Port.options()) ::
-          {:ok, Turnstile.Answer.t(), Decision.t()} | {:error, Error.t()}
-  defdelegate explain(subject, operation, object, opts \\ []), to: Port
-
-  @doc "Who can do what: a rule per subject over an object type, or the allowed references per subject over a population."
-  @spec review(subject(), [subject()], atom(), atom() | [object()], Port.options()) :: Port.reviewed()
-  defdelegate review(reviewer, subjects, operation, population, opts \\ []), to: Port
+  @doc "Who can do what: a rule and a decision per subject over an object type, asked by a reviewer."
+  @spec review(subject(), [subject()], atom(), atom(), Port.options()) :: Port.reviewed()
+  defdelegate review(reviewer, subjects, operation, object_type, opts \\ []), to: Port
 end

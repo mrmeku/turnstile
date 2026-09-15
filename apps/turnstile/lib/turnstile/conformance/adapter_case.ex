@@ -106,7 +106,7 @@ defmodule Turnstile.Conformance.AdapterCase do
     end
   end
 
-  defp properties, do: [rule_agreement(), scope_fidelity(), deny_by_default(), batch_agreement()]
+  defp properties, do: [rule_agreement(), scope_fidelity(), deny_by_default()]
 
   defp rule_agreement do
     quote do
@@ -150,22 +150,6 @@ defmodule Turnstile.Conformance.AdapterCase do
                 max_runs: 25
               ) do
           Laws.deny_by_default(context, world, subjects, operation, object)
-        end
-      end
-    end
-  end
-
-  defp batch_agreement do
-    quote do
-      property "batch agreement: batch and filter agree with check object by object", context do
-        check all(
-                world <- Gen.world(@conformance_world),
-                subject <- Gen.subject(world),
-                operation <- Gen.operation(@conformance_world),
-                objects <- Gen.objects(world),
-                max_runs: 25
-              ) do
-          Laws.batch_agreement(context, world, subject, operation, objects)
         end
       end
     end

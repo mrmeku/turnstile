@@ -12,13 +12,9 @@ defmodule Turnstile.Test.AroundAdapterTest do
     assert AroundAdapter.options_schema() == Fake.options_schema()
     assert AroundAdapter.scope_cap() == Fake.scope_cap()
     args = [@subject, :read, @object, @environment, [verdict: :allow]]
-    assert apply(AroundAdapter, :authorize, args) == apply(Fake, :authorize, args)
-    assert apply(AroundAdapter, :check, args) == apply(Fake, :check, args)
-    batch_args = [@subject, :read, [@object], @environment, []]
-    assert apply(AroundAdapter, :batch, batch_args) == apply(Fake, :batch, batch_args)
+    assert apply(AroundAdapter, :decide, args) == apply(Fake, :decide, args)
     scope_args = [@subject, :read, :thing, @environment, []]
     assert apply(AroundAdapter, :scope, scope_args) == apply(Fake, :scope, scope_args)
-    assert apply(AroundAdapter, :explain, args) == apply(Fake, :explain, args)
   end
 
   test "around_query sends the query and the decision to the caller, then runs the call" do

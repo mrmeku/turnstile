@@ -16,11 +16,8 @@ defmodule Turnstile.FreezeTest do
   test "Turnstile.Adapter has the frozen callbacks" do
     assert Enum.sort(Turnstile.Adapter.behaviour_info(:callbacks)) ==
              Enum.sort(
-               authorize: 5,
-               check: 5,
-               batch: 5,
+               decide: 5,
                scope: 5,
-               explain: 5,
                around_query: 3,
                options_schema: 0,
                scope_cap: 0,
@@ -28,7 +25,7 @@ defmodule Turnstile.FreezeTest do
              )
 
     assert Enum.sort(Turnstile.Adapter.behaviour_info(:optional_callbacks)) ==
-             Enum.sort(explain: 5, around_query: 3, options_schema: 0, settle: 0)
+             Enum.sort(around_query: 3, options_schema: 0, settle: 0)
   end
 
   test "the structs have the frozen fields" do

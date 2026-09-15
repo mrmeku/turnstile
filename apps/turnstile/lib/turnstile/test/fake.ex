@@ -6,10 +6,9 @@ defmodule Turnstile.Test.Fake do
   any, one operation, on one object, or any of a type, and nothing else is
   allowed. Without a table the fake answers with the `verdict` option,
   `:deny` unless said otherwise. It returns a value of the real type
-  everywhere the real adapters do: `scope` returns a real `dynamic`,
-  `explain` answers the reason `:unsupported`, and a table told to
-  `fail/2` answers every call with the reason `:engine_unreachable`, so the port's
-  fail-closed path runs against it.
+  everywhere the real adapters do: `scope` returns a real `dynamic`, and a
+  table told to `fail/2` answers every call with the reason
+  `:engine_unreachable`, so the port's fail-closed path runs against it.
   """
 
   @behaviour Turnstile.Adapter
@@ -74,26 +73,10 @@ defmodule Turnstile.Test.Fake do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now}, options)
+  def decide({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now}, options)
       when is_atom(operation) do
-    with {:ok, state} <- state(options, :authorize) do
-      {:ok, decide(state, subject, operation, object)}
-    end
-  end
-
-  @impl Turnstile.Adapter
-  def check({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now}, options)
-      when is_atom(operation) do
-    with {:ok, state} <- state(options, :check) do
-      {:ok, decide(state, subject, operation, object)}
-    end
-  end
-
-  @impl Turnstile.Adapter
-  def batch({_kind, _account} = subject, operation, objects, %{now: _now}, options)
-      when is_atom(operation) and is_list(objects) do
-    with {:ok, state} <- state(options, :batch) do
-      {:ok, Map.new(objects, fn {_type, _id} = object -> {object, decide(state, subject, operation, object)} end)}
+    with {:ok, state} <- state(options, :decide) do
+      {:ok, answered(state, subject, operation, object)}
     end
   end
 
@@ -105,12 +88,7 @@ defmodule Turnstile.Test.Fake do
     end
   end
 
-  @impl Turnstile.Adapter
-  def explain({_kind, _account}, operation, {_type, _id}, %{now: _now}, _options) when is_atom(operation) do
-    {:error, %Error{reason: :unsupported, detail: "#{inspect(__MODULE__)} does not support explain: it names no rule"}}
-  end
-
-  @doc "The answer the fake gives with no table bound; the fake names no rule, so nothing explains it."
+  @doc "The answer the fake gives with no table bound."
   @spec answer(keyword()) :: Answer.t()
   def answer(options) when is_list(options), do: answer_for(Keyword.get(options, :verdict, :deny))
 
@@ -136,9 +114,9 @@ defmodule Turnstile.Test.Fake do
     {:error, %Error{reason: :engine_unreachable, detail: "#{inspect(__MODULE__)} failed during #{operation}: #{detail}"}}
   end
 
-  defp decide(verdict, _subject, _operation, _object) when is_atom(verdict), do: answer_for(verdict)
+  defp answered(verdict, _subject, _operation, _object) when is_atom(verdict), do: answer_for(verdict)
 
-  defp decide(%{entries: entries}, {_kind, id}, operation, {type, object_id}) do
+  defp answered(%{entries: entries}, {_kind, id}, operation, {type, object_id}) do
     candidates = [
       {id, operation, {type, object_id}},
       {:any, operation, {type, object_id}},

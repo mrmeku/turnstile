@@ -2,12 +2,10 @@ defmodule TurnstileTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Decision
-  alias Turnstile.Error
   alias Turnstile.Test.Fake
 
   @user {:user, "acct-a"}
   @folder {:folder, 1}
-  @other {:folder, 2}
 
   setup do
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})
@@ -18,16 +16,8 @@ defmodule TurnstileTest do
 
   test "every function delegates to the port with empty options by default" do
     assert {:ok, %Decision{verdict: :allow}} = Turnstile.authorize(@user, :read, @folder)
-    assert %Decision{verdict: :allow} = Turnstile.authorize!(@user, :read, @folder)
     assert Turnstile.check(@user, :read, @folder)
-    assert Turnstile.batch(@user, :read, [@folder, @other]) == %{{:folder, 1} => :allow, {:folder, 2} => :deny}
-    assert Turnstile.filter(@user, :read, [@folder, @other]) == [@folder]
     assert {_rule, %Decision{verdict: :scoped}} = Turnstile.scope(@user, :read, :folder)
-    assert {:error, %Error{reason: :unsupported}} = Turnstile.explain(@user, :read, @folder)
-    assert %{@user => [{:folder, 1}]} = Turnstile.review(@user, [@user], :read, [@folder, @other])
-  end
-
-  test "authorize! raises the not-authorized error on a denial" do
-    assert_raise Error, ~r/may not edit/, fn -> Turnstile.authorize!(@user, :edit, @folder) end
+    assert %{@user => {_rule, %Decision{verdict: :scoped}}} = Turnstile.review(@user, [@user], :read, :folder)
   end
 end
