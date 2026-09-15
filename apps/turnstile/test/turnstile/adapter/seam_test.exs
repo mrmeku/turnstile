@@ -319,6 +319,8 @@ defmodule Turnstile.Adapter.SeamTest do
       assert changed.actor == subject
       assert changed.actor_kind == :user
       assert changed.operation_id == decision.operation_id
+      assert changed.decision_id == decision.id
+      assert created.decision_id == nil
 
       {_deleted, [removed]} =
         Turnstile.Test.changes(fn -> Sandboxed.delete!(membership, turnstile: {:exempt, "revoke"}) end)
@@ -363,6 +365,62 @@ defmodule Turnstile.Adapter.SeamTest do
         |> Changeset.add_error(:clearance, "no")
 
       assert {{:error, %Changeset{}}, []} = Turnstile.Test.changes(fn -> Sandboxed.insert(changeset) end)
+    end
+  end
+
+  describe "access events" do
+    test "a read under a decision publishes one access naming the rows, the decision, and the subject",
+         %{folder: folder, decision: decision} do
+      {[read], [event]} = Turnstile.Test.accesses(fn -> Sandboxed.all(Folder, turnstile: decision) end)
+
+      assert read.id == folder.id
+      assert event.object_type == :folder
+      assert event.schema == Folder
+      assert event.repo == Sandboxed
+      assert event.call == {:all, 2}
+      assert event.activity == :query
+      assert event.ids == [folder.id]
+      assert event.count == 1
+      assert event.shape == :rows
+      assert event.subject == decision.subject
+      assert event.subject_kind == :user
+      assert event.decision_id == decision.id
+      assert event.operation_id == decision.operation_id
+      assert %DateTime{} = event.time
+    end
+
+    test "each shape of read is one access: a row, a value, a stream, and a preload", %{
+      folder: folder,
+      decision: decision
+    } do
+      {_row, [got]} = Turnstile.Test.accesses(fn -> Sandboxed.get(Folder, folder.id, turnstile: decision) end)
+      assert %{call: {:get, 3}, activity: :read, ids: [_id], shape: :rows} = got
+
+      {nil, [missed]} = Turnstile.Test.accesses(fn -> Sandboxed.get(Folder, -1, turnstile: decision) end)
+      assert %{activity: :read, ids: [], count: 0, shape: :rows} = missed
+
+      {true, [exists]} = Turnstile.Test.accesses(fn -> Sandboxed.exists?(Folder, turnstile: decision) end)
+      assert %{call: {:exists?, 2}, activity: :read, ids: [], shape: :value} = exists
+
+      {1, [counted]} = Turnstile.Test.accesses(fn -> Sandboxed.aggregate(Folder, :count, turnstile: decision) end)
+      assert %{call: {:aggregate, 3}, activity: :query, ids: [], shape: :value} = counted
+
+      {{:ok, [_row]}, [streamed]} =
+        Turnstile.Test.accesses(fn ->
+          Sandboxed.transaction(fn -> Enum.to_list(Sandboxed.stream(Folder, turnstile: decision)) end)
+        end)
+
+      assert %{call: {:stream, 2}, activity: :query, ids: [], shape: :stream} = streamed
+
+      {%Folder{}, [preloaded]} = Turnstile.Test.accesses(fn -> Sandboxed.preload(folder, :items, turnstile: decision) end)
+      assert %{call: {:preload, 3}, activity: :read, ids: [_id], shape: :rows} = preloaded
+    end
+
+    test "an exempt read, a read the owner-role repo makes, and a read of an unprotected schema publish nothing" do
+      {[_row], []} = Turnstile.Test.accesses(fn -> Sandboxed.all(Folder, turnstile: {:exempt, "seed"}) end)
+      {rows, []} = Turnstile.Test.accesses(fn -> Owner.all(Folder) end)
+      assert is_list(rows)
+      {[], []} = Turnstile.Test.accesses(fn -> Sandboxed.all(Membership) end)
     end
   end
 

@@ -10,8 +10,8 @@ defmodule Turnstile.Port do
   the operation, the object or the rule a narrowing call answered with, the
   verdict and the reason, the decider and the version of its rules, the
   environment as the caller gave it, what broke where the call failed
-  closed, the moment, and the operation id. A decision is a read, so it has no
-  transaction. The one measurement is the duration in microseconds, which
+  closed, the decision's id, the moment, and the operation id. A decision
+  is a read, so it has no transaction. The one measurement is the duration in microseconds, which
   is where a consumer of telemetry looks for it.
 
   A subject whose kind the port does not know is denied before the adapter
@@ -270,6 +270,7 @@ defmodule Turnstile.Port do
           version: nil,
           env: call.env,
           exception: nil,
+          decision_id: nil,
           time: call.environment.now,
           operation_id: call.operation_id
         },
@@ -280,7 +281,7 @@ defmodule Turnstile.Port do
   end
 
   defp verdict_out(%Decision{} = decision) do
-    %{verdict: decision.verdict, reason: decision.reason, version: decision.policy_version}
+    %{verdict: decision.verdict, reason: decision.reason, version: decision.policy_version, decision_id: decision.id}
   end
 
   defp not_authorized(subject, operation, object, %Answer{} = answer) do

@@ -166,6 +166,15 @@ defmodule Turnstile.Schema do
     if declares?(module), do: module.__turnstile__(:kind)
   end
 
+  @doc "A row's primary key: the value of its one key column, or a map of the columns where it has several."
+  @spec id_of(struct()) :: term()
+  def id_of(%{__struct__: schema} = row) do
+    case schema.__schema__(:primary_key) do
+      [key] -> Map.get(row, key)
+      keys -> Map.new(keys, &{&1, Map.get(row, &1)})
+    end
+  end
+
   @doc "Whether a module's writes are audited: whether it declares what kind of thing its rows are."
   @spec audited?(term()) :: boolean()
   def audited?(module), do: kind_of(module) != nil

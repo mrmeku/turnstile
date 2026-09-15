@@ -16,6 +16,7 @@ defmodule Turnstile.Change do
   | `changes` | each fact field that changed, to `{old, new}` |
   | `actor` | the subject the decision named, or the library |
   | `actor_kind` | the kind of that subject |
+  | `decision_id` | the decision the write ran under, or `nil` under an exemption |
   | `time` | the moment from the configured clock |
   | `operation_id` | the identifier every event of one operation shares |
   | `schema` | the Ecto schema module |
@@ -34,8 +35,13 @@ defmodule Turnstile.Change do
   @typedoc "What the write did to the row."
   @type operation :: :create | :update | :delete
 
-  @typedoc "What every event of one operation shares: who asked, the identifier, and the moment."
-  @type stamp :: %{by: Turnstile.subject(), operation_id: Turnstile.Id.t(), at: DateTime.t()}
+  @typedoc "What every event of one operation shares: who asked, under which decision, the identifier, and the moment."
+  @type stamp :: %{
+          by: Turnstile.subject(),
+          decision_id: Turnstile.Id.t() | nil,
+          operation_id: Turnstile.Id.t(),
+          at: DateTime.t()
+        }
 
   @doc "The telemetry event a change publishes, which is what a consumer attaches to."
   @spec event() :: [atom()]
@@ -65,6 +71,7 @@ defmodule Turnstile.Change do
       changes: changes(schema, old, new),
       actor: stamp.by,
       actor_kind: kind,
+      decision_id: stamp.decision_id,
       time: stamp.at,
       operation_id: stamp.operation_id,
       schema: schema
@@ -77,14 +84,7 @@ defmodule Turnstile.Change do
   defp target(schema, row) do
     type = Schema.object_type_of(schema) || Schema.kind_of(schema)
 
-    {type, id(schema, row)}
-  end
-
-  defp id(schema, row) do
-    case schema.__schema__(:primary_key) do
-      [key] -> Map.get(row, key)
-      keys -> Map.new(keys, &{&1, Map.get(row, &1)})
-    end
+    {type, Schema.id_of(row)}
   end
 
   defp changes(schema, old, new) do

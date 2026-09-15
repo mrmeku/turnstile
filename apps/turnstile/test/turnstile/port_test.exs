@@ -36,10 +36,11 @@ defmodule Turnstile.PortTest do
   end
 
   test "a call publishes one decision event carrying who asked, what was answered, and how long it took" do
-    assert {:ok, %Decision{verdict: :allow}} = Port.authorize(@user, :read, @folder, [])
+    assert {:ok, %Decision{verdict: :allow} = decision} = Port.authorize(@user, :read, @folder, [])
 
     assert_received {[:turnstile, :decision], _ref, %{duration: duration}, metadata}
     assert duration >= 0
+    assert metadata.decision_id == decision.id
     assert metadata.subject == @user
     assert metadata.subject_kind == :user
     assert metadata.operation == :read

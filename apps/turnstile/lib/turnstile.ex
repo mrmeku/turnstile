@@ -13,6 +13,7 @@ defmodule Turnstile do
     deps: [Ecto, NimbleOptions],
     check: [apps: [:ecto_sql, :postgrex]],
     exports: [
+      Access,
       Adapter,
       Adapter.Overrides,
       Adapter.Seam,

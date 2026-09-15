@@ -10,9 +10,11 @@ defmodule Turnstile.Adapter.Seam do
   # A write to an audited schema on an application-role repo runs in a
   # transaction, and the change it made is published inside that transaction
   # (`Turnstile.Change`), so a handler that writes from the same repository
-  # joins it. The owner-role repo records nothing: it is the library's own
-  # channel.
+  # joins it. A read of a protected schema under a decision publishes what
+  # it returned after it returns (`Turnstile.Access`). The owner-role repo
+  # records nothing: it is the library's own channel.
 
+  alias Turnstile.Access
   alias Turnstile.Adapter.Caller
   alias Turnstile.Adapter.Option
   alias Turnstile.Change
@@ -28,11 +30,17 @@ defmodule Turnstile.Adapter.Seam do
   @type call :: Mediation.call()
   @type continue :: (keyword() -> term())
 
-  @doc "The query bucket: resolve the option, then wrap the call; the query itself is judged in `prepare/4`."
+  @doc """
+  The query bucket: resolve the option, wrap the call, and publish what a
+  read under a decision returned; the query itself is judged in `prepare/4`.
+  """
   @spec query(module(), call(), term(), keyword(), continue()) :: term()
   def query(repo, call, target, opts, continue) when is_atom(repo) and is_list(opts) do
-    {mediation, opts} = Option.resolve(repo, call, Source.root(target), opts)
-    around(repo, mediation, Source.to_query(target), fn -> continue.(opts) end)
+    root = Source.root(target)
+    {mediation, opts} = Option.resolve(repo, call, root, opts)
+    result = around(repo, mediation, Source.to_query(target), fn -> continue.(opts) end)
+    :ok = accessed(repo, call, root, mediation, result)
+    result
   end
 
   @doc "`update_all` and `delete_all`: the query bucket, plus the refusal of a bulk write to an audited schema."
@@ -116,6 +124,19 @@ defmodule Turnstile.Adapter.Seam do
 
   defp around(_repo, _mediation, _subject, fun), do: fun.()
 
+  # The access event: a read of a protected schema under a decision, after
+  # it returned. An exempt read, a read the owner-role repo made, and a read
+  # of a schema that declares no object type publish nothing.
+  defp accessed(repo, call, root, %Mediation{decision: %Decision{} = decision}, result) when is_atom(root) do
+    if Schema.object_type_of(root) do
+      Access.publish(repo, root, call, result, decision, config!().clock.())
+    else
+      :ok
+    end
+  end
+
+  defp accessed(_repo, _call, _root, _mediation, _result), do: :ok
+
   defp recorded(repo, {name, _arity}, changeset, mediation, opts, continue) do
     schema = changeset.data.__struct__
 
@@ -173,10 +194,12 @@ defmodule Turnstile.Adapter.Seam do
   end
 
   defp stamp(%Mediation{decision: %Decision{} = decision}) do
-    %{by: decision.subject, operation_id: decision.operation_id, at: config!().clock.()}
+    %{by: decision.subject, decision_id: decision.id, operation_id: decision.operation_id, at: config!().clock.()}
   end
 
-  defp stamp(_mediation), do: %{by: Change.library(), operation_id: Id.new(), at: config!().clock.()}
+  defp stamp(_mediation) do
+    %{by: Change.library(), decision_id: nil, operation_id: Id.new(), at: config!().clock.()}
+  end
 
   # An audited write runs inside a transaction so the write and the change
   # it publishes commit together; a write that reports an error rolls it
