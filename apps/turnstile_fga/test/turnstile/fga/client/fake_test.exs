@@ -3,14 +3,11 @@ defmodule Turnstile.Fga.Client.FakeTest do
 
   alias Turnstile.Error
   alias Turnstile.Fga.Client
-  alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
-  alias Turnstile.Fga.Client.Expand
   alias Turnstile.Fga.Client.Fake
   alias Turnstile.Fga.Client.ListObjects
   alias Turnstile.Fga.Client.Page
   alias Turnstile.Fga.Client.Read
-  alias Turnstile.Fga.Client.Tree
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.Condition
   alias Turnstile.Fga.TupleKey
@@ -144,7 +141,7 @@ defmodule Turnstile.Fga.Client.FakeTest do
     assert {:ok, %Page{tuples: []}} = Fake.read(context.agent, context.store, %Read{object_type: "clearance"})
   end
 
-  test "check and batch_check answer from the tuples the store holds directly", context do
+  test "check answers from the tuples the store holds directly", context do
     reader = tuple("user:ann", "reader", "folder:1")
     assert write!(context, [], [reader]) == {:ok, 1}
 
@@ -152,9 +149,6 @@ defmodule Turnstile.Fga.Client.FakeTest do
 
     assert Fake.check(context.agent, context.store, %Check{tuple_key: tuple("user:bob", "reader", "folder:1")}) ==
              {:ok, false}
-
-    batch = %BatchCheck{checks: [{"a", reader}, {"b", tuple("user:bob", "reader", "folder:1")}]}
-    assert Fake.batch_check(context.agent, context.store, batch) == {:ok, %{"a" => true, "b" => false}}
   end
 
   test "list_objects answers the objects of the type the user holds the relation on", context do
@@ -165,16 +159,6 @@ defmodule Turnstile.Fga.Client.FakeTest do
     assert Fake.list_objects(context.agent, context.store, request) == {:ok, ["folder:1", "folder:2"]}
 
     assert Fake.list_objects(context.agent, context.store, %{request | relation: "editor"}) == {:ok, []}
-  end
-
-  test "expand answers the users the relation holds directly on the object", context do
-    tuples = [tuple("user:bob", "reader", "folder:1"), tuple("user:ann", "reader", "folder:1")]
-    assert write!(context, [], [tuple("user:ann", "editor", "folder:1") | tuples]) == {:ok, 3}
-
-    assert {:ok, %Tree{users: users, children: []}} =
-             Fake.expand(context.agent, context.store, %Expand{relation: "reader", object: "folder:1"})
-
-    assert users == ["user:ann", "user:bob"]
   end
 
   test "every call is recorded in the order it was made", context do

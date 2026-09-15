@@ -24,9 +24,8 @@ defmodule Turnstile.Fga.Adapter.Decide do
   # drain has written is not missed, and a listing asks for the lower one,
   # since a scope is a filter over rows the caller reads anyway.
   #
-  # A batch is one call per fifty questions, the pinned server's own limit,
-  # which is lower than the cap on identifiers a rule may carry. A scope is
-  # one `ListObjects`: under the cap its identifiers become the rule, and at
+  # A scope is one `ListObjects`: under the cap its identifiers become the
+  # rule, and at
   # the cap or above it the answer is short of the truth without saying so, so
   # this module emits `fallback_event/0` with the level `limited` and fails,
   # and the caller asks per page instead.
@@ -47,11 +46,8 @@ defmodule Turnstile.Fga.Adapter.Decide do
   alias Turnstile.Answer
   alias Turnstile.Error
   alias Turnstile.Fga.Client
-  alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
-  alias Turnstile.Fga.Client.Expand
   alias Turnstile.Fga.Client.ListObjects
-  alias Turnstile.Fga.Client.Tree
   alias Turnstile.Fga.Consistency
   alias Turnstile.Fga.TupleKey
 
@@ -130,16 +126,6 @@ defmodule Turnstile.Fga.Adapter.Decide do
     end
   end
 
-  @doc "The answers for a list of objects, one per object reference, in calls of at most fifty questions."
-  @spec many(entry(), Turnstile.subject(), atom(), [Turnstile.object()]) ::
-          {:ok, %{Turnstile.object() => Answer.t()}} | {:error, Error.t()}
-  def many(entry, {_kind, _account} = subject, operation, objects) when is_atom(operation) and is_list(objects) do
-    with {:ok, model} <- pinned(entry),
-         {:ok, allowed} <- asked(entry, keyed(subject, operation, objects), model) do
-      {:ok, Map.new(objects, &{&1, answer(named(&1) in allowed, operation, model)})}
-    end
-  end
-
   @doc """
   The rule for an object type: the identifiers `ListObjects` answers with, as
   a `dynamic` over the rows of that type. An answer at the cap or above it
@@ -167,33 +153,9 @@ defmodule Turnstile.Fga.Adapter.Decide do
     }
   end
 
-  @doc "The denial a guard's refusal is for every object of a batch."
-  @spec refused_all(entry(), [Turnstile.object()]) :: %{Turnstile.object() => Answer.t()}
-  def refused_all(entry, objects) when is_list(objects) do
-    Map.new(objects, &{&1, refused(entry)})
-  end
-
   @doc "The scope a guard's refusal is: the rule no row satisfies, and the denial."
   @spec refused_scope(entry()) :: Turnstile.Adapter.scoped()
   def refused_scope(entry), do: {dynamic([_row], false), refused(entry)}
-
-  @doc "The explanation a guard's refusal is: the denial, and no relation that holds."
-  @spec refused_explanation(entry()) :: Answer.t()
-  def refused_explanation(entry), do: matched(refused(entry), [])
-
-  @doc """
-  The answer for one object with, where it is allowed, the relations the
-  operation is computed from that hold, under `meta[:matched]`. The tree comes from one
-  `Expand` and which of its branches hold from one `BatchCheck`, so an
-  explanation is three calls and no walk of this module's own.
-  """
-  @spec explained(entry(), Turnstile.subject(), atom(), Turnstile.object()) ::
-          {:ok, Answer.t()} | {:error, Error.t()}
-  def explained(entry, {_kind, _account} = subject, operation, {_type, _id} = object) when is_atom(operation) do
-    with {:ok, %Answer{} = answer} <- one(entry, subject, operation, object) do
-      explaining(entry, subject, operation, object, answer)
-    end
-  end
 
   defp listed(entry, {_kind, _account} = subject, operation, type, model) do
     request = listing(entry, subject, operation, type, model)
@@ -203,70 +165,6 @@ defmodule Turnstile.Fga.Adapter.Decide do
 
   defp scope(ids, operation, model) do
     {dynamic([row], row.id in ^ids), answer(true, operation, model)}
-  end
-
-  defp explaining(_entry, _subject, _operation, _object, %Answer{verdict: :deny} = answer) do
-    {:ok, matched(answer, [])}
-  end
-
-  defp explaining(entry, subject, operation, object, %Answer{} = answer) do
-    request = %Expand{relation: relation(operation), object: named(object), model: answer.version}
-
-    with {:ok, %Tree{} = tree} <- entry.client.expand(entry.endpoint, entry.store, request),
-         {:ok, holding} <- asked(entry, branches(subject, tree), answer.version) do
-      {:ok, matched(answer, Enum.sort(holding))}
-    end
-  end
-
-  defp matched(%Answer{} = answer, relations), do: %{answer | meta: Map.put(answer.meta, :matched, relations)}
-
-  # Each branch of the tree as a question of its own: whether the subject
-  # holds that relation on that object. A branch names the relation it is
-  # computed from, on this object or on another, and that name is what an
-  # explanation reports.
-  defp branches({_kind, _account} = subject, %Tree{} = tree) do
-    for %Tree{object: object, relation: relation} <- tree.children do
-      {"#{object}##{relation}", %TupleKey{user: user(subject), relation: relation, object: object}}
-    end
-  end
-
-  # Questions under names of the caller's own, in calls of at most the limit
-  # of one call, answering the names that hold.
-  defp asked(entry, questions, model) do
-    step = fn chunk, {:ok, holding} -> chunked(entry, chunk, model, holding) end
-
-    questions
-    |> Enum.chunk_every(Client.max_checks_per_batch())
-    |> Enum.reduce_while({:ok, []}, step)
-  end
-
-  # The identifier of a question is the server's to accept and takes letters,
-  # digits, and dashes alone, so a question is asked under its place in the
-  # call and answered under the name the caller gave it.
-  defp chunked(entry, questions, model, holding) do
-    numbered = Enum.with_index(questions)
-
-    request = %BatchCheck{
-      checks: checks(numbered),
-      model: model,
-      context: entry.context,
-      consistency: consistency(entry.callback)
-    }
-
-    case entry.client.batch_check(entry.endpoint, entry.store, request) do
-      {:ok, answered} -> {:cont, {:ok, holding ++ held(numbered, answered)}}
-      {:error, %Error{reason: :engine_unreachable} = error} -> {:halt, {:error, error}}
-    end
-  end
-
-  defp checks(numbered), do: for({{_name, tuple}, index} <- numbered, do: {"c-#{index}", tuple})
-
-  defp held(numbered, answered) do
-    for {{name, _tuple}, index} <- numbered, Map.get(answered, "c-#{index}") == true, do: name
-  end
-
-  defp keyed({_kind, _account} = subject, operation, objects) do
-    for object <- objects, do: {named(object), tuple(subject, operation, object)}
   end
 
   defp check(entry, {_kind, _account} = subject, operation, {_type, _id} = object, model) do

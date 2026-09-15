@@ -7,15 +7,13 @@ defmodule Turnstile.Fga.Client.Fake do
   What it copies from the server is what a caller can get wrong. A write is
   atomic per call: a call that carries a duplicate write, a delete of a tuple
   the store does not hold, a tuple key on both of its sides, or more changes
-  than one call may carry changes nothing at all. A batch of more checks
-  than one call may carry is refused the same way. Deletes and writes are
+  than one call may carry changes nothing at all. Deletes and writes are
   matched by the tuple key alone, so a tuple written again with another
   condition is a duplicate.
 
-  What it does not copy is the model. `check/3`, `list_objects/3`, and
-  `expand/3` answer from the tuples the store holds directly, with no
-  relation composed and no condition evaluated, in the types the real client
-  answers in. Deciding is what a server does, and the cases that need one run
+  What it does not copy is the model. `check/3` and `list_objects/3` answer
+  from the tuples the store holds directly, with no relation composed and no
+  condition evaluated, in the types the real client answers in. Deciding is what a server does, and the cases that need one run
   against a server.
 
   `fail_after/2` makes the next writes fail once a number of them have been
@@ -28,13 +26,10 @@ defmodule Turnstile.Fga.Client.Fake do
   use Agent
 
   alias Turnstile.Fga.Client
-  alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
-  alias Turnstile.Fga.Client.Expand
   alias Turnstile.Fga.Client.ListObjects
   alias Turnstile.Fga.Client.Page
   alias Turnstile.Fga.Client.Read
-  alias Turnstile.Fga.Client.Tree
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.TupleKey
 
@@ -93,22 +88,8 @@ defmodule Turnstile.Fga.Client.Fake do
   end
 
   @impl Client
-  def batch_check(agent, store, %BatchCheck{} = request) do
-    with :ok <- counted(request) do
-      answer(agent, :batch_check, store, request, fn tuples ->
-        {:ok, Map.new(request.checks, fn {id, key} -> {id, Map.has_key?(tuples, TupleKey.key(key))} end)}
-      end)
-    end
-  end
-
-  @impl Client
   def list_objects(agent, store, %ListObjects{} = request) do
     answer(agent, :list_objects, store, request, fn tuples -> {:ok, objects(tuples, request)} end)
-  end
-
-  @impl Client
-  def expand(agent, store, %Expand{} = request) do
-    answer(agent, :expand, store, request, fn tuples -> {:ok, tree(tuples, request)} end)
   end
 
   @impl Client
@@ -186,14 +167,6 @@ defmodule Turnstile.Fga.Client.Fake do
   defp allowed(%{fail_after: 0}), do: {:error, Client.error(:write, "the fake was asked to fail this write")}
   defp allowed(%{}), do: :ok
 
-  defp counted(%BatchCheck{checks: checks}) do
-    if length(checks) > Client.max_checks_per_batch() do
-      {:error, Client.error(:batch_check, "the call carries #{length(checks)} checks, above the limit of one call")}
-    else
-      :ok
-    end
-  end
-
   defp limited(%Write{} = request) do
     changes = length(request.deletes) + length(request.writes)
 
@@ -249,16 +222,6 @@ defmodule Turnstile.Fga.Client.Fake do
     matching
     |> Enum.uniq()
     |> Enum.sort()
-  end
-
-  defp tree(tuples, %Expand{} = request) do
-    users =
-      for tuple <- Map.values(tuples),
-          tuple.relation == request.relation,
-          tuple.object == request.object,
-          do: tuple.user
-
-    %Tree{object: request.object, relation: request.relation, users: Enum.sort(users), children: []}
   end
 
   defp page(tuples, %Read{} = request) do

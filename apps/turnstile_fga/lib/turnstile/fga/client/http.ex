@@ -25,16 +25,12 @@ defmodule Turnstile.Fga.Client.Http do
   @behaviour Turnstile.Fga.Client
 
   alias Turnstile.Fga.Client
-  alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
-  alias Turnstile.Fga.Client.Expand
   alias Turnstile.Fga.Client.ListObjects
   alias Turnstile.Fga.Client.Page
   alias Turnstile.Fga.Client.Read
-  alias Turnstile.Fga.Client.Tree
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.Core.Codec
-  alias Turnstile.Fga.TupleKey
 
   @connect_timeout 1_000
   @timeout 5_000
@@ -68,32 +64,12 @@ defmodule Turnstile.Fga.Client.Http do
   end
 
   @impl Client
-  def batch_check(endpoint, store, %BatchCheck{} = request) do
-    checks = for {id, tuple} <- request.checks, do: item(id, tuple, request.context)
-    body = asked(%{"checks" => checks}, request.model, request.consistency, %{})
-
-    with {:ok, answered} <- post(endpoint, path(store, "batch-check"), body, :batch_check) do
-      {:ok, Map.new(Map.get(answered, "result", %{}), fn {id, result} -> {id, result["allowed"] == true} end)}
-    end
-  end
-
-  @impl Client
   def list_objects(endpoint, store, %ListObjects{} = request) do
     asking = %{"type" => request.type, "relation" => request.relation, "user" => request.user}
     body = asked(asking, request.model, request.consistency, request.context)
 
     with {:ok, answered} <- post(endpoint, path(store, "list-objects"), body, :list_objects) do
       {:ok, Map.get(answered, "objects", [])}
-    end
-  end
-
-  @impl Client
-  def expand(endpoint, store, %Expand{} = request) do
-    asking = %{"tuple_key" => %{"relation" => request.relation, "object" => request.object}}
-    body = asked(asking, request.model, :unspecified, %{})
-
-    with {:ok, answered} <- post(endpoint, path(store, "expand"), body, :expand) do
-      tree(answered, request)
     end
   end
 
@@ -129,10 +105,6 @@ defmodule Turnstile.Fga.Client.Http do
 
   defp put_context(body, context) when context == %{}, do: body
   defp put_context(body, context), do: Map.put(body, "context", context)
-
-  defp item(id, %TupleKey{} = tuple, context) do
-    put_context(%{"correlation_id" => id, "tuple_key" => Codec.key(tuple)}, context)
-  end
 
   # A side with nothing on it is left out: the server refuses a list of no
   # tuple keys, and a call that carries one side alone is the usual one.
@@ -197,61 +169,6 @@ defmodule Turnstile.Fga.Client.Http do
   defp same?(_value, nil), do: true
   defp same?(value, value), do: true
   defp same?(_value, _asked), do: false
-
-  defp tree(%{"tree" => %{"root" => root}}, %Expand{} = request) do
-    {:ok, %{branch(root) | object: request.object, relation: request.relation}}
-  end
-
-  defp tree(answered, _request) do
-    {:error, Client.error(:expand, "the server answered no tree: " <> String.slice(inspect(answered), 0, 200))}
-  end
-
-  defp branch(json) do
-    {object, relation} = split(Map.get(json, "name", ""))
-    {users, children} = held(json)
-
-    %Tree{object: object, relation: relation, users: users, children: children}
-  end
-
-  # The users a node holds directly, and the relations it is computed from. A
-  # node under an operator carries the name of the node above it rather than a
-  # name of its own, so what it adds is what its own leaf names: the relation a
-  # userset points at, on this object or through another.
-  defp held(%{"union" => %{"nodes" => nodes}}) when is_list(nodes), do: gathered(nodes)
-  defp held(%{"intersection" => %{"nodes" => nodes}}) when is_list(nodes), do: gathered(nodes)
-
-  defp held(%{"difference" => %{"base" => base, "subtract" => subtract}}) do
-    gathered([base, subtract])
-  end
-
-  defp held(%{"leaf" => %{"users" => %{"users" => users}}}) when is_list(users), do: {users, []}
-  defp held(%{"leaf" => %{"computed" => %{"userset" => userset}}}), do: {[], [named(userset)]}
-
-  defp held(%{"leaf" => %{"tupleToUserset" => %{"computed" => usersets}}}) when is_list(usersets) do
-    {[], for(%{"userset" => userset} <- usersets, do: named(userset))}
-  end
-
-  defp held(_json), do: {[], []}
-
-  defp gathered(nodes) do
-    gathered = Enum.map(nodes, &held/1)
-    {users, children} = Enum.unzip(gathered)
-
-    {List.flatten(users), List.flatten(children)}
-  end
-
-  defp named(userset) do
-    {object, relation} = split(userset)
-
-    %Tree{object: object, relation: relation, users: [], children: []}
-  end
-
-  defp split(name) do
-    case String.split(name, "#", parts: 2) do
-      [object, relation] -> {object, relation}
-      [object] -> {object, ""}
-    end
-  end
 
   defp fetched(answered, field, operation) do
     case Map.fetch(answered, field) do

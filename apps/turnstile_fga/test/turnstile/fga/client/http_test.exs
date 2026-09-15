@@ -3,14 +3,11 @@ defmodule Turnstile.Fga.Client.HttpTest do
 
   alias Turnstile.Dev
   alias Turnstile.Error
-  alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
-  alias Turnstile.Fga.Client.Expand
   alias Turnstile.Fga.Client.Http
   alias Turnstile.Fga.Client.ListObjects
   alias Turnstile.Fga.Client.Page
   alias Turnstile.Fga.Client.Read
-  alias Turnstile.Fga.Client.Tree
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.Condition
   alias Turnstile.Fga.Model
@@ -94,21 +91,6 @@ defmodule Turnstile.Fga.Client.HttpTest do
     assert asks(context, "ann", "can_edit", "item:1") == {:ok, false}
   end
 
-  test "a batch answers each question under the id it was asked with", context do
-    _written = world(context)
-
-    request = %BatchCheck{
-      checks: [
-        {"a-1", %TupleKey{user: "user:ann", relation: "can_read", object: "folder:1"}},
-        {"b-2", %TupleKey{user: "user:ann", relation: "can_edit", object: "folder:1"}}
-      ],
-      model: context.model,
-      consistency: :higher_consistency
-    }
-
-    assert Http.batch_check(context.endpoint, context.store, request) == {:ok, %{"a-1" => true, "b-2" => false}}
-  end
-
   test "a listing answers the objects of one type the account holds the relation on", context do
     _written = world(context)
     request = %ListObjects{user: "user:ann", relation: "can_read", type: "folder", model: context.model}
@@ -117,27 +99,6 @@ defmodule Turnstile.Fga.Client.HttpTest do
 
     refused = %ListObjects{user: "user:bob", relation: "can_read", type: "folder", model: context.model}
     assert Http.list_objects(context.endpoint, context.store, refused) == {:ok, []}
-  end
-
-  test "an expansion answers the relations the operation is computed from", context do
-    _written = world(context)
-    request = %Expand{relation: "can_read", object: "folder:1", model: context.model}
-
-    assert {:ok, %Tree{} = tree} = Http.expand(context.endpoint, context.store, request)
-    assert tree.object == "folder:1"
-    assert tree.relation == "can_read"
-
-    names = for child <- tree.children, do: "#{child.object}##{child.relation}"
-    assert "folder:1#reader" in names
-    assert "folder:1#editor" in names
-  end
-
-  test "an expansion of a relation held directly answers the users holding it", context do
-    _written = world(context)
-    request = %Expand{relation: "reader", object: "folder:1", model: context.model}
-
-    assert {:ok, %Tree{} = tree} = Http.expand(context.endpoint, context.store, request)
-    assert tree.users == ["user:ann"]
   end
 
   test "a read of one object answers its tuples with the condition each carries", context do

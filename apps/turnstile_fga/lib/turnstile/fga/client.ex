@@ -3,7 +3,7 @@ defmodule Turnstile.Fga.Client do
   The only path to the server. Every call the adapter and the projector make
   is a callback here, so a suite runs either of them against
   `Turnstile.Fga.Client.Fake` without a server, and the real client is the
-  same eight calls over HTTP.
+  same six calls over HTTP.
 
   Two arguments come before the request in every call. The endpoint is where
   the server is: the address of a real one, or the agent a fake runs on. The
@@ -22,17 +22,13 @@ defmodule Turnstile.Fga.Client do
   """
 
   alias Turnstile.Error
-  alias Turnstile.Fga.Client.BatchCheck
   alias Turnstile.Fga.Client.Check
-  alias Turnstile.Fga.Client.Expand
   alias Turnstile.Fga.Client.ListObjects
   alias Turnstile.Fga.Client.Page
   alias Turnstile.Fga.Client.Read
-  alias Turnstile.Fga.Client.Tree
   alias Turnstile.Fga.Client.Write
 
   @max_tuples_per_write 100
-  @max_checks_per_batch 50
 
   # The adapter an engine error from here names, read from this module's own
   # name rather than written out: a behaviour that named the adapter would
@@ -62,14 +58,8 @@ defmodule Turnstile.Fga.Client do
   @doc "Whether one tuple holds."
   @callback check(endpoint(), store(), Check.t()) :: {:ok, boolean()} | failure()
 
-  @doc "Whether each tuple of the batch holds, by the correlation id it was asked under."
-  @callback batch_check(endpoint(), store(), BatchCheck.t()) :: {:ok, %{String.t() => boolean()}} | failure()
-
   @doc "The objects of one type the user holds one relation on."
   @callback list_objects(endpoint(), store(), ListObjects.t()) :: {:ok, [String.t()]} | failure()
-
-  @doc "The tree behind one relation on one object."
-  @callback expand(endpoint(), store(), Expand.t()) :: {:ok, Tree.t()} | failure()
 
   @doc "One page of the tuples the store holds."
   @callback read(endpoint(), store(), Read.t()) :: {:ok, Page.t()} | failure()
@@ -84,14 +74,6 @@ defmodule Turnstile.Fga.Client do
   """
   @spec max_tuples_per_write() :: pos_integer()
   def max_tuples_per_write, do: @max_tuples_per_write
-
-  @doc """
-  How many checks one `batch_check/3` carries. This is the pinned server's
-  own limit as well, and it is lower than the cap on identifiers a rule may
-  carry, so a batch over more objects than this is more than one call.
-  """
-  @spec max_checks_per_batch() :: pos_integer()
-  def max_checks_per_batch, do: @max_checks_per_batch
 
   @doc "An engine error from this adapter, naming the call it came from."
   @spec error(atom(), String.t()) :: Error.t()

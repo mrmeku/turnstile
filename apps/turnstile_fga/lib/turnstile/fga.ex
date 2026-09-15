@@ -7,12 +7,11 @@ defmodule Turnstile.Fga do
 
   An operation is a relation of the model, `can_` and the operation's name,
   and a decision is one `Check` under the model the configuration pins. A
-  batch is `BatchCheck`, a scope is `ListObjects` turned into a `dynamic`
-  over identifiers, and an explanation is `Expand`, whose tree is the path.
+  scope is `ListObjects` turned into a `dynamic` over identifiers.
 
   What this package holds, and what each piece is for:
 
-  - `Turnstile.Fga.Client`, the only path to the server. Eight calls, each
+  - `Turnstile.Fga.Client`, the only path to the server. Six calls, each
     answering a value or an engine error, none of them raising.
     `Turnstile.Fga.Client.Fake` is the same behaviour on an `Agent`.
   - `Turnstile.Fga.TupleMapping`, what an application states about its
@@ -51,14 +50,11 @@ defmodule Turnstile.Fga do
     exports: [
       Binding,
       Client,
-      Client.BatchCheck,
       Client.Check,
-      Client.Expand,
       Client.Http,
       Client.ListObjects,
       Client.Page,
       Client.Read,
-      Client.Tree,
       Client.Write,
       Condition,
       Consistency,
@@ -165,31 +161,11 @@ defmodule Turnstile.Fga do
   def settle, do: Settle.now()
 
   @impl Turnstile.Adapter
-  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
+  def decide({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
       when is_atom(operation) do
-    case entry(options, :authorize, operation, environment) do
+    case entry(options, :decide, operation, environment) do
       {:ok, entry} -> Decide.one(entry, subject, operation, object)
       {:refused, entry} -> {:ok, Decide.refused(entry)}
-      {:error, error} -> {:error, error}
-    end
-  end
-
-  @impl Turnstile.Adapter
-  def check({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
-      when is_atom(operation) do
-    case entry(options, :check, operation, environment) do
-      {:ok, entry} -> Decide.one(entry, subject, operation, object)
-      {:refused, entry} -> {:ok, Decide.refused(entry)}
-      {:error, error} -> {:error, error}
-    end
-  end
-
-  @impl Turnstile.Adapter
-  def batch({_kind, _account} = subject, operation, objects, %{now: _now} = environment, options)
-      when is_atom(operation) and is_list(objects) do
-    case entry(options, :batch, operation, environment) do
-      {:ok, entry} -> Decide.many(entry, subject, operation, objects)
-      {:refused, entry} -> {:ok, Decide.refused_all(entry, objects)}
       {:error, error} -> {:error, error}
     end
   end
@@ -200,16 +176,6 @@ defmodule Turnstile.Fga do
     case entry(options, :scope, operation, environment) do
       {:ok, entry} -> Decide.scoped(entry, subject, operation, object_type)
       {:refused, entry} -> {:ok, Decide.refused_scope(entry)}
-      {:error, error} -> {:error, error}
-    end
-  end
-
-  @impl Turnstile.Adapter
-  def explain({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
-      when is_atom(operation) do
-    case entry(options, :explain, operation, environment) do
-      {:ok, entry} -> Decide.explained(entry, subject, operation, object)
-      {:refused, entry} -> {:ok, Decide.refused_explanation(entry)}
       {:error, error} -> {:error, error}
     end
   end
