@@ -78,8 +78,8 @@ defmodule Example.Scenarios.Support do
   @doc """
   The revocation-latency report, written to the log and never asserted: total,
   commit, drain, poll, and the floor. The `drain` part is the milliseconds the
-  projection took to catch up, or `nil` where the bound adapter has no
-  projection to drain.
+  engine's copy of the facts took to catch up, or `nil` where the bound
+  adapter keeps no copy to drain.
   """
   @spec latency_report(keyword()) :: :ok
   def latency_report(parts) when is_list(parts) do

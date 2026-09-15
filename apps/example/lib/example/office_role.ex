@@ -4,7 +4,7 @@ defmodule Example.OfficeRole do
   admits both roles for one account in one office, so the row is declared
   twice over: as the relationship a review of a past date reports, and as an
   object of its own carrying its account, its office, and its role, which is
-  what tells the two roles apart where a fold keys a relationship by its
+  what tells the two roles apart where a relationship is keyed by its
   subject and its object alone.
   """
 
