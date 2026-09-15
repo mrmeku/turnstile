@@ -5,17 +5,8 @@ defmodule Example.SiemTest do
   alias Example.Fixture
   alias Example.Siem
 
-  test "an unattached consumer holds what it is told, oldest first, and answers by correlation id" do
-    siem = start_supervised!({Siem, []})
-    :ok = Siem.record(siem, record(3005, "op-1"))
-    :ok = Siem.record(siem, record(6003, "op-2"))
-
-    assert [%{class_uid: 3005}, %{class_uid: 6003}] = Siem.records(siem)
-    assert [%{class_uid: 3005}] = Siem.records(siem, "op-1")
-    assert Siem.records(siem, "op-3") == []
-  end
-
-  test "an attached consumer maps the decision the port published and the change the seam did", ctx do
+  test "an attached consumer maps the decision the port published and the change the seam did, oldest first, and answers by correlation id",
+       ctx do
     siem = start_supervised!({Siem, [attach: true]})
     document = Fixture.document!(ctx.world)
     allow(ctx.rules, "dana", :change_marking, {:document, document.id})
@@ -32,12 +23,8 @@ defmodule Example.SiemTest do
     assert marking.actor == %{user: %{uid: "dana", type_id: 1, type: "User"}}
     assert Map.has_key?(marking.unmapped.changes, :categories)
     assert decision.metadata.version == Siem.schema_version()
-
-    assert Siem.events() == [[:turnstile, :change], [:turnstile, :decision]]
+    assert Enum.take(Siem.records(siem), -3) == Siem.records(siem, "op-9")
+    assert Siem.records(siem, "op-3") == []
     :ok = stop_supervised!(Siem)
-  end
-
-  defp record(class, operation_id) do
-    %{class_uid: class, metadata: %{correlation_uid: operation_id}}
   end
 end

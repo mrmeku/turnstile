@@ -40,10 +40,6 @@ defmodule Example.Siem do
   @spec schema_version() :: String.t()
   defdelegate schema_version, to: Ocsf, as: :version
 
-  @doc "The events it attaches to: the change event and the decision event."
-  @spec events() :: [[atom()]]
-  def events, do: [Change.event(), Port.event()]
-
   @doc "Every record it holds, oldest first."
   @spec records(GenServer.server()) :: [map()]
   def records(siem), do: GenServer.call(siem, :records)
@@ -55,10 +51,6 @@ defmodule Example.Siem do
     |> records()
     |> Enum.filter(&(&1.metadata.correlation_uid == operation_id))
   end
-
-  @doc "Hold one record; what the telemetry handler does with what it mapped."
-  @spec record(GenServer.server(), map()) :: :ok
-  def record(siem, record) when is_map(record), do: GenServer.cast(siem, {:record, record})
 
   @doc false
   @spec handle_event([atom()], map(), map(), GenServer.server()) :: :ok
@@ -91,6 +83,12 @@ defmodule Example.Siem do
   @impl GenServer
   def terminate(_reason, %{attached: true}), do: :telemetry.detach(handler_id())
   def terminate(_reason, _state), do: :ok
+
+  # The change event and the decision event.
+  defp events, do: [Change.event(), Port.event()]
+
+  # Hold one record: what the handler does with what it mapped.
+  defp record(siem, record) when is_map(record), do: GenServer.cast(siem, {:record, record})
 
   defp handler_id, do: {__MODULE__, self()}
 end
