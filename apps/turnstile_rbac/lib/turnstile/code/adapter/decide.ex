@@ -1,20 +1,20 @@
 defmodule Turnstile.Code.Adapter.Decide do
   @moduledoc false
-  # The answers `check`, `authorize`, `batch`, and `explain` give: one query
-  # per object type that selects every clause of the rule for the rows asked
-  # about, through the bound repo as a library caller. A row that is not
-  # there is denied by default, as is a subject no grant reaches; a row a
-  # grant reaches that fails a predicate is denied by that predicate's name;
-  # a row every clause allows is allowed by the first grant that held. A
-  # predicate that answers with neither a `dynamic` nor a boolean is its
-  # detail, and the adapter names the callback it failed in.
+  # The answer `decide` gives: one query that selects every clause of the
+  # rule for the row asked about, through the bound repo as a library
+  # caller. A row that is not there is denied by default, as is a subject
+  # no grant reaches; a row a grant reaches that fails a predicate is denied
+  # by that predicate's name; a row every clause allows is allowed by the
+  # first grant that held. A predicate that answers with neither a
+  # `dynamic` nor a boolean is its detail, and the adapter names the
+  # callback it failed in.
   #
   # A repo that raises is left to raise. The port turns any exception a
   # decider raises into a denial with `engine_unreachable`, so this package
   # names no driver's error, and a driver it does not carry needs no clause
   # of its own.
 
-  import Ecto.Query, only: [dynamic: 2, from: 2]
+  import Ecto.Query, only: [from: 2]
 
   alias Turnstile.Answer
   alias Turnstile.Code.Binding
@@ -23,60 +23,23 @@ defmodule Turnstile.Code.Adapter.Decide do
   @doc "The answer for one object, with the clauses that held under `meta[:matched]`."
   @spec one(Binding.t(), Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment()) ::
           {:ok, Answer.t()} | {:error, String.t()}
-  def one(%Binding{} = binding, {_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment) do
-    with {:ok, [{^object, answer}]} <- explained(binding, subject, operation, [object], environment) do
-      {:ok, answer}
-    end
-  end
-
-  @doc "The answers for a list of objects, one per object reference."
-  @spec many(Binding.t(), Turnstile.subject(), atom(), [Turnstile.object()], Turnstile.environment()) ::
-          {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
-  def many(%Binding{} = binding, {_kind, _account} = subject, operation, objects, %{now: _now} = environment) do
-    with {:ok, explained} <- explained(binding, subject, operation, objects, environment) do
-      {:ok, Map.new(explained)}
-    end
-  end
-
-  defp explained(binding, subject, operation, objects, environment) do
-    grouped = Enum.group_by(objects, &elem(&1, 0))
-    step = fn {type, of_type}, acc -> merge(of_type(binding, subject, operation, type, of_type, environment), acc) end
-
-    with {:ok, by_object} <- Enum.reduce_while(grouped, {:ok, %{}}, step) do
-      {:ok, Enum.map(objects, &{&1, Map.fetch!(by_object, &1)})}
-    end
-  end
-
-  defp merge({:ok, explained}, {:ok, acc}), do: {:cont, {:ok, Map.merge(acc, explained)}}
-  defp merge({:error, _error} = error, _acc), do: {:halt, error}
-
-  defp of_type(binding, subject, operation, type, objects, environment) do
+  def one(%Binding{} = binding, {_kind, _account} = subject, operation, {type, id}, %{now: _now} = environment) do
     case Rule.build(binding.policy, subject, operation, type, environment) do
-      {:ok, %Rule{} = rule} -> queried(binding.repo, rule, objects)
-      {:error, %Answer{} = answer} -> {:ok, Map.new(objects, &{&1, matched(answer, [])})}
+      {:ok, %Rule{} = rule} -> {:ok, answered(rule, row(binding.repo, rule, id))}
+      {:error, %Answer{} = answer} -> {:ok, matched(answer, [])}
       {:error, detail} when is_binary(detail) -> {:error, detail}
     end
   end
 
-  defp queried(repo, %Rule{} = rule, objects) do
-    rows = rows(repo, rule, objects)
-    {:ok, Map.new(objects, &{&1, explain(rule, Map.get(rows, key(&1)))})}
-  end
-
-  defp rows(repo, %Rule{schema: schema} = rule, objects) do
+  defp row(repo, %Rule{schema: schema} = rule, id) do
     key = Rule.primary_key(schema)
-    ids = Enum.map(objects, &elem(&1, 1))
-    selected = Map.put(Rule.clauses(rule), :__key__, dynamic([row], field(row, ^key)))
-    query = from(row in schema, where: field(row, ^key) in ^ids, select: ^selected)
-
-    Map.new(repo.all(query, turnstile: {:exempt, :library}), &{to_string(&1.__key__), &1})
+    query = from(row in schema, where: field(row, ^key) == ^id, select: ^Rule.clauses(rule))
+    repo.one(query, turnstile: {:exempt, :library})
   end
 
-  defp key({_type, id}), do: to_string(id)
+  defp answered(%Rule{version: version}, nil), do: matched(Rule.deny(:deny_by_default, version), [])
 
-  defp explain(%Rule{version: version}, nil), do: matched(Rule.deny(:deny_by_default, version), [])
-
-  defp explain(%Rule{grants: grants, predicates: predicates, version: version}, row) do
+  defp answered(%Rule{grants: grants, predicates: predicates, version: version}, row) do
     held = fn {name, _expression} -> row[name] == true end
     held_names = for {name, _expression} = clause <- grants ++ predicates, held.(clause), do: name
     answer = answer(Enum.find(grants, held), Enum.reject(predicates, held), version)

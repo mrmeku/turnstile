@@ -11,11 +11,11 @@ defmodule Turnstile.Code do
 
   Every answer is a query the repo runs at the time of the call. `scope`
   returns the rule as a `dynamic` over subqueries and runs nothing itself;
-  `check`, `authorize`, `batch`, and `explain` run one query per call that
-  selects each clause of the rule for the rows asked about, so the reason
-  names the clause that allowed or the clause that failed, and `explain`
-  lists every clause that held. A deploy is a policy version, and
-  `publish/0` emits it as telemetry at boot.
+  `decide` runs one query that selects each clause of the rule for the row
+  asked about, so the reason names the clause that allowed or the clause
+  that failed, and the clauses that held travel on the answer's `meta`. A
+  deploy is a policy version, and `publish/0` emits it as telemetry at
+  boot.
   """
 
   @behaviour Turnstile.Adapter
@@ -52,24 +52,10 @@ defmodule Turnstile.Code do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, _options)
+  def decide({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, _options)
       when is_atom(operation) do
-    with {:ok, %Binding{} = binding} <- bound(:authorize) do
-      named(Decide.one(binding, subject, operation, object, environment), :authorize)
-    end
-  end
-
-  @impl Turnstile.Adapter
-  def check({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
-      when is_atom(operation) do
-    authorize(subject, operation, object, environment, options)
-  end
-
-  @impl Turnstile.Adapter
-  def batch({_kind, _account} = subject, operation, objects, %{now: _now} = environment, _options)
-      when is_atom(operation) and is_list(objects) do
-    with {:ok, %Binding{} = binding} <- bound(:batch) do
-      named(Decide.many(binding, subject, operation, objects, environment), :batch)
+    with {:ok, %Binding{} = binding} <- bound(:decide) do
+      named(Decide.one(binding, subject, operation, object, environment), :decide)
     end
   end
 
@@ -78,14 +64,6 @@ defmodule Turnstile.Code do
       when is_atom(operation) and is_atom(object_type) do
     with {:ok, %Binding{} = binding} <- bound(:scope) do
       scoped(Rule.build(binding.policy, subject, operation, object_type, environment))
-    end
-  end
-
-  @impl Turnstile.Adapter
-  def explain({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, _options)
-      when is_atom(operation) do
-    with {:ok, %Binding{} = binding} <- bound(:explain) do
-      named(Decide.one(binding, subject, operation, object, environment), :explain)
     end
   end
 

@@ -46,40 +46,40 @@ defmodule Turnstile.Code.DecideTest do
     {:ok, environment: environment, ann: {:user, "ann"}, bob: {:user, "bob"}}
   end
 
-  test "explain names the clauses that held and the reason names the grant or the failing predicate", ctx do
+  test "the answer names the clauses that held and the reason names the grant or the failing predicate", ctx do
     folder = {:folder, 1}
 
     allowed = %{rule: "membership", matched: [:membership, :cleared]}
 
     assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: ^allowed}} =
-             Turnstile.Code.explain(ctx.ann, :read, folder, ctx.environment, [])
+             Turnstile.Code.decide(ctx.ann, :read, folder, ctx.environment, [])
 
     denied = %{rule: "cleared", matched: [:membership]}
 
     assert {:ok, %Answer{verdict: :deny, reason: :rule_denied, meta: ^denied}} =
-             Turnstile.Code.explain(ctx.bob, :edit, folder, ctx.environment, [])
+             Turnstile.Code.decide(ctx.bob, :edit, folder, ctx.environment, [])
 
     assert {:ok, %Answer{reason: :deny_by_default, meta: %{matched: [:cleared]}}} =
-             Turnstile.Code.explain(ctx.ann, :edit, folder, ctx.environment, [])
+             Turnstile.Code.decide(ctx.ann, :edit, folder, ctx.environment, [])
 
     assert {:ok, %Answer{reason: :deny_by_default, meta: %{matched: []}}} =
-             Turnstile.Code.explain(ctx.ann, :read, {:folder, 404}, ctx.environment, [])
+             Turnstile.Code.decide(ctx.ann, :read, {:folder, 404}, ctx.environment, [])
   end
 
   test "an item answers as its folder does, through the grant's on column", ctx do
     item = {:item, 10}
-    assert {:ok, %Answer{verdict: :allow}} = Turnstile.Code.check(ctx.ann, :read, item, ctx.environment, [])
-    assert {:ok, %Answer{verdict: :deny}} = Turnstile.Code.check(ctx.ann, :edit, item, ctx.environment, [])
+    assert {:ok, %Answer{verdict: :allow}} = Turnstile.Code.decide(ctx.ann, :read, item, ctx.environment, [])
+    assert {:ok, %Answer{verdict: :deny}} = Turnstile.Code.decide(ctx.ann, :edit, item, ctx.environment, [])
   end
 
   test "an unknown operation and an unknown object type are denied with their reasons", ctx do
     folder = {:folder, 1}
 
     assert {:ok, %Answer{verdict: :deny, reason: :unknown_operation}} =
-             Turnstile.Code.check(ctx.ann, :delete, folder, ctx.environment, [])
+             Turnstile.Code.decide(ctx.ann, :delete, folder, ctx.environment, [])
 
     assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
-             Turnstile.Code.check(ctx.ann, :read, {:document, 1}, ctx.environment, [])
+             Turnstile.Code.decide(ctx.ann, :read, {:document, 1}, ctx.environment, [])
 
     assert {:ok, {rule, %Answer{verdict: :deny}}} =
              Turnstile.Code.scope(ctx.ann, :delete, :folder, ctx.environment, [])
@@ -87,26 +87,24 @@ defmodule Turnstile.Code.DecideTest do
     assert inspect(rule) == inspect(dynamic([_row], false))
   end
 
-  test "a batch answers every object in order across types in one query per type", ctx do
-    objects = [{:item, 10}, {:folder, 2}, {:folder, 1}]
-
-    {answers, queries} =
+  test "one decision is one query", ctx do
+    {answer, queries} =
       Turnstile.Test.queries(Sandboxed, fn ->
-        {:ok, answers} = Turnstile.Code.batch(ctx.ann, :read, objects, ctx.environment, [])
-        answers
+        {:ok, answer} = Turnstile.Code.decide(ctx.ann, :read, {:folder, 1}, ctx.environment, [])
+        answer
       end)
 
-    assert Enum.map(objects, &answers[&1].verdict) == [:allow, :deny, :allow]
-    assert length(queries) == 2
+    assert %Answer{verdict: :allow} = answer
+    assert length(queries) == 1
   end
 
   test "a predicate that returns neither a dynamic nor a boolean is an engine error", ctx do
     :ok = Binding.override(policy: BrokenPolicy)
 
     assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
-             Turnstile.Code.authorize(ctx.ann, :read, {:folder, 1}, ctx.environment, [])
+             Turnstile.Code.decide(ctx.ann, :read, {:folder, 1}, ctx.environment, [])
 
-    assert detail =~ "Turnstile.Code failed during authorize"
+    assert detail =~ "Turnstile.Code failed during decide"
     assert detail =~ "predicate garbage returned :not_a_dynamic"
   end
 end
