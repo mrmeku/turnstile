@@ -21,10 +21,17 @@ defmodule ExamplePostgres.Policies do
   answers under its own marking.
   """
 
+  alias Example.Agency
+  alias Example.Assignment
+  alias Example.Category
   alias Example.Document
   alias Example.Marking
+  alias Example.Office
+  alias Example.OfficeRole
   alias Example.Portion
+  alias Example.Program
   alias Example.Proposal
+  alias Example.User
 
   @app_role "turnstile_app"
   @owner_role "turnstile_owner"
@@ -55,9 +62,15 @@ defmodule ExamplePostgres.Policies do
   @spec protected() :: [String.t()]
   def protected, do: ~w(documents markings portions marking_proposals)
 
-  @doc "The schemas the binding names: the four whose tables the policies protect."
+  @doc """
+  The schemas the binding names: the four whose tables the policies
+  protect, and the seven whose tables the policies read, so that every
+  column a policy reads is set against a declaration.
+  """
   @spec schemas() :: [module()]
-  def schemas, do: [Document, Marking, Portion, Proposal]
+  def schemas do
+    [Document, Marking, Portion, Proposal, Agency, Assignment, Category, Office, OfficeRole, Program, User]
+  end
 
   @doc "The database role the application connects as."
   @spec app_role() :: String.t()
