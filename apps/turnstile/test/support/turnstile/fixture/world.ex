@@ -16,9 +16,6 @@ defmodule Turnstile.Fixture.World do
 
   use ExUnitProperties
 
-  import Ecto.Query, only: [order_by: 2]
-
-  alias Ecto.Changeset
   alias Turnstile.Conformance.World
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
@@ -42,12 +39,6 @@ defmodule Turnstile.Fixture.World do
           items: %{pos_integer() => pos_integer()},
           memberships: %{{String.t(), pos_integer()} => :reader | :editor}
         }
-
-  @typedoc "One change: a grant, a revocation, or a clearance change."
-  @type step ::
-          {:grant, Turnstile.subject(), pos_integer(), :reader | :editor}
-          | {:revoke, Turnstile.subject(), pos_integer()}
-          | {:clearance, Turnstile.subject(), String.t() | nil}
 
   @doc "The two protected schemas the properties scope over."
   @impl World
@@ -134,11 +125,6 @@ defmodule Turnstile.Fixture.World do
     Enum.map(folders, &{:folder, &1}) ++ Enum.map(item_ids, &{:item, &1})
   end
 
-  @doc "The folders, which are what a membership sits on."
-  @impl World
-  @spec grantables(t()) :: [pos_integer()]
-  def grantables(%__MODULE__{folders: folders}), do: folders
-
   @doc "The rule: what the world says about one subject, operation, and object."
   @impl World
   @spec allowed?(t(), Turnstile.subject(), atom(), Turnstile.object()) :: boolean()
@@ -187,36 +173,6 @@ defmodule Turnstile.Fixture.World do
     :ok
   end
 
-  @doc "The world the tables hold."
-  @impl World
-  @spec read(module()) :: t()
-  def read(repo) when is_atom(repo) do
-    read = &repo.all(&1, turnstile: @exemption)
-    folders = read.(order_by(Folder, :id))
-
-    %__MODULE__{
-      accounts: Map.new(read.(Account), &{&1.id, &1.clearance}),
-      folders: Enum.map(folders, & &1.id),
-      items: Map.new(read.(Item), &{&1.id, &1.folder_id}),
-      memberships: Map.new(read.(Membership), &membership_of/1)
-    }
-  end
-
-  @doc "Give the account a role on the folder, inserting or changing the membership, and return the world."
-  @impl World
-  @spec grant(module(), t(), Turnstile.subject(), pos_integer(), :reader | :editor) :: t()
-  def grant(repo, %__MODULE__{} = world, {_kind, account}, folder, role) when is_atom(repo) do
-    case repo.get_by(Membership, [account_id: account, folder_id: folder], turnstile: @exemption) do
-      nil ->
-        repo.insert!(%Membership{account_id: account, folder_id: folder, role: role}, turnstile: @exemption)
-
-      %Membership{} = membership ->
-        repo.update!(Changeset.change(membership, role: role), turnstile: @exemption)
-    end
-
-    %{world | memberships: Map.put(world.memberships, {account, folder}, role)}
-  end
-
   @doc "Remove the account's membership on the folder, if any, and return the world."
   @impl World
   @spec revoke(module(), t(), Turnstile.subject(), pos_integer()) :: t()
@@ -247,40 +203,9 @@ defmodule Turnstile.Fixture.World do
     :ok
   end
 
-  @doc "One to eight changes to the world's memberships and clearances."
-  @impl World
-  @spec steps(t()) :: StreamData.t([step()])
-  def steps(%__MODULE__{} = world), do: list_of(step(world), min_length: 1, max_length: 8)
-
-  @doc "Apply one change through the seam and return the world it leaves."
-  @impl World
-  @spec apply_step(module(), t(), step()) :: t()
-  def apply_step(repo, world, {:grant, subject, folder, role}), do: grant(repo, world, subject, folder, role)
-  def apply_step(repo, world, {:revoke, subject, folder}), do: revoke(repo, world, subject, folder)
-  def apply_step(repo, world, {:clearance, subject, value}), do: set_clearance(repo, world, subject, value)
-
-  @doc "Set the account's clearance and return the world."
-  @spec set_clearance(module(), t(), Turnstile.subject(), String.t() | nil) :: t()
-  def set_clearance(repo, %__MODULE__{} = world, {_kind, account}, clearance) when is_atom(repo) do
-    account_row = repo.get!(Account, account, turnstile: @exemption)
-    repo.update!(Changeset.change(account_row, clearance: clearance), turnstile: @exemption)
-    %{world | accounts: Map.put(world.accounts, account, clearance)}
-  end
-
   defp role, do: member_of(@roles)
 
   defp clearance, do: frequency([{3, constant(@cleared)}, {1, constant(nil)}])
-
-  defp step(%__MODULE__{} = world) do
-    subject = member_of(subjects(world))
-    folder = member_of(world.folders)
-
-    one_of([
-      tuple({constant(:grant), subject, folder, role()}),
-      tuple({constant(:revoke), subject, folder}),
-      tuple({constant(:clearance), subject, clearance()})
-    ])
-  end
 
   defp population do
     accounts = list_of(tuple({member_of(@accounts), clearance()}), min_length: 1, max_length: 3)
@@ -311,10 +236,6 @@ defmodule Turnstile.Fixture.World do
 
   defp items(world),
     do: Enum.map(world.items, fn {id, folder} -> %Item{id: id, title: "item #{id}", folder_id: folder} end)
-
-  defp membership_of(%Membership{} = membership) do
-    {{membership.account_id, membership.folder_id}, membership.role}
-  end
 
   defp memberships(world) do
     Enum.map(world.memberships, fn {{account, folder}, role} ->

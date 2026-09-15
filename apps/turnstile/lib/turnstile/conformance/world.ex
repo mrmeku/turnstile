@@ -15,11 +15,11 @@ defmodule Turnstile.Conformance.World do
   The callbacks fall in four groups. The shape is what the rule is written
   in: the protected schemas, the operations, the kinds of grant, the
   exemption every write declares, and the object a grant covers. The
-  populations are one generator, for the properties, and four fixed worlds
+  populations are one generator, for the properties, and three fixed worlds
   the shape, fail-closed, and latency cases are written over, with
-  `focus/1` naming the subject and the grant those four are built around. Reading a population answers what it holds and what its rule
-  says. Writing one puts it in the tables, changes it there, and reads it
-  back.
+  `focus/1` naming the subject and the grant those three are built around.
+  Reading a population answers what it holds and what its rule says.
+  Writing one puts it in the tables and takes a grant out of it.
   """
 
   @typedoc "A population: a struct of the module that implements this behaviour."
@@ -27,9 +27,6 @@ defmodule Turnstile.Conformance.World do
 
   @typedoc "What a grant sits on, in whatever terms the world keeps it."
   @type grantable :: term()
-
-  @typedoc "One change to a population, in whatever terms the world applies it."
-  @type step :: term()
 
   @doc "Every protected schema the properties scope over."
   @callback schemas() :: [module()]
@@ -70,9 +67,6 @@ defmodule Turnstile.Conformance.World do
   @doc "Every object the population holds."
   @callback objects(t()) :: [Turnstile.object()]
 
-  @doc "Everything in the population a grant can sit on."
-  @callback grantables(t()) :: [grantable()]
-
   @doc "The rule: what the population says about one subject, operation, and object."
   @callback allowed?(t(), Turnstile.subject(), atom(), Turnstile.object()) :: boolean()
 
@@ -81,12 +75,6 @@ defmodule Turnstile.Conformance.World do
 
   @doc "Write the population through the seam."
   @callback insert(module(), t()) :: :ok
-
-  @doc "The population the tables hold."
-  @callback read(module()) :: t()
-
-  @doc "Give the subject a grant of that kind, through the seam, and answer the population it leaves."
-  @callback grant(module(), t(), Turnstile.subject(), grantable(), atom()) :: t()
 
   @doc "Take the subject's grant away, through the seam, and answer the population it leaves."
   @callback revoke(module(), t(), Turnstile.subject(), grantable()) :: t()
@@ -101,12 +89,6 @@ defmodule Turnstile.Conformance.World do
   database itself answers a read no decision carries with nothing.
   """
   @callback fill(module(), t(), pos_integer()) :: :ok
-
-  @doc "One to eight changes to the population."
-  @callback steps(t()) :: StreamData.t([step()])
-
-  @doc "Apply one change through the seam and answer the population it leaves."
-  @callback apply_step(module(), t(), step()) :: t()
 
   @doc "The module behind a population."
   @spec module(t()) :: module()
