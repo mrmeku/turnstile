@@ -22,7 +22,7 @@ defmodule Example.Fixture do
 
   use Boundary,
     top_level?: true,
-    deps: [Example, Ecto, Turnstile, Turnstile.Conformance, Turnstile.Test, Turnstile.Test.Sandbox],
+    deps: [Example, Ecto, Turnstile, Turnstile.Conformance, Turnstile.Test, Turnstile.Dev.Sandbox],
     exports: [Rows]
 
   import Ecto.Query, only: [from: 2]

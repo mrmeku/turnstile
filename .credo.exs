@@ -132,8 +132,11 @@
           {Credo.Check.Warning.WrongTestFilename, []},
           # Raw SQL bypasses the seam. The test cluster bootstraps roles and
           # databases through it.
-          {Turnstile.Credo.NoRawSQL, [files: %{included: ["lib/", "apps/*/lib/"]}, allow: ["Turnstile.Test.Cluster"]]},
-          {Turnstile.Credo.UnmediatedRepo, []}
+          {Turnstile.Credo.NoRawSQL, [files: %{included: ["lib/", "apps/*/lib/"]}, allow: ["Turnstile.Dev.Cluster"]]},
+          # The dev package's own repos carry no seam: they prove the cluster and
+          # the dump, and the package takes core as no dependency.
+          {Turnstile.Credo.UnmediatedRepo,
+           [files: %{excluded: ["test/support/turnstile/dev/", "apps/turnstile_dev/test/support/turnstile/dev/"]}]}
         ],
         disabled: [
           # Fires on every `if` that has an `else`; a two-way branch is an

@@ -7,7 +7,7 @@ alias Turnstile.TestRepos.Sandboxed
 # migration, and the neutral fixture's tables beside them, which the
 # conformance template writes worlds into. One server for the run, with the
 # in-memory datastore, and a store per test inside it.
-Turnstile.Test.Cluster.start(
+Turnstile.Dev.Cluster.start(
   otp_app: :turnstile,
   repos: [
     {Sandboxed, role: :app, database: :sandboxed, pool: Sandbox},

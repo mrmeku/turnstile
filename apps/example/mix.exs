@@ -66,6 +66,7 @@ defmodule Example.MixProject do
   defp deps do
     [
       {:turnstile, in_umbrella: true},
+      {:turnstile_dev, in_umbrella: true, only: :test},
       {:ecto, "3.14.2"},
       {:ecto_sql, "3.14.0"},
       {:postgrex, "0.22.4"},

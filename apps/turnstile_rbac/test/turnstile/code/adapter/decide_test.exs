@@ -6,10 +6,10 @@ defmodule Turnstile.Code.DecideTest do
   alias Turnstile.Answer
   alias Turnstile.Code.Binding
   alias Turnstile.Code.Conformance.Roles
+  alias Turnstile.Dev.Sandbox
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.World
-  alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
   defmodule Broken do

@@ -4,7 +4,7 @@ defmodule Turnstile.Code.ConformanceTest do
     adapter: Turnstile.Code,
     repo: Turnstile.TestRepos.Sandboxed,
     world: Turnstile.Fixture.World,
-    sandbox: Turnstile.Test.Sandbox,
+    sandbox: Turnstile.Dev.Sandbox,
     committed: [
       repo: Turnstile.TestRepos.Committed,
       owner: Turnstile.TestRepos.Owner,

@@ -11,7 +11,7 @@ alias Turnstile.TestRepos.Sandboxed
 # sandboxed tier, one test per transaction; the committed tier is where two
 # connections contend for one runner's lock and where the migration is taken
 # down and raised again.
-Turnstile.Test.Cluster.start(
+Turnstile.Dev.Cluster.start(
   otp_app: :turnstile,
   repos: [
     {Sandboxed, role: :app, database: :sandboxed, pool: Sandbox},

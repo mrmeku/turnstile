@@ -1,8 +1,8 @@
-defmodule Turnstile.Test.SchemaDumpTest do
+defmodule Turnstile.Dev.SchemaDumpTest do
   use ExUnit.Case, async: false
 
-  alias Turnstile.Test.SchemaDump
-  alias Turnstile.TestRepos
+  alias Turnstile.Dev.SchemaDump
+  alias Turnstile.Dev.TestRepos
 
   @directory "tmp/loaded_migrations"
   @output "tmp/schema/loaded.sql"
@@ -16,16 +16,16 @@ defmodule Turnstile.Test.SchemaDumpTest do
 
   test "a migrations directory is loaded once and run on every database of the cluster" do
     File.write!(Path.join(@directory, "20260908000001_accounts.exs"), """
-    defmodule Turnstile.Fixture.Migrations.Loaded do
+    defmodule Turnstile.Dev.LoadedMigration do
       use Ecto.Migration
 
-      def up, do: execute("CREATE TABLE turnstile_fixture_loaded (id bigserial PRIMARY KEY)")
-      def down, do: execute("DROP TABLE turnstile_fixture_loaded")
+      def up, do: execute("CREATE TABLE turnstile_dev_loaded (id bigserial PRIMARY KEY)")
+      def down, do: execute("DROP TABLE turnstile_dev_loaded")
     end
     """)
 
     assert SchemaDump.dump(repo: TestRepos.Dump, output: @output, migrations: @directory) == @output
-    assert File.read!(@output) =~ "CREATE TABLE public.turnstile_fixture_loaded"
-    assert Code.ensure_loaded?(Turnstile.Fixture.Migrations.Loaded)
+    assert File.read!(@output) =~ "CREATE TABLE public.turnstile_dev_loaded"
+    assert Code.ensure_loaded?(Turnstile.Dev.LoadedMigration)
   end
 end

@@ -26,7 +26,7 @@ defmodule ExampleCerbos.CoverageTest do
   alias Example.Portion
   alias ExampleCerbos.Attributes
   alias Turnstile.Cerbos.Coverage
-  alias Turnstile.Test.Sandbox
+  alias Turnstile.Dev.Sandbox
 
   @scopes [{:read, :document, Document}, {:set_decontrol, :document, Document}, {:read, :portion, Portion}]
 

@@ -8,8 +8,8 @@ defmodule Turnstile.Test do
 
   use Boundary,
     top_level?: true,
-    deps: [Turnstile, Ecto, Ecto.Migrator, NimbleOptions],
-    exports: [Clock, Cluster, Fake, SchemaDump]
+    deps: [Turnstile, Ecto, NimbleOptions],
+    exports: [Clock, Fake]
 
   alias Turnstile.Change
   alias Turnstile.Config

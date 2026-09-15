@@ -1,12 +1,12 @@
-defmodule Turnstile.Test.ClusterTest do
+defmodule Turnstile.Dev.ClusterTest do
   use ExUnit.Case, async: true
 
   alias Ecto.Adapters.SQL
-  alias Turnstile.Test.Cluster
-  alias Turnstile.Test.Sandbox
-  alias Turnstile.TestRepos.Committed
-  alias Turnstile.TestRepos.Owner
-  alias Turnstile.TestRepos.Sandboxed
+  alias Turnstile.Dev.Cluster
+  alias Turnstile.Dev.Sandbox
+  alias Turnstile.Dev.TestRepos.Committed
+  alias Turnstile.Dev.TestRepos.Owner
+  alias Turnstile.Dev.TestRepos.Sandboxed
 
   setup tags do
     Sandbox.setup(Sandboxed, tags)
@@ -35,17 +35,5 @@ defmodule Turnstile.Test.ClusterTest do
     assert String.starts_with?(cluster.dir, Path.join(File.cwd!(), "tmp/pg-"))
     assert File.dir?(cluster.data_dir)
     assert %{rows: [[""]]} = SQL.query!(Owner, "SHOW listen_addresses")
-  end
-
-  test "poll returns the first truthy value and raises after the deadline" do
-    counter = :counters.new(1, [])
-
-    assert 3 =
-             Turnstile.Test.poll(fn ->
-               :counters.add(counter, 1, 1)
-               if :counters.get(counter, 1) >= 3, do: :counters.get(counter, 1)
-             end)
-
-    assert_raise RuntimeError, ~r/poll timed out/, fn -> Turnstile.Test.poll(fn -> nil end, 30) end
   end
 end

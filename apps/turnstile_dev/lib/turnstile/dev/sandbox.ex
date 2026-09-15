@@ -1,4 +1,4 @@
-defmodule Turnstile.Test.Sandbox do
+defmodule Turnstile.Dev.Sandbox do
   @moduledoc """
   Checks out a sandbox connection for the test process and shares it with
   processes the test spawns, so a test that writes sees its own rows and
@@ -6,7 +6,7 @@ defmodule Turnstile.Test.Sandbox do
   commits on the committed database.
   """
 
-  use Boundary, top_level?: true, deps: [Turnstile.Test, Ecto.Adapters.SQL]
+  use Boundary, top_level?: true, deps: [Ecto.Adapters.SQL]
 
   alias Ecto.Adapters.SQL.Sandbox
 

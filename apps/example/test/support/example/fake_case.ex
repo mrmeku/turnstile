@@ -8,12 +8,12 @@ defmodule Example.FakeCase do
 
   use Boundary,
     top_level?: true,
-    deps: [Example, Example.Fixture, Turnstile, Turnstile.Test, Turnstile.Test.Sandbox, ExUnit]
+    deps: [Example, Example.Fixture, Turnstile, Turnstile.Test, Turnstile.Dev.Sandbox, ExUnit]
 
   import ExUnit.Callbacks, only: [start_supervised!: 1]
 
+  alias Turnstile.Dev.Sandbox
   alias Turnstile.Test.Fake
-  alias Turnstile.Test.Sandbox
 
   @doc false
   defmacro __using__(opts) do

@@ -1,4 +1,4 @@
-defmodule Turnstile.Test.SchemaDump do
+defmodule Turnstile.Dev.SchemaDump do
   @moduledoc """
   The mechanism behind `mix turnstile.schema_dump`: an ephemeral cluster,
   the caller's migrations run as the owner role, `pg_dump --schema-only`
@@ -12,7 +12,9 @@ defmodule Turnstile.Test.SchemaDump do
   file is the same on every run.
   """
 
-  alias Turnstile.Test.Cluster
+  use Boundary, top_level?: true, deps: [Ecto.Migrator, NimbleOptions, Turnstile.Dev.Cluster]
+
+  alias Turnstile.Dev.Cluster
 
   @schema NimbleOptions.new!(
             otp_app: [

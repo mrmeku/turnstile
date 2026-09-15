@@ -7,13 +7,13 @@ defmodule Turnstile.Fga.Conformance.Setup do
   it writes a population.
   """
 
+  alias Turnstile.Dev.Sandbox
   alias Turnstile.Fga
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Client.Fake
   alias Turnstile.Fga.Conformance.Mapping
   alias Turnstile.Fga.Model
   alias Turnstile.Test
-  alias Turnstile.Test.Sandbox
 
   @model "priv/conformance/model.fga"
 

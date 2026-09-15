@@ -3,7 +3,7 @@ defmodule Turnstile.Fga.ConformanceTest do
     adapter: Turnstile.Fga,
     repo: Turnstile.TestRepos.Sandboxed,
     world: Turnstile.Fixture.World,
-    sandbox: Turnstile.Test.Sandbox,
+    sandbox: Turnstile.Dev.Sandbox,
     async: false,
     setup_queries: 0,
     seed: Turnstile.Fga.Seed,

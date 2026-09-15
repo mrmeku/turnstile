@@ -10,9 +10,9 @@ defmodule Turnstile.Fixture.Rows do
 
   alias Ecto.Changeset
   alias Turnstile.Conformance.RepoCase.Rows
+  alias Turnstile.Dev.Sandbox
   alias Turnstile.Fixture.Membership
   alias Turnstile.Test.Fake
-  alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
   @exempt {:exempt, "conformance: the rows the repo case writes"}

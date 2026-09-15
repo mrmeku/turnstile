@@ -8,12 +8,12 @@ defmodule Turnstile.Cerbos.CoverageTest do
   alias Turnstile.Cerbos.Conformance.Attributes
   alias Turnstile.Cerbos.Coverage
   alias Turnstile.Dev
+  alias Turnstile.Dev.Sandbox
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
   alias Turnstile.Fixture.World
   alias Turnstile.Test
-  alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
   setup tags do

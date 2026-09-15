@@ -23,7 +23,7 @@ defmodule Turnstile.Dev.Cerbos do
   policy language or the decision API; the adapter package does that.
   """
 
-  use Boundary, top_level?: true, deps: [MuonTrap, NimbleOptions, Turnstile.Test]
+  use Boundary, top_level?: true, deps: [MuonTrap, NimbleOptions, Turnstile.Dev]
 
   @schema NimbleOptions.new!(
             policies: [
@@ -202,7 +202,7 @@ defmodule Turnstile.Dev.Cerbos do
   end
 
   defp await!(%__MODULE__{} = sidecar, timeout) do
-    Turnstile.Test.poll(fn -> healthy?(sidecar.address) end, timeout)
+    Turnstile.Dev.poll(fn -> healthy?(sidecar.address) end, timeout)
     sidecar
   end
 

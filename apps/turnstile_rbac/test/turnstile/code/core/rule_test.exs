@@ -7,11 +7,11 @@ defmodule Turnstile.Code.RuleTest do
   alias Turnstile.Code.Binding
   alias Turnstile.Code.Core.Rule
   alias Turnstile.Code.Policy
+  alias Turnstile.Dev.Sandbox
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
   alias Turnstile.Fixture.World
-  alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
   defmodule Bools do

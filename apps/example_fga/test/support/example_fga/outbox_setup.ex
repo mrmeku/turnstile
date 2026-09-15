@@ -13,11 +13,11 @@ defmodule ExampleFga.OutboxSetup do
   no handler would leave every later test's writes unmarked.
   """
 
-  use Boundary, top_level?: true, deps: [ExampleFga.Rules, Turnstile.Fga, Turnstile.Test.Sandbox]
+  use Boundary, top_level?: true, deps: [ExampleFga.Rules, Turnstile.Fga, Turnstile.Dev.Sandbox]
 
   alias ExampleFga.Rules
+  alias Turnstile.Dev.Sandbox
   alias Turnstile.Fga.Outbox
-  alias Turnstile.Test.Sandbox
 
   @doc "Check the repo out and give the calling process a store of its own."
   @spec setup(module(), map()) :: :ok

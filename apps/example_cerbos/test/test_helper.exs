@@ -15,7 +15,7 @@ migrations =
 # repo outside a sandbox and truncate through the owner repo when they end.
 # The repos are configured under the example's otp_app, where their
 # modules read their configuration from.
-Turnstile.Test.Cluster.start(
+Turnstile.Dev.Cluster.start(
   otp_app: :example,
   repos: [
     {Example.Repo, role: :app, database: :sandboxed, pool: Sandbox},

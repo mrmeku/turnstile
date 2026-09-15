@@ -4,7 +4,7 @@ defmodule Turnstile.Conformance.AdapterCaseTest do
     adapter: Turnstile.Test.Fake,
     repo: Turnstile.TestRepos.Sandboxed,
     world: Turnstile.Fixture.World,
-    sandbox: Turnstile.Test.Sandbox,
+    sandbox: Turnstile.Dev.Sandbox,
     seed: Turnstile.Test.FakeSeed,
     outage: Turnstile.Test.FakeSeed,
     committed: [
@@ -37,7 +37,7 @@ defmodule Turnstile.Conformance.AdapterCaseSettlingTest do
     adapter: Turnstile.Test.SettlingAdapter,
     repo: Turnstile.TestRepos.Sandboxed,
     world: Turnstile.Fixture.World,
-    sandbox: Turnstile.Test.Sandbox,
+    sandbox: Turnstile.Dev.Sandbox,
     seed: Turnstile.Test.FakeSeed
 
   alias Turnstile.Test.Fake

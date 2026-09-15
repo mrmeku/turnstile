@@ -23,7 +23,7 @@ defmodule Turnstile.Dev.Fga do
   adapter package does that.
   """
 
-  use Boundary, top_level?: true, deps: [MuonTrap, NimbleOptions, Turnstile.Test]
+  use Boundary, top_level?: true, deps: [MuonTrap, NimbleOptions, Turnstile.Dev]
 
   @schema NimbleOptions.new!(
             dir: [
@@ -193,7 +193,7 @@ defmodule Turnstile.Dev.Fga do
   end
 
   defp await!(%__MODULE__{} = server, timeout) do
-    Turnstile.Test.poll(fn -> healthy?(server.address) end, timeout)
+    Turnstile.Dev.poll(fn -> healthy?(server.address) end, timeout)
     server
   end
 

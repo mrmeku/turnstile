@@ -3,7 +3,7 @@ defmodule Turnstile.Cerbos.ConformanceTest do
     adapter: Turnstile.Cerbos,
     repo: Turnstile.TestRepos.Sandboxed,
     world: Turnstile.Fixture.World,
-    sandbox: Turnstile.Test.Sandbox,
+    sandbox: Turnstile.Dev.Sandbox,
     async: false,
     setup_queries: 1,
     outage: Turnstile.Cerbos.ConformanceTest.Unreachable,

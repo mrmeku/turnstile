@@ -37,7 +37,7 @@ defmodule Example.Scenarios do
       Turnstile,
       Turnstile.Conformance,
       Turnstile.Test,
-      Turnstile.Test.Sandbox
+      Turnstile.Dev.Sandbox
     ],
     exports: [Rules]
 
@@ -106,7 +106,7 @@ defmodule Example.Scenarios do
       ExUnit.Callbacks.on_exit(fn -> Example.Fixture.truncate!(Example.OwnerRepo) end)
       :ok
     else
-      :ok = Turnstile.Test.Sandbox.setup(Example.Repo, tags)
+      :ok = Turnstile.Dev.Sandbox.setup(Example.Repo, tags)
       prepared(rules, tags)
     end
   end

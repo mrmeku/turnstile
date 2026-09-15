@@ -19,7 +19,7 @@ defmodule Turnstile.Fixture do
       Turnstile,
       Turnstile.Conformance,
       Turnstile.Test,
-      Turnstile.Test.Sandbox,
+      Turnstile.Dev.Sandbox,
       Turnstile.TestRepos
     ],
     exports: [Account, Folder, Item, Membership, Rows, World]

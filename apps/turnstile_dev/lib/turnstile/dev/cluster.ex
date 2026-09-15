@@ -1,4 +1,4 @@
-defmodule Turnstile.Test.Cluster do
+defmodule Turnstile.Dev.Cluster do
   @moduledoc """
   One ephemeral Postgres cluster per `mix test` run, and per schema dump.
 
@@ -19,6 +19,8 @@ defmodule Turnstile.Test.Cluster do
   `pg_ctl`, so this module needs `ecto` and nothing from `ecto_sql`; the
   sandbox mode is the caller's to set.
   """
+
+  use Boundary, top_level?: true, deps: [NimbleOptions]
 
   @owner "turnstile_owner"
   @app "turnstile_app"

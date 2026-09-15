@@ -8,12 +8,12 @@ defmodule Turnstile.Cerbos.PlanTest do
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Core.Plan
   alias Turnstile.Dev
+  alias Turnstile.Dev.Sandbox
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.World
   alias Turnstile.Test
-  alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
   defmodule Declarations do

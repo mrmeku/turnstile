@@ -15,6 +15,7 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Answer
   alias Turnstile.Config
   alias Turnstile.Decision
+  alias Turnstile.Dev.Sandbox
   alias Turnstile.Error
   alias Turnstile.Fga
   alias Turnstile.Fga.Adapter.Decide
@@ -30,7 +31,6 @@ defmodule Turnstile.FgaTest do
   alias Turnstile.Fga.TupleKey
   alias Turnstile.FgaTest.Guard
   alias Turnstile.Test
-  alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
   @now ~U[2026-09-09 12:00:00.000000Z]

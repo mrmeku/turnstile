@@ -5,12 +5,12 @@ defmodule Turnstile.Cerbos.ValuesTest do
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Conformance.Memberships
   alias Turnstile.Dev
+  alias Turnstile.Dev.Sandbox
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
   alias Turnstile.Fixture.World
   alias Turnstile.Test
-  alias Turnstile.Test.Sandbox
   alias Turnstile.TestRepos.Sandboxed
 
   defmodule Pair do

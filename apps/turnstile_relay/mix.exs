@@ -59,6 +59,7 @@ defmodule Turnstile.Relay.MixProject do
   # verified against https://hex.pm/api/packages/<name> on 2026-09-08.
   defp deps do
     [
+      {:turnstile_dev, in_umbrella: true, only: :test},
       {:ecto, "3.14.2"},
       {:ecto_sql, "3.14.0"},
       {:postgrex, "0.22.4"},

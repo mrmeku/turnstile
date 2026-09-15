@@ -18,8 +18,7 @@ defmodule Turnstile.MixProject do
       aliases: aliases(),
       hex: hex(),
       deps: deps(),
-      docs: docs(),
-      turnstile: turnstile(Mix.env())
+      docs: docs()
     ]
   end
 
@@ -49,32 +48,19 @@ defmodule Turnstile.MixProject do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]
 
-  # The schema-dump task reads this key from the thin application that runs
-  # it. This package's own run points it at a test repo and the fixture
-  # tables as a migration.
-  defp turnstile(:test) do
-    [
-      schema_dump: [
-        repo: Turnstile.TestRepos.Dump,
-        output: "tmp/schema/fixture.sql",
-        migrations: [{1, Turnstile.Fixture.Migrations.Tables}]
-      ]
-    ]
-  end
-
-  defp turnstile(_env), do: []
-
-  # The conformance templates, the cluster, and the sandbox setup ship in
-  # lib, so an adapter outside this repository can run them, and the
-  # generators and the mock they rest on are dependencies of the package
-  # rather than of its own suite. `ecto_sql` is optional because an
-  # application that takes the port without the seam needs `ecto` alone;
-  # `postgrex` is the driver this package's own suite connects with, and the
-  # population it proves itself over sits in `test/support`, which is
-  # compiled and never published. Every pin is exact. Versions verified
-  # against https://hex.pm/api/packages/<name> on 2026-09-08.
+  # The conformance templates ship in lib, so an adapter outside this
+  # repository can run them, and the generators and the mock they rest on
+  # are dependencies of the package rather than of its own suite. `ecto_sql`
+  # is optional because an application that takes the port without the seam
+  # needs `ecto` alone; `postgrex` is the driver this package's own suite
+  # connects with, and the population it proves itself over sits in
+  # `test/support`, which is compiled and never published. The cluster and
+  # the sandbox setup the suite runs on come from `turnstile_dev`, in the
+  # test environment alone. Every pin is exact. Versions verified against
+  # https://hex.pm/api/packages/<name> on 2026-09-08.
   defp deps do
     [
+      {:turnstile_dev, in_umbrella: true, only: :test},
       {:ecto, "3.14.2"},
       {:nimble_options, "1.1.1"},
       {:telemetry, "1.4.2"},

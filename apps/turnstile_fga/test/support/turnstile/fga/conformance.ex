@@ -18,7 +18,7 @@ defmodule Turnstile.Fga.Conformance do
       Turnstile.Fga.Client.Fake,
       Turnstile.Fixture,
       Turnstile.Test,
-      Turnstile.Test.Sandbox
+      Turnstile.Dev.Sandbox
     ],
     exports: [Mapping, Population, Setup]
 end

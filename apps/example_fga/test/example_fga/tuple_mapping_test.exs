@@ -4,7 +4,7 @@ defmodule ExampleFga.TupleMappingTest do
     mapping: ExampleFga.TupleMapping,
     repo: Example.Repo,
     population: ExampleFga.Population,
-    sandbox: Turnstile.Test.Sandbox
+    sandbox: Turnstile.Dev.Sandbox
 
   import Ecto.Query, only: [from: 2]
 

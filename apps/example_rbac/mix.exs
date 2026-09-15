@@ -63,6 +63,7 @@ defmodule ExampleRbac.MixProject do
   defp deps do
     [
       {:turnstile, in_umbrella: true},
+      {:turnstile_dev, in_umbrella: true, only: :test},
       {:example, in_umbrella: true},
       {:turnstile_rbac, in_umbrella: true},
       {:ecto, "3.14.2"},

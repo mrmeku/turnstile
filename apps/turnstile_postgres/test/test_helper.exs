@@ -5,7 +5,7 @@ alias Turnstile.TestRepos.Sandboxed
 # The fixture's tables are created by the owner role, then the conformance
 # migration protects them and writes the policies. Both run once per
 # database, so the sandboxed tier and the committed tier hold the same rules.
-Turnstile.Test.Cluster.start(
+Turnstile.Dev.Cluster.start(
   otp_app: :turnstile,
   repos: [
     {Sandboxed, role: :app, database: :sandboxed, pool: Sandbox},
