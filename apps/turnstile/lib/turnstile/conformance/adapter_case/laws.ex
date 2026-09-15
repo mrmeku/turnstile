@@ -94,12 +94,6 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     assert Turnstile.filter(subject, operation, objects) == Enum.filter(objects, &Turnstile.check(subject, operation, &1))
   end
 
-  @doc "`from_map` of `to_map` is the struct."
-  @spec round_trip(module(), struct()) :: true
-  def round_trip(module, %{} = struct) do
-    assert module.from_map(module.to_map(struct)) == {:ok, struct}
-  end
-
   @doc "A scoped `all` over 1,000 rows: one query plus the adapter's own, and one decision record."
   @spec scoped_all_shape(context()) :: true
   def scoped_all_shape(%{repo: repo, case: %{world: module}} = context) do

@@ -21,7 +21,6 @@ defmodule Turnstile do
       Config,
       Core.Surface,
       Decision,
-      Edge,
       Error,
       Exemption,
       Id,

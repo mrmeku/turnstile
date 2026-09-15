@@ -206,12 +206,13 @@ defmodule Example.Documents do
   """
   @spec override_read(Turnstile.subject(), integer(), String.t(), keyword()) ::
           {:ok, Document.t()} | {:error, OverrideRefused.t() | :not_found}
-  def override_read({_kind, _account} = subject, id, justification, opts \\ []) when is_integer(id) and is_list(opts) do
+  def override_read({kind, account} = subject, id, justification, opts \\ []) when is_integer(id) and is_list(opts) do
     with :ok <- override_permitted(subject, justification),
          {:ok, document} <- fetch(id, @override) do
       operation_id = Keyword.get_lazy(opts, :operation_id, &Turnstile.Id.new/0)
       report = report_override(document, subject, justification, operation_id)
-      :telemetry.execute(@override_event, %{}, %{subject: Turnstile.Edge.ref_out(subject), report: report})
+      subject_ref = %{type: Atom.to_string(kind), id: account}
+      :telemetry.execute(@override_event, %{}, %{subject: subject_ref, report: report})
       {:ok, document}
     end
   end

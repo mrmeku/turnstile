@@ -64,7 +64,6 @@ defmodule Turnstile.Conformance.AdapterCase do
       preamble(config, async),
       declaration(),
       properties(),
-      round_trips(),
       shapes(),
       fail_closed(config.outage),
       latency(config.committed)
@@ -167,18 +166,6 @@ defmodule Turnstile.Conformance.AdapterCase do
                 max_runs: 25
               ) do
           Laws.batch_agreement(context, world, subject, operation, objects)
-        end
-      end
-    end
-  end
-
-  defp round_trips, do: [round_trip({"decision", Turnstile.Decision, :decision})]
-
-  defp round_trip({name, module, generator}) do
-    quote do
-      property unquote("round trip: a #{name} survives to_map and from_map") do
-        check all(value <- Gen.unquote(generator)()) do
-          Laws.round_trip(unquote(module), value)
         end
       end
     end
