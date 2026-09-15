@@ -1,4 +1,4 @@
-defmodule Turnstile.Core.SurfaceTest.ExtraRepo do
+defmodule Turnstile.Infrastructure.SurfaceTest.ExtraRepo do
   @moduledoc false
   use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres
   use Turnstile.Repo
@@ -8,18 +8,18 @@ defmodule Turnstile.Core.SurfaceTest.ExtraRepo do
   def extra(x), do: x
 end
 
-defmodule Turnstile.Core.SurfaceTest.ReadOnlyRepo do
+defmodule Turnstile.Infrastructure.SurfaceTest.ReadOnlyRepo do
   @moduledoc false
   use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres, read_only: true
   use Turnstile.Repo
 end
 
-defmodule Turnstile.Core.SurfaceTest.ReadOnlyRepoCase do
+defmodule Turnstile.Infrastructure.SurfaceTest.ReadOnlyRepoCase do
   @moduledoc false
-  use Turnstile.Conformance.RepoCase, repo: Turnstile.Core.SurfaceTest.ReadOnlyRepo, async: true
+  use Turnstile.Conformance.RepoCase, repo: Turnstile.Infrastructure.SurfaceTest.ReadOnlyRepo, async: true
 
   alias Turnstile.Conformance.RepoCase
-  alias Turnstile.Core.SurfaceTest.ReadOnlyRepo
+  alias Turnstile.Infrastructure.SurfaceTest.ReadOnlyRepo
 
   setup_all do
     config = Application.get_env(:turnstile, Turnstile.TestRepos.Sandboxed)
@@ -33,13 +33,13 @@ defmodule Turnstile.Core.SurfaceTest.ReadOnlyRepoCase do
   end
 end
 
-defmodule Turnstile.Core.SurfaceTest do
+defmodule Turnstile.Infrastructure.SurfaceTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
   alias Turnstile.Conformance.RepoCase
-  alias Turnstile.Core.Surface
-  alias Turnstile.Core.SurfaceTest.ExtraRepo
+  alias Turnstile.Infrastructure.Surface
+  alias Turnstile.Infrastructure.SurfaceTest.ExtraRepo
   alias Turnstile.TestRepos.Owner
   alias Turnstile.TestRepos.Sandboxed
 
@@ -76,7 +76,7 @@ defmodule Turnstile.Core.SurfaceTest do
     assert_raise ArgumentError, ~r/use Turnstile.Repo must follow use Ecto.Repo/, fn ->
       Code.compile_quoted(
         quote do
-          defmodule Turnstile.Core.SurfaceTest.WrongOrder do
+          defmodule Turnstile.Infrastructure.SurfaceTest.WrongOrder do
             @moduledoc false
             use Turnstile.Repo
             use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres
@@ -90,7 +90,7 @@ defmodule Turnstile.Core.SurfaceTest do
     assert_raise NimbleOptions.ValidationError, fn ->
       Code.compile_quoted(
         quote do
-          defmodule Turnstile.Core.SurfaceTest.BadRole do
+          defmodule Turnstile.Infrastructure.SurfaceTest.BadRole do
             @moduledoc false
             use Ecto.Repo, otp_app: :turnstile, adapter: Ecto.Adapters.Postgres
             use Turnstile.Repo, role: :tenant

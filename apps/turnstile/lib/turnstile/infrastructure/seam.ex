@@ -1,7 +1,6 @@
-defmodule Turnstile.Adapter.Seam do
-  @moduledoc false
+defmodule Turnstile.Infrastructure.Seam do
   # What every override `use Turnstile.Repo` defines calls. One function per
-  # bucket of `Turnstile.Core.Surface`: `query/5` for the query bucket,
+  # bucket of `Turnstile.Infrastructure.Surface`: `query/5` for the query bucket,
   # `bulk/5` for `update_all` and `delete_all`, `write/5` and `write_all/5`
   # for the write bucket, `raw/4` for raw SQL, and `prepare/4` behind
   # `prepare_query/3`, where every query, including the ones `preload`
@@ -13,18 +12,19 @@ defmodule Turnstile.Adapter.Seam do
   # joins it. A read of a protected schema under a decision publishes what
   # it returned after it returns (`Turnstile.Access`). The owner-role repo
   # records nothing: it is the library's own channel.
+  @moduledoc false
 
   alias Turnstile.Access
-  alias Turnstile.Adapter.Caller
-  alias Turnstile.Adapter.Option
   alias Turnstile.Change
   alias Turnstile.Config
-  alias Turnstile.Core.Matching
-  alias Turnstile.Core.Mediation
-  alias Turnstile.Core.Source
   alias Turnstile.Decision
+  alias Turnstile.Domain.Matching
+  alias Turnstile.Domain.Mediation
+  alias Turnstile.Domain.Source
   alias Turnstile.Error
   alias Turnstile.Id
+  alias Turnstile.Infrastructure.Caller
+  alias Turnstile.Infrastructure.Option
   alias Turnstile.Schema
 
   @type call :: Mediation.call()

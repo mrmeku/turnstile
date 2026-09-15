@@ -38,8 +38,8 @@ defmodule Turnstile.Repo do
     quote bind_quoted: [opts: opts] do
       Turnstile.Repo.__check_order__(__MODULE__)
       @turnstile_role Turnstile.Repo.__role__(opts)
-      @turnstile_surface Turnstile.Core.Surface.all()
-      @before_compile Turnstile.Adapter.Overrides
+      @turnstile_surface Turnstile.Infrastructure.Surface.all()
+      @before_compile Turnstile.Infrastructure.Overrides
 
       @doc "The repo's role in Turnstile, `:app` or `:owner`."
       @spec __turnstile__(:role) :: :app | :owner

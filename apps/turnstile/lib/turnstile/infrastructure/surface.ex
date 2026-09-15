@@ -1,4 +1,4 @@
-defmodule Turnstile.Core.Surface do
+defmodule Turnstile.Infrastructure.Surface do
   @moduledoc false
   # Every function `use Ecto.Repo` defines, by name and arity, in exactly one
   # of four buckets. The list is written against Ecto 3.14 and ecto_sql 3.14;

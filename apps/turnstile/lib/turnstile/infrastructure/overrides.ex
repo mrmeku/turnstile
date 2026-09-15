@@ -1,4 +1,4 @@
-defmodule Turnstile.Adapter.Overrides do
+defmodule Turnstile.Infrastructure.Overrides do
   @moduledoc false
   # Generates, at the repo's `@before_compile`, the override of every
   # function of the surface the repo defines. Each override calls the seam
@@ -6,7 +6,7 @@ defmodule Turnstile.Adapter.Overrides do
   # the options the seam settled. Writing the calls into a module being
   # compiled is what puts this here rather than beside what decides.
 
-  alias Turnstile.Adapter.Seam
+  alias Turnstile.Infrastructure.Seam
 
   @doc false
   defmacro __before_compile__(env) do

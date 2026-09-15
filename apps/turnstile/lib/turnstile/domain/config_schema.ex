@@ -1,4 +1,4 @@
-defmodule Turnstile.Core.ConfigSchema do
+defmodule Turnstile.Domain.ConfigSchema do
   @moduledoc false
   # The NimbleOptions schema behind `Turnstile.Config`, in its own module so
   # the config's moduledoc can render it. What the fields mean is written

@@ -31,8 +31,8 @@ defmodule Turnstile.Conformance.RepoCase do
 
   alias Turnstile.Change
   alias Turnstile.Conformance.RepoCase
-  alias Turnstile.Core.Surface
   alias Turnstile.Decision
+  alias Turnstile.Infrastructure.Surface
   alias Turnstile.Schema
   alias Turnstile.Test
 

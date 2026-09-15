@@ -7,7 +7,7 @@ defmodule OutsideCaller do
   def read(repo, option), do: {:read, repo.all(Turnstile.Fixture.Folder, turnstile: option)}
 end
 
-defmodule Turnstile.Adapter.SeamTest do
+defmodule Turnstile.Infrastructure.SeamTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [from: 2, subquery: 1]
@@ -57,7 +57,7 @@ defmodule Turnstile.Adapter.SeamTest do
       assert %Error{reason: :unmediated} = error
 
       assert Exception.message(error) ==
-               "Repo.one/2 on Turnstile.Fixture.Folder carries no decision and no exemption (from Turnstile.Adapter.SeamTest)"
+               "Repo.one/2 on Turnstile.Fixture.Folder carries no decision and no exemption (from Turnstile.Infrastructure.SeamTest)"
     end
 
     test "an unprotected schema passes without a decision" do

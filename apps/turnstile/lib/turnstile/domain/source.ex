@@ -1,4 +1,4 @@
-defmodule Turnstile.Core.Source do
+defmodule Turnstile.Domain.Source do
   @moduledoc false
   # The root source of what a Repo function was handed: a schema module, a
   # table name, or `nil`. A query answers with its `from`, through a subquery;

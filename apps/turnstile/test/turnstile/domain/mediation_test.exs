@@ -1,8 +1,8 @@
-defmodule Turnstile.Core.MediationTest do
+defmodule Turnstile.Domain.MediationTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Core.Mediation
   alias Turnstile.Decision
+  alias Turnstile.Domain.Mediation
   alias Turnstile.Error
   alias Turnstile.Exemption
   alias Turnstile.Fixture.Folder

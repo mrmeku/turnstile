@@ -1,14 +1,14 @@
-defmodule Turnstile.Adapter.Option do
-  @moduledoc false
+defmodule Turnstile.Infrastructure.Option do
   # The `turnstile:` option resolved against the process the call runs in:
   # the repo's role, the caller the stack names, and the ambient mediation a
   # nested call reuses. What the option means is
-  # `Turnstile.Core.Mediation`'s to say; this module reads what only the
+  # `Turnstile.Domain.Mediation`'s to say; this module reads what only the
   # running process can tell, and hands the answer back as that struct.
+  @moduledoc false
 
-  alias Turnstile.Adapter.Caller
-  alias Turnstile.Core.Mediation
   alias Turnstile.Decision
+  alias Turnstile.Domain.Mediation
+  alias Turnstile.Infrastructure.Caller
 
   @doc """
   Resolve the option in `opts` for a call on `repo` whose root source is

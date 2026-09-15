@@ -1,4 +1,4 @@
-defmodule Turnstile.Core.Mediation do
+defmodule Turnstile.Domain.Mediation do
   @moduledoc false
   # The `turnstile:` option, resolved: the struct every override puts back in
   # the options in the option's place, so `prepare_query/3` and a nested call
@@ -11,7 +11,7 @@ defmodule Turnstile.Core.Mediation do
   # names the root's own object type.
   #
   # Reading the option is this module's work. Reading the caller and the
-  # process it ran in is `Turnstile.Adapter.Option`'s.
+  # process it ran in is `Turnstile.Infrastructure.Option`'s.
 
   alias Turnstile.Decision
   alias Turnstile.Error

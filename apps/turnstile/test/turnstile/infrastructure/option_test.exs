@@ -1,11 +1,11 @@
-defmodule Turnstile.Adapter.OptionTest do
+defmodule Turnstile.Infrastructure.OptionTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Adapter.Option
-  alias Turnstile.Core.Mediation
   alias Turnstile.Decision
+  alias Turnstile.Domain.Mediation
   alias Turnstile.Fixture.Folder
   alias Turnstile.Id
+  alias Turnstile.Infrastructure.Option
   alias Turnstile.Test.Fake
   alias Turnstile.TestRepos.Sandboxed
 

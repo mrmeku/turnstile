@@ -1,11 +1,11 @@
-defmodule Turnstile.Core.MatchingTest do
+defmodule Turnstile.Domain.MatchingTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [from: 2, subquery: 1]
 
-  alias Turnstile.Core.Matching
-  alias Turnstile.Core.Mediation
   alias Turnstile.Decision
+  alias Turnstile.Domain.Matching
+  alias Turnstile.Domain.Mediation
   alias Turnstile.Error
   alias Turnstile.Fixture.Folder
   alias Turnstile.Id

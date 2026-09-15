@@ -1,4 +1,4 @@
-defmodule Turnstile.Core.Matching do
+defmodule Turnstile.Domain.Matching do
   @moduledoc false
   # The three matching rules of the seam, applied to one query:
   #
@@ -18,7 +18,7 @@ defmodule Turnstile.Core.Matching do
   # a judgement that passes never calls it.
 
   alias Ecto.Query.JoinExpr
-  alias Turnstile.Core.Mediation
+  alias Turnstile.Domain.Mediation
   alias Turnstile.Schema
 
   @typedoc "What the module that made the call is read from, where a refusal has to name it."

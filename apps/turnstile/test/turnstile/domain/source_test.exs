@@ -1,10 +1,10 @@
-defmodule Turnstile.Core.SourceTest do
+defmodule Turnstile.Domain.SourceTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [from: 2, subquery: 1]
 
   alias Ecto.Changeset
-  alias Turnstile.Core.Source
+  alias Turnstile.Domain.Source
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
 

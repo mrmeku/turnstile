@@ -1,12 +1,12 @@
-defmodule Turnstile.Adapter.CallerTest do
+defmodule Turnstile.Infrastructure.CallerTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Adapter.Caller
+  alias Turnstile.Infrastructure.Caller
   alias Turnstile.TestRepos.Sandboxed
 
   test "library?/1 is true for Turnstile and the modules under it, false for :any and others" do
     assert Caller.library?(Turnstile)
-    assert Caller.library?(Turnstile.Adapter.Seam)
+    assert Caller.library?(Turnstile.Infrastructure.Seam)
     refute Caller.library?(:any)
     refute Caller.library?(Enum)
   end

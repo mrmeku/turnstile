@@ -1,4 +1,4 @@
-defmodule Turnstile.Adapter.Caller do
+defmodule Turnstile.Infrastructure.Caller do
   @moduledoc false
   # The module that called the Repo, read from the calling process's stack:
   # the first frame that belongs neither to the Repo nor to the seam nor to
@@ -10,7 +10,7 @@ defmodule Turnstile.Adapter.Caller do
                       ~w(Elixir.Enum Elixir.Stream Elixir.Task Elixir.Agent Elixir.GenServer Elixir.Process Elixir.Kernel)
   # The seam's own modules by name, so this file depends on none of them.
   @seam Enum.map(
-          ~w(Repo Facts Adapter.Caller Adapter.Option Adapter.Seam Core.Matching Core.Mediation Core.Source),
+          ~w(Repo Facts Domain.Matching Domain.Mediation Domain.Source Infrastructure.Caller Infrastructure.Option Infrastructure.Seam),
           &("Elixir.Turnstile." <> &1)
         )
 

@@ -6,10 +6,10 @@ defmodule Turnstile.Config do
   boot struct under the overrides `Turnstile.Test.with_config/1` put in the
   process dictionary of the caller or of a process in its `$callers` chain.
 
-  Fields: #{NimbleOptions.docs(Turnstile.Core.ConfigSchema.schema())}
+  Fields: #{NimbleOptions.docs(Turnstile.Domain.ConfigSchema.schema())}
   """
 
-  alias Turnstile.Core.ConfigSchema
+  alias Turnstile.Domain.ConfigSchema
   alias Turnstile.Error
 
   @enforce_keys [:adapter, :clock, :caps]
