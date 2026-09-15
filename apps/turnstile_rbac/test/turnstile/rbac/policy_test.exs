@@ -1,17 +1,17 @@
-defmodule Turnstile.Code.PolicyTest do
+defmodule Turnstile.Rbac.PolicyTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Code.Conformance.Assignment
-  alias Turnstile.Code.Conformance.Predicates
-  alias Turnstile.Code.Conformance.Roles
-  alias Turnstile.Code.Core.Clauses
-  alias Turnstile.Code.Policy
-  alias Turnstile.Code.Policy.Clause
-  alias Turnstile.Code.Policy.Object
-  alias Turnstile.Code.Policy.Role
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
+  alias Turnstile.Rbac.Conformance.Assignment
+  alias Turnstile.Rbac.Conformance.Predicates
+  alias Turnstile.Rbac.Conformance.Roles
+  alias Turnstile.Rbac.Core.Clauses
+  alias Turnstile.Rbac.Policy
+  alias Turnstile.Rbac.Policy.Clause
+  alias Turnstile.Rbac.Policy.Object
+  alias Turnstile.Rbac.Policy.Role
 
   defmodule Filters do
     @moduledoc false

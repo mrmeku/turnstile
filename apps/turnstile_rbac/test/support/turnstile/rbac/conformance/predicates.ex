@@ -1,4 +1,4 @@
-defmodule Turnstile.Code.Conformance.Predicates do
+defmodule Turnstile.Rbac.Conformance.Predicates do
   @moduledoc "The predicates of the conformance role table: attribute checks as `dynamic` expressions over the row."
 
   import Ecto.Query, only: [dynamic: 2, from: 2]

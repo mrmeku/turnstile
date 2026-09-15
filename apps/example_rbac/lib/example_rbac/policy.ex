@@ -9,7 +9,7 @@ defmodule ExampleRbac.Policy do
   predicate is C8; the proposal predicate is C9.
   """
 
-  use Turnstile.Code.Policy, version: "2026.09.1", author: "example_rbac", approval: "docs/example.md §3"
+  use Turnstile.Rbac.Policy, version: "2026.09.1", author: "example_rbac", approval: "docs/example.md §3"
 
   alias Example.Assignment
   alias Example.Document

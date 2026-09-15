@@ -1,7 +1,7 @@
 defmodule Turnstile.Conformance.AdapterCase do
   @moduledoc """
   The Tier 1 case template. `use Turnstile.Conformance.AdapterCase,
-  adapter: Turnstile.Code, repo: Example.Repo, world: Example.World`
+  adapter: Turnstile.Rbac, repo: Example.Repo, world: Example.World`
   defines an async test module whose setup prepares the repo for the test,
   stubs the clock, and binds the adapter through the configuration
   override, so each adapter's conformance run is its own module and all of

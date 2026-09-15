@@ -1,7 +1,7 @@
-defmodule Turnstile.Code.ConformanceTest do
+defmodule Turnstile.Rbac.ConformanceTest do
   use Turnstile.Conformance.AdapterCase,
     async: false,
-    adapter: Turnstile.Code,
+    adapter: Turnstile.Rbac,
     repo: Turnstile.TestRepos.Sandboxed,
     world: Turnstile.Fixture.World,
     sandbox: Turnstile.Dev.Sandbox,
@@ -12,8 +12,8 @@ defmodule Turnstile.Code.ConformanceTest do
         ~w(turnstile_fixture_memberships turnstile_fixture_items turnstile_fixture_folders turnstile_fixture_accounts)
     ]
 
-  alias Turnstile.Code.Binding
-  alias Turnstile.Code.Conformance.Roles
+  alias Turnstile.Rbac.Binding
+  alias Turnstile.Rbac.Conformance.Roles
 
   setup %{repo: repo} do
     :ok = Binding.override(policy: Roles, repo: repo)

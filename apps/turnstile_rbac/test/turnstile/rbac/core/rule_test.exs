@@ -1,17 +1,17 @@
-defmodule Turnstile.Code.RuleTest do
+defmodule Turnstile.Rbac.RuleTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [where: 2]
 
   alias Turnstile.Answer
-  alias Turnstile.Code.Binding
-  alias Turnstile.Code.Core.Rule
-  alias Turnstile.Code.Policy
   alias Turnstile.Dev.Sandbox
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
   alias Turnstile.Fixture.World
+  alias Turnstile.Rbac.Binding
+  alias Turnstile.Rbac.Core.Rule
+  alias Turnstile.Rbac.Policy
   alias Turnstile.TestRepos.Sandboxed
 
   defmodule Bools do
@@ -104,7 +104,7 @@ defmodule Turnstile.Code.RuleTest do
 
   setup tags do
     :ok = Sandbox.setup(Sandboxed, tags)
-    :ok = Turnstile.Test.with_config(adapter: Turnstile.Code)
+    :ok = Turnstile.Test.with_config(adapter: Turnstile.Rbac)
 
     world = %World{
       accounts: %{"ann" => World.cleared()},
@@ -122,19 +122,19 @@ defmodule Turnstile.Code.RuleTest do
     folder = {:folder, 1}
 
     assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "any_membership"}}} =
-             Turnstile.Code.decide(ctx.ann, :read, folder, ctx.environment, [])
+             Turnstile.Rbac.decide(ctx.ann, :read, folder, ctx.environment, [])
 
     assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
-             Turnstile.Code.decide(ctx.ann, :edit, folder, ctx.environment, [])
+             Turnstile.Rbac.decide(ctx.ann, :edit, folder, ctx.environment, [])
   end
 
   test "a role the relationship's column cannot hold never matches and raises nothing", ctx do
     :ok = Binding.override(policy: Foreign, repo: Sandboxed)
     folder = {:folder, 1}
-    assert {:ok, %Answer{verdict: :allow}} = Turnstile.Code.decide(ctx.ann, :read, folder, ctx.environment, [])
+    assert {:ok, %Answer{verdict: :allow}} = Turnstile.Rbac.decide(ctx.ann, :read, folder, ctx.environment, [])
 
     assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
-             Turnstile.Code.decide(ctx.ann, :edit, folder, ctx.environment, [])
+             Turnstile.Rbac.decide(ctx.ann, :edit, folder, ctx.environment, [])
   end
 
   test "a named role column and a boolean predicate", ctx do
@@ -142,7 +142,7 @@ defmodule Turnstile.Code.RuleTest do
     folder = {:folder, 1}
 
     assert {:ok, %Answer{verdict: :deny, reason: :rule_denied, meta: %{rule: "no"}}} =
-             Turnstile.Code.decide(ctx.ann, :read, folder, ctx.environment, [])
+             Turnstile.Rbac.decide(ctx.ann, :read, folder, ctx.environment, [])
 
     assert {:ok, %Rule{predicates: [no: expression]}} = Rule.build(NamedRole, ctx.ann, :read, :folder, ctx.environment)
     assert %Ecto.Query.DynamicExpr{} = expression
@@ -154,21 +154,21 @@ defmodule Turnstile.Code.RuleTest do
     item = {:item, 1}
 
     assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "folder_membership"}}} =
-             Turnstile.Code.decide(ctx.ann, :read, item, ctx.environment, [])
+             Turnstile.Rbac.decide(ctx.ann, :read, item, ctx.environment, [])
 
     assert {:ok, %Answer{verdict: :deny, reason: :rule_denied}} =
-             Turnstile.Code.decide(ctx.ann, :edit, item, ctx.environment, [])
+             Turnstile.Rbac.decide(ctx.ann, :edit, item, ctx.environment, [])
 
     closed = where(Folder, id: 1)
     {1, nil} = Sandboxed.update_all(closed, [set: [name: "closed"]], turnstile: World.exemption())
 
     assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
-             Turnstile.Code.decide(ctx.ann, :read, item, ctx.environment, [])
+             Turnstile.Rbac.decide(ctx.ann, :read, item, ctx.environment, [])
 
     :ok = Binding.override(policy: Unfiltered, repo: Sandboxed)
 
     assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "folder_membership"}}} =
-             Turnstile.Code.decide(ctx.ann, :read, item, ctx.environment, [])
+             Turnstile.Rbac.decide(ctx.ann, :read, item, ctx.environment, [])
   end
 
   test "the scope answer names every clause and the rule needs a one-column primary key", ctx do

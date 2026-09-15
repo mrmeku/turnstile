@@ -6,8 +6,8 @@ defmodule ExampleRbac.ApplicationTest do
 
   alias Example.Siem
   alias ExampleRbac.Policy
-  alias Turnstile.Code.Binding
   alias Turnstile.Config
+  alias Turnstile.Rbac.Binding
 
   test "the application boots again after a stop: the config, the binding, the supervisor, and the version" do
     _stopped = capture_log(fn -> :ok = Application.stop(:example_rbac) end)
@@ -19,7 +19,7 @@ defmodule ExampleRbac.ApplicationTest do
     assert Process.alive?(Process.whereis(Siem))
 
     assert {:ok, %Config{} = config} = Config.resolve()
-    assert Config.adapter(config) == {Turnstile.Code, []}
+    assert Config.adapter(config) == {Turnstile.Rbac, []}
     assert {:ok, %Binding{policy: Policy, repo: Example.Repo}} = Binding.resolve()
   end
 end

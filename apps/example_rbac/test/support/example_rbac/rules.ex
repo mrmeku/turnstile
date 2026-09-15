@@ -17,12 +17,12 @@ defmodule ExampleRbac.Rules do
       ExampleRbac,
       ExampleRbac.Tightened,
       Turnstile,
-      Turnstile.Code
+      Turnstile.Rbac
     ]
 
   alias Example.Scenarios.Rules
-  alias Turnstile.Code.Binding
-  alias Turnstile.Code.Version
+  alias Turnstile.Rbac.Binding
+  alias Turnstile.Rbac.Version
 
   @impl Rules
   def version_event, do: Version.telemetry_event()
@@ -31,7 +31,7 @@ defmodule ExampleRbac.Rules do
   def publish_tightened do
     :ok = Binding.override(policy: ExampleRbac.Tightened)
 
-    Turnstile.Code.publish()
+    Turnstile.Rbac.publish()
   end
 
   @impl Rules

@@ -10,11 +10,11 @@ defmodule ExampleRbac.Application do
   use Application
 
   alias Example.Siem
-  alias Turnstile.Code.Binding
+  alias Turnstile.Rbac.Binding
 
   @impl Application
   def start(_type, _args) do
-    _config = Turnstile.Config.boot!(adapter: Turnstile.Code)
+    _config = Turnstile.Config.boot!(adapter: Turnstile.Rbac)
     _binding = Binding.bind!(policy: ExampleRbac.Policy, repo: Example.Repo)
     repos = repos()
     children = [{Siem, name: Siem, attach: true} | repos]
@@ -30,7 +30,7 @@ defmodule ExampleRbac.Application do
   defp publish([]), do: :ok
 
   defp publish(_repos) do
-    {:ok, _published} = Turnstile.Code.publish()
+    {:ok, _published} = Turnstile.Rbac.publish()
     :ok
   end
 

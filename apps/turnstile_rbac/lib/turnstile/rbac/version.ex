@@ -1,4 +1,4 @@
-defmodule Turnstile.Code.Version do
+defmodule Turnstile.Rbac.Version do
   @moduledoc """
   The policy version of RBAC in code. Its identifier is the `version:` the
   policy module gave, or the content hash: a digest of the policy module and
@@ -7,18 +7,18 @@ defmodule Turnstile.Code.Version do
   text when it is under the configured cap, and a pointer to the modules
   otherwise.
 
-  One event per call: `Turnstile.Code.publish/0` builds the version and
+  One event per call: `Turnstile.Rbac.publish/0` builds the version and
   emits `telemetry_event/0` carrying it. Nothing is stored, so whoever
   keeps a record of what was deployed handles that event.
   """
 
-  alias Turnstile.Code.Policy
   alias Turnstile.Config
   alias Turnstile.PolicyVersion
+  alias Turnstile.Rbac.Policy
 
-  @telemetry [:turnstile, :code, :policy_version]
+  @telemetry [:turnstile, :rbac, :policy_version]
 
-  @doc "The telemetry event `Turnstile.Code.publish/0` emits."
+  @doc "The telemetry event `Turnstile.Rbac.publish/0` emits."
   @spec telemetry_event() :: [atom()]
   def telemetry_event, do: @telemetry
 

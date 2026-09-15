@@ -1,4 +1,4 @@
-defmodule Turnstile.Code.Core.Rule do
+defmodule Turnstile.Rbac.Core.Rule do
   @moduledoc false
   # A protected schema's rule for one subject and operation, built from the
   # policy's clauses as `dynamic` expressions over the protected row: each
@@ -12,11 +12,11 @@ defmodule Turnstile.Code.Core.Rule do
   import Ecto.Query, only: [dynamic: 2, from: 2]
 
   alias Turnstile.Answer
-  alias Turnstile.Code.Core.Clauses
-  alias Turnstile.Code.Policy
-  alias Turnstile.Code.Policy.Clause
-  alias Turnstile.Code.Policy.Object
-  alias Turnstile.Code.Version
+  alias Turnstile.Rbac.Core.Clauses
+  alias Turnstile.Rbac.Policy
+  alias Turnstile.Rbac.Policy.Clause
+  alias Turnstile.Rbac.Policy.Object
+  alias Turnstile.Rbac.Version
   alias Turnstile.Schema
   alias Turnstile.Schema.Relationship
 

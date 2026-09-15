@@ -1,12 +1,12 @@
-defmodule Turnstile.Code do
+defmodule Turnstile.Rbac do
   @moduledoc """
   RBAC in code: the adapter whose rules are Elixir modules. A policy module,
-  `use Turnstile.Code.Policy`, declares the role table as data and, per
+  `use Turnstile.Rbac.Policy`, declares the role table as data and, per
   protected schema, the grants that hold a role on its rows and the
   predicates every allowed row must satisfy; the predicates are functions in
   the same modules. The adapter takes no options, so its configuration entry
   is the bare module, and it finds the policy and the repo through the
-  binding `Turnstile.Code.Binding.bind/1` makes at boot beside the
+  binding `Turnstile.Rbac.Binding.bind/1` makes at boot beside the
   configuration.
 
   Every answer is a query the repo runs at the time of the call. `scope`
@@ -37,14 +37,14 @@ defmodule Turnstile.Code do
   import Ecto.Query, only: [dynamic: 2]
 
   alias Turnstile.Answer
-  alias Turnstile.Code.Adapter.Decide
-  alias Turnstile.Code.Adapter.Version
-  alias Turnstile.Code.Binding
-  alias Turnstile.Code.Core.Rule
   alias Turnstile.Error
   alias Turnstile.PolicyVersion
+  alias Turnstile.Rbac.Adapter.Decide
+  alias Turnstile.Rbac.Adapter.Version
+  alias Turnstile.Rbac.Binding
+  alias Turnstile.Rbac.Core.Rule
 
-  @doc "Emit the bound policy's version as telemetry; the version is `Turnstile.Code.Version`."
+  @doc "Emit the bound policy's version as telemetry; the version is `Turnstile.Rbac.Version`."
   @spec publish() :: {:ok, PolicyVersion.t()} | {:error, Error.t()}
   def publish, do: Version.publish(__MODULE__)
 

@@ -1,13 +1,13 @@
-defmodule Turnstile.Code.CoverageTest do
+defmodule Turnstile.Rbac.CoverageTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [dynamic: 2, from: 2, subquery: 1]
 
-  alias Turnstile.Code.Conformance.Roles
-  alias Turnstile.Code.Coverage
-  alias Turnstile.Code.Policy
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
+  alias Turnstile.Rbac.Conformance.Roles
+  alias Turnstile.Rbac.Coverage
+  alias Turnstile.Rbac.Policy
 
   defmodule Reads do
     @moduledoc false
@@ -33,7 +33,7 @@ defmodule Turnstile.Code.CoverageTest do
 
     @spec grandparent(Turnstile.subject(), Turnstile.Turnstile.environment()) :: Ecto.Query.dynamic_expr()
     def grandparent(_subject, _environment) do
-      notes = from(n in Turnstile.Code.CoverageTest.Note, where: not is_nil(n.folder_id), select: n.id)
+      notes = from(n in Turnstile.Rbac.CoverageTest.Note, where: not is_nil(n.folder_id), select: n.id)
       dynamic([row], row.note_id in subquery(notes))
     end
   end

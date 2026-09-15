@@ -1,15 +1,15 @@
-defmodule Turnstile.Code.Core.Clauses do
+defmodule Turnstile.Rbac.Core.Clauses do
   @moduledoc false
   # The clauses of a policy, built and checked against the schemas they name
-  # when the policy is read. `Turnstile.Code.Policy` generates a call of
+  # when the policy is read. `Turnstile.Rbac.Policy` generates a call of
   # `object/2` per protected schema, with a `grant/3` or `predicate/3` per
   # clause, inside the function the policy module answers `objects/1` with;
   # each raises on a declaration the schemas cannot back, so a bad policy
   # fails where it is first read.
 
-  alias Turnstile.Code.Policy
-  alias Turnstile.Code.Policy.Clause
-  alias Turnstile.Code.Policy.Object
+  alias Turnstile.Rbac.Policy
+  alias Turnstile.Rbac.Policy.Clause
+  alias Turnstile.Rbac.Policy.Object
   alias Turnstile.Schema
   alias Turnstile.Schema.Relationship
 

@@ -28,7 +28,7 @@ Turnstile.Dev.Cluster.start(
 # The version the policy is at, emitted once the repos are up: the
 # application publishes nothing when the cluster owns them, so a run has one
 # policy-version event rather than two.
-{:ok, _published} = Turnstile.Code.publish()
+{:ok, _published} = Turnstile.Rbac.publish()
 
 Sandbox.mode(Example.Repo, :manual)
 

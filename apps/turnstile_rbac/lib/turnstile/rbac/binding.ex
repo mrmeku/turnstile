@@ -1,6 +1,6 @@
-defmodule Turnstile.Code.Binding do
+defmodule Turnstile.Rbac.Binding do
   @moduledoc """
-  What `Turnstile.Code` needs beyond the configuration: the policy module
+  What `Turnstile.Rbac` needs beyond the configuration: the policy module
   and the mediated repo its rules read through. `bind/1` validates the pair
   and keeps it for the life of the VM, as `Turnstile.Config.boot!/1` keeps
   the configuration; `override/1` puts a binding in the calling process for
@@ -12,7 +12,7 @@ defmodule Turnstile.Code.Binding do
   alias Turnstile.Error
 
   @schema NimbleOptions.new!(
-            policy: [type: :atom, required: true, doc: "A module that used `Turnstile.Code.Policy`."],
+            policy: [type: :atom, required: true, doc: "A module that used `Turnstile.Rbac.Policy`."],
             repo: [type: :atom, required: true, doc: "The mediated repo the rules read through."]
           )
 
@@ -100,7 +100,7 @@ defmodule Turnstile.Code.Binding do
     if Code.ensure_loaded?(module) and function_exported?(module, :__turnstile_code__, 1) do
       :ok
     else
-      {:error, invalid("#{inspect(module)} did not use Turnstile.Code.Policy")}
+      {:error, invalid("#{inspect(module)} did not use Turnstile.Rbac.Policy")}
     end
   end
 

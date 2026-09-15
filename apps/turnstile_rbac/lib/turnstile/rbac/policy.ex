@@ -1,4 +1,4 @@
-defmodule Turnstile.Code.Policy.Role do
+defmodule Turnstile.Rbac.Policy.Role do
   @moduledoc "One row of the role table: a role and the operations it permits."
 
   @enforce_keys [:name, :permissions]
@@ -7,7 +7,7 @@ defmodule Turnstile.Code.Policy.Role do
   @type t :: %__MODULE__{name: atom(), permissions: [atom()]}
 end
 
-defmodule Turnstile.Code.Policy.Clause do
+defmodule Turnstile.Rbac.Policy.Clause do
   @moduledoc """
   One clause of a protected schema's rule. A grant names a relationship
   schema whose rows hold a role for the subject on the object: `on` is the
@@ -44,10 +44,10 @@ defmodule Turnstile.Code.Policy.Clause do
         }
 end
 
-defmodule Turnstile.Code.Policy.Object do
+defmodule Turnstile.Rbac.Policy.Object do
   @moduledoc "A protected schema and the clauses of its rule."
 
-  alias Turnstile.Code.Policy.Clause
+  alias Turnstile.Rbac.Policy.Clause
 
   @enforce_keys [:schema, :clauses]
   defstruct @enforce_keys
@@ -55,13 +55,13 @@ defmodule Turnstile.Code.Policy.Object do
   @type t :: %__MODULE__{schema: module(), clauses: [Clause.t()]}
 end
 
-defmodule Turnstile.Code.Policy do
+defmodule Turnstile.Rbac.Policy do
   @moduledoc """
   The policy module: the role table as data and, per protected schema, the
   clauses of its rule.
 
       defmodule MyApp.Roles do
-        use Turnstile.Code.Policy, version: "2026.09.1", author: "platform", approval: "ticket 41"
+        use Turnstile.Rbac.Policy, version: "2026.09.1", author: "platform", approval: "ticket 41"
 
         role :reader, [:read]
         role :editor, [:read, :edit]
@@ -95,15 +95,15 @@ defmodule Turnstile.Code.Policy do
   policy is read, and each is checked then against the schemas it names; a
   policy that names a schema without an object type, a relationship the
   grant cannot read, or a predicate that is not a named capture raises
-  there, so a bad policy fails at boot, when `Turnstile.Code.publish/0`
+  there, so a bad policy fails at boot, when `Turnstile.Rbac.publish/0`
   reads it, and not on a request. Building at read time keeps the policy
   module free of compile-time dependencies on the schemas and predicates it
   names: a change to any of them recompiles nothing but itself.
   """
 
-  alias Turnstile.Code.Core.Clauses
-  alias Turnstile.Code.Policy.Object
-  alias Turnstile.Code.Policy.Role
+  alias Turnstile.Rbac.Core.Clauses
+  alias Turnstile.Rbac.Policy.Object
+  alias Turnstile.Rbac.Policy.Role
 
   @use_schema NimbleOptions.new!(
                 version: [type: {:or, [:string, nil]}, default: nil, doc: "The version identifier a decision names."],
@@ -119,9 +119,9 @@ defmodule Turnstile.Code.Policy do
 
   defmacro __using__(options) do
     quote bind_quoted: [options: options] do
-      import Turnstile.Code.Policy, only: [role: 2, object: 2, grant: 2, grant: 3, predicate: 2, predicate: 3]
+      import Turnstile.Rbac.Policy, only: [role: 2, object: 2, grant: 2, grant: 3, predicate: 2, predicate: 3]
 
-      alias Turnstile.Code.Policy
+      alias Turnstile.Rbac.Policy
 
       @turnstile_code_options NimbleOptions.validate!(options, Policy.use_schema())
       Module.register_attribute(__MODULE__, :turnstile_code_roles, accumulate: true)
@@ -133,7 +133,7 @@ defmodule Turnstile.Code.Policy do
   @doc "A row of the role table."
   defmacro role(name, permissions) do
     quote bind_quoted: [name: name, permissions: permissions] do
-      @turnstile_code_roles Turnstile.Code.Policy.__role__(name, permissions)
+      @turnstile_code_roles Turnstile.Rbac.Policy.__role__(name, permissions)
     end
   end
 

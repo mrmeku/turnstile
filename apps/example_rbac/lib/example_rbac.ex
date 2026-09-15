@@ -11,6 +11,6 @@ defmodule ExampleRbac do
   # and names what the boot policy names; it sits in test support, and so in
   # a boundary of its own, which is the only reason this has to be said.
   use Boundary,
-    deps: [Example, Turnstile, Turnstile.Code, Ecto],
+    deps: [Example, Turnstile, Turnstile.Rbac, Ecto],
     exports: [Application, Core.Predicates, Policy]
 end

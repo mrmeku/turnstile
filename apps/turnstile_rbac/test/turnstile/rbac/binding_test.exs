@@ -1,9 +1,9 @@
-defmodule Turnstile.Code.BindingTest do
+defmodule Turnstile.Rbac.BindingTest do
   use ExUnit.Case, async: false
 
-  alias Turnstile.Code.Binding
-  alias Turnstile.Code.Conformance.Roles
   alias Turnstile.Error
+  alias Turnstile.Rbac.Binding
+  alias Turnstile.Rbac.Conformance.Roles
   alias Turnstile.TestRepos.Committed
   alias Turnstile.TestRepos.Sandboxed
 
@@ -20,9 +20,9 @@ defmodule Turnstile.Code.BindingTest do
     environment = %{now: DateTime.utc_now()}
 
     assert {:error, %Error{reason: :engine_unreachable, detail: detail}} =
-             Turnstile.Code.scope(ann, :read, :folder, environment, [])
+             Turnstile.Rbac.scope(ann, :read, :folder, environment, [])
 
-    assert detail =~ "Turnstile.Code failed during scope"
+    assert detail =~ "Turnstile.Rbac failed during scope"
   end
 
   test "an override in the calling process resolves without a boot binding" do
@@ -64,9 +64,9 @@ defmodule Turnstile.Code.BindingTest do
     assert {:ok, %Binding{repo: Sandboxed}} = Binding.resolve()
   end
 
-  test "a policy that did not use Turnstile.Code.Policy is invalid" do
+  test "a policy that did not use Turnstile.Rbac.Policy is invalid" do
     assert {:error, %Error{reason: :invalid, detail: detail}} = Binding.new(policy: Sandboxed, repo: Sandboxed)
-    assert detail =~ "did not use Turnstile.Code.Policy"
+    assert detail =~ "did not use Turnstile.Rbac.Policy"
     assert {:error, %Error{reason: :invalid, detail: detail}} = Binding.new(repo: Sandboxed)
     assert detail =~ "policy"
   end

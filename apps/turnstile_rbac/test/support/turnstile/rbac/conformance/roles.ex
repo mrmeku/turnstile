@@ -1,4 +1,4 @@
-defmodule Turnstile.Code.Conformance.Roles do
+defmodule Turnstile.Rbac.Conformance.Roles do
   @moduledoc """
   The fixture's rule as a role table: a reader may read, an editor may read
   and edit; a folder grants the role its memberships hold, an item grants
@@ -6,12 +6,12 @@ defmodule Turnstile.Code.Conformance.Roles do
   cleared.
   """
 
-  use Turnstile.Code.Policy, version: "conformance", author: "turnstile_rbac", approval: "the conformance suite"
+  use Turnstile.Rbac.Policy, version: "conformance", author: "turnstile_rbac", approval: "the conformance suite"
 
-  alias Turnstile.Code.Conformance.Predicates
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Item
   alias Turnstile.Fixture.Membership
+  alias Turnstile.Rbac.Conformance.Predicates
 
   role :reader, [:read]
   role :editor, [:read, :edit]

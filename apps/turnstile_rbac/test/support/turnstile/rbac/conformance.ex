@@ -1,4 +1,4 @@
-defmodule Turnstile.Code.Conformance do
+defmodule Turnstile.Rbac.Conformance do
   @moduledoc """
   The conformance artifact of RBAC in code: the role table and the
   predicates that encode the neutral fixture's rule, the modules the
@@ -8,6 +8,6 @@ defmodule Turnstile.Code.Conformance do
 
   use Boundary,
     top_level?: true,
-    deps: [Turnstile, Turnstile.Code, Turnstile.Fixture, Ecto],
+    deps: [Turnstile, Turnstile.Rbac, Turnstile.Fixture, Ecto],
     exports: [Assignment, Predicates, Roles]
 end

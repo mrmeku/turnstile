@@ -1,4 +1,4 @@
-defmodule Turnstile.Code.Conformance.Assignment do
+defmodule Turnstile.Rbac.Conformance.Assignment do
   @moduledoc """
   A relationship that declares two attributes. A grant over a relationship
   with one attribute needs no naming, so this is what the rule that a wider

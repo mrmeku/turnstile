@@ -1,4 +1,4 @@
-defmodule Turnstile.Code.Coverage do
+defmodule Turnstile.Rbac.Coverage do
   @moduledoc """
   Declared-fact coverage for a policy: every column its rules read is a
   declared fact. `check/1` builds the rule of every protected schema for
@@ -15,9 +15,9 @@ defmodule Turnstile.Code.Coverage do
 
   import Ecto.Query, only: [where: 2]
 
-  alias Turnstile.Code.Core.Rule
-  alias Turnstile.Code.Policy
-  alias Turnstile.Code.Policy.Object
+  alias Turnstile.Rbac.Core.Rule
+  alias Turnstile.Rbac.Policy
+  alias Turnstile.Rbac.Policy.Object
   alias Turnstile.Schema
   alias Turnstile.Schema.Fact
   alias Turnstile.Schema.Relationship

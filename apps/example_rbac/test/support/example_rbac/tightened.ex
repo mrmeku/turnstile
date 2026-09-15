@@ -5,9 +5,9 @@ defmodule ExampleRbac.Tightened do
   scenarios publish.
   """
 
-  use Boundary, top_level?: true, deps: [Example, ExampleRbac, Turnstile.Code]
+  use Boundary, top_level?: true, deps: [Example, ExampleRbac, Turnstile.Rbac]
 
-  use Turnstile.Code.Policy,
+  use Turnstile.Rbac.Policy,
     version: "2026.09.2-tightened",
     author: "example_rbac",
     approval: "docs/example.md §3, tightened for the scenarios"
