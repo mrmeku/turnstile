@@ -23,12 +23,18 @@ defmodule Turnstile.Fga.ModelTest do
 
     assert model["schema_version"] == "1.1"
     assert Enum.map(model["type_definitions"], & &1["type"]) == ["user", "clearance", "folder", "item"]
-    assert Map.keys(model["conditions"]) == ["while_cleared"]
+    assert Map.keys(model["conditions"]) == ["grant_holds"]
 
-    assert model["conditions"]["while_cleared"] == %{
-             "name" => "while_cleared",
-             "expression" => ~s(clearance == "cleared"),
-             "parameters" => %{"clearance" => %{"type_name" => "TYPE_NAME_STRING"}}
+    assert model["conditions"]["grant_holds"] == %{
+             "name" => "grant_holds",
+             "expression" => ~s(clearance == "cleared" && kind == subject_kind && expires_at > current_time),
+             "parameters" => %{
+               "clearance" => %{"type_name" => "TYPE_NAME_STRING"},
+               "kind" => %{"type_name" => "TYPE_NAME_STRING"},
+               "expires_at" => %{"type_name" => "TYPE_NAME_TIMESTAMP"},
+               "subject_kind" => %{"type_name" => "TYPE_NAME_STRING"},
+               "current_time" => %{"type_name" => "TYPE_NAME_TIMESTAMP"}
+             }
            }
   end
 

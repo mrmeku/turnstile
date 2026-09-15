@@ -1,9 +1,12 @@
 defmodule Turnstile.Postgres.Conformance.Rules do
   @moduledoc """
   The fixture's rule as policies. A folder is readable by an account with
-  any membership on it and editable by an account with an editor
-  membership; an item answers as its folder does; and an account whose
-  clearance is not the cleared one is refused either way.
+  a live membership on it held by the asking kind and editable when that
+  membership is an editor's; an item answers as its folder does; and an
+  account whose clearance is not the cleared one is refused either way. The
+  kind and the moment are the session settings the adapter binds before
+  each statement, and a setting the seam has cleared reads as the empty
+  string, which is why the moment goes through `NULLIF` before its cast.
 
   Folders carry the update gate as well and items carry none, so a run
   covers both the gated path and the ungated one. Inserts and deletes on
@@ -25,7 +28,7 @@ defmodule Turnstile.Postgres.Conformance.Rules do
 
   alias Turnstile.Postgres.Migration
 
-  @version 20_260_908_000_001
+  @version 20_260_915_000_001
   @role "turnstile_app"
   @owner "turnstile_owner"
   @folders "turnstile_fixture_folders"
@@ -36,29 +39,36 @@ defmodule Turnstile.Postgres.Conformance.Rules do
           WHERE a.id = current_setting('turnstile.subject_id', true) AND a.clearance = 'cleared')
   """
 
+  @holding """
+  m.account_id = current_setting('turnstile.subject_id', true)
+            AND m.subject_kind = current_setting('turnstile.subject_kind', true)
+            AND (m.expires_at IS NULL
+                 OR m.expires_at > NULLIF(current_setting('turnstile.now', true), '')::timestamptz)
+  """
+
   @folder_member """
   EXISTS (SELECT 1 FROM turnstile_fixture_memberships m
           WHERE m.folder_id = turnstile_fixture_folders.id
-            AND m.account_id = current_setting('turnstile.subject_id', true))
+            AND #{@holding})
   """
 
   @folder_editor """
   EXISTS (SELECT 1 FROM turnstile_fixture_memberships m
           WHERE m.folder_id = turnstile_fixture_folders.id
-            AND m.account_id = current_setting('turnstile.subject_id', true)
+            AND #{@holding}
             AND m.role = 'editor')
   """
 
   @item_member """
   EXISTS (SELECT 1 FROM turnstile_fixture_memberships m
           WHERE m.folder_id = turnstile_fixture_items.folder_id
-            AND m.account_id = current_setting('turnstile.subject_id', true))
+            AND #{@holding})
   """
 
   @item_editor """
   EXISTS (SELECT 1 FROM turnstile_fixture_memberships m
           WHERE m.folder_id = turnstile_fixture_items.folder_id
-            AND m.account_id = current_setting('turnstile.subject_id', true)
+            AND #{@holding}
             AND m.role = 'editor')
   """
 

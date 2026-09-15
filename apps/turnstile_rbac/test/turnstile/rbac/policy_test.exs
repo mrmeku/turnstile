@@ -7,6 +7,7 @@ defmodule Turnstile.Rbac.PolicyTest do
   alias Turnstile.Rbac.Conformance.Assignment
   alias Turnstile.Rbac.Conformance.Predicates
   alias Turnstile.Rbac.Conformance.Roles
+  alias Turnstile.Rbac.Conformance.Seat
   alias Turnstile.Rbac.Core.Clauses
   alias Turnstile.Rbac.Policy
   alias Turnstile.Rbac.Policy.Clause
@@ -38,12 +39,19 @@ defmodule Turnstile.Rbac.PolicyTest do
     assert [%Object{schema: Folder, clauses: folder}, %Object{schema: Item, clauses: item}] = Policy.objects(Roles)
 
     assert [
-             %Clause{name: :membership, kind: :grant, source: Membership, on: nil},
-             %Clause{name: :cleared, kind: :predicate, predicate: predicate}
+             %Clause{name: :membership, kind: :grant, source: Membership, on: nil, role: :role},
+             %Clause{name: :cleared, kind: :predicate, predicate: predicate},
+             %Clause{name: :held, kind: :predicate}
            ] = folder
 
     assert predicate == (&Predicates.cleared/2)
-    assert [%Clause{name: :folder_membership, kind: :grant, on: :folder_id}, %Clause{name: :cleared}] = item
+
+    assert [
+             %Clause{name: :folder_membership, kind: :grant, on: :folder_id, role: :role},
+             %Clause{name: :cleared},
+             %Clause{name: :folder_held}
+           ] = item
+
     assert Clauses.object_of(Roles, :item).schema == Item
     assert Clauses.object_of(Roles, :document) == nil
   end
@@ -63,25 +71,30 @@ defmodule Turnstile.Rbac.PolicyTest do
 
   test "a hop is a schema and a column, with a named filter when it has one" do
     assert %Clause{through: [{Folder, :id, []}]} =
-             Clauses.grant(:hopped, Membership, on: :folder_id, through: [{Folder, :id}])
+             Clauses.grant(:hopped, Membership, on: :folder_id, role: :role, through: [{Folder, :id}])
 
     assert %Clause{through: [{Folder, :id, where: filter}]} =
-             Clauses.grant(:hopped, Membership, on: :folder_id, through: [{Folder, :id, where: &Filters.open/0}])
+             Clauses.grant(:hopped, Membership,
+               on: :folder_id,
+               role: :role,
+               through: [{Folder, :id, where: &Filters.open/0}]
+             )
 
     assert filter == (&Filters.open/0)
 
     assert_raise NimbleOptions.ValidationError, ~r/named function of no arguments/, fn ->
-      Clauses.grant(:hopped, Membership, through: [{Folder, :id, where: fn -> true end}])
+      Clauses.grant(:hopped, Membership, role: :role, through: [{Folder, :id, where: fn -> true end}])
     end
 
     assert_raise NimbleOptions.ValidationError, ~r/expected \{schema, column\}/, fn ->
-      Clauses.grant(:hopped, Membership, through: [Folder])
+      Clauses.grant(:hopped, Membership, role: :role, through: [Folder])
     end
   end
 
   test "a grant needs the role column named when the relationship declares more than one attribute or none" do
     assert %Clause{as: :reader} = Clauses.grant(:fixed, Membership, as: :reader)
     assert %Clause{role: :role} = Clauses.grant(:named, Assignment, role: :role)
+    assert %Clause{role: nil, as: nil} = Clauses.grant(:sole, Seat, [])
     assert_raise ArgumentError, ~r/declares 2 attributes/, fn -> Clauses.grant(:wide, Assignment, []) end
     assert_raise ArgumentError, ~r/declares no relationship/, fn -> Clauses.grant(:bare, Folder, []) end
     assert_raise ArgumentError, ~r/declares no object type/, fn -> Clauses.object(Membership, []) end

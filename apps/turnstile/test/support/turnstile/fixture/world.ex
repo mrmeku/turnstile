@@ -3,10 +3,14 @@ defmodule Turnstile.Fixture.World do
   A population of the neutral fixture and the rule it obeys, this
   repository's `Turnstile.Conformance.World`: accounts with or without
   clearance, folders, items in folders, and memberships of accounts on
-  folders with a role. The rule, which every adapter's conformance
-  artifact for the fixture encodes: `:read` on a folder needs any
-  membership on it, `:edit` needs an editor membership, an item answers as
-  its folder does, and an account without clearance is denied everything.
+  folders, each with a role, the kind of subject that holds it, and an
+  expiry. The rule, which every adapter's conformance artifact for the
+  fixture encodes: `:read` on a folder needs a live membership on it held
+  by the asking kind, `:edit` needs such a membership with the editor role,
+  an item answers as its folder does, and an account without clearance is
+  denied everything. A membership is live when it names no expiry or one
+  after the moment the configured clock reads, which is where `allowed?/4`
+  reads it from.
 
   Every write goes through the seam under a declared exemption, so the
   population reaches the tables the way an application's own writes do.
@@ -16,6 +20,7 @@ defmodule Turnstile.Fixture.World do
 
   use ExUnitProperties
 
+  alias Turnstile.Config
   alias Turnstile.Conformance.World
   alias Turnstile.Fixture.Account
   alias Turnstile.Fixture.Folder
@@ -26,18 +31,23 @@ defmodule Turnstile.Fixture.World do
   @exemption {:exempt, "conformance fixture"}
   @operations [:read, :edit]
   @roles [:reader, :editor]
+  @kinds [:user, :non_person_entity, :privileged]
+  @expiries [nil, ~U[2025-01-01 00:00:00Z], ~U[2999-01-01 00:00:00Z]]
   @cleared "cleared"
   @focus_id "acct-a"
   @focus {:user, @focus_id}
 
   defstruct accounts: %{}, folders: [], items: %{}, memberships: %{}
 
-  @typedoc "Account id to clearance; folder ids; item id to its folder; `{account, folder}` to role."
+  @typedoc "What a membership holds: the role, the kind of subject it is held by, and when it expires."
+  @type membership :: %{role: :reader | :editor, kind: Turnstile.subject_kind(), expires_at: DateTime.t() | nil}
+
+  @typedoc "Account id to clearance; folder ids; item id to its folder; `{account, folder}` to its membership."
   @type t :: %__MODULE__{
           accounts: %{String.t() => String.t() | nil},
           folders: [pos_integer()],
           items: %{pos_integer() => pos_integer()},
-          memberships: %{{String.t(), pos_integer()} => :reader | :editor}
+          memberships: %{{String.t(), pos_integer()} => membership()}
         }
 
   @doc "The two protected schemas the properties scope over."
@@ -54,11 +64,6 @@ defmodule Turnstile.Fixture.World do
   @impl World
   @spec operations() :: [atom()]
   def operations, do: @operations
-
-  @doc "The roles a membership carries."
-  @impl World
-  @spec grant_types() :: [atom()]
-  def grant_types, do: @roles
 
   @doc "The clearance value that permits."
   @spec cleared() :: String.t()
@@ -80,17 +85,21 @@ defmodule Turnstile.Fixture.World do
   def generator do
     bind(population(), fn {accounts, folder_count} ->
       items = list_of(integer(1..folder_count), max_length: 4)
-      grants = list_of(tuple({member_of(Map.keys(accounts)), integer(1..folder_count), role()}), max_length: 4)
+      grants = list_of(tuple({member_of(Map.keys(accounts)), integer(1..folder_count), membership()}), max_length: 4)
       map(tuple({items, grants}), &build(accounts, folder_count, &1))
     end)
   end
 
-  @doc "One cleared account, one folder, one editor membership on it."
+  @doc "One cleared account, one folder, one unexpiring editor membership on it held by a user."
   @impl World
   @spec granted() :: t()
   def granted do
-    %__MODULE__{accounts: %{@focus_id => @cleared}, folders: [1], memberships: %{{@focus_id, 1} => :editor}}
+    %__MODULE__{accounts: %{@focus_id => @cleared}, folders: [1], memberships: %{{@focus_id, 1} => held(:editor)}}
   end
+
+  @doc "An unexpiring membership of the role, held by a user."
+  @spec held(:reader | :editor) :: membership()
+  def held(role) when role in [:reader, :editor], do: %{role: role, kind: :user, expires_at: nil}
 
   @doc "`granted/0` with the membership taken out."
   @impl World
@@ -107,14 +116,17 @@ defmodule Turnstile.Fixture.World do
   @spec focus(t()) :: {Turnstile.subject(), pos_integer()}
   def focus(%__MODULE__{}), do: {@focus, 1}
 
-  @doc "The accounts, as subjects."
+  @doc "The accounts as users, and the focus account as a privileged subject too."
   @impl World
   @spec subjects(t()) :: [Turnstile.subject()]
   def subjects(%__MODULE__{accounts: accounts}) do
-    accounts
-    |> Map.keys()
-    |> Enum.sort()
-    |> Enum.map(&{:user, &1})
+    users =
+      accounts
+      |> Map.keys()
+      |> Enum.sort()
+      |> Enum.map(&{:user, &1})
+
+    if Map.has_key?(accounts, @focus_id), do: Enum.concat(users, [{:privileged, @focus_id}]), else: users
   end
 
   @doc "Every folder and item as an object."
@@ -125,7 +137,7 @@ defmodule Turnstile.Fixture.World do
     Enum.map(folders, &{:folder, &1}) ++ Enum.map(item_ids, &{:item, &1})
   end
 
-  @doc "The rule: what the world says about one subject, operation, and object."
+  @doc "The rule: what the world says about one subject, operation, and object, at the configured clock's moment."
   @impl World
   @spec allowed?(t(), Turnstile.subject(), atom(), Turnstile.object()) :: boolean()
   def allowed?(%__MODULE__{} = world, {_kind, _account} = subject, operation, {:item, id}) do
@@ -135,10 +147,9 @@ defmodule Turnstile.Fixture.World do
     end
   end
 
-  def allowed?(%__MODULE__{} = world, {_kind, account}, operation, {:folder, id}) do
+  def allowed?(%__MODULE__{} = world, {kind, account}, operation, {:folder, id}) do
     cleared? = Map.get(world.accounts, account) == @cleared
-    role = Map.get(world.memberships, {account, id})
-    role_allows?(role, operation) and cleared?
+    cleared? and holds?(Map.get(world.memberships, {account, id}), kind, operation, now())
   end
 
   def allowed?(%__MODULE__{}, {_kind, _account}, _operation, {_type, _id}), do: false
@@ -185,12 +196,32 @@ defmodule Turnstile.Fixture.World do
     %{world | memberships: Map.delete(world.memberships, {account, folder})}
   end
 
-  @doc "Insert one membership through the seam and nothing else."
+  @doc """
+  Insert one membership through the seam and nothing else: the role, held
+  by the subject's kind, with the attributes given, of which `expires_at` is
+  the one the rule reads. The world it leaves is returned.
+  """
   @impl World
-  @spec insert_grant(module(), Turnstile.subject(), pos_integer(), :reader | :editor) :: :ok
-  def insert_grant(repo, {_kind, account}, folder, role) when is_atom(repo) do
-    repo.insert!(%Membership{account_id: account, folder_id: folder, role: role}, turnstile: @exemption)
-    :ok
+  @spec insert_grant(module(), t(), Turnstile.subject(), pos_integer(), keyword()) :: t()
+  def insert_grant(repo, %__MODULE__{} = world, {kind, account}, folder, attributes)
+      when is_atom(repo) and is_list(attributes) do
+    expires_at = Keyword.get(attributes, :expires_at)
+    role = Keyword.get(attributes, :role, :editor)
+    row = %Membership{account_id: account, folder_id: folder, role: role, subject_kind: kind, expires_at: expires_at}
+    _inserted = repo.insert!(row, turnstile: @exemption)
+
+    held = %{role: role, kind: kind, expires_at: expires_at}
+    %{world | memberships: Map.put(world.memberships, {account, folder}, held)}
+  end
+
+  @doc "Take the subject's clearance away through the seam, which changes the account fact the rule reads."
+  @impl World
+  @spec disqualify(module(), t(), Turnstile.subject()) :: t()
+  def disqualify(repo, %__MODULE__{} = world, {_kind, account}) when is_atom(repo) do
+    changeset = Ecto.Changeset.change(repo.get!(Account, account, turnstile: @exemption), clearance: nil)
+    _updated = repo.update!(changeset, turnstile: @exemption)
+
+    %{world | accounts: Map.put(world.accounts, account, nil)}
   end
 
   @doc "Bring the folder table up to that many rows, the added ones granted to nobody."
@@ -203,7 +234,11 @@ defmodule Turnstile.Fixture.World do
     :ok
   end
 
-  defp role, do: member_of(@roles)
+  defp membership do
+    kind = frequency([{4, constant(:user)}, {1, member_of(@kinds)}])
+    expiry = frequency([{2, constant(nil)}, {1, member_of(@expiries)}])
+    map(tuple({member_of(@roles), kind, expiry}), fn {role, kind, at} -> %{role: role, kind: kind, expires_at: at} end)
+  end
 
   defp clearance, do: frequency([{3, constant(@cleared)}, {1, constant(nil)}])
 
@@ -218,14 +253,27 @@ defmodule Turnstile.Fixture.World do
       |> Enum.with_index(1)
       |> Map.new(fn {folder, item} -> {item, folder} end)
 
-    memberships = Map.new(grants, fn {account, folder, role} -> {{account, folder}, role} end)
+    memberships = Map.new(grants, fn {account, folder, held} -> {{account, folder}, held} end)
     %__MODULE__{accounts: accounts, folders: Enum.to_list(1..folder_count), items: items, memberships: memberships}
   end
 
-  defp role_allows?(nil, _operation), do: false
+  defp holds?(nil, _kind, _operation, _now), do: false
+
+  defp holds?(%{role: role, kind: held_by, expires_at: expires_at}, kind, operation, now) do
+    held_by == kind and live?(expires_at, now) and role_allows?(role, operation)
+  end
+
+  defp live?(nil, _now), do: true
+  defp live?(%DateTime{} = expires_at, now), do: DateTime.after?(expires_at, now)
+
   defp role_allows?(_role, :read), do: true
   defp role_allows?(:editor, :edit), do: true
   defp role_allows?(_role, _operation), do: false
+
+  defp now do
+    {:ok, %Config{clock: clock}} = Config.resolve()
+    clock.()
+  end
 
   defp rows(%__MODULE__{} = world) do
     Enum.concat([accounts(world), folders(world), items(world), memberships(world)])
@@ -238,8 +286,8 @@ defmodule Turnstile.Fixture.World do
     do: Enum.map(world.items, fn {id, folder} -> %Item{id: id, title: "item #{id}", folder_id: folder} end)
 
   defp memberships(world) do
-    Enum.map(world.memberships, fn {{account, folder}, role} ->
-      %Membership{account_id: account, folder_id: folder, role: role}
+    Enum.map(world.memberships, fn {{account, folder}, %{role: role, kind: kind, expires_at: expires_at}} ->
+      %Membership{account_id: account, folder_id: folder, role: role, subject_kind: kind, expires_at: expires_at}
     end)
   end
 end

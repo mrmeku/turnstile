@@ -10,6 +10,7 @@ defmodule Turnstile.Rbac.RuleTest do
   alias Turnstile.Fixture.Membership
   alias Turnstile.Fixture.World
   alias Turnstile.Rbac.Binding
+  alias Turnstile.Rbac.Conformance.Seat
   alias Turnstile.Rbac.Core.Rule
   alias Turnstile.Rbac.Policy
   alias Turnstile.TestRepos.Sandboxed
@@ -41,6 +42,18 @@ defmodule Turnstile.Rbac.RuleTest do
     end
   end
 
+  defmodule SoleAttribute do
+    @moduledoc false
+    use Policy, version: "sole"
+
+    role :reader, [:read]
+    role :editor, [:read, :edit]
+
+    object Folder do
+      grant :seat, Seat
+    end
+  end
+
   defmodule NamedRole do
     @moduledoc false
     use Policy, version: "named"
@@ -62,7 +75,7 @@ defmodule Turnstile.Rbac.RuleTest do
     role :editor, [:read, :edit]
 
     object Item do
-      grant :folder_membership, Membership, on: :folder_id, through: [{Folder, :id, where: &Bools.named/0}]
+      grant :folder_membership, Membership, on: :folder_id, role: :role, through: [{Folder, :id, where: &Bools.named/0}]
       predicate :no, &Bools.no/2, only: [:edit]
     end
   end
@@ -75,7 +88,7 @@ defmodule Turnstile.Rbac.RuleTest do
     role :editor, [:read]
 
     object Item do
-      grant :folder_membership, Membership, on: :folder_id, through: [{Folder, :id}]
+      grant :folder_membership, Membership, on: :folder_id, role: :role, through: [{Folder, :id}]
     end
   end
 
@@ -87,7 +100,7 @@ defmodule Turnstile.Rbac.RuleTest do
     role :owner, [:read, :edit]
 
     object Folder do
-      grant :membership, Membership
+      grant :membership, Membership, role: :role
     end
   end
 
@@ -110,7 +123,7 @@ defmodule Turnstile.Rbac.RuleTest do
       accounts: %{"ann" => World.cleared()},
       folders: [1],
       items: %{1 => 1},
-      memberships: %{{"ann", 1} => :editor}
+      memberships: %{{"ann", 1} => World.held(:editor)}
     }
 
     :ok = World.insert(Sandboxed, world)
@@ -134,6 +147,14 @@ defmodule Turnstile.Rbac.RuleTest do
     assert {:ok, %Answer{verdict: :allow}} = Turnstile.Rbac.decide(ctx.ann, :read, folder, ctx.environment, [])
 
     assert {:ok, %Answer{verdict: :deny, reason: :deny_by_default}} =
+             Turnstile.Rbac.decide(ctx.ann, :edit, folder, ctx.environment, [])
+  end
+
+  test "a relationship with one attribute needs no role column named, since that attribute is the role", ctx do
+    :ok = Binding.override(policy: SoleAttribute, repo: Sandboxed)
+    folder = {:folder, 1}
+
+    assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: %{rule: "seat"}}} =
              Turnstile.Rbac.decide(ctx.ann, :edit, folder, ctx.environment, [])
   end
 

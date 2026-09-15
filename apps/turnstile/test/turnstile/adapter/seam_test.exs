@@ -294,7 +294,14 @@ defmodule Turnstile.Adapter.SeamTest do
       assert created.operation == :create
       assert created.kind == :role
       assert created.target == {:role, membership.id}
-      assert created.changes == %{account_id: {nil, "acct-5"}, folder_id: {nil, folder.id}, role: {nil, :reader}}
+
+      assert created.changes == %{
+               account_id: {nil, "acct-5"},
+               folder_id: {nil, folder.id},
+               role: {nil, :reader},
+               subject_kind: {nil, :user}
+             }
+
       assert created.actor == Change.library()
       assert created.actor_kind == :non_person_entity
       assert created.schema == Membership
@@ -317,7 +324,13 @@ defmodule Turnstile.Adapter.SeamTest do
         Turnstile.Test.changes(fn -> Sandboxed.delete!(membership, turnstile: {:exempt, "revoke"}) end)
 
       assert removed.operation == :delete
-      assert removed.changes == %{account_id: {"acct-5", nil}, folder_id: {folder.id, nil}, role: {:reader, nil}}
+
+      assert removed.changes == %{
+               account_id: {"acct-5", nil},
+               folder_id: {folder.id, nil},
+               role: {:reader, nil},
+               subject_kind: {:user, nil}
+             }
     end
 
     test "a write that changes no fact field publishes a change with no changes" do

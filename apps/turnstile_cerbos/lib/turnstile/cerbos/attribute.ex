@@ -4,10 +4,11 @@ defmodule Turnstile.Cerbos.Attribute do
   value comes from.
 
   Two sources. `column:` names a column of the kind's schema, so the value
-  is what the row holds. `subquery:` names a function of the subject that
-  returns a query selecting `%{id: ..., value: ...}` with the value as
-  text, since text is what a policy compares against; the value then
-  depends on who is asking: the ids are the rows the values belong to, and
+  is what the row holds. `subquery:` names a function of the subject and
+  the environment that returns a query selecting `%{id: ..., value: ...}`
+  with the value as text, since text is what a policy compares against;
+  the value then depends on who is asking and on the moment the port
+  stamped the request with: the ids are the rows the values belong to, and
   a row with several values gets the list of them. A subject's own
   attribute declared this way gets the list of its values, since its id is
   the only one asked about.
@@ -29,8 +30,10 @@ defmodule Turnstile.Cerbos.Attribute do
   @schema NimbleOptions.new!(
             column: [type: :atom, doc: "The column of the kind's schema the value is read from."],
             subquery: [
-              type: {:fun, 1},
-              doc: "A function of the subject returning a query selecting `%{id: ..., value: ...}`, the value as text."
+              type: {:fun, 2},
+              doc:
+                "A function of the subject and the environment returning a query selecting " <>
+                  "`%{id: ..., value: ...}`, the value as text."
             ]
           )
 
@@ -40,7 +43,8 @@ defmodule Turnstile.Cerbos.Attribute do
   defstruct [:name, :source]
 
   @typedoc "Where an attribute's value comes from."
-  @type source :: {:column, atom()} | {:subquery, (Turnstile.subject() -> Ecto.Queryable.t())}
+  @type source ::
+          {:column, atom()} | {:subquery, (Turnstile.subject(), Turnstile.environment() -> Ecto.Queryable.t())}
 
   @typedoc "The attribute values of one row, by the name the declarations gave."
   @type values :: %{atom() => term()}
@@ -92,7 +96,7 @@ defmodule Turnstile.Cerbos.Attribute do
   defp source(name, validated) do
     case {validated[:column], validated[:subquery]} do
       {column, nil} when is_atom(column) and not is_nil(column) -> {:ok, {:column, column}}
-      {nil, subquery} when is_function(subquery, 1) -> {:ok, {:subquery, subquery}}
+      {nil, subquery} when is_function(subquery, 2) -> {:ok, {:subquery, subquery}}
       {nil, nil} -> {:error, invalid(name, "names neither a column nor a subquery")}
       {_column, _subquery} -> {:error, invalid(name, "names both a column and a subquery")}
     end

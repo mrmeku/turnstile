@@ -2,10 +2,10 @@ defmodule Turnstile.Test.Fake do
   @moduledoc """
   The adapter Tier 1 runs first and the seam's tests bind. Its rules are a
   table in an `Agent`, one per test, bound through the configuration override
-  as `{Turnstile.Test.Fake, rules: pid}`: an entry allows one subject, or
-  any, one operation, on one object, or any of a type, and nothing else is
-  allowed. Without a table the fake answers with the `verdict` option,
-  `:deny` unless said otherwise. It returns a value of the real type
+  as `{Turnstile.Test.Fake, rules: pid}`: an entry allows one subject, an
+  account whatever its kind, or any subject, one operation, on one object,
+  or any of a type, and nothing else is allowed. Without a table the fake
+  answers with the `verdict` option, `:deny` unless said otherwise. It returns a value of the real type
   everywhere the real adapters do: `scope` returns a real `dynamic`, and a
   table told to `fail/2` answers every call with the reason
   `:engine_unreachable`, so the port's fail-closed path runs against it.
@@ -29,8 +29,11 @@ defmodule Turnstile.Test.Fake do
             ]
           )
 
-  @typedoc "A subject id or any subject; an operation; an object reference whose id may be any."
-  @type entry :: {Turnstile.Id.t() | :any, atom(), {atom(), Turnstile.Id.t() | term() | :any}}
+  @typedoc "A subject, an account of any kind, or any subject; an operation; an object reference whose id may be any."
+  @type entry :: {holder(), atom(), {atom(), Turnstile.Id.t() | term() | :any}}
+
+  @typedoc "Who an entry allows: one subject, an account whatever kind asks, or anyone."
+  @type holder :: Turnstile.subject() | Turnstile.Id.t() | :any
 
   @typep state :: %{entries: MapSet.t(entry()), failure: String.t() | nil}
 
@@ -38,15 +41,15 @@ defmodule Turnstile.Test.Fake do
   @spec start_link() :: Agent.on_start()
   def start_link, do: Agent.start_link(fn -> %{entries: MapSet.new(), failure: nil} end)
 
-  @doc "Allow `subject` (an id or `:any`) to perform `operation` on the object reference, whose id may be `:any`."
-  @spec allow(pid(), Turnstile.Id.t() | :any, atom(), {atom(), term()}) :: :ok
+  @doc "Allow the holder to perform `operation` on the object reference, whose id may be `:any`."
+  @spec allow(pid(), holder(), atom(), {atom(), term()}) :: :ok
   def allow(rules, subject, operation, {type, _id} = object)
       when is_pid(rules) and is_atom(operation) and is_atom(type) do
     Agent.update(rules, fn state -> %{state | entries: MapSet.put(state.entries, {subject, operation, object})} end)
   end
 
   @doc "Remove one entry."
-  @spec revoke(pid(), Turnstile.Id.t() | :any, atom(), {atom(), term()}) :: :ok
+  @spec revoke(pid(), holder(), atom(), {atom(), term()}) :: :ok
   def revoke(rules, subject, operation, {type, _id} = object)
       when is_pid(rules) and is_atom(operation) and is_atom(type) do
     Agent.update(rules, fn state -> %{state | entries: MapSet.delete(state.entries, {subject, operation, object})} end)
@@ -116,24 +119,25 @@ defmodule Turnstile.Test.Fake do
 
   defp answered(verdict, _subject, _operation, _object) when is_atom(verdict), do: answer_for(verdict)
 
-  defp answered(%{entries: entries}, {_kind, id}, operation, {type, object_id}) do
-    candidates = [
-      {id, operation, {type, object_id}},
-      {:any, operation, {type, object_id}},
-      {id, operation, {type, :any}},
-      {:any, operation, {type, :any}}
-    ]
+  defp answered(%{entries: entries}, subject, operation, {type, object_id}) do
+    candidates =
+      for holder <- holders(subject), id <- [object_id, :any], do: {holder, operation, {type, id}}
 
     if Enum.any?(candidates, &MapSet.member?(entries, &1)), do: answer_for(:allow), else: answer_for(:deny)
   end
 
+  # The holders an entry may name that cover the subject.
+  defp holders({_kind, id} = subject), do: [subject, id, :any]
+
   defp scoped(:allow, _subject, _operation, _type), do: {dynamic([_row], true), answer_for(:allow)}
   defp scoped(:deny, _subject, _operation, _type), do: {dynamic([_row], false), answer_for(:deny)}
 
-  defp scoped(%{entries: entries}, {_kind, id}, operation, type) do
+  defp scoped(%{entries: entries}, subject, operation, type) do
+    holders = holders(subject)
+
     matching =
       Enum.filter(entries, fn
-        {subject, ^operation, {^type, _object_id}} -> subject in [id, :any]
+        {holder, ^operation, {^type, _object_id}} -> holder in holders
         _entry -> false
       end)
 

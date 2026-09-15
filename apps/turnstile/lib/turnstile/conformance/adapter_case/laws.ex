@@ -102,10 +102,9 @@ defmodule Turnstile.Conformance.AdapterCase.Laws do
     world = module.ungranted()
     populate(context, world)
     {subject, grantable} = module.focus(world)
-    grant_type = hd(module.grant_types())
 
-    {_written, queries} =
-      Turnstile.Test.queries(repo, fn -> module.insert_grant(repo, subject, grantable, grant_type) end)
+    {_granted, queries} =
+      Turnstile.Test.queries(repo, fn -> module.insert_grant(repo, world, subject, grantable, []) end)
 
     assert [insert] = queries
     assert insert =~ ~r/^INSERT/i

@@ -2,7 +2,8 @@ defmodule Turnstile.Cerbos.Adapter.Values do
   @moduledoc false
   # The values of the declared attributes, read through the bound repo as a
   # library caller: one query for the columns of a kind, one for each
-  # subquery an attribute names.
+  # subquery an attribute names, built from the subject and the environment
+  # the port stamped the request with.
   #
   # Every declared attribute is sent, whether or not the row holds it: a
   # column with nothing in it goes as null and a subquery that selected
@@ -41,7 +42,7 @@ defmodule Turnstile.Cerbos.Adapter.Values do
   @spec principal(Binding.t(), Turnstile.subject(), Turnstile.environment()) ::
           {:ok, Attribute.values()} | {:error, String.t()}
   def principal(%Binding{} = binding, {kind, id} = subject, %{now: _now} = request) do
-    with {:ok, by_id} <- of(binding, subject, kind, [id]) do
+    with {:ok, by_id} <- of(binding, subject, kind, [id], request) do
       own = Map.fetch!(by_id, to_string(id))
       {:ok, Map.put(own, Attribute.reserved(), environment(binding, request))}
     end
@@ -55,21 +56,22 @@ defmodule Turnstile.Cerbos.Adapter.Values do
   end
 
   @doc "The attributes of each object of one type, by the object's id as text."
-  @spec resources(Binding.t(), Turnstile.subject(), atom(), [Turnstile.object()]) ::
+  @spec resources(Binding.t(), Turnstile.subject(), atom(), [Turnstile.object()], Turnstile.environment()) ::
           {:ok, %{String.t() => Attribute.values()}} | {:error, String.t()}
-  def resources(%Binding{} = binding, {_kind, _account} = subject, kind, objects)
+  def resources(%Binding{} = binding, {_kind, _account} = subject, kind, objects, %{now: _now} = request)
       when is_atom(kind) and is_list(objects) do
-    of(binding, subject, kind, Enum.map(objects, &elem(&1, 1)))
+    of(binding, subject, kind, Enum.map(objects, &elem(&1, 1)), request)
   end
 
   @doc "The attributes of the ids of one kind, every declared name present."
-  @spec of(Binding.t(), Turnstile.subject(), atom(), [term()]) ::
+  @spec of(Binding.t(), Turnstile.subject(), atom(), [term()], Turnstile.environment()) ::
           {:ok, %{String.t() => Attribute.values()}} | {:error, String.t()}
-  def of(%Binding{} = binding, {_kind, _account} = subject, kind, ids) when is_atom(kind) and is_list(ids) do
+  def of(%Binding{} = binding, {_kind, _account} = subject, kind, ids, %{now: _now} = request)
+      when is_atom(kind) and is_list(ids) do
     declared = Attributes.attributes_of(binding.attributes, kind)
 
     with {:ok, from_columns} <- columns(binding, kind, ids, declared) do
-      from_subqueries = subqueries(binding, subject, ids, declared)
+      from_subqueries = subqueries(binding, subject, request, ids, declared)
       absent = absent(declared)
       {:ok, Map.new(ids, &{to_string(&1), found(absent, from_columns, from_subqueries, to_string(&1))})}
     end
@@ -116,16 +118,17 @@ defmodule Turnstile.Cerbos.Adapter.Values do
     Map.new(attributes, fn %Attribute{name: name, source: {:column, column}} -> {name, Codec.encode(values[column])} end)
   end
 
-  defp subqueries(binding, subject, ids, declared) do
+  defp subqueries(binding, subject, request, ids, declared) do
     declared
     |> Enum.reject(&Attribute.column?/1)
     |> Enum.reduce(%{}, fn attribute, acc ->
-      gathered(acc, attribute.name, read_subquery(binding, subject, ids, attribute))
+      gathered(acc, attribute.name, read_subquery(binding, subject, request, ids, attribute))
     end)
   end
 
-  defp read_subquery(binding, subject, ids, %Attribute{source: {:subquery, fun}}) do
-    all(binding.repo, from(row in subquery(fun.(subject)), where: row.id in ^ids, select: {row.id, row.value}))
+  defp read_subquery(binding, subject, request, ids, %Attribute{source: {:subquery, fun}}) do
+    query = from(row in subquery(fun.(subject, request)), where: row.id in ^ids, select: {row.id, row.value})
+    all(binding.repo, query)
   end
 
   # The values of one attribute, gathered per row into the list the row's

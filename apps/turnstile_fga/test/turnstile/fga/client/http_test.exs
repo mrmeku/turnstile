@@ -15,6 +15,8 @@ defmodule Turnstile.Fga.Client.HttpTest do
   alias Turnstile.Fixture.World
 
   @moduletag :fga
+  @asking %{"subject_kind" => "user", "current_time" => "2026-09-09T12:00:00Z"}
+  @never "9999-12-31T23:59:59Z"
 
   setup do
     server = Dev.Fga.info()
@@ -33,7 +35,10 @@ defmodule Turnstile.Fga.Client.HttpTest do
       user: "user:#{account}",
       relation: relation,
       object: "folder:#{folder}",
-      condition: %Condition{name: "while_cleared", context: %{"clearance" => clearance}}
+      condition: %Condition{
+        name: "grant_holds",
+        context: %{"clearance" => clearance, "kind" => "user", "expires_at" => @never}
+      }
     }
   end
 
@@ -58,6 +63,7 @@ defmodule Turnstile.Fga.Client.HttpTest do
     request = %Check{
       tuple_key: %TupleKey{user: "user:#{account}", relation: relation, object: object},
       model: context.model,
+      context: @asking,
       consistency: :higher_consistency
     }
 
@@ -93,11 +99,18 @@ defmodule Turnstile.Fga.Client.HttpTest do
 
   test "a listing answers the objects of one type the account holds the relation on", context do
     _written = world(context)
-    request = %ListObjects{user: "user:ann", relation: "can_read", type: "folder", model: context.model}
+
+    request = %ListObjects{
+      user: "user:ann",
+      relation: "can_read",
+      type: "folder",
+      model: context.model,
+      context: @asking
+    }
 
     assert Http.list_objects(context.endpoint, context.store, request) == {:ok, ["folder:1"]}
 
-    refused = %ListObjects{user: "user:bob", relation: "can_read", type: "folder", model: context.model}
+    refused = %{request | user: "user:bob"}
     assert Http.list_objects(context.endpoint, context.store, refused) == {:ok, []}
   end
 

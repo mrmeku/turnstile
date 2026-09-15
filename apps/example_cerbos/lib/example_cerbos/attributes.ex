@@ -44,26 +44,26 @@ defmodule ExampleCerbos.Attributes do
   end
 
   resource :document, schema: Document do
-    attribute :program_roles, subquery: &Facts.program_roles/1
-    attribute :office_roles, subquery: &Facts.office_roles/1
-    attribute :effective_controls, subquery: &Facts.effective_controls/1
-    attribute :releasable_to, subquery: &Facts.releasable_to/1
-    attribute :agency_nationalities, subquery: &Facts.agency_nationalities/1
-    attribute :listed, subquery: &Facts.listed/1
+    attribute :program_roles, subquery: &Facts.program_roles/2
+    attribute :office_roles, subquery: &Facts.office_roles/2
+    attribute :effective_controls, subquery: &Facts.effective_controls/2
+    attribute :releasable_to, subquery: &Facts.releasable_to/2
+    attribute :agency_nationalities, subquery: &Facts.agency_nationalities/2
+    attribute :listed, subquery: &Facts.listed/2
     attribute :decontrol, column: :decontrol
   end
 
   resource :portion, schema: Portion do
-    attribute :program_roles, subquery: &Facts.portion_program_roles/1
-    attribute :office_roles, subquery: &Facts.portion_office_roles/1
-    attribute :effective_controls, subquery: &Facts.portion_effective_controls/1
-    attribute :releasable_to, subquery: &Facts.portion_releasable_to/1
-    attribute :agency_nationalities, subquery: &Facts.portion_agency_nationalities/1
-    attribute :listed, subquery: &Facts.portion_listed/1
+    attribute :program_roles, subquery: &Facts.portion_program_roles/2
+    attribute :office_roles, subquery: &Facts.portion_office_roles/2
+    attribute :effective_controls, subquery: &Facts.portion_effective_controls/2
+    attribute :releasable_to, subquery: &Facts.portion_releasable_to/2
+    attribute :agency_nationalities, subquery: &Facts.portion_agency_nationalities/2
+    attribute :listed, subquery: &Facts.portion_listed/2
   end
 
   resource :proposal, schema: Proposal do
-    attribute :office_roles, subquery: &Facts.proposal_office_roles/1
+    attribute :office_roles, subquery: &Facts.proposal_office_roles/2
     attribute :proposer_id, column: :proposer_id
   end
 

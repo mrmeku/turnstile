@@ -6,13 +6,17 @@ defmodule Turnstile.Fga.Conformance.Mapping do
   clearance as an entity of its own, because a graph compares by walking
   rather than by equality.
 
-  A folder tuple carries the account's clearance as the condition
-  `while_cleared`, so a clearance that changes is the same tuple key with
-  another value on it: the drain deletes that tuple and writes it again, in
-  two calls. That is the shape a control with a parameter has, in the
-  fixture's own terms. A membership whose account has no clearance states no
-  tuple at all, because the model admits a role on a folder under that
-  condition alone and a tuple carrying none of it is refused.
+  A folder tuple carries the account's clearance, the kind the membership
+  is held by, and its expiry as the condition `grant_holds`, so a clearance
+  or an expiry that changes is the same tuple key with another value on it:
+  the drain deletes that tuple and writes it again, in two calls. That is
+  the shape a control with a parameter has, in the fixture's own terms. The
+  condition compares the kind on the tuple with the kind asking and the
+  expiry with the moment, both sent in the context of every question, and
+  a membership with no expiry carries the last moment a timestamp can name.
+  A membership whose account has no clearance states no tuple at all,
+  because the model admits a role on a folder under that condition alone
+  and a tuple carrying none of it is refused.
 
   A change to a membership names the folder it sits on, which the change
   carries where the write moved it and the row itself carries where the
@@ -32,8 +36,9 @@ defmodule Turnstile.Fga.Conformance.Mapping do
   alias Turnstile.Fixture.Folder
   alias Turnstile.Fixture.Membership
 
-  @condition "while_cleared"
+  @condition "grant_holds"
   @exemption {:exempt, "conformance mapping"}
+  @never "9999-12-31T23:59:59Z"
 
   @impl TupleMapping
   def object_types, do: ["clearance", "folder"]
@@ -75,6 +80,13 @@ defmodule Turnstile.Fga.Conformance.Mapping do
     end
   end
 
+  @doc "The condition a membership's tuple carries: the clearance, the holding kind, and the expiry as text."
+  @spec condition(String.t(), atom(), DateTime.t() | nil) :: Condition.t()
+  def condition(clearance, kind, expires_at) do
+    context = %{"clearance" => clearance, "kind" => Atom.to_string(kind), "expires_at" => expiry(expires_at)}
+    %Condition{name: @condition, context: context}
+  end
+
   # A role on a folder is restricted to a cleared account, so the tuple has a
   # condition to carry only once the account has a clearance: an account with
   # none holds nothing on the folder yet.
@@ -84,15 +96,16 @@ defmodule Turnstile.Fga.Conformance.Mapping do
         join: account in Account,
         on: account.id == membership.account_id,
         where: membership.folder_id == ^id and not is_nil(account.clearance) and not is_nil(membership.role),
-        select: {membership.account_id, membership.role, account.clearance}
+        select:
+          {membership.account_id, membership.role, account.clearance, membership.subject_kind, membership.expires_at}
       )
 
-    for {account, role, clearance} <- all(repo, query) do
+    for {account, role, clearance, kind, expires_at} <- all(repo, query) do
       %TupleKey{
         user: "user:#{account}",
         relation: to_string(role),
         object: "folder:#{id}",
-        condition: condition(clearance)
+        condition: condition(clearance, kind, expires_at)
       }
     end
   end
@@ -127,7 +140,8 @@ defmodule Turnstile.Fga.Conformance.Mapping do
     end
   end
 
-  defp condition(clearance), do: %Condition{name: @condition, context: %{"clearance" => clearance}}
+  defp expiry(nil), do: @never
+  defp expiry(%DateTime{} = expires_at), do: DateTime.to_iso8601(expires_at)
 
   defp all(repo, query), do: repo.all(query, turnstile: @exemption)
 end

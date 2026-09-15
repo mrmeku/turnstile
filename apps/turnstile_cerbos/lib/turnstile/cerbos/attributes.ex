@@ -11,7 +11,7 @@ defmodule Turnstile.Cerbos.Attributes do
         end
 
         resource :document, schema: MyApp.Document do
-          attribute :effective_controls, subquery: &MyApp.Markings.effective_controls_for/1
+          attribute :effective_controls, subquery: &MyApp.Markings.effective_controls_for/2
         end
 
         environment do

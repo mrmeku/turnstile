@@ -29,7 +29,7 @@ defmodule Turnstile.Cerbos.PlanTest do
 
     resource :folder, schema: Folder do
       attribute :name, column: :name
-      attribute :member_roles, subquery: &Memberships.folder_roles_for/1
+      attribute :member_roles, subquery: &Memberships.folder_roles_for/2
     end
 
     resource :item, schema: Item do
@@ -58,7 +58,7 @@ defmodule Turnstile.Cerbos.PlanTest do
       accounts: %{"ann" => World.cleared(), "bob" => nil},
       folders: [1, 2],
       items: %{10 => 1},
-      memberships: %{{"ann", 1} => :reader}
+      memberships: %{{"ann", 1} => World.held(:reader)}
     }
 
     :ok = World.insert(Sandboxed, world)
@@ -73,9 +73,9 @@ defmodule Turnstile.Cerbos.PlanTest do
   end
 
   test "a plan that admits every row is every row, and one that admits none is a denial", ctx do
-    assert {:ok, rule} = Plan.dynamic(ctx.binding, ctx.ann, :folder, %{"kind" => "KIND_ALWAYS_ALLOWED"})
+    assert {:ok, rule} = Plan.dynamic(ctx.binding, ctx.ann, ctx.environment, :folder, %{"kind" => "KIND_ALWAYS_ALLOWED"})
     assert ids(rule) == [1, 2]
-    assert Plan.dynamic(ctx.binding, ctx.ann, :folder, %{"kind" => "KIND_ALWAYS_DENIED"}) == :denied
+    assert Plan.dynamic(ctx.binding, ctx.ann, ctx.environment, :folder, %{"kind" => "KIND_ALWAYS_DENIED"}) == :denied
   end
 
   test "a comparison on a declared column is a comparison on the row", ctx do
@@ -104,7 +104,7 @@ defmodule Turnstile.Cerbos.PlanTest do
 
     filter = conditional(expression("gt", [attr("folder"), value(nil)]))
 
-    assert Plan.dynamic(ctx.binding, ctx.ann, :item, filter) ==
+    assert Plan.dynamic(ctx.binding, ctx.ann, ctx.environment, :item, filter) ==
              {:error, "the plan compares gt with nothing, which reads as no rule over the rows"}
   end
 
@@ -123,16 +123,27 @@ defmodule Turnstile.Cerbos.PlanTest do
   end
 
   test "a kind the declarations do not name has no schema to compile against", ctx do
-    assert Plan.dynamic(ctx.binding, ctx.ann, :nothing, conditional(expression("eq", [id_of(), value(1)]))) ==
+    assert Plan.dynamic(
+             ctx.binding,
+             ctx.ann,
+             ctx.environment,
+             :nothing,
+             conditional(expression("eq", [id_of(), value(1)]))
+           ) ==
              {:error, "the declarations name no schema with one primary key for nothing"}
   end
 
   test "a plan this adapter does not read is an error rather than a query", ctx do
-    assert {:error, detail} = Plan.dynamic(ctx.binding, ctx.ann, :folder, %{"kind" => "KIND_UNSPECIFIED"})
+    assert {:error, detail} =
+             Plan.dynamic(ctx.binding, ctx.ann, ctx.environment, :folder, %{"kind" => "KIND_UNSPECIFIED"})
+
     assert detail =~ "the plan carries no filter this adapter reads"
 
     assert {:error, no_expression} =
-             Plan.dynamic(ctx.binding, ctx.ann, :folder, %{"kind" => "KIND_CONDITIONAL", "condition" => %{}})
+             Plan.dynamic(ctx.binding, ctx.ann, ctx.environment, :folder, %{
+               "kind" => "KIND_CONDITIONAL",
+               "condition" => %{}
+             })
 
     assert no_expression =~ "the plan carries an operand this adapter reads as no expression"
 
@@ -185,7 +196,7 @@ defmodule Turnstile.Cerbos.PlanTest do
     assert in_cast =~ "the plan compares name with 1, which the column cannot hold"
 
     filter = conditional(expression("eq", [%{"variable" => "request.resource.attr.missing"}, value("a")]))
-    assert {:error, absent} = Plan.dynamic(ctx.binding, ctx.ann, :ghost, filter)
+    assert {:error, absent} = Plan.dynamic(ctx.binding, ctx.ann, ctx.environment, :ghost, filter)
     assert absent =~ "the plan reads nowhere, which Turnstile.Fixture.Folder does not hold"
   end
 
@@ -225,7 +236,7 @@ defmodule Turnstile.Cerbos.PlanTest do
   end
 
   defp compiled(ctx, operator, operands) do
-    Plan.dynamic(ctx.binding, ctx.ann, :folder, conditional(expression(operator, operands)))
+    Plan.dynamic(ctx.binding, ctx.ann, ctx.environment, :folder, conditional(expression(operator, operands)))
   end
 
   defp conditional(expression), do: %{"kind" => "KIND_CONDITIONAL", "condition" => %{"expression" => expression}}
@@ -237,7 +248,7 @@ defmodule Turnstile.Cerbos.PlanTest do
 
   defp items(ctx, operator, operands) do
     filter = conditional(expression(operator, operands))
-    {:ok, rule} = Plan.dynamic(ctx.binding, ctx.ann, :item, filter)
+    {:ok, rule} = Plan.dynamic(ctx.binding, ctx.ann, ctx.environment, :item, filter)
     query = from(i in Item, where: ^rule, select: i.id, order_by: i.id)
     Sandboxed.all(query, turnstile: World.exemption())
   end

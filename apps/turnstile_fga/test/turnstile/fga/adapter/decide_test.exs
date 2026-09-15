@@ -35,6 +35,7 @@ defmodule Turnstile.Fga.Adapter.DecideTest do
     assert Decide.user({:non_person_entity, "importer"}) == "user:importer"
     assert Decide.named({:folder, 1}) == "folder:1"
     assert Decide.time_fact() == "current_time"
+    assert Decide.kind_fact() == "subject_kind"
     assert Decide.scope_cap() == 1_000
     assert Decide.fallback_event() == [:turnstile, :fga, :scope_fallback]
   end
@@ -61,7 +62,7 @@ defmodule Turnstile.Fga.Adapter.DecideTest do
     assert entry.client == Turnstile.Fga.Client.Http
   end
 
-  test "the context is the caller's facts under their own names and the moment under current_time", context do
+  test "the context is the caller's facts, the moment under current_time, and the kind under subject_kind", context do
     facts = %{clearance: "cleared", from: ~D[2026-01-01], seen: ~N[2026-01-02 03:04:05], count: 3}
     {:ok, entry} = Decide.entry(context.options, :decide, Map.put(facts, :now, @now))
 
@@ -71,6 +72,7 @@ defmodule Turnstile.Fga.Adapter.DecideTest do
 
     assert request.context == %{
              "current_time" => "2026-09-09T12:00:00.000000Z",
+             "subject_kind" => "user",
              "clearance" => "cleared",
              "from" => "2026-01-01",
              "seen" => "2026-01-02T03:04:05",

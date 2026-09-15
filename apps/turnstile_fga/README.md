@@ -40,6 +40,7 @@ The package's `lib` depends on `turnstile`, `ecto`, `ecto_sql`, `nimble_options`
 | A test on the subject | membership of the value as an object of its own, because a graph compares by walking rather than by equality |
 | A test on the row | a wildcard `user:*` on a relation named for the fact, so what a row states is one tuple rather than one per account |
 | A test on the moment | a condition on the tuple carrying the date, against `current_time` in the context of every question |
+| A grant held by one kind of subject | a condition on the tuple carrying the kind, against `subject_kind` in the context of every question, since the user string names the account whatever kind asks |
 | A rule over a whole type | `ListObjects` under the cap; at the cap the caller asks per row |
 | A write gate | the seam refuses a write with no decision for the operation before the model is asked |
 | A fact about the session | not modeled: a condition would make every use of the relation demand session context, so the application reads it from the environment before the server is asked |

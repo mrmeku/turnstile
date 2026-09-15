@@ -18,7 +18,7 @@ defmodule Turnstile.Cerbos.AttributesTest do
 
     resource :folder, schema: Folder do
       attribute :name, column: :name
-      attribute :member_roles, subquery: &Memberships.folder_roles_for/1
+      attribute :member_roles, subquery: &Memberships.folder_roles_for/2
     end
 
     environment do
@@ -79,7 +79,7 @@ defmodule Turnstile.Cerbos.AttributesTest do
 
   test "one declaration is found by its kind and its name" do
     assert %Attribute{source: {:subquery, fun}} = Attributes.find(Declarations, :folder, :member_roles)
-    assert fun == (&Memberships.folder_roles_for/1)
+    assert fun == (&Memberships.folder_roles_for/2)
     assert Attributes.find(Declarations, :folder, :nothing) == nil
   end
 
@@ -94,13 +94,13 @@ defmodule Turnstile.Cerbos.AttributesTest do
     assert {:ok, %Attribute{source: {:column, :clearance}} = column} = Attribute.new(:clearance, column: :clearance)
     assert Attribute.column?(column)
 
-    assert {:ok, %Attribute{} = subquery} = Attribute.new(:roles, subquery: &Memberships.folder_roles_for/1)
+    assert {:ok, %Attribute{} = subquery} = Attribute.new(:roles, subquery: &Memberships.folder_roles_for/2)
     refute Attribute.column?(subquery)
 
     assert {:error, %Error{reason: :invalid, detail: "invalid attribute: " <> neither}} = Attribute.new(:nothing, [])
     assert neither == "attribute nothing names neither a column nor a subquery"
 
-    both = [column: :clearance, subquery: &Memberships.folder_roles_for/1]
+    both = [column: :clearance, subquery: &Memberships.folder_roles_for/2]
     assert {:error, %Error{reason: :invalid, detail: "invalid attribute: " <> detail}} = Attribute.new(:both, both)
     assert detail == "attribute both names both a column and a subquery"
   end

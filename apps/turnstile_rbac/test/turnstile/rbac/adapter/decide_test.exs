@@ -38,7 +38,7 @@ defmodule Turnstile.Rbac.DecideTest do
       Map.put(
         %World{accounts: %{"ann" => World.cleared(), "bob" => nil}, folders: [1, 2], items: %{10 => 1}},
         :memberships,
-        %{{"ann", 1} => :reader, {"bob", 1} => :editor}
+        %{{"ann", 1} => World.held(:reader), {"bob", 1} => World.held(:editor)}
       )
 
     :ok = World.insert(Sandboxed, world)
@@ -49,17 +49,17 @@ defmodule Turnstile.Rbac.DecideTest do
   test "the answer names the clauses that held and the reason names the grant or the failing predicate", ctx do
     folder = {:folder, 1}
 
-    allowed = %{rule: "membership", matched: [:membership, :cleared]}
+    allowed = %{rule: "membership", matched: [:membership, :cleared, :held]}
 
     assert {:ok, %Answer{verdict: :allow, reason: :allowed, meta: ^allowed}} =
              Turnstile.Rbac.decide(ctx.ann, :read, folder, ctx.environment, [])
 
-    denied = %{rule: "cleared", matched: [:membership]}
+    denied = %{rule: "cleared", matched: [:membership, :held]}
 
     assert {:ok, %Answer{verdict: :deny, reason: :rule_denied, meta: ^denied}} =
              Turnstile.Rbac.decide(ctx.bob, :edit, folder, ctx.environment, [])
 
-    assert {:ok, %Answer{reason: :deny_by_default, meta: %{matched: [:cleared]}}} =
+    assert {:ok, %Answer{reason: :deny_by_default, meta: %{matched: [:cleared, :held]}}} =
              Turnstile.Rbac.decide(ctx.ann, :edit, folder, ctx.environment, [])
 
     assert {:ok, %Answer{reason: :deny_by_default, meta: %{matched: []}}} =

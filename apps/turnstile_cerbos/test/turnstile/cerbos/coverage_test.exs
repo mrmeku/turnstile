@@ -28,7 +28,7 @@ defmodule Turnstile.Cerbos.CoverageTest do
       accounts: %{"ann" => World.cleared()},
       folders: [1],
       items: %{10 => 1},
-      memberships: %{{"ann", 1} => :reader}
+      memberships: %{{"ann", 1} => World.held(:reader)}
     }
 
     :ok = World.insert(Sandboxed, world)

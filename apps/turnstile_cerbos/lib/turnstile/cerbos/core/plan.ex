@@ -10,7 +10,8 @@ defmodule Turnstile.Cerbos.Core.Plan do
   # `request.resource.attr.<name>` and values, which this module compiles
   # against the declarations: an attribute read from a column becomes a
   # comparison on that column, and an attribute read from a subquery becomes
-  # membership in the ids the subquery selects for the asking subject.
+  # membership in the ids the subquery selects for the asking subject at the
+  # moment the request carries.
   #
   # An attribute the sidecar could not resolve, compared with nothing,
   # becomes a null test on the column. A row whose column holds nothing is
@@ -34,11 +35,12 @@ defmodule Turnstile.Cerbos.Core.Plan do
   alias Turnstile.Cerbos.Attributes
   alias Turnstile.Cerbos.Binding
 
-  @enforce_keys [:subject, :attributes, :kind, :schema, :key]
+  @enforce_keys [:subject, :request, :attributes, :kind, :schema, :key]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
           subject: Turnstile.subject(),
+          request: Turnstile.environment(),
           attributes: module(),
           kind: atom(),
           schema: module(),
@@ -50,17 +52,18 @@ defmodule Turnstile.Cerbos.Core.Plan do
   object type is measured against, `:denied` for a plan that admits no row,
   and `{:error, detail}` for a plan this adapter does not express.
   """
-  @spec dynamic(Binding.t(), Turnstile.subject(), atom(), map()) ::
+  @spec dynamic(Binding.t(), Turnstile.subject(), Turnstile.environment(), atom(), map()) ::
           {:ok, Ecto.Query.dynamic_expr()} | :denied | {:error, String.t()}
-  def dynamic(%Binding{} = binding, {_kind, _account} = subject, kind, filter) when is_atom(kind) and is_map(filter) do
+  def dynamic(%Binding{} = binding, {_kind, _account} = subject, %{now: _now} = request, kind, filter)
+      when is_atom(kind) and is_map(filter) do
     case Binding.target(binding, kind) do
-      {schema, key} -> filtered(new(binding, subject, kind, schema, key), filter)
+      {schema, key} -> filtered(new(binding, subject, request, kind, schema, key), filter)
       nil -> {:error, "the declarations name no schema with one primary key for #{kind}"}
     end
   end
 
-  defp new(%Binding{attributes: attributes}, subject, kind, schema, key) do
-    %__MODULE__{subject: subject, attributes: attributes, kind: kind, schema: schema, key: key}
+  defp new(%Binding{attributes: attributes}, subject, request, kind, schema, key) do
+    %__MODULE__{subject: subject, request: request, attributes: attributes, kind: kind, schema: schema, key: key}
   end
 
   defp filtered(_plan, %{"kind" => "KIND_ALWAYS_DENIED"}), do: :denied
@@ -140,7 +143,7 @@ defmodule Turnstile.Cerbos.Core.Plan do
   # A value the subquery selected for the asking subject holds of the row,
   # which is membership in the ids it selected with that value.
   defp applied(%__MODULE__{key: key} = plan, "has", {:subquery, fun}, value) when is_binary(value) do
-    ids = from(row in subquery(fun.(plan.subject)), where: row.value == ^value, select: row.id)
+    ids = from(row in subquery(fun.(plan.subject, plan.request)), where: row.value == ^value, select: row.id)
     {:ok, dynamic([row], field(row, ^key) in subquery(ids))}
   end
 

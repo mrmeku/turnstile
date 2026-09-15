@@ -13,9 +13,11 @@ defmodule Turnstile.Fga.Adapter.Decide do
   #
   # The environment is the context every call carries, which is what a
   # condition on a tuple is evaluated against: the caller's facts under their
-  # own names, and the moment of the call under `current_time`, the one name
-  # this package reserves. A condition that compares a date on a tuple with
-  # the present therefore needs nothing of the caller.
+  # own names, the moment of the call under `current_time`, and the kind of
+  # the asking subject under `subject_kind`, the two names this package
+  # reserves. A condition that compares a date on a tuple with the present,
+  # or the kind a tuple was written for with the kind asking, therefore
+  # needs nothing of the caller, and the user string stays kind-blind.
   #
   # An entry is where the question goes and what it is asked under: the client,
   # the endpoint, the store, the model, and that context. Every answer carries
@@ -55,6 +57,7 @@ defmodule Turnstile.Fga.Adapter.Decide do
   @guard "guard"
   @scope_cap 1_000
   @time "current_time"
+  @kind "subject_kind"
 
   @typedoc "Where a question goes and what it is asked under."
   @type entry :: %{
@@ -81,6 +84,10 @@ defmodule Turnstile.Fga.Adapter.Decide do
   @doc "The name the moment of the call carries in the context of every question."
   @spec time_fact() :: String.t()
   def time_fact, do: @time
+
+  @doc "The name the kind of the asking subject carries in the context of every question."
+  @spec kind_fact() :: String.t()
+  def kind_fact, do: @kind
 
   @doc "The consistency each callback asks for, a constant of this package."
   @spec consistency(atom()) :: Consistency.t()
@@ -171,7 +178,7 @@ defmodule Turnstile.Fga.Adapter.Decide do
     %Check{
       tuple_key: tuple(subject, operation, object),
       model: model,
-      context: entry.context,
+      context: asked_by(entry, subject),
       consistency: consistency(entry.callback)
     }
   end
@@ -182,10 +189,14 @@ defmodule Turnstile.Fga.Adapter.Decide do
       relation: relation(operation),
       type: Atom.to_string(type),
       model: model,
-      context: entry.context,
+      context: asked_by(entry, subject),
       consistency: consistency(entry.callback)
     }
   end
+
+  # The entry's context with the kind of the subject asking, since the user
+  # string carries none of it.
+  defp asked_by(entry, {kind, _account}), do: Map.put(entry.context, @kind, Atom.to_string(kind))
 
   defp tuple({_kind, _account} = subject, operation, {_type, _id} = object) do
     %TupleKey{user: user(subject), relation: relation(operation), object: named(object)}

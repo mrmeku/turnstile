@@ -69,6 +69,19 @@ defmodule Turnstile.Test.FakeTableTest do
     assert {:ok, %Answer{verdict: :deny}} = Fake.decide(@user, :read, @folder, @environment, options)
   end
 
+  test "an entry naming a whole subject allows that kind and not another of the same account",
+       %{rules: rules, options: options} do
+    :ok = Fake.allow(rules, {:privileged, "acct-a"}, :edit, {:folder, 1})
+    assert {:ok, %Answer{verdict: :allow}} = Fake.decide({:privileged, "acct-a"}, :edit, @folder, @environment, options)
+    assert {:ok, %Answer{verdict: :deny}} = Fake.decide(@user, :edit, @folder, @environment, options)
+
+    assert {:ok, {rule, %Answer{verdict: :allow}}} =
+             Fake.scope({:privileged, "acct-a"}, :edit, :folder, @environment, options)
+
+    assert inspect(rule) =~ "row.id in"
+    assert {:ok, {_none, %Answer{verdict: :deny}}} = Fake.scope(@user, :edit, :folder, @environment, options)
+  end
+
   test "any as the subject or the object id is a wildcard", %{rules: rules, options: options} do
     :ok = Fake.allow(rules, :any, :read, {:folder, 1})
     :ok = Fake.allow(rules, "acct-b", :edit, {:folder, :any})

@@ -9,8 +9,8 @@ type clearance
 
 type folder
   relations
-    define reader: [user with while_cleared]
-    define editor: [user with while_cleared]
+    define reader: [user with grant_holds]
+    define editor: [user with grant_holds]
     define can_read: reader or editor
     define can_edit: editor
 
@@ -20,6 +20,6 @@ type item
     define can_read: can_read from folder
     define can_edit: can_edit from folder
 
-condition while_cleared(clearance: string) {
-  clearance == "cleared"
+condition grant_holds(clearance: string, kind: string, expires_at: timestamp, subject_kind: string, current_time: timestamp) {
+  clearance == "cleared" && kind == subject_kind && expires_at > current_time
 }

@@ -58,7 +58,7 @@ defmodule Turnstile.Rbac.CoverageTest do
     role :reader, [:read]
 
     object Folder do
-      grant :membership, Membership
+      grant :membership, Membership, role: :role
       predicate :named, &Reads.name/2
     end
   end
@@ -70,7 +70,7 @@ defmodule Turnstile.Rbac.CoverageTest do
     role :reader, [:read]
 
     object Folder do
-      grant :membership, Membership
+      grant :membership, Membership, role: :role
       predicate :joined, &Reads.joined/2
     end
   end
@@ -82,7 +82,7 @@ defmodule Turnstile.Rbac.CoverageTest do
     role :reader, [:read]
 
     object Folder do
-      grant :membership, Membership
+      grant :membership, Membership, role: :role
       predicate :mapped, &Reads.mapped/2
     end
   end

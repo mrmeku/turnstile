@@ -65,7 +65,7 @@ defmodule Turnstile.Cerbos.Adapter.Decide do
     with {:ok, principal} <- Values.principal(binding, subject, request),
          body = Request.plan(subject, operation, kind, principal),
          {:ok, answered} <- Client.plan_resources(address, body) do
-      compiled(binding, subject, operation, kind, answered)
+      compiled(binding, subject, request, operation, kind, answered)
     end
   end
 
@@ -73,7 +73,7 @@ defmodule Turnstile.Cerbos.Adapter.Decide do
   # with the values the declarations name.
   defp asked(binding, subject, operation, type, object, request) do
     with {:ok, principal} <- Values.principal(binding, subject, request),
-         {:ok, by_id} <- Values.resources(binding, subject, type, [object]) do
+         {:ok, by_id} <- Values.resources(binding, subject, type, [object], request) do
       {:ok, Request.check(subject, operation, principal, [{object, values(by_id, object)}])}
     end
   end
@@ -103,8 +103,8 @@ defmodule Turnstile.Cerbos.Adapter.Decide do
     %Answer{verdict: :deny, reason: :deny_by_default, version: version, meta: %{rule: policy}}
   end
 
-  defp compiled(binding, subject, operation, kind, answered) do
-    case Plan.dynamic(binding, subject, kind, Map.get(answered, "filter", %{})) do
+  defp compiled(binding, subject, request, operation, kind, answered) do
+    case Plan.dynamic(binding, subject, request, kind, Map.get(answered, "filter", %{})) do
       {:ok, rule} -> {:ok, {rule, allowed(binding, nil)}}
       :denied -> {:ok, {dynamic([_row], false), denied(binding, nil)}}
       {:error, detail} -> fallback(operation, kind, detail)

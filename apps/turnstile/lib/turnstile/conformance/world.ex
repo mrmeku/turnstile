@@ -13,13 +13,16 @@ defmodule Turnstile.Conformance.World do
   second argument. `module/1` is that step.
 
   The callbacks fall in four groups. The shape is what the rule is written
-  in: the protected schemas, the operations, the kinds of grant, the
-  exemption every write declares, and the object a grant covers. The
-  populations are one generator, for the properties, and three fixed worlds
-  the shape, fail-closed, and latency cases are written over, with
-  `focus/1` naming the subject and the grant those three are built around.
-  Reading a population answers what it holds and what its rule says.
-  Writing one puts it in the tables and takes a grant out of it.
+  in: the protected schemas, the operations, the exemption every write
+  declares, and the object a grant covers. The populations are one
+  generator, for the properties, and three fixed worlds the shape,
+  fail-closed, and latency cases are written over, with `focus/1` naming
+  the subject and the grant those three are built around. Reading a
+  population answers what it holds and what its rule says, where `subjects/1`
+  includes one of kind `:privileged` so a law can ask about that kind.
+  Writing one puts it in the tables, adds a grant with attributes such as
+  its expiry, takes a grant out, and changes the account fact the rule
+  reads; each answers the population it leaves.
   """
 
   @typedoc "A population: a struct of the module that implements this behaviour."
@@ -36,9 +39,6 @@ defmodule Turnstile.Conformance.World do
 
   @doc "The operations the rule knows."
   @callback operations() :: [atom()]
-
-  @doc "The kinds of grant the rule reads, such as the roles a membership carries."
-  @callback grant_types() :: [atom()]
 
   @doc "The exemption every write of a population declares through the seam."
   @callback exemption() :: term()
@@ -61,7 +61,7 @@ defmodule Turnstile.Conformance.World do
   @doc "The subject the fixed worlds grant to, and what they grant it on."
   @callback focus(t()) :: {Turnstile.subject(), grantable()}
 
-  @doc "Every subject the population knows."
+  @doc "Every subject the population knows, including one of kind `:privileged`."
   @callback subjects(t()) :: [Turnstile.subject()]
 
   @doc "Every object the population holds."
@@ -79,8 +79,16 @@ defmodule Turnstile.Conformance.World do
   @doc "Take the subject's grant away, through the seam, and answer the population it leaves."
   @callback revoke(module(), t(), Turnstile.subject(), grantable()) :: t()
 
-  @doc "Write one grant through the seam and nothing else, for the case that counts the queries a fact write costs."
-  @callback insert_grant(module(), Turnstile.subject(), grantable(), atom()) :: :ok
+  @doc """
+  Write one grant to the subject on the grantable through the seam and
+  nothing else, with the attributes given, of which `expires_at` is the one
+  the laws set, and answer the population it leaves. One write, so the case
+  that counts the queries a fact write costs can count it.
+  """
+  @callback insert_grant(module(), t(), Turnstile.subject(), grantable(), keyword()) :: t()
+
+  @doc "Change the account fact the rule reads so the subject no longer satisfies it, and answer the population."
+  @callback disqualify(module(), t(), Turnstile.subject()) :: t()
 
   @doc """
   Bring the scope schema up to that many rows, none of them granted, given

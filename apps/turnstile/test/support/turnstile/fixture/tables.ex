@@ -1,5 +1,9 @@
 defmodule Turnstile.Fixture.Tables do
-  @moduledoc "Creates the fixture tables and the application role's grants, through an owner-role repo."
+  @moduledoc """
+  Creates the fixture tables and the application role's grants, through an
+  owner-role repo. A membership is unique per account and folder, so a
+  second grant of the same pair is a write the database refuses.
+  """
 
   use Boundary, top_level?: true, deps: []
 
@@ -10,7 +14,8 @@ defmodule Turnstile.Fixture.Tables do
     "CREATE TABLE turnstile_fixture_items (id bigserial PRIMARY KEY, title text, " <>
       "folder_id bigint REFERENCES turnstile_fixture_folders(id))",
     "CREATE TABLE turnstile_fixture_memberships (id bigserial PRIMARY KEY, account_id text, role text, " <>
-      "folder_id bigint REFERENCES turnstile_fixture_folders(id))",
+      "subject_kind text NOT NULL DEFAULT 'user', expires_at timestamptz, " <>
+      "folder_id bigint REFERENCES turnstile_fixture_folders(id), UNIQUE (account_id, folder_id))",
     "CREATE TABLE turnstile_fixture_accounts (id text PRIMARY KEY, clearance text)"
   ]
 
