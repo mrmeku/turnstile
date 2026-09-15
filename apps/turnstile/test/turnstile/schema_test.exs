@@ -51,7 +51,6 @@ defmodule Turnstile.SchemaTest do
     assert Turnstile.Schema.audited?(Declared)
     refute Turnstile.Schema.audited?(Empty)
     assert Turnstile.Schema.kind_of(Empty) == nil
-    assert Turnstile.Schema.kinds() == [:user, :group, :role, :entity]
   end
 
   test "a kind the change event does not carry is refused, and a second one raises" do

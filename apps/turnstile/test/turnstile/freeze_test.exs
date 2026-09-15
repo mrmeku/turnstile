@@ -34,12 +34,23 @@ defmodule Turnstile.FreezeTest do
   test "the structs have the frozen fields" do
     assert fields(Turnstile.Answer) == ~w(meta reason verdict version)a
     assert fields(Turnstile.Exemption) == ~w(caller kind on reason)a
-    assert Turnstile.Exemption.kinds() == [:declared, :library]
 
     assert fields(Turnstile.Decision) ==
              ~w(adapter at id object operation operation_id policy_version reason subject verdict)a
 
     assert fields(Turnstile.Config) == ~w(adapter caps clock)a
+  end
+
+  test "the subject kinds and the reason lists are the frozen lists" do
+    assert Turnstile.Port.subject_kinds() == [:user, :non_person_entity, :privileged]
+
+    assert Turnstile.Answer.reasons() ==
+             ~w(allowed deny_by_default rule_denied engine_unreachable missing_fact unknown_operation
+                unknown_subject_kind)a
+
+    assert Turnstile.Error.reasons() ==
+             ~w(deny_by_default rule_denied engine_unreachable missing_fact unknown_operation unknown_subject_kind
+                unsupported invalid unmediated)a
   end
 
   test "the scenario ids are the frozen list" do

@@ -17,8 +17,4 @@ defmodule Turnstile.Exemption do
           reason: String.t(),
           kind: kind()
         }
-
-  @doc "The two kinds."
-  @spec kinds() :: [kind()]
-  def kinds, do: [:declared, :library]
 end

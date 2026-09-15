@@ -55,9 +55,7 @@ defmodule Turnstile.Change do
     :telemetry.execute(@event, %{}, payload(schema, operation, old, new, stamp))
   end
 
-  @doc "The payload one change makes, which is what `publish/5` sends."
-  @spec payload(module(), operation(), struct() | nil, struct() | nil, stamp()) :: map()
-  def payload(schema, operation, old, new, stamp) when is_atom(schema) and is_map(stamp) do
+  defp payload(schema, operation, old, new, stamp) do
     {kind, _id} = stamp.by
 
     %{

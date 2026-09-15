@@ -160,10 +160,6 @@ defmodule Turnstile.Schema do
     if declares?(module), do: module.__turnstile__(:carries), else: []
   end
 
-  @doc "The kinds a schema's rows can be declared as, which are the kinds a change event carries."
-  @spec kinds() :: [atom()]
-  def kinds, do: @kinds
-
   @doc "What kind of thing a module's rows are, or `nil` for a module that declares none."
   @spec kind_of(term()) :: atom() | nil
   def kind_of(module) do

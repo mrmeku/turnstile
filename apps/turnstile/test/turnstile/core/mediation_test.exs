@@ -31,15 +31,11 @@ defmodule Turnstile.Core.MediationTest do
     assert Mediation.related(Folder, :missing) == nil
   end
 
-  test "carried_closure/1 is the root and every schema its carried associations reach" do
-    assert Mediation.carried_closure(Folder) == [Folder, Item]
-    assert Mediation.carried_closure(Item) == [Item]
-  end
-
-  test "a decision carries the root's associations, a denial raises, and an exemption records its caller" do
+  test "a decision carries the root and every schema its carried associations reach, a denial raises, and an exemption records its caller" do
     decision = decision(:folder, 1)
 
     assert %Mediation{decision: ^decision, carried: [Folder, Item]} = Mediation.decided({:all, 2}, Folder, decision)
+    assert %Mediation{carried: [Item]} = Mediation.decided({:all, 2}, Item, decision(:item, 1))
     assert %Mediation{carried: []} = Mediation.decided({:all, 2}, "turnstile_fixture_folders", decision)
 
     denial = %{decision | verdict: :deny, reason: :deny_by_default}

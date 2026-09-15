@@ -55,10 +55,6 @@ defmodule Turnstile.Core.Mediation do
   def object_type(%__MODULE__{decision: %Decision{object: {type, _id}}}), do: type
   def object_type(_other), do: nil
 
-  @doc "The schemas a root's decision covers: the closure of its carried associations."
-  @spec carried_closure(module()) :: [module()]
-  def carried_closure(root) when is_atom(root), do: closure([root], [])
-
   @doc "The schema an association leads to, through `through:` chains where needed."
   @spec related(module(), atom()) :: module() | nil
   def related(schema, name) when is_atom(schema) and is_atom(name) do
@@ -134,7 +130,7 @@ defmodule Turnstile.Core.Mediation do
   end
 
   defp carried(root, %Decision{object: {type, _id}}) when is_atom(root) and not is_nil(root) do
-    if Schema.object_type_of(root) == type, do: carried_closure(root), else: []
+    if Schema.object_type_of(root) == type, do: closure([root], []), else: []
   end
 
   defp carried(_root, _decision), do: []

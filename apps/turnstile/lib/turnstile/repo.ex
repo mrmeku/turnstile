@@ -41,11 +41,9 @@ defmodule Turnstile.Repo do
       @turnstile_surface Turnstile.Core.Surface.all()
       @before_compile Turnstile.Adapter.Overrides
 
-      @doc "The repo's role in Turnstile, `:app` or `:owner`, and the surface it was compiled against."
+      @doc "The repo's role in Turnstile, `:app` or `:owner`."
       @spec __turnstile__(:role) :: :app | :owner
-      @spec __turnstile__(:surface) :: [Turnstile.Repo.entry()]
       def __turnstile__(:role), do: @turnstile_role
-      def __turnstile__(:surface), do: @turnstile_surface
     end
   end
 
