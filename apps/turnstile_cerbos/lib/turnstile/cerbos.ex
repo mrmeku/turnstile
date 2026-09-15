@@ -10,9 +10,8 @@ defmodule Turnstile.Cerbos do
   directory is at.
 
   Every call reads the declared attribute values through the bound repo and
-  then asks the sidecar once. `check`, `authorize`, `batch`, and `explain`
-  ask for a decision over the rows named and answer with the policy the
-  sidecar matched. `scope` asks for a query plan and compiles the filter it
+  then asks the sidecar once. `decide` asks for a decision over the row
+  named and answers with the policy the sidecar matched. `scope` asks for a query plan and compiles the filter it
   answers into a `dynamic` over the object type; a plan this adapter does
   not express fails, and the caller asks the port for each row instead,
   which is the answer the declaration of a rule enforced this way records
@@ -70,22 +69,10 @@ defmodule Turnstile.Cerbos do
   def scope_cap, do: :none
 
   @impl Turnstile.Adapter
-  def authorize({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
+  def decide({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
       when is_atom(operation) do
-    explain(subject, operation, object, environment, options)
-  end
-
-  @impl Turnstile.Adapter
-  def check({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
-      when is_atom(operation) do
-    authorize(subject, operation, object, environment, options)
-  end
-
-  @impl Turnstile.Adapter
-  def batch({_kind, _account} = subject, operation, objects, %{now: _now} = environment, options)
-      when is_atom(operation) and is_list(objects) do
-    with {:ok, binding, address} <- bound(:batch, options) do
-      named(Decide.many(binding, address, subject, operation, objects, environment), :batch)
+    with {:ok, binding, address} <- bound(:decide, options) do
+      named(Decide.one(binding, address, subject, operation, object, environment), :decide)
     end
   end
 
@@ -94,14 +81,6 @@ defmodule Turnstile.Cerbos do
       when is_atom(operation) and is_atom(object_type) do
     with {:ok, binding, address} <- bound(:scope, options) do
       named(Decide.scoped(binding, address, subject, operation, object_type, environment), :scope)
-    end
-  end
-
-  @impl Turnstile.Adapter
-  def explain({_kind, _account} = subject, operation, {_type, _id} = object, %{now: _now} = environment, options)
-      when is_atom(operation) do
-    with {:ok, binding, address} <- bound(:explain, options) do
-      named(Decide.one(binding, address, subject, operation, object, environment), :explain)
     end
   end
 

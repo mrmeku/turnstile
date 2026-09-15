@@ -2,8 +2,8 @@ defmodule Turnstile.Cerbos.Adapter.Decide do
   # The answers the adapter gives: the attribute values read, one request to
   # the sidecar, and the effects it answered turned into answers.
   #
-  # A decision over rows is one call carrying every object asked about, and a
-  # scope is one call for the object type whose filter becomes the rule. An
+  # A decision is one call carrying the object asked about, and a scope is
+  # one call for the object type whose filter becomes the rule. An
   # effect of allow is allowed by the policy the sidecar matched; anything
   # else is a denial naming that policy where the sidecar named one. A denial
   # is not read as a rule that denied, because the sidecar names the policy it
@@ -42,21 +42,17 @@ defmodule Turnstile.Cerbos.Adapter.Decide do
         address,
         {_kind, _account} = subject,
         operation,
-        {_type, _id} = object,
+        {type, _id} = object,
         %{now: _now} = request
       )
       when is_binary(address) and is_atom(operation) do
-    with {:ok, explained} <- explained(binding, address, subject, operation, [object], request) do
-      {:ok, Map.fetch!(explained, object)}
+    with {:ok, principal} <- Values.principal(binding, subject, request),
+         {:ok, by_id} <- Values.resources(binding, subject, type, [object]),
+         body = Request.check(subject, operation, principal, [{object, values(by_id, object)}]),
+         {:ok, answered} <- Client.check_resources(address, body),
+         {:ok, effects} <- effects(answered, operation) do
+      {:ok, explanation(binding, Map.get(effects, key(object)))}
     end
-  end
-
-  @doc "The answers for a list of objects, one per object reference."
-  @spec many(Binding.t(), Client.address(), Turnstile.subject(), atom(), [Turnstile.object()], Turnstile.environment()) ::
-          {:ok, %{Turnstile.object() => Answer.t()}} | {:error, String.t()}
-  def many(%Binding{} = binding, address, {_kind, _account} = subject, operation, objects, %{now: _now} = request)
-      when is_binary(address) and is_atom(operation) and is_list(objects) do
-    explained(binding, address, subject, operation, objects, request)
   end
 
   @doc """
@@ -76,25 +72,22 @@ defmodule Turnstile.Cerbos.Adapter.Decide do
     end
   end
 
-  @doc "The policy the sidecar matched for an action of one result, or `nil` where it matched none."
-  @spec matched(map(), String.t()) :: String.t() | nil
-  def matched(result, action) when is_map(result) and is_binary(action) do
+  # The policy the sidecar matched for an action of one result, or `nil`
+  # where it matched none.
+  defp matched(result, action) do
     case result["meta"]["actions"][action]["matchedPolicy"] do
       "NO_MATCH" -> nil
       policy -> policy
     end
   end
 
-  @doc """
-  The answer an effect makes under a policy version: allowed by the policy
-  the sidecar matched, or denied by default naming the policy that answered.
-  """
-  @spec answer(String.t() | nil, String.t() | nil, String.t() | nil) :: Answer.t()
-  def answer("EFFECT_ALLOW", policy, version) do
+  # The answer an effect makes under a policy version: allowed by the policy
+  # the sidecar matched, or denied by default naming the policy that answered.
+  defp answer("EFFECT_ALLOW", policy, version) do
     %Answer{verdict: :allow, reason: :allowed, version: version, meta: %{rule: policy}}
   end
 
-  def answer(_effect, policy, version) do
+  defp answer(_effect, policy, version) do
     %Answer{verdict: :deny, reason: :deny_by_default, version: version, meta: %{rule: policy}}
   end
 
@@ -109,32 +102,6 @@ defmodule Turnstile.Cerbos.Adapter.Decide do
   defp fallback(operation, kind, detail) do
     :telemetry.execute(@fallback, %{}, %{operation: operation, kind: kind, detail: detail})
     {:error, detail}
-  end
-
-  defp explained(binding, address, subject, operation, objects, request) do
-    with {:ok, principal} <- Values.principal(binding, subject, request),
-         {:ok, paired} <- paired(binding, subject, objects),
-         body = Request.check(subject, operation, principal, paired),
-         {:ok, answered} <- Client.check_resources(address, body),
-         {:ok, effects} <- effects(answered, operation) do
-      {:ok, Map.new(objects, &{&1, explanation(binding, Map.get(effects, key(&1)))})}
-    end
-  end
-
-  # Each object with the values read for its own type, in the order asked.
-  defp paired(binding, subject, objects) do
-    step = fn {kind, of_kind}, {:ok, acc} -> gathered(binding, subject, kind, of_kind, acc) end
-
-    with {:ok, by_object} <- Enum.reduce_while(Enum.group_by(objects, &elem(&1, 0)), {:ok, %{}}, step) do
-      {:ok, Enum.map(objects, &{&1, Map.fetch!(by_object, key(&1))})}
-    end
-  end
-
-  defp gathered(binding, subject, kind, objects, acc) do
-    case Values.resources(binding, subject, kind, objects) do
-      {:ok, by_id} -> {:cont, {:ok, Map.merge(acc, Map.new(objects, &{key(&1), values(by_id, &1)}))}}
-      {:error, detail} -> {:halt, {:error, detail}}
-    end
   end
 
   # The effect and the matched policy of each resource the sidecar answered

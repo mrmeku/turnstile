@@ -93,23 +93,18 @@ resourcePolicy:
     options = [address: sidecar.address]
 
     fresh = %{now: now, reauthenticated_at: DateTime.shift(now, minute: -1)}
-    assert {:ok, %Answer{verdict: :allow}} = Turnstile.Cerbos.check(@ann, :read, @folder, fresh, options)
+    assert {:ok, %Answer{verdict: :allow}} = Turnstile.Cerbos.decide(@ann, :read, @folder, fresh, options)
 
     stale = %{now: now, reauthenticated_at: DateTime.shift(now, second: -901)}
-    assert {:ok, %Answer{verdict: :deny}} = Turnstile.Cerbos.check(@ann, :read, @folder, stale, options)
+    assert {:ok, %Answer{verdict: :deny}} = Turnstile.Cerbos.decide(@ann, :read, @folder, stale, options)
 
     absent = %{now: now}
-    assert {:ok, %Answer{verdict: :deny}} = Turnstile.Cerbos.check(@ann, :read, @folder, absent, options)
+    assert {:ok, %Answer{verdict: :deny}} = Turnstile.Cerbos.decide(@ann, :read, @folder, absent, options)
   end
 
-  # A decision for one row is one explanation with the answer taken out of
-  # it, so a failure of `authorize` and of `check` names the explanation.
   defp callbacks(ctx, options) do
     [
-      {:explain, fn -> Turnstile.Cerbos.authorize(@ann, :read, @folder, ctx.environment, options) end},
-      {:explain, fn -> Turnstile.Cerbos.check(@ann, :read, @folder, ctx.environment, options) end},
-      {:explain, fn -> Turnstile.Cerbos.explain(@ann, :read, @folder, ctx.environment, options) end},
-      {:batch, fn -> Turnstile.Cerbos.batch(@ann, :read, [@folder], ctx.environment, options) end},
+      {:decide, fn -> Turnstile.Cerbos.decide(@ann, :read, @folder, ctx.environment, options) end},
       {:scope, fn -> Turnstile.Cerbos.scope(@ann, :read, :folder, ctx.environment, options) end}
     ]
   end
