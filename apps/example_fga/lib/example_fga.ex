@@ -3,7 +3,7 @@ defmodule ExampleFga do
   The example bound to a relationship graph: the model the store is
   published from, the mapping that turns the example's tables into tuples,
   the guard that holds the re-authentication window outside the graph, the
-  boot that binds them to `Example.Repo`, and the migrations that create
+  boot that binds them to `Example.Infrastructure.Repo`, and the migrations that create
   the example's tables and the marker outbox the drain works from. Nothing
   of the domain lives in the adapter.
 

@@ -9,13 +9,14 @@ defmodule ExampleRbac.Application do
 
   use Application
 
-  alias Example.Siem
+  alias Example.Infrastructure.Repo
+  alias Example.Infrastructure.Siem
   alias Turnstile.Rbac.Binding
 
   @impl Application
   def start(_type, _args) do
     _config = Turnstile.Config.boot!(adapter: Turnstile.Rbac)
-    _binding = Binding.bind!(policy: ExampleRbac.Policy, repo: Example.Repo)
+    _binding = Binding.bind!(policy: ExampleRbac.Policy, repo: Repo)
     repos = repos()
     children = [{Siem, name: Siem, attach: true} | repos]
 
@@ -35,6 +36,6 @@ defmodule ExampleRbac.Application do
   end
 
   defp repos do
-    if Application.get_env(:example_rbac, :start_repos, true), do: [Example.Repo, Example.OwnerRepo], else: []
+    if Application.get_env(:example_rbac, :start_repos, true), do: [Repo, Example.Infrastructure.OwnerRepo], else: []
   end
 end

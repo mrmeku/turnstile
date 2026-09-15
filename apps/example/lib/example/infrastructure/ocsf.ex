@@ -1,4 +1,4 @@
-defmodule Example.Core.Ocsf do
+defmodule Example.Infrastructure.Ocsf do
   @moduledoc false
   # Hidden, because the format a security log takes is the consumer's and
   # not this package's surface. What is here is the mapping from the

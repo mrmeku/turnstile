@@ -5,6 +5,7 @@ defmodule Example.Application.AccountsTest do
   alias Example.Domain.Assignment
   alias Example.Domain.OfficeRole
   alias Example.Domain.User
+  alias Example.Infrastructure.Repo
 
   test "assignments and office roles are granted and revoked as rows", %{world: world} do
     assert %Assignment{role: :lead} = Accounts.assign("frank", world.program.id, :lead)
@@ -22,6 +23,6 @@ defmodule Example.Application.AccountsTest do
   test "employment and nationality are corrected in place", %{} do
     assert %User{employment: :contractor} = Accounts.set_employment("ann", :contractor)
     assert %User{nationality: "FR"} = Accounts.set_nationality("ann", "FR")
-    assert %User{employment: :contractor, nationality: "FR"} = Example.Repo.get(User, "ann")
+    assert %User{employment: :contractor, nationality: "FR"} = Repo.get(User, "ann")
   end
 end

@@ -19,7 +19,7 @@ defmodule ExamplePostgres.CoverageTest do
   alias Turnstile.Postgres.Coverage
 
   setup tags do
-    Sandbox.setup(Example.Repo, tags)
+    Sandbox.setup(Example.Infrastructure.Repo, tags)
   end
 
   test "every column the policies read is a declared fact" do

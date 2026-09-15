@@ -39,13 +39,13 @@ defmodule Example.Application.Documents do
   alias Example.Application.Accounts
   alias Example.Application.Documents.BannerViolation
   alias Example.Application.Documents.OverrideRefused
-  alias Example.Core.DocumentQuery
   alias Example.Domain.Banner
   alias Example.Domain.Document
   alias Example.Domain.Marking
   alias Example.Domain.OverrideReport
   alias Example.Domain.Portion
-  alias Example.Repo
+  alias Example.Infrastructure.DocumentQuery
+  alias Example.Infrastructure.Repo
   alias Turnstile.Config
   alias Turnstile.Decision
   alias Turnstile.Error

@@ -6,7 +6,7 @@ The rules are a model a server holds. A model declares types, the relations of e
 
 ## What binding costs
 
-- `ExampleFga.Application`: boots `Turnstile.Config` with the server's address and the store, binds `Example.Repo`, the model file, the mapping, and the guard, attaches the handler that writes a marker per change, starts the repos, the consumer of the events, and the runner that delivers those markers, and publishes the model as a policy version.
+- `ExampleFga.Application`: boots `Turnstile.Config` with the server's address and the store, binds `Example.Infrastructure.Repo`, the model file, the mapping, and the guard, attaches the handler that writes a marker per change, starts the repos, the consumer of the events, and the runner that delivers those markers, and publishes the model as a policy version.
 - `ExampleFga.TupleMapping`: which object types this application writes, which objects of a type its tables hold, which objects one change can have affected, and which rows an object's tuples are read from. Every answer is read from the rows as they stand, which is what lets a pass write differences rather than translate changes.
 - `lib/example_fga/core/tuples.ex`: what a row states, once the mapping has fetched it. It decides and touches nothing, so a test calls it directly.
 - `ExampleFga.Guard`: the re-authentication window, read from the environment before the server is asked, for a fact about the session that no tuple should carry.

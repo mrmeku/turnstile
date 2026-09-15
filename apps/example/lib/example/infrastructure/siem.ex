@@ -1,4 +1,4 @@
-defmodule Example.Siem do
+defmodule Example.Infrastructure.Siem do
   @moduledoc """
   The example's consumer of the library's three events: a process that
   maps every decision event, every change event, and every access event to
@@ -16,7 +16,7 @@ defmodule Example.Siem do
 
   use GenServer
 
-  alias Example.Core.Ocsf
+  alias Example.Infrastructure.Ocsf
   alias Turnstile.Access
   alias Turnstile.Change
   alias Turnstile.Port

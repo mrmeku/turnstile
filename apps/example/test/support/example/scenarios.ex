@@ -35,6 +35,8 @@ defmodule Example.Scenarios do
   import ExUnit.Assertions
 
   alias Ecto.Adapters.SQL.Sandbox
+  alias Example.Infrastructure.OwnerRepo
+  alias Example.Infrastructure.Repo
   alias Example.Scenarios.Row
   alias Example.Scenarios.Table
 
@@ -88,13 +90,13 @@ defmodule Example.Scenarios do
   @spec setup(map(), module() | nil) :: :ok
   def setup(tags, prepare) when is_map(tags) and is_atom(prepare) do
     if tags[:committed] do
-      :ok = Sandbox.checkout(Example.Repo, sandbox: false)
-      :ok = Example.Fixture.truncate!(Example.OwnerRepo)
+      :ok = Sandbox.checkout(Repo, sandbox: false)
+      :ok = Example.Fixture.truncate!(OwnerRepo)
       :ok = prepared(prepare, tags)
-      ExUnit.Callbacks.on_exit(fn -> Example.Fixture.truncate!(Example.OwnerRepo) end)
+      ExUnit.Callbacks.on_exit(fn -> Example.Fixture.truncate!(OwnerRepo) end)
       :ok
     else
-      :ok = Turnstile.Dev.Sandbox.setup(Example.Repo, tags)
+      :ok = Turnstile.Dev.Sandbox.setup(Repo, tags)
       prepared(prepare, tags)
     end
   end

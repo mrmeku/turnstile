@@ -4,7 +4,7 @@ The controlled-unclassified-information example of `example`, bound to the `Turn
 
 ## What binding costs
 
-- `ExampleRbac.Application`: boots `Turnstile.Config` with the adapter, binds `ExampleRbac.Policy` to `Example.Repo`, starts the repos and the consumer of the events, and publishes the policy version.
+- `ExampleRbac.Application`: boots `Turnstile.Config` with the adapter, binds `ExampleRbac.Policy` to `Example.Infrastructure.Repo`, starts the repos and the consumer of the events, and publishes the policy version.
 - `ExampleRbac.Policy`: the role table and, per protected schema, the grants and predicates. A program role reaches a document through its open program and a portion through its document; an office role reaches a document through its designating office and a proposal through the document's office.
 - `lib/example_rbac/core/predicates.ex`: the hop filter for an open program, the controls subquery, the session check, and the separation-of-duties check, as `dynamic` expressions the adapter puts in every rule. It decides and touches nothing, so a test calls it directly.
 - `priv/repo/migrations/`: the example's tables, through the helpers the library packages ship. No migration carries a rule.

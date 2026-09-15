@@ -4,7 +4,7 @@ defmodule ExampleRbac.ApplicationTest do
 
   import ExUnit.CaptureLog
 
-  alias Example.Siem
+  alias Example.Infrastructure.Siem
   alias ExampleRbac.Policy
   alias Turnstile.Config
   alias Turnstile.Rbac.Binding
@@ -20,6 +20,6 @@ defmodule ExampleRbac.ApplicationTest do
 
     assert {:ok, %Config{} = config} = Config.resolve()
     assert Config.adapter(config) == {Turnstile.Rbac, []}
-    assert {:ok, %Binding{policy: Policy, repo: Example.Repo}} = Binding.resolve()
+    assert {:ok, %Binding{policy: Policy, repo: Example.Infrastructure.Repo}} = Binding.resolve()
   end
 end

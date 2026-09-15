@@ -1,4 +1,4 @@
-defmodule Example.Core.DocumentQuery do
+defmodule Example.Infrastructure.DocumentQuery do
   @moduledoc false
   # Hidden, because the queries a context runs are not its surface. What is
   # here is which rows `Example.Application.Documents` asks for: the documents a rule

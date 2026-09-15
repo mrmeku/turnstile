@@ -22,7 +22,8 @@ defmodule ExampleFga.Application do
 
   use Application
 
-  alias Example.Siem
+  alias Example.Infrastructure.Repo
+  alias Example.Infrastructure.Siem
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Outbox
 
@@ -32,7 +33,7 @@ defmodule ExampleFga.Application do
 
     _binding =
       Binding.bind!(
-        repo: Example.Repo,
+        repo: Repo,
         model: ExampleFga.model(),
         mapping: ExampleFga.TupleMapping,
         guard: ExampleFga.Guard,
@@ -71,13 +72,13 @@ defmodule ExampleFga.Application do
 
   defp started do
     if Application.get_env(:example_fga, :start_repos, true) do
-      [Example.Repo, Example.OwnerRepo, drain()]
+      [Repo, Example.Infrastructure.OwnerRepo, drain()]
     else
       []
     end
   end
 
   defp drain do
-    {Turnstile.Fga.Relay, runners: [[name: Outbox.runner(), repo: Example.Repo, job: Outbox]]}
+    {Turnstile.Fga.Relay, runners: [[name: Outbox.runner(), repo: Repo, job: Outbox]]}
   end
 end

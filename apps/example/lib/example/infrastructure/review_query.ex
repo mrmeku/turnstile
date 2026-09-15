@@ -1,4 +1,4 @@
-defmodule Example.Core.ReviewQuery do
+defmodule Example.Infrastructure.ReviewQuery do
   @moduledoc false
   # Hidden, because the queries a context runs are not its surface. What is
   # here is the population `Example.Application.Review` ranges over: every agency, every

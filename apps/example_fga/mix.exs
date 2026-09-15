@@ -41,7 +41,7 @@ defmodule ExampleFga.MixProject do
   # committed schema file.
   defp turnstile do
     [
-      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/fga.sql"]
+      schema_dump: [repo: Example.Infrastructure.OwnerRepo, output: "priv/schema/fga.sql"]
     ]
   end
 

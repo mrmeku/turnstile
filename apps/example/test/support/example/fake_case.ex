@@ -33,7 +33,7 @@ defmodule Example.FakeCase do
   @doc "The setup: sandbox, fake adapter, and the world."
   @spec setup(map()) :: {:ok, keyword()}
   def setup(tags) when is_map(tags) do
-    :ok = Sandbox.setup(Example.Repo, tags)
+    :ok = Sandbox.setup(Example.Infrastructure.Repo, tags)
     rules = start_supervised!(%{id: Fake, start: {Fake, :start_link, []}})
     :ok = Turnstile.Test.with_config(adapter: {Fake, rules: rules})
     {:ok, rules: rules, world: Example.Fixture.world!()}

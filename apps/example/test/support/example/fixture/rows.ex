@@ -16,7 +16,7 @@ defmodule Example.Fixture.Rows do
   alias Example.Domain.Office
   alias Example.Domain.Program
   alias Example.Fixture
-  alias Example.Repo
+  alias Example.Infrastructure.Repo
   alias Turnstile.Conformance.RepoCase.Rows
   alias Turnstile.Dev.Sandbox
   alias Turnstile.Test.Fake

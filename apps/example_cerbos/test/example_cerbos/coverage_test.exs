@@ -31,7 +31,7 @@ defmodule ExampleCerbos.CoverageTest do
   @scopes [{:read, :document, Document}, {:set_decontrol, :document, Document}, {:read, :portion, Portion}]
 
   setup tags do
-    :ok = Sandbox.setup(Example.Repo, tags)
+    :ok = Sandbox.setup(Example.Infrastructure.Repo, tags)
     world = Fixture.world!()
 
     document =

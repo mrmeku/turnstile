@@ -6,6 +6,7 @@ defmodule Example.Application.ProposalsTest do
   alias Example.Domain.Marking
   alias Example.Domain.Proposal
   alias Example.Fixture
+  alias Example.Infrastructure.Repo
   alias Turnstile.Error
 
   @dana {:user, "dana"}
@@ -46,6 +47,8 @@ defmodule Example.Application.ProposalsTest do
     {:ok, proposal} = Proposals.propose(@dana, document.id, %{controls: []})
     allow(ctx.rules, "eve", :approve_marking, {:proposal, proposal.id})
     assert {:error, %Documents.BannerViolation{}} = Proposals.approve(@eve, proposal.id)
-    assert %Proposal{status: :pending} = Example.Repo.get(Proposal, proposal.id, turnstile: Fixture.exemption())
+
+    assert %Proposal{status: :pending} =
+             Repo.get(Proposal, proposal.id, turnstile: Fixture.exemption())
   end
 end

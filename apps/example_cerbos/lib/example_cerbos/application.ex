@@ -10,7 +10,8 @@ defmodule ExampleCerbos.Application do
 
   use Application
 
-  alias Example.Siem
+  alias Example.Infrastructure.Repo
+  alias Example.Infrastructure.Siem
   alias Turnstile.Cerbos.Binding
 
   @impl Application
@@ -20,7 +21,7 @@ defmodule ExampleCerbos.Application do
 
     _binding =
       Binding.bind!(
-        repo: Example.Repo,
+        repo: Repo,
         attributes: ExampleCerbos.Attributes,
         policies: policies(),
         commit: Application.fetch_env!(:example_cerbos, :commit),
@@ -59,6 +60,6 @@ defmodule ExampleCerbos.Application do
   end
 
   defp repos do
-    if Application.get_env(:example_cerbos, :start_repos, true), do: [Example.Repo, Example.OwnerRepo], else: []
+    if Application.get_env(:example_cerbos, :start_repos, true), do: [Repo, Example.Infrastructure.OwnerRepo], else: []
   end
 end

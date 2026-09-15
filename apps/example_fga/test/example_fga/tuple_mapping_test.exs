@@ -2,7 +2,7 @@ defmodule ExampleFga.TupleMappingTest do
   use Turnstile.Fga.TupleMappingCase,
     async: true,
     mapping: ExampleFga.TupleMapping,
-    repo: Example.Repo,
+    repo: Example.Infrastructure.Repo,
     population: ExampleFga.Population,
     sandbox: Turnstile.Dev.Sandbox
 
@@ -10,7 +10,7 @@ defmodule ExampleFga.TupleMappingTest do
 
   alias Example.Domain.Document
   alias Example.Domain.Program
-  alias Example.Repo
+  alias Example.Infrastructure.Repo
   alias ExampleFga.TupleMapping
   alias Turnstile.Fga.TupleKey
 

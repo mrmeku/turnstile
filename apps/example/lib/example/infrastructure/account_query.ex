@@ -1,4 +1,4 @@
-defmodule Example.Core.AccountQuery do
+defmodule Example.Infrastructure.AccountQuery do
   @moduledoc false
   # Hidden, because the queries a context runs are not its surface. What is
   # here is which rows `Example.Application.Accounts` asks for: an account's assignment

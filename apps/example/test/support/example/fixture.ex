@@ -37,7 +37,7 @@ defmodule Example.Fixture do
   alias Example.Domain.Portion
   alias Example.Domain.Program
   alias Example.Domain.User
-  alias Example.Repo
+  alias Example.Infrastructure.Repo
 
   @exempt {:exempt, "fixture: the world a scenario starts from"}
 

@@ -1,10 +1,11 @@
 alias Ecto.Adapters.SQL.Sandbox
+alias Example.Infrastructure.Repo
 
 Turnstile.Dev.Cluster.start(
   otp_app: :example,
   repos: [
-    {Example.Repo, role: :app, database: :sandboxed, pool: Sandbox},
-    {Example.OwnerRepo, role: :owner, database: :committed, pool_size: 2}
+    {Repo, role: :app, database: :sandboxed, pool: Sandbox},
+    {Example.Infrastructure.OwnerRepo, role: :owner, database: :committed, pool_size: 2}
   ],
   migrate: fn repo ->
     [1] = Ecto.Migrator.run(repo, [{1, Example.Fixture.Migration}], :up, all: true, log: false)
@@ -12,5 +13,5 @@ Turnstile.Dev.Cluster.start(
   end
 )
 
-Sandbox.mode(Example.Repo, :manual)
+Sandbox.mode(Repo, :manual)
 ExUnit.start()

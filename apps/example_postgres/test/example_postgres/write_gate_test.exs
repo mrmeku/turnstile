@@ -11,13 +11,14 @@ defmodule ExamplePostgres.WriteGateTest do
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Example.Fixture
+  alias Example.Infrastructure.OwnerRepo
 
   @update "UPDATE markings SET controls = ARRAY['federal_only'] WHERE document_id = $1"
 
   setup do
-    :ok = Sandbox.checkout(Example.Repo, sandbox: false)
-    :ok = Fixture.truncate!(Example.OwnerRepo)
-    on_exit(fn -> Fixture.truncate!(Example.OwnerRepo) end)
+    :ok = Sandbox.checkout(Example.Infrastructure.Repo, sandbox: false)
+    :ok = Fixture.truncate!(OwnerRepo)
+    on_exit(fn -> Fixture.truncate!(OwnerRepo) end)
     :ok
   end
 
@@ -25,7 +26,7 @@ defmodule ExamplePostgres.WriteGateTest do
     world = Fixture.world!()
     document = Fixture.document!(world)
 
-    error = assert_raise Postgrex.Error, fn -> Example.OwnerRepo.query!(@update, [document.id]) end
+    error = assert_raise Postgrex.Error, fn -> OwnerRepo.query!(@update, [document.id]) end
 
     assert error.postgres.code == :insufficient_privilege
     assert error.postgres.message =~ "row-level security policy"

@@ -41,10 +41,10 @@ defmodule Example do
       Domain.Proposal,
       Domain.Sessions,
       Domain.User,
-      Migrations.Domain,
-      OwnerRepo,
-      Repo,
-      Siem
+      Infrastructure.Migration,
+      Infrastructure.OwnerRepo,
+      Infrastructure.Repo,
+      Infrastructure.Siem
     ]
 
   @schemas [

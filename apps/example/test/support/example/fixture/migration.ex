@@ -4,11 +4,11 @@ defmodule Example.Fixture.Migration do
   use Boundary, top_level?: true, deps: [Example, Ecto.Migration]
   use Ecto.Migration
 
-  alias Example.Migrations.Domain
+  alias Example.Infrastructure.Migration
 
   @spec up() :: :ok
-  def up, do: Domain.up(app_role: "turnstile_app")
+  def up, do: Migration.up(app_role: "turnstile_app")
 
   @spec down() :: :ok
-  def down, do: Domain.down()
+  def down, do: Migration.down()
 end

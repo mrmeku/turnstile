@@ -40,7 +40,7 @@ defmodule ExamplePostgres.MixProject do
   # committed schema file, which for this binding carries the policies.
   defp turnstile do
     [
-      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/postgres.sql"]
+      schema_dump: [repo: Example.Infrastructure.OwnerRepo, output: "priv/schema/postgres.sql"]
     ]
   end
 

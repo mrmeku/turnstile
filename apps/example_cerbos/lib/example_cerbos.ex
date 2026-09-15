@@ -2,7 +2,7 @@ defmodule ExampleCerbos do
   @moduledoc """
   The example bound to a policy sidecar: the attribute declarations that
   say what the policies may read, the subqueries behind them, the policy
-  files the sidecar serves, the boot that binds them to `Example.Repo`,
+  files the sidecar serves, the boot that binds them to `Example.Infrastructure.Repo`,
   and the migrations that create the example's tables. Nothing of the
   domain lives here.
 

@@ -6,7 +6,7 @@ The rules are files a separate process evaluates. A policy names actions on a re
 
 ## What binding costs
 
-- `ExampleCerbos.Application`: boots `Turnstile.Config` with the sidecar's address, binds `Example.Repo`, the declarations, the policy directory, and the commit that directory is at, starts the repos and the consumer of the events, and publishes the commit as a policy version.
+- `ExampleCerbos.Application`: boots `Turnstile.Config` with the sidecar's address, binds `Example.Infrastructure.Repo`, the declarations, the policy directory, and the commit that directory is at, starts the repos and the consumer of the events, and publishes the commit as a policy version.
 - `ExampleCerbos.Attributes`: what the policies may read, per subject kind and per object type, and the request-time fact `reauthenticated_at`.
 - `ExampleCerbos.Facts`: the subquery behind each attribute whose value depends on who is asking or on a derivation the policy language does not carry, each selecting the row the value belongs to and the value as text. It reads the configured clock, which two of the subqueries need.
 - `lib/example_cerbos/core/controls.ex`: which controls are effective on a marking, declared or implied, and whether a portion's document is still controlled at a moment it is given. It decides and touches nothing, so a test calls it directly.

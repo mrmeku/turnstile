@@ -22,9 +22,9 @@ defmodule Example.Application.Review do
 
   alias Example.Application.Accounts
   alias Example.Application.Documents
-  alias Example.Core.ReviewQuery
   alias Example.Domain.Agency
-  alias Example.Repo
+  alias Example.Infrastructure.Repo
+  alias Example.Infrastructure.ReviewQuery
   alias Turnstile.Decision
 
   @review {:exempt, "access review: the population the reviewer ranges over"}

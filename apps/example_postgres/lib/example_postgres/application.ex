@@ -10,14 +10,16 @@ defmodule ExamplePostgres.Application do
 
   use Application
 
-  alias Example.Siem
+  alias Example.Infrastructure.OwnerRepo
+  alias Example.Infrastructure.Repo
+  alias Example.Infrastructure.Siem
   alias ExamplePostgres.Policies
   alias Turnstile.Postgres.Binding
 
   @impl Application
   def start(_type, _args) do
     _config = Turnstile.Config.boot!(adapter: Turnstile.Postgres)
-    _binding = Binding.bind!(repo: Example.Repo, schemas: Policies.schemas())
+    _binding = Binding.bind!(repo: Repo, schemas: Policies.schemas())
     repos = repos()
     children = [{Siem, name: Siem, attach: true} | repos]
 
@@ -38,6 +40,6 @@ defmodule ExamplePostgres.Application do
   end
 
   defp repos do
-    if Application.get_env(:example_postgres, :start_repos, true), do: [Example.Repo, Example.OwnerRepo], else: []
+    if Application.get_env(:example_postgres, :start_repos, true), do: [Repo, OwnerRepo], else: []
   end
 end

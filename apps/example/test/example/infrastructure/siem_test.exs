@@ -1,9 +1,9 @@
-defmodule Example.SiemTest do
+defmodule Example.Infrastructure.SiemTest do
   use Example.FakeCase, async: true
 
   alias Example.Application.Documents
   alias Example.Fixture
-  alias Example.Siem
+  alias Example.Infrastructure.Siem
 
   test "an attached consumer maps the decision, the access, and the changes of one operation, oldest first, and answers by correlation id",
        ctx do

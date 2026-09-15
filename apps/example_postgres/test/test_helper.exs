@@ -1,4 +1,5 @@
 alias Ecto.Adapters.SQL.Sandbox
+alias Example.Infrastructure.Repo
 
 # The migrations, loaded once: the cluster migrates each of its databases,
 # and loading the files per database would redefine their modules, so the
@@ -19,8 +20,8 @@ migrations =
 Turnstile.Dev.Cluster.start(
   otp_app: :example,
   repos: [
-    {Example.Repo, role: :app, database: :sandboxed, pool: Sandbox},
-    {Example.OwnerRepo, role: :owner, database: :sandboxed, pool_size: 2}
+    {Repo, role: :app, database: :sandboxed, pool: Sandbox},
+    {Example.Infrastructure.OwnerRepo, role: :owner, database: :sandboxed, pool_size: 2}
   ],
   migrate: fn repo ->
     [_domain, _rules] = Ecto.Migrator.run(repo, migrations, :up, all: true, log: false)
@@ -34,6 +35,6 @@ Turnstile.Dev.Cluster.start(
 _catalog = Turnstile.Postgres.load!()
 {:ok, _published} = ExamplePostgres.publish()
 
-Sandbox.mode(Example.Repo, :manual)
+Sandbox.mode(Repo, :manual)
 
 ExUnit.start()

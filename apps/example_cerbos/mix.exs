@@ -41,7 +41,7 @@ defmodule ExampleCerbos.MixProject do
   # committed schema file.
   defp turnstile do
     [
-      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/cerbos.sql"]
+      schema_dump: [repo: Example.Infrastructure.OwnerRepo, output: "priv/schema/cerbos.sql"]
     ]
   end
 

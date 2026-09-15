@@ -6,7 +6,7 @@ The rules are the database's own. A policy is a sentence on a table, and the dat
 
 ## What binding costs
 
-- `ExamplePostgres.Application`: boots `Turnstile.Config` with the adapter, binds `Example.Repo` and the schemas the policies protect and read, starts the repos and the consumer of the events, reads the policies, and publishes the version.
+- `ExamplePostgres.Application`: boots `Turnstile.Config` with the adapter, binds `Example.Infrastructure.Repo` and the schemas the policies protect and read, starts the repos and the consumer of the events, reads the policies, and publishes the version.
 - `ExamplePostgres.Policies`: every SQL expression the migrations write, one function per policy, with the accessors a portion reads its document through.
 - `ExamplePostgres.publish/0`: the version the database is at, emitted once the repos are up, from the policies the loaded catalog holds.
 - `priv/repo/migrations/`: the example's tables through the helpers the library packages ship, then the migration written by hand that reassigns the protected tables to the owner role, enables and forces row-level security, and adds the policies and the write gates.

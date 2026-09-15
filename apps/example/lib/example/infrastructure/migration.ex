@@ -1,4 +1,4 @@
-defmodule Example.Migrations.Domain do
+defmodule Example.Infrastructure.Migration do
   @moduledoc """
   The domain tables, as a helper a thin application's first migration
   calls. The library ships no migration files. Every table receives the
@@ -7,8 +7,8 @@ defmodule Example.Migrations.Domain do
 
       defmodule ExampleRbac.Repo.Migrations.Domain do
         use Ecto.Migration
-        def up, do: Example.Migrations.Domain.up(app_role: "turnstile_app")
-        def down, do: Example.Migrations.Domain.down()
+        def up, do: Example.Infrastructure.Migration.up(app_role: "turnstile_app")
+        def down, do: Example.Infrastructure.Migration.down()
       end
   """
 

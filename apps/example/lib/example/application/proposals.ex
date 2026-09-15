@@ -10,7 +10,7 @@ defmodule Example.Application.Proposals do
   alias Example.Application.Documents
   alias Example.Domain.Document
   alias Example.Domain.Proposal
-  alias Example.Repo
+  alias Example.Infrastructure.Repo
 
   @doc "Propose a marking for a document; needs `propose_marking` on the document (C7)."
   @spec propose(Turnstile.subject(), integer(), map(), keyword()) :: {:ok, Proposal.t()} | {:error, Documents.refusal()}

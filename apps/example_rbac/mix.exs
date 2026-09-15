@@ -40,7 +40,7 @@ defmodule ExampleRbac.MixProject do
   # committed schema file. The repo's own config lives under its otp_app.
   defp turnstile do
     [
-      schema_dump: [repo: Example.OwnerRepo, output: "priv/schema/rbac.sql"]
+      schema_dump: [repo: Example.Infrastructure.OwnerRepo, output: "priv/schema/rbac.sql"]
     ]
   end
 

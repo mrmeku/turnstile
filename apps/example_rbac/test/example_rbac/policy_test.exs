@@ -13,7 +13,7 @@ defmodule ExampleRbac.PolicyTest do
   test "the boot names the adapter, the policy, and the repo" do
     assert {:ok, %Config{} = config} = Config.resolve()
     assert Config.adapter(config) == {Turnstile.Rbac, []}
-    assert {:ok, %Binding{policy: Policy, repo: Example.Repo}} = Binding.resolve()
+    assert {:ok, %Binding{policy: Policy, repo: Example.Infrastructure.Repo}} = Binding.resolve()
     assert Turnstile.Rbac.Version.ref(Policy) == "2026.09.1"
   end
 

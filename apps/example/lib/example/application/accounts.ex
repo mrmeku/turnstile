@@ -11,12 +11,12 @@ defmodule Example.Application.Accounts do
   row made cannot be read back from one statement.
   """
 
-  alias Example.Core.AccountQuery
   alias Example.Domain.AccountRole
   alias Example.Domain.Assignment
   alias Example.Domain.OfficeRole
   alias Example.Domain.User
-  alias Example.Repo
+  alias Example.Infrastructure.AccountQuery
+  alias Example.Infrastructure.Repo
 
   @administration {:exempt, "role administration: no rule of the example governs who grants roles"}
 

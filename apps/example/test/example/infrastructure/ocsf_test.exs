@@ -3,7 +3,7 @@ defmodule Example.Core.OcsfTest do
 
   import Ecto.Query, only: [dynamic: 2]
 
-  alias Example.Core.Ocsf
+  alias Example.Infrastructure.Ocsf
 
   @now ~U[2026-09-08 12:00:00Z]
 
@@ -37,7 +37,7 @@ defmodule Example.Core.OcsfTest do
   @access %{
     object_type: :document,
     schema: Example.Domain.Document,
-    repo: Example.Repo,
+    repo: Example.Infrastructure.Repo,
     call: {:get, 3},
     activity: :read,
     ids: [4],
@@ -121,7 +121,7 @@ defmodule Example.Core.OcsfTest do
     assert {record.status_id, record.status, record.severity_id} == {1, "Success", 1}
     assert record.time == @now
     assert record.actor == %{user: %{uid: "ann", type_id: 1, type: "User"}}
-    assert record.database == %{name: "Example.Repo"}
+    assert record.database == %{name: "Example.Infrastructure.Repo"}
     assert record.table == %{name: "document"}
     assert record.metadata.correlation_uid == "op-1"
     assert record.unmapped == %{ids: ["4"], count: 1, decision_id: "dec-1"}

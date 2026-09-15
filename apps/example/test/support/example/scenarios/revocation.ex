@@ -13,7 +13,7 @@ defmodule Example.Scenarios.Revocation do
   alias Example.Domain.Document
   alias Example.Domain.Program
   alias Example.Fixture
-  alias Example.Repo
+  alias Example.Infrastructure.Repo
 
   @spec rev_01() :: term()
   def rev_01 do
