@@ -45,25 +45,23 @@ defmodule Turnstile.Postgres.Adapter.Session do
 
   @doc """
   Keep the settings a call ran under, so a query the seam mediates with
-  that call's decision can run under the same ones. One slot per process,
-  keyed by the subject and the operation, because a decision names those
-  two and the next call overwrites the last.
+  that call's decision can run under the same ones. One slot per subject
+  and operation in the process, because a decision names those two, and
+  the next call for the same pair overwrites the last. A review decides
+  for every subject before the reviewer runs a query under any of them,
+  which is why the slots are not one: a process holds at most one entry
+  per subject and operation it has decided for.
   """
   @spec remember(Turnstile.subject(), atom(), Settings.t()) :: :ok
   def remember({_kind, _account} = subject, operation, %Settings{} = settings) when is_atom(operation) do
-    Process.put(@stash, {key(subject, operation), settings})
+    Process.put(@stash, Map.put(Process.get(@stash, %{}), key(subject, operation), settings))
     :ok
   end
 
-  @doc "The kept settings for a subject and an operation, or `nil` when the slot holds another call's."
+  @doc "The kept settings for a subject and an operation, or `nil` when no call for the pair ran here."
   @spec recall(Turnstile.subject(), atom()) :: Settings.t() | nil
   def recall({_kind, _account} = subject, operation) when is_atom(operation) do
-    wanted = key(subject, operation)
-
-    case Process.get(@stash) do
-      {^wanted, %Settings{} = settings} -> settings
-      _miss -> nil
-    end
+    Map.get(Process.get(@stash, %{}), key(subject, operation))
   end
 
   defp key({_kind, id}, operation), do: {id, operation}

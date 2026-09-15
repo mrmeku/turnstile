@@ -100,6 +100,20 @@ defmodule Turnstile.PostgresTest do
     assert Postgres.around_query(Folder, decision(), fn -> setting("turnstile.subject_id") end) == "account-1"
   end
 
+  test "the session keeps one slot per subject and operation, so a review recalls every subject's call" do
+    bind()
+    other = {:user, "account-2"}
+    facts = Map.put(environment(), :clearance, "cleared")
+    mine = Settings.of(@subject, :read, facts)
+    theirs = Settings.of(other, :read, facts)
+    :ok = Session.remember(@subject, :read, mine)
+    :ok = Session.remember(other, :read, theirs)
+
+    assert Session.recall(@subject, :read) == mine
+    assert Session.recall(other, :read) == theirs
+    assert Session.recall(@subject, :publish) == nil
+  end
+
   test "around_query with the call out of reach sets what the decision alone determines" do
     bind()
 
