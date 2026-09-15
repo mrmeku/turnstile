@@ -1,9 +1,10 @@
 defmodule Example.Fixture.Rows do
   @moduledoc """
   What `Turnstile.Conformance.RepoCase` writes when the example holds its
-  repo to the four guarantees: a document of the world's program, whose
+  repo to the five guarantees: a document of the world's program, whose
   decontrol date is a fact field, under the fixture's exemption, with an
-  UPDATE by hand as the write that goes around the seam.
+  UPDATE by hand as the write that goes around the seam; and a second such
+  document, read under a decision the fake adapter allows.
   """
 
   @behaviour Turnstile.Conformance.RepoCase.Rows
@@ -26,7 +27,7 @@ defmodule Example.Fixture.Rows do
   @impl Rows
   def setup(tags) when is_map(tags) do
     :ok = Sandbox.setup(Repo, tags)
-    :ok = Turnstile.Test.with_config(adapter: Fake)
+    :ok = Turnstile.Test.with_config(adapter: {Fake, verdict: :allow})
     _world = Fixture.world!()
     :ok
   end
@@ -47,6 +48,15 @@ defmodule Example.Fixture.Rows do
     sql = "UPDATE documents SET decontrol = $1 WHERE id = $2"
     _result = Repo.query!(sql, [@by_hand, id], turnstile: Fixture.exemption())
     :ok
+  end
+
+  @impl Rows
+  def protected, do: row()
+
+  @impl Rows
+  def decision(%Document{id: id}) do
+    {:ok, decision} = Turnstile.authorize({:user, "conformance"}, :read, {:document, id})
+    decision
   end
 
   # The oldest row of a type the world wrote, which is the tenant a

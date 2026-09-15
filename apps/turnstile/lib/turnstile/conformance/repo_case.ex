@@ -13,12 +13,14 @@ defmodule Turnstile.Conformance.RepoCase do
       end
 
   An adopter that names a `Turnstile.Conformance.RepoCase.Rows` module as
-  well gets four more tests, one per guarantee the change event makes: a
-  single-row write to an audited schema emits one event carrying every fact
-  field that changed, a bulk write to one raises and emits nothing, a write
-  that goes around the seam emits nothing, and a handler that writes to the
-  same repo joins the write's transaction. Those four write to the
-  database the rows module names.
+  well gets five more tests, one per guarantee the change and access events
+  make: a single-row write to an audited schema emits one change event
+  carrying every fact field that changed, a bulk write to one raises and
+  emits nothing, a write that goes around the seam emits nothing, a handler
+  that writes to the same repo joins the write's transaction, and a
+  mediated read of a protected schema emits one access event naming the
+  rows and the decision. Those five write to the database the rows module
+  names.
 
       defmodule MyApp.RepoTest do
         use Turnstile.Conformance.RepoCase, repo: MyApp.Repo, rows: MyApp.RepoRows
@@ -30,6 +32,7 @@ defmodule Turnstile.Conformance.RepoCase do
   alias Turnstile.Change
   alias Turnstile.Conformance.RepoCase
   alias Turnstile.Core.Surface
+  alias Turnstile.Decision
   alias Turnstile.Schema
   alias Turnstile.Test
 
@@ -78,6 +81,10 @@ defmodule Turnstile.Conformance.RepoCase do
 
         test "E4 a consumer that writes to the same repository from its handler joins the write transaction" do
           RepoCase.assert_handler_joins(@turnstile_repo, @turnstile_rows)
+        end
+
+        test "E5 a mediated read of a protected schema emits one access event naming the rows and the decision" do
+          RepoCase.assert_read_evented(@turnstile_repo, @turnstile_rows)
         end
       end
     end
@@ -188,6 +195,30 @@ defmodule Turnstile.Conformance.RepoCase do
     :ok
   end
 
+  @doc """
+  E5: a `get` under a decision is one access event naming the row, the
+  decision, and the subject; an `exists?` is one naming no row; and a read
+  under an exemption is none.
+  """
+  @spec assert_read_evented(module(), module()) :: :ok
+  def assert_read_evented(repo, rows) when is_atom(repo) and is_atom(rows) do
+    row = repo.insert!(rows.protected(), turnstile: rows.mediation())
+    schema = row.__struct__
+    decision = rows.decision(row)
+    assert %Decision{verdict: :allow} = decision
+
+    {read, [got]} = Test.accesses(fn -> repo.get(schema, id(row), turnstile: decision) end)
+    assert read == row
+    assert_access(got, {:get, 3}, :read, [id(row)], :rows, schema, repo, decision)
+
+    {true, [exists]} = Test.accesses(fn -> repo.exists?(schema, turnstile: decision) end)
+    assert_access(exists, {:exists?, 2}, :read, [], :value, schema, repo, decision)
+
+    {_read, none} = Test.accesses(fn -> repo.get(schema, id(row), turnstile: rows.mediation()) end)
+    assert none == []
+    :ok
+  end
+
   @doc false
   @spec __join__([atom()], map(), map(), map()) :: :ok
   def __join__(_event, _measurements, _payload, %{repo: repo, rows: rows, pid: pid}) do
@@ -245,16 +276,27 @@ defmodule Turnstile.Conformance.RepoCase do
     Map.new(columns, &{&1, {Map.get(row, &1), Map.fetch!(changes, &1)}})
   end
 
+  defp assert_access(event, call, activity, ids, shape, schema, repo, decision) do
+    assert event.call == call
+    assert event.activity == activity
+    assert event.ids == ids
+    assert event.count == length(ids)
+    assert event.shape == shape
+    assert event.schema == schema
+    assert event.repo == repo
+    assert event.object_type == Schema.object_type_of(schema)
+    assert event.decision_id == decision.id
+    assert event.subject == decision.subject
+    assert event.operation_id == decision.operation_id
+    assert %DateTime{} = event.time
+    :ok
+  end
+
   defp facts(row), do: Map.take(row, Schema.fact_columns(row.__struct__))
 
   defp type(schema), do: Schema.object_type_of(schema) || Schema.kind_of(schema)
 
-  defp id(row) do
-    case row.__struct__.__schema__(:primary_key) do
-      [key] -> Map.fetch!(row, key)
-      keys -> Map.new(keys, &{&1, Map.fetch!(row, &1)})
-    end
-  end
+  defp id(row), do: Schema.id_of(row)
 
   defp unclassified(repo, name, arity) do
     "#{inspect(repo)} exports #{name}/#{arity}, which the surface this build was written against " <>
