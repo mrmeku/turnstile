@@ -26,7 +26,7 @@ Published by the port after every `authorize`, `check`, `scope`, and `review`, w
 | `reason` | an atom of `Turnstile.Answer.reasons/0`: `allowed`, `deny_by_default`, `rule_denied`, `engine_unreachable`, `missing_fact`, `unknown_operation`, `unknown_subject_kind` |
 | `decider`, `version` | the adapter module, and its policy version string |
 | `env` | the environment map as the caller gave it, with `now` stamped from the configured clock |
-| `exception` | the exception, where the adapter raised and the decision failed closed; otherwise `nil` |
+| `exception` | what broke, where the decision failed closed: the exception the adapter raised, or the `Turnstile.Error` it answered with; otherwise `nil` |
 | `decision_id` | the `Turnstile.Decision` id the seam will name in access and change events |
 | `time`, `operation_id` | the configured clock at the call, and the operation's identifier |
 

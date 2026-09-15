@@ -9,8 +9,8 @@ defmodule Turnstile.Port do
   metadata is what `docs/events.md` §1 states: who asked and of what kind,
   the operation, the object or the rule a narrowing call answered with, the
   verdict and the reason, the decider and the version of its rules, the
-  environment as the caller gave it, the exception where the call raised,
-  the moment, and the operation id. A decision is a read, so it has no
+  environment as the caller gave it, what broke where the call failed
+  closed, the moment, and the operation id. A decision is a read, so it has no
   transaction. The one measurement is the duration in microseconds, which
   is where a consumer of telemetry looks for it.
 
@@ -196,8 +196,10 @@ defmodule Turnstile.Port do
   defp scope_verdict(%Answer{verdict: :allow}), do: :scoped
   defp scope_verdict(%Answer{verdict: :deny}), do: :deny
 
-  defp closed(%Error{reason: :engine_unreachable, detail: detail}, nil) do
-    %Answer{verdict: :deny, reason: :engine_unreachable, meta: %{detail: detail}}
+  # The door closed: the answer carries what broke, which is the exception
+  # the decider raised, or the error it answered with when it raised none.
+  defp closed(%Error{reason: :engine_unreachable, detail: detail} = error, nil) do
+    %Answer{verdict: :deny, reason: :engine_unreachable, meta: %{detail: detail, exception: error}}
   end
 
   defp closed(%Error{reason: :engine_unreachable, detail: detail}, exception) do
@@ -211,8 +213,8 @@ defmodule Turnstile.Port do
     }
   end
 
-  # What the event says beyond the verdict: the exception, where a decider
-  # raised and the answer closed the door in its place.
+  # What the event says beyond the verdict: what broke, where the answer
+  # closed the door in the decider's place.
   defp said(%Answer{meta: %{exception: exception}}), do: %{exception: exception}
   defp said(%Answer{}), do: %{}
 
