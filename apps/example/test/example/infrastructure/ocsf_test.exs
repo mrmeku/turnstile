@@ -1,4 +1,4 @@
-defmodule Example.Core.OcsfTest do
+defmodule Example.Infrastructure.OcsfTest do
   use ExUnit.Case, async: true
 
   import Ecto.Query, only: [dynamic: 2]
