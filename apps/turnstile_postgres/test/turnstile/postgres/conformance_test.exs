@@ -16,7 +16,8 @@ defmodule Turnstile.Postgres.ConformanceTest do
         "turnstile_fixture_folders",
         "turnstile_fixture_accounts"
       ]
-    ]
+    ],
+    versions: Turnstile.Postgres.Conformance.Versions
 
   alias Turnstile.Postgres.Binding
 

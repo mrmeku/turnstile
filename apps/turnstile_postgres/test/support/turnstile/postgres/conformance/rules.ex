@@ -95,6 +95,23 @@ defmodule Turnstile.Postgres.Conformance.Rules do
     :ok
   end
 
+  @doc """
+  The read policy over folders: a live membership on the folder held by
+  the asking kind, of the named role when one is given, on a cleared
+  account. The boot policy names no role; the change-management artifact
+  names `reader`, which is the tightening.
+  """
+  @spec folder_read(String.t() | nil) :: String.t()
+  def folder_read(role) when is_binary(role) or is_nil(role) do
+    by_role = if role, do: "\n            AND m.role = '#{role}'", else: ""
+
+    """
+    EXISTS (SELECT 1 FROM turnstile_fixture_memberships m
+            WHERE m.folder_id = turnstile_fixture_folders.id
+              AND #{@holding}#{by_role}) AND #{@cleared}
+    """
+  end
+
   defp rules(repo, table, member, editor) do
     :ok = Migration.protect!(repo, table)
     :ok = Migration.policy!(repo, table: table, operation: :read, using: "#{member} AND #{@cleared}")

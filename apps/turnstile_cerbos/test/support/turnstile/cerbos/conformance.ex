@@ -10,6 +10,6 @@ defmodule Turnstile.Cerbos.Conformance do
 
   use Boundary,
     top_level?: true,
-    deps: [Turnstile, Turnstile.Cerbos, Turnstile.Fixture, Ecto],
-    exports: [Attributes, Memberships]
+    deps: [Turnstile, Turnstile.Conformance, Turnstile.Cerbos, Turnstile.Fixture, Turnstile.Test, Ecto],
+    exports: [Attributes, Memberships, Versions]
 end

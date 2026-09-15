@@ -17,7 +17,8 @@ defmodule Turnstile.Fga.ConformanceTest do
         "turnstile_fixture_folders",
         "turnstile_fixture_accounts"
       ]
-    ]
+    ],
+    versions: Turnstile.Fga.Conformance.Versions
 
   alias Turnstile.Dev
   alias Turnstile.Fga

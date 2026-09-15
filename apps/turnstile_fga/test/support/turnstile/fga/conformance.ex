@@ -14,11 +14,12 @@ defmodule Turnstile.Fga.Conformance do
       Ecto,
       ExUnit,
       Turnstile,
+      Turnstile.Conformance,
       Turnstile.Fga,
       Turnstile.Fga.Client.Fake,
       Turnstile.Fixture,
       Turnstile.Test,
       Turnstile.Dev.Sandbox
     ],
-    exports: [Mapping, Population, Setup]
+    exports: [Mapping, Population, Setup, Versions]
 end

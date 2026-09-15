@@ -10,7 +10,8 @@ defmodule Turnstile.Rbac.ConformanceTest do
       owner: Turnstile.TestRepos.Owner,
       tables:
         ~w(turnstile_fixture_memberships turnstile_fixture_items turnstile_fixture_folders turnstile_fixture_accounts)
-    ]
+    ],
+    versions: Turnstile.Rbac.Conformance.Versions
 
   alias Turnstile.Rbac.Binding
   alias Turnstile.Rbac.Conformance.Roles

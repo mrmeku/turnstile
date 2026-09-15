@@ -5,5 +5,8 @@ defmodule Turnstile.Postgres.Conformance do
   its rule. The test run compiles it; an application never loads it.
   """
 
-  use Boundary, top_level?: true, deps: [Turnstile.Postgres, Ecto], exports: [Rules]
+  use Boundary,
+    top_level?: true,
+    deps: [Turnstile.Postgres, Turnstile.Conformance, Turnstile.TestRepos, Ecto],
+    exports: [Rules, Versions]
 end

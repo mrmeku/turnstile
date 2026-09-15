@@ -16,7 +16,8 @@ defmodule Turnstile.Cerbos.ConformanceTest do
         "turnstile_fixture_folders",
         "turnstile_fixture_accounts"
       ]
-    ]
+    ],
+    versions: Turnstile.Cerbos.Conformance.Versions
 
   alias Turnstile.Cerbos.Binding
   alias Turnstile.Cerbos.Conformance.Attributes
@@ -43,7 +44,9 @@ defmodule Turnstile.Cerbos.ConformanceTest do
       repo: repo,
       attributes: Attributes,
       policies: sidecar.policies,
-      commit: "conformance"
+      commit: "conformance",
+      author: "turnstile_cerbos",
+      approval: "the conformance suite"
     )
   end
 end
