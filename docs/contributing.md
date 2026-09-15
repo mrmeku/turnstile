@@ -52,11 +52,11 @@ Inside the run, the SQL sandbox in `:manual` mode gives each test a connection w
 | The relay's runner | Startable unnamed with the repo, the job, and the clock injected; tests drive `drain_once/1` and never leave a runner ticking. `Turnstile.Test.settle/0` settles the configured adapter where it has state of its own and answers `:none` otherwise |
 | Time | No `Process.sleep/1` outside `Turnstile.Test.poll/2`, a deadline loop used for latency measurement and for waiting on external processes |
 
-**What proves what.** Conformance suites (`AdapterCase`, `RepoCase`, and the `OutboxCase` and `TupleMappingCase` of `turnstile_fga`) prove that a module touching the world behaves as every other of its kind. Properties prove a decision is right for inputs nobody thought of, over modules under `core/` that need no database. Scenarios prove the example obeys its own rules under every binding. Shape tests prove the work is the size it should be, by counting queries and events rather than timing them. `docs/conformance.md` has the first; `docs/example.md` §4 has the third.
+**What proves what.** Conformance suites (`AdapterCase`, `RepoCase`, and the `OutboxCase` and `TupleMappingCase` of `turnstile_fga`) prove that a module touching the world behaves as every other of its kind. Properties prove a decision is right for inputs nobody thought of, over modules under `domain/` that need no database. Scenarios prove the example obeys its own rules under every binding. Shape tests prove the work is the size it should be, by counting queries and events rather than timing them. `docs/conformance.md` has the first; `docs/example.md` §4 has the third.
 
 **The count test.** `use Example.Scenarios` ends by defining one more test: the scenario ids defined across the module are the table's ids, all of them and no others. No binding declares a scenario unsupported, so a green run answered every row.
 
-**The structure test**, in `turnstile_dev`, reads every `.ex` under each package's `lib` and `test/support` from the syntax tree and holds it to `docs/design.md` §6: the path names a module the file defines, every other module in the file is named under it, a module under `core/` calls nothing outside its package and names no `adapter/` module, and modules under `core/` and `adapter/` carry `@moduledoc false`.
+**The structure test**, in `turnstile_dev`, reads every `.ex` under each package's `lib` and `test/support` from the syntax tree and holds it to `docs/design.md` §6: the path names a module the file defines, every other module in the file is named under it, a module under `domain/` calls nothing that touches the world and names no module under `application/` or `infrastructure/`, a module under `infrastructure/` names no module under `application/`, and in a published package the modules under the three places carry `@moduledoc false`.
 
 **Committed outputs.** The one output compared against a file is the schema dump: `mix turnstile.schema_dump` in a thin application raises a cluster, runs its migrations as the owner, writes `pg_dump --schema-only` into `priv/schema/<adapter>.sql`, and CI's `git diff --exit-code priv/schema/` is the assertion. The Postgres dump is where the row-level security policies are legible as SQL.
 
@@ -66,7 +66,7 @@ Inside the run, the SQL sandbox in `:manual` mode gives each test a connection w
 
 **Records are structs.** No bare map crosses a function boundary inside the library as an ad hoc struct. Every struct has `@enforce_keys` for every field without a meaningful default, `defstruct`, `@type t` with every field typed, and `@moduledoc`. On a struct, `Map.put/3`, `Map.merge/2`, `Map.update/4`, `Map.delete/2`, and `Access` are banned; update with `%S{s | field: v}`. Three things stay maps: the environment, `Answer.meta`, and a telemetry payload, each built at exactly one edge. Options are `NimbleOptions` schemas, never `opts[:foo]` without one.
 
-**The knobs**, all on, in every app: `elixir: "~> 1.20.4"`, `elixirc_options: [warnings_as_errors: true, infer_signatures: true, no_warn_undefined: []]`, `use Boundary` with explicit `deps:` and `exports:` in every root module, `@impl true` on every callback, `mix format --check-formatted` with `plugins: [Styler]`, `mix credo --strict --all` with every check on and each disabled one carrying a comment, coverage thresholds of 90 percent per application and 100 percent over `core/` under `TURNSTILE_CORE_COVERAGE`. Dialyzer and runtime type-check libraries are off on purpose: the compiler's checker has the sound half of what they offered.
+**The knobs**, all on, in every app: `elixir: "~> 1.20.4"`, `elixirc_options: [warnings_as_errors: true, infer_signatures: true, no_warn_undefined: []]`, `use Boundary` with explicit `deps:` and `exports:` in every root module, `@impl true` on every callback, `mix format --check-formatted` with `plugins: [Styler]`, `mix credo --strict --all` with every check on and each disabled one carrying a comment, coverage thresholds of 90 percent per application and 100 percent over `domain/` under `TURNSTILE_DOMAIN_COVERAGE`. Dialyzer and runtime type-check libraries are off on purpose: the compiler's checker has the sound half of what they offered.
 
 Credo checks off by default and on here: `Readability.Specs`, `StrictModuleLayout`, `ImplTrue`, `WithSingleClause`, `Refactor.WithClauses`, `Apply`, `ABCSize`, `CyclomaticComplexity`, `Nesting` at strict thresholds, `Warning.UnsafeToAtom`, `MapGetUnsafePass`, `Design.AliasUsage`, `TagTODO` and `TagFIXME` as failures. Shipped in `turnstile_credo`: `Turnstile.Credo.NoRawSQL` and `Turnstile.Credo.UnmediatedRepo`, which excepts the owner-role repo.
 
@@ -84,7 +84,7 @@ Credo checks off by default and on here: `Readability.Specs`, `StrictModuleLayou
 - `@doc` on every public function, `@typedoc` on every public type, `@doc false` for what a macro needs public; a doctest where an example is cheap and true. Comments explain why, never what.
 - Naming: `Turnstile.` for library modules, `Example.` and `ExampleRbac.`, `ExamplePostgres.`, `ExampleCerbos.`, `ExampleFga.` for the example. A struct's module is a noun, a behaviour's a role. "Adapter", never "provider". Test names are law ids and sentences from `docs/conformance.md`, or scenario ids and sentences from `docs/example.md`.
 
-**Placement** is `docs/design.md` §6 and `CLAUDE.md`: decide whether a module decides or touches the world before adding it, and put it in the matching place.
+**Placement** is `docs/design.md` §6 and `CLAUDE.md`: ask the placement question before adding a module, and put it in the place the answer names.
 
 ## 4. Prose
 
@@ -117,13 +117,13 @@ The gate is the grep in `CLAUDE.md`, run over every changed document; it prints 
 
 A gate that fails is not worked around: report what failed and stop.
 
-**The root gate.** At the root, `mix quality` is `hex.audit` first, because Hex requires it before any task that loads the application, then `format --check-formatted`, `compile --force --warnings-as-errors --all-warnings`, `credo --strict --all`, `xref graph --label compile-connected --fail-above 0`, `xref graph --format cycles --fail-above 0`, `deps.unlock --check-unused`, `deps.audit` with the one acknowledged advisory named by id in `mix.exs` beside its reason, `docs --warnings-as-errors`, and the test step, which runs each app's suite in an operating-system process of its own, because the thin applications bind the same example modules and one VM cannot hold two of them. `mix test.core` runs unpartitioned over every app that owns a `core/` and holds each module there to every line. Those two commands are the two numbers the design keeps: the runtime dependency count of `turnstile`, a test in its own suite, and `core/` at 100 percent.
+**The root gate.** At the root, `mix quality` is `hex.audit` first, because Hex requires it before any task that loads the application, then `format --check-formatted`, `compile --force --warnings-as-errors --all-warnings`, `credo --strict --all`, `xref graph --label compile-connected --fail-above 0`, `xref graph --format cycles --fail-above 0`, `deps.unlock --check-unused`, `deps.audit` with the one acknowledged advisory named by id in `mix.exs` beside its reason, `docs --warnings-as-errors`, and the test step, which runs each app's suite in an operating-system process of its own, because the thin applications bind the same example modules and one VM cannot hold two of them. `mix test.domain` runs unpartitioned over every app that owns a `domain/` and holds each module there to every line. Those two commands are the two numbers the design keeps: the runtime dependency count of `turnstile`, a test in its own suite, and `domain/` at 100 percent.
 
 ```
 $ mix quality
 <green>
-$ mix test.core
-<every app that owns a core/>, 0 failures
+$ mix test.domain
+<every app that owns a domain/>, 0 failures
 ```
 
 **The gate per package**, beyond its own `mix quality`, which is the root's minus the lock check.
@@ -138,6 +138,6 @@ $ mix test.core
 
 A change to a library package runs before the thin application that binds it. A change to a frozen table runs before the code that reads it: the freeze test in `turnstile` holds the adapter's callbacks, the struct fields, the law table, and the scenario table to their documents.
 
-**CI** is one workflow, `nix develop` everywhere: `quality` with the tests across four partitions, each with its own cluster; `core_coverage` alone, because a partitioned run measures a part; and one job per thin application that regenerates the schema dump, diffs it, and runs the scenarios with coverage. Every app's coverage threshold is 90 percent, and warnings are errors in every job.
+**CI** is one workflow, `nix develop` everywhere: `quality` with the tests across four partitions, each with its own cluster; `domain_coverage` alone, because a partitioned run measures a part; and one job per thin application that regenerates the schema dump, diffs it, and runs the scenarios with coverage. Every app's coverage threshold is 90 percent, and warnings are errors in every job.
 
 **The split that stays.** The library emits and the system stores. A stage that adds a store to a library package is outside the design, not behind a flag.

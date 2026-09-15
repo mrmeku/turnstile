@@ -57,6 +57,8 @@ Every scenario of `docs/example.md` is a test there, named by its id and sentenc
 
 An umbrella. `apps/turnstile` is the port, the seam, the events, and the conformance suites. `apps/turnstile_rbac`, `apps/turnstile_postgres`, `apps/turnstile_cerbos`, and `apps/turnstile_fga` are the adapters. `apps/turnstile_credo` holds the two static checks. `apps/turnstile_dev` holds the test cluster and the engine launchers and is not published. `apps/example` is the domain and its scenarios, and `apps/example_rbac`, `apps/example_postgres`, `apps/example_cerbos`, and `apps/example_fga` bind it to one adapter each.
 
+Inside every package the same places mean the same thing: the root of `lib/` is the interface, `domain/` is what the package knows, `application/` is its use cases, and `infrastructure/` is what touches the world or speaks another system's language. `docs/design.md` §6 has the table.
+
 ## Working on it
 
 ```
