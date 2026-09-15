@@ -1,6 +1,6 @@
 defmodule Turnstile.Fga.Client do
   @moduledoc """
-  The only path to the server. Every call the adapter and the projector make
+  The only path to the server. Every call the adapter and the drain make
   is a callback here, so a suite runs either of them against
   `Turnstile.Fga.Client.Fake` without a server, and the real client is the
   same six calls over HTTP.
@@ -70,7 +70,7 @@ defmodule Turnstile.Fga.Client do
   @doc """
   How many changes one `write/3` carries, counting its deletes and its
   writes together. This is the pinned server's own limit, so the fake holds
-  callers to it and the projector packs its calls under it.
+  callers to it and the drain packs its calls under it.
   """
   @spec max_tuples_per_write() :: pos_integer()
   def max_tuples_per_write, do: @max_tuples_per_write
