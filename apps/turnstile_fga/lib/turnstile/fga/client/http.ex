@@ -2,7 +2,7 @@ defmodule Turnstile.Fga.Client.Http do
   @moduledoc """
   The server over HTTP and JSON: one function per call the behaviour names,
   and one telemetry event per call, which is how a shape test counts the
-  engine's own calls (`docs/reference.md` §7).
+  engine's own calls (`docs/contributing.md` §2).
 
   The transport is `httpc`, which OTP ships, and the encoder is Elixir's
   `JSON`, so talking to the server adds no dependency to an application that

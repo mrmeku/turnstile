@@ -6,7 +6,7 @@ defmodule Turnstile.Port do
   raised, stamp a `Turnstile.Decision`, and publish it.
 
   Every call publishes one `[:turnstile, :decision]` event, whose metadata
-  is what `docs/reference.md` §7 states: who asked and of what kind, the
+  is what `docs/events.md` §1 states: who asked and of what kind, the
   operation, the object or the rule a narrowing call answered with, the
   verdict and the reason, the decider and the version of its rules, the
   environment as the caller gave it, the exception where the call raised,

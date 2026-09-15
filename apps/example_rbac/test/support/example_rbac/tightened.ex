@@ -10,7 +10,7 @@ defmodule ExampleRbac.Tightened do
   use Turnstile.Code.Policy,
     version: "2026.09.2-tightened",
     author: "example_rbac",
-    approval: "docs/reference.md §3, tightened for the scenarios"
+    approval: "docs/example.md §3, tightened for the scenarios"
 
   alias Example.Assignment
   alias Example.Document

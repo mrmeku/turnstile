@@ -1,6 +1,6 @@
 defmodule ExamplePostgres.Policies do
   @moduledoc """
-  The example's rules of `docs/reference.md` §3 as Postgres policy
+  The example's rules of `docs/example.md` §3 as Postgres policy
   expressions. Each function answers one SQL fragment, and the migration
   hands those fragments to `Turnstile.Postgres.Migration`. Every fact a
   fragment reads is read from the tables at the moment the statement runs,

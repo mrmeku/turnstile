@@ -1,7 +1,7 @@
 defmodule ExampleRbac.Policy do
   @moduledoc """
   The example's rules as a role table and, per protected schema, the
-  grants and predicates of `docs/reference.md` §3. A program role reaches
+  grants and predicates of `docs/example.md` §3. A program role reaches
   a document through its open program (C1) and a portion through its
   document; an office role reaches a document through its designating
   office (C1, C7) and a proposal through the document's office (C9). The
@@ -9,7 +9,7 @@ defmodule ExampleRbac.Policy do
   predicate is C8; the proposal predicate is C9.
   """
 
-  use Turnstile.Code.Policy, version: "2026.09.1", author: "example_rbac", approval: "docs/reference.md §3"
+  use Turnstile.Code.Policy, version: "2026.09.1", author: "example_rbac", approval: "docs/example.md §3"
 
   alias Example.Assignment
   alias Example.Document

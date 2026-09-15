@@ -8,7 +8,7 @@ defmodule Turnstile.Cerbos.Propagation do
   it has: a caller learns that a change is in force by asking a question the
   change answers differently. That interval is this adapter's
   `policy_propagation` component of revocation latency
-  (`docs/reference.md` §4), and a measurement of it is a publish, then
+  (`docs/conformance.md` §2), and a measurement of it is a publish, then
   polling until the answer changes, then the clock.
 
   Two moves, so a caller can do both. Writing policy text into the

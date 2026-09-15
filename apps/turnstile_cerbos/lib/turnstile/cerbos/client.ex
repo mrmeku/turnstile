@@ -2,7 +2,7 @@ defmodule Turnstile.Cerbos.Client do
   @moduledoc """
   The sidecar over HTTP and JSON: one function per endpoint the adapter
   uses, and one telemetry event per call, which is how a shape test counts
-  the engine's own calls (`docs/reference.md` §7).
+  the engine's own calls (`docs/contributing.md` §2).
 
   The transport is `httpc`, which OTP ships, and the encoder is Elixir's
   `JSON`, so talking to the sidecar adds no dependency to an application

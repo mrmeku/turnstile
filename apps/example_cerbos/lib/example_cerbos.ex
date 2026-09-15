@@ -17,7 +17,7 @@ defmodule ExampleCerbos do
     exports: [Application, Attributes, Facts]
 
   @author "example_cerbos"
-  @approval "docs/reference.md §3, as policy files under review"
+  @approval "docs/example.md §3, as policy files under review"
 
   @doc "Who wrote the rules, as the record of a policy version carries it."
   @spec author() :: String.t()

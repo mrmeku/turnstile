@@ -1,7 +1,7 @@
 defmodule Turnstile.FreezeTest do
   @moduledoc """
-  The frozen lists of S1. A change here follows a change to `PLAN.md` or
-  `docs/reference.md` in its own commit.
+  The frozen lists. A change here follows a change to `docs/design.md`,
+  `docs/conformance.md`, or `docs/example.md` in its own commit.
   """
 
   use ExUnit.Case, async: true
@@ -11,7 +11,7 @@ defmodule Turnstile.FreezeTest do
 
   @moduletag :freeze
 
-  @reference Path.expand("../../../../docs/reference.md", __DIR__)
+  @reference Path.expand("../../../../docs/example.md", __DIR__)
 
   test "Turnstile.Adapter has the frozen callbacks" do
     assert Enum.sort(Turnstile.Adapter.behaviour_info(:callbacks)) ==
@@ -55,7 +55,7 @@ defmodule Turnstile.FreezeTest do
                Enum.map(1..3, &"cm-#{pad(&1)}")
   end
 
-  test "the scenario table equals the reference's §3a" do
+  test "the scenario table equals docs/example.md §4" do
     assert Scenarios.all() == reference_rows()
   end
 
@@ -71,7 +71,7 @@ defmodule Turnstile.FreezeTest do
   defp reference_rows do
     @reference
     |> File.read!()
-    |> String.split("\n## §3a ")
+    |> String.split("\n## 4. The scenarios")
     |> Enum.at(1)
     |> String.split("\n## ")
     |> hd()
