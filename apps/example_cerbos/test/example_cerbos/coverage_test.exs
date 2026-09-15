@@ -24,7 +24,7 @@ defmodule ExampleCerbos.CoverageTest do
   alias Example.Domain.OfficeRole
   alias Example.Domain.Portion
   alias Example.Fixture
-  alias ExampleCerbos.Attributes
+  alias ExampleCerbos.Infrastructure.Attributes
   alias Turnstile.Cerbos.Coverage
   alias Turnstile.Dev.Sandbox
 

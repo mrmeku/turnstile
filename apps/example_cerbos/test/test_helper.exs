@@ -49,7 +49,7 @@ _config = Turnstile.Config.boot!(adapter: {Turnstile.Cerbos, address: sidecar.ad
 _binding =
   Turnstile.Cerbos.Binding.bind!(
     repo: Repo,
-    attributes: ExampleCerbos.Attributes,
+    attributes: ExampleCerbos.Infrastructure.Attributes,
     policies: sidecar.policies,
     commit: Application.fetch_env!(:example_cerbos, :commit),
     author: ExampleCerbos.author(),

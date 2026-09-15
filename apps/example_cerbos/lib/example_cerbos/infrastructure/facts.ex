@@ -1,4 +1,4 @@
-defmodule ExampleCerbos.Facts do
+defmodule ExampleCerbos.Infrastructure.Facts do
   @moduledoc """
   The subqueries the attribute declarations name, one per attribute whose
   value depends on who is asking or on a derivation the policies do not
@@ -6,7 +6,7 @@ defmodule ExampleCerbos.Facts do
   since text is what a policy compares.
 
   One derivation the policy language does not carry sits behind two of
-  them, in `lib/example_cerbos/core/controls.ex`: which controls are
+  them, in `lib/example_cerbos/infrastructure/controls.ex`: which controls are
   effective on a marking, and, for a portion, whether the document it
   belongs to is still controlled. The moment that second test compares
   against is the one the port stamped the request with, cut to the second
@@ -28,7 +28,7 @@ defmodule ExampleCerbos.Facts do
   alias Example.Domain.Program
   alias Example.Domain.Proposal
   alias Example.Domain.User
-  alias ExampleCerbos.Core.Controls
+  alias ExampleCerbos.Infrastructure.Controls
 
   @doc "The roles the subject holds through an open program, by document (C1)."
   @spec program_roles(Turnstile.subject(), Turnstile.environment()) :: Ecto.Query.t()

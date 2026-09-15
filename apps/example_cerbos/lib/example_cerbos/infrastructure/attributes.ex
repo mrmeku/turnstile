@@ -1,4 +1,4 @@
-defmodule ExampleCerbos.Attributes do
+defmodule ExampleCerbos.Infrastructure.Attributes do
   @moduledoc """
   What the policies of `priv/policies` may read: the attributes of a
   principal, of a document, of a portion, and of a proposal.
@@ -9,7 +9,7 @@ defmodule ExampleCerbos.Attributes do
   the moment the port stamped the request with (C8).
 
   A resource attribute a policy tests membership in is a subquery of the
-  asking subject (`ExampleCerbos.Facts`), so a list stays one query: the
+  asking subject (`ExampleCerbos.Infrastructure.Facts`), so a list stays one query: the
   subquery selects the rows the value holds of, and the plan compiles the
   test to membership in those ids. A document's `decontrol` is a column
   instead, since the moment the policy compares it against is the moment
@@ -26,7 +26,7 @@ defmodule ExampleCerbos.Attributes do
   alias Example.Domain.Portion
   alias Example.Domain.Proposal
   alias Example.Domain.User
-  alias ExampleCerbos.Facts
+  alias ExampleCerbos.Infrastructure.Facts
 
   principal :user, schema: User do
     attribute :employment, column: :employment

@@ -14,7 +14,7 @@ defmodule ExampleCerbos do
 
   use Boundary,
     deps: [Example, Turnstile, Turnstile.Cerbos, Ecto],
-    exports: [Application, Attributes, Facts]
+    exports: [Application, Infrastructure.Attributes, Infrastructure.Facts]
 
   @author "example_cerbos"
   @approval "docs/example.md §3, as policy files under review"

@@ -22,7 +22,7 @@ defmodule ExampleCerbos.Application do
     _binding =
       Binding.bind!(
         repo: Repo,
-        attributes: ExampleCerbos.Attributes,
+        attributes: ExampleCerbos.Infrastructure.Attributes,
         policies: policies(),
         commit: Application.fetch_env!(:example_cerbos, :commit),
         author: ExampleCerbos.author(),

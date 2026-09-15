@@ -1,4 +1,4 @@
-defmodule ExampleCerbos.Core.Controls do
+defmodule ExampleCerbos.Infrastructure.Controls do
   @moduledoc false
   # Hidden, because what the sidecar reads is an attribute declaration, not
   # this. What is here is the one derivation the policy language does not
