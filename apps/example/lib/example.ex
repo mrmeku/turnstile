@@ -5,9 +5,8 @@ defmodule Example do
   the contexts call the port and write through the seam, and the consumer
   maps the library's events to the shape a security log takes. What decides
   without touching the world is under `core/`: rule C4's arithmetic, the
-  queries each context runs, and the mapping to OCSF. The web layer is
-  `ExampleWeb`, which reaches the contexts and nothing under them. No
-  adapter is named here; a thin application binds one.
+  queries each context runs, and the mapping to OCSF. No adapter is named
+  here; a thin application binds one.
   """
 
   use Boundary,

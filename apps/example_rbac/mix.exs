@@ -71,7 +71,6 @@ defmodule ExampleRbac.MixProject do
       {:ecto_sql, "3.14.0"},
       {:postgrex, "0.22.4"},
       {:boundary, "0.10.4", runtime: false},
-      {:sobelow, "0.15.0", only: [:dev, :test], runtime: false},
       {:credo, "1.7.19", only: [:dev, :test], runtime: false},
       {:turnstile_credo, in_umbrella: true, only: [:dev, :test], runtime: false},
       {:styler, "1.12.2", only: [:dev, :test], runtime: false},
@@ -105,7 +104,6 @@ defmodule ExampleRbac.MixProject do
         "xref graph --label compile-connected --fail-above 0",
         "xref graph --format cycles --fail-above 0",
         "deps.audit --ignore-advisory-ids GHSA-rhv4-8758-jx7v",
-        "sobelow --config --exit",
         "docs --warnings-as-errors",
         "test --warnings-as-errors --cover"
       ]
