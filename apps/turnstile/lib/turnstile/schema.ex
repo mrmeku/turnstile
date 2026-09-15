@@ -40,7 +40,7 @@ defmodule Turnstile.Schema do
   does nothing else; the seam reads them back through
   `__turnstile__/1`.
 
-      defmodule Example.Marking do
+      defmodule Example.Domain.Marking do
         use Ecto.Schema
         use Turnstile.Schema
 

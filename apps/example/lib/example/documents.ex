@@ -1,13 +1,15 @@
 defmodule Example.Documents.BannerViolation do
   @moduledoc "A banner that would admit a subject a portion denies: the portions' banner is not covered."
 
+  alias Example.Domain.Controls
+
   @enforce_keys [:document_id, :banner, :portions]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
           document_id: integer(),
-          banner: Example.Controls.marking(),
-          portions: Example.Controls.marking()
+          banner: Controls.marking(),
+          portions: Controls.marking()
         }
 end
 
@@ -34,14 +36,14 @@ defmodule Example.Documents do
   """
 
   alias Ecto.Changeset
-  alias Example.Banner
   alias Example.Core.DocumentQuery
-  alias Example.Document
   alias Example.Documents.BannerViolation
   alias Example.Documents.OverrideRefused
-  alias Example.Marking
-  alias Example.OverrideReport
-  alias Example.Portion
+  alias Example.Domain.Banner
+  alias Example.Domain.Document
+  alias Example.Domain.Marking
+  alias Example.Domain.OverrideReport
+  alias Example.Domain.Portion
   alias Example.Repo
   alias Turnstile.Config
   alias Turnstile.Decision

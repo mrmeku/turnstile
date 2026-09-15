@@ -21,9 +21,9 @@ defmodule Example.Review do
   import Ecto.Query, only: [where: 2]
 
   alias Example.Accounts
-  alias Example.Agency
   alias Example.Core.ReviewQuery
   alias Example.Documents
+  alias Example.Domain.Agency
   alias Example.Repo
   alias Turnstile.Decision
 

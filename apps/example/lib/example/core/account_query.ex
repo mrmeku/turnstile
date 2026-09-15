@@ -8,9 +8,9 @@ defmodule Example.Core.AccountQuery do
   import Ecto.Query, only: [from: 2]
 
   alias Ecto.Query
-  alias Example.AccountRole
-  alias Example.Assignment
-  alias Example.User
+  alias Example.Domain.AccountRole
+  alias Example.Domain.Assignment
+  alias Example.Domain.User
 
   @doc "An account's assignment to a program, which a revocation deletes a row at a time."
   @spec assignment(String.t(), integer()) :: Query.t()

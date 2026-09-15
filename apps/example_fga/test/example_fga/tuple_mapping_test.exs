@@ -8,8 +8,8 @@ defmodule ExampleFga.TupleMappingTest do
 
   import Ecto.Query, only: [from: 2]
 
-  alias Example.Document
-  alias Example.Program
+  alias Example.Domain.Document
+  alias Example.Domain.Program
   alias Example.Repo
   alias ExampleFga.TupleMapping
   alias Turnstile.Fga.TupleKey

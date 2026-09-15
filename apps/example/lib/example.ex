@@ -1,11 +1,11 @@
 defmodule Example do
   @moduledoc """
   The example application: controlled unclassified information, as a
-  library application. The schemas declare object types and fact mappings,
-  the contexts call the port and write through the seam, and the consumer
-  maps the library's events to the shape a security log takes. What decides
-  without touching the world is under `core/`: rule C4's arithmetic, the
-  queries each context runs, and the mapping to OCSF. No adapter is named
+  library application. `domain/` is what the example knows: the schemas,
+  which declare object types and fact mappings, the control vocabulary,
+  rule C4's arithmetic, and the re-authentication window. The contexts
+  call the port and write through the seam, and the consumer maps the
+  library's events to the shape a security log takes. No adapter is named
   here; a thin application binds one.
   """
 
@@ -20,47 +20,47 @@ defmodule Example do
     ],
     exports: [
       Accounts,
-      AccountRole,
-      Agency,
-      Assignment,
-      Banner,
-      Category,
-      Controls,
-      Document,
       Documents,
       Documents.BannerViolation,
       Documents.OverrideRefused,
-      Marking,
+      Domain.AccountRole,
+      Domain.Agency,
+      Domain.Assignment,
+      Domain.Banner,
+      Domain.Category,
+      Domain.Controls,
+      Domain.Document,
+      Domain.Marking,
+      Domain.Office,
+      Domain.OfficeRole,
+      Domain.OverrideReport,
+      Domain.Portion,
+      Domain.Program,
+      Domain.Proposal,
+      Domain.Sessions,
+      Domain.User,
       Migrations.Domain,
-      Office,
-      OfficeRole,
-      OverrideReport,
       OwnerRepo,
-      Portion,
-      Program,
-      Proposal,
       Proposals,
       Repo,
       Review,
-      Sessions,
-      Siem,
-      User
+      Siem
     ]
 
   @schemas [
-    Example.Agency,
-    Example.Office,
-    Example.Program,
-    Example.Category,
-    Example.User,
-    Example.AccountRole,
-    Example.Assignment,
-    Example.OfficeRole,
-    Example.Document,
-    Example.Marking,
-    Example.Portion,
-    Example.Proposal,
-    Example.OverrideReport
+    Example.Domain.Agency,
+    Example.Domain.Office,
+    Example.Domain.Program,
+    Example.Domain.Category,
+    Example.Domain.User,
+    Example.Domain.AccountRole,
+    Example.Domain.Assignment,
+    Example.Domain.OfficeRole,
+    Example.Domain.Document,
+    Example.Domain.Marking,
+    Example.Domain.Portion,
+    Example.Domain.Proposal,
+    Example.Domain.OverrideReport
   ]
 
   @doc """

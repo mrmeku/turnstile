@@ -1,4 +1,4 @@
-defmodule Example.OfficeRole do
+defmodule Example.Domain.OfficeRole do
   @moduledoc """
   An account holds a role, designator or approver, in an office. The table
   admits both roles for one account in one office, so the row is declared
@@ -11,7 +11,7 @@ defmodule Example.OfficeRole do
   use Ecto.Schema
   use Turnstile.Schema
 
-  alias Example.Office
+  alias Example.Domain.Office
 
   @type t :: %__MODULE__{}
 

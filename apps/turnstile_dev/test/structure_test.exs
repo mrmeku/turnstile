@@ -40,7 +40,7 @@ defmodule StructureTest do
   @published ~w(turnstile turnstile_rbac turnstile_postgres turnstile_cerbos turnstile_fga)
 
   @exceptions %{
-    "apps/example/lib/example/document.ex" =>
+    "apps/example/lib/example/domain/document.ex" =>
       "a document, its markings, its portions, and its proposals refer to one another"
   }
 

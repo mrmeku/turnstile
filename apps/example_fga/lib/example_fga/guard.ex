@@ -10,15 +10,17 @@ defmodule ExampleFga.Guard do
   admitted only for a fresh session, and every other operation is admitted
   and left to the model.
 
-  The window itself is the example's, read from `Example.Sessions`, which is
+  The window itself is the example's, read from `Example.Domain.Sessions`, which is
   where the domain states how long a re-authentication lasts.
   """
 
   @behaviour Turnstile.Fga.Guard
 
+  alias Example.Domain.Sessions
+
   @gated [:change_marking, :set_decontrol, :decontrol]
 
   @impl Turnstile.Fga.Guard
-  def admits?(operation, environment) when operation in @gated, do: Example.Sessions.fresh?(environment)
+  def admits?(operation, environment) when operation in @gated, do: Sessions.fresh?(environment)
   def admits?(_operation, _environment), do: true
 end

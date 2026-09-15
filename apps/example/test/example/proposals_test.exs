@@ -2,9 +2,9 @@ defmodule Example.ProposalsTest do
   use Example.FakeCase, async: true
 
   alias Example.Documents
+  alias Example.Domain.Marking
+  alias Example.Domain.Proposal
   alias Example.Fixture
-  alias Example.Marking
-  alias Example.Proposal
   alias Example.Proposals
   alias Turnstile.Error
 

@@ -16,19 +16,19 @@ defmodule ExampleFga.Population do
 
   use Boundary, top_level?: true, deps: [Ecto, Example, Example.Fixture, Turnstile.Fga]
 
-  alias Example.AccountRole
-  alias Example.Agency
-  alias Example.Assignment
-  alias Example.Category
-  alias Example.Document
+  alias Example.Domain.AccountRole
+  alias Example.Domain.Agency
+  alias Example.Domain.Assignment
+  alias Example.Domain.Category
+  alias Example.Domain.Document
+  alias Example.Domain.Marking
+  alias Example.Domain.Office
+  alias Example.Domain.OfficeRole
+  alias Example.Domain.Portion
+  alias Example.Domain.Program
+  alias Example.Domain.Proposal
+  alias Example.Domain.User
   alias Example.Fixture
-  alias Example.Marking
-  alias Example.Office
-  alias Example.OfficeRole
-  alias Example.Portion
-  alias Example.Program
-  alias Example.Proposal
-  alias Example.User
   alias Turnstile.Fga.Population
 
   @exemption {:exempt, "fga population: the world a mapping is held to"}

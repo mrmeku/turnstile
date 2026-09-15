@@ -1,10 +1,10 @@
-defmodule Example.Controls do
+defmodule Example.Domain.Controls do
   @moduledoc """
   The dissemination controls and the marking values, as the domain's own
   vocabulary: the four control kinds and the fields a marking carries.
 
   Every schema that holds a marking reads its control values from here, and
-  `Example.Banner` is where a set of markings adds up to a banner (C4).
+  `Example.Domain.Banner` is where a set of markings adds up to a banner (C4).
   """
 
   @controls [:federal_only, :no_foreign, :named_list, :releasable_to]

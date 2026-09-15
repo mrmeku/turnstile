@@ -12,11 +12,11 @@ defmodule ExampleCerbos.Core.Controls do
 
   import Ecto.Query, only: [from: 2, union_all: 2]
 
-  alias Example.Category
-  alias Example.Controls
-  alias Example.Document
-  alias Example.Marking
-  alias Example.Portion
+  alias Example.Domain.Category
+  alias Example.Domain.Controls
+  alias Example.Domain.Document
+  alias Example.Domain.Marking
+  alias Example.Domain.Portion
 
   @doc "The controls effective on each document's banner, declared or implied."
   @spec on_documents() :: Ecto.Query.t()

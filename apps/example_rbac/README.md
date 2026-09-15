@@ -16,8 +16,8 @@ The controlled-unclassified-information example of `example`, bound to the `Turn
 | The example says | The policy says |
 |---|---|
 | A program member or lead | `role :member`, `role :lead` |
-| A designating office's designator | `role :designator` held through `Example.OfficeRole` |
-| An approver of the office | `role :approver` held through `Example.OfficeRole` |
+| A designating office's designator | `role :designator` held through `Example.Domain.OfficeRole` |
+| An approver of the office | `role :approver` held through `Example.Domain.OfficeRole` |
 | A document of a program | `grant :assignment` with `on: :program_id` through the open program |
 | A document of an office | `grant :office` with `on: :designating_office_id` |
 | The banner's controls, the categories' implied controls, the decontrol date | `predicate :controls` on `read` |

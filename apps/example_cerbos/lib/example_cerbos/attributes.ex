@@ -22,10 +22,10 @@ defmodule ExampleCerbos.Attributes do
 
   use Turnstile.Cerbos.Attributes
 
-  alias Example.Document
-  alias Example.Portion
-  alias Example.Proposal
-  alias Example.User
+  alias Example.Domain.Document
+  alias Example.Domain.Portion
+  alias Example.Domain.Proposal
+  alias Example.Domain.User
   alias ExampleCerbos.Facts
 
   principal :user, schema: User do

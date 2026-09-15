@@ -8,8 +8,9 @@ defmodule Example.Scenarios.Identity do
   import Example.Scenarios.Support
   import ExUnit.Assertions
 
-  alias Example.Document
   alias Example.Documents
+  alias Example.Domain.Document
+  alias Example.Domain.Marking
   alias Example.Fixture
   alias Turnstile.Id
 
@@ -22,7 +23,7 @@ defmodule Example.Scenarios.Identity do
 
     settle()
 
-    assert {:ok, %Example.Marking{controls: [:no_foreign]}} =
+    assert {:ok, %Marking{controls: [:no_foreign]}} =
              Documents.change_marking(subject("dana"), document.id, @noforn, fresh())
   end
 
@@ -35,7 +36,7 @@ defmodule Example.Scenarios.Identity do
     assert_refused(Documents.change_marking(subject("dana"), document.id, @noforn, stale()), :change_marking)
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id, stale())
 
-    assert {:ok, %Example.Marking{controls: [:no_foreign]}} =
+    assert {:ok, %Marking{controls: [:no_foreign]}} =
              Documents.change_marking(subject("dana"), document.id, @noforn, fresh())
   end
 

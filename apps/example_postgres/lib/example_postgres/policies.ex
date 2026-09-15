@@ -21,17 +21,17 @@ defmodule ExamplePostgres.Policies do
   answers under its own marking.
   """
 
-  alias Example.Agency
-  alias Example.Assignment
-  alias Example.Category
-  alias Example.Document
-  alias Example.Marking
-  alias Example.Office
-  alias Example.OfficeRole
-  alias Example.Portion
-  alias Example.Program
-  alias Example.Proposal
-  alias Example.User
+  alias Example.Domain.Agency
+  alias Example.Domain.Assignment
+  alias Example.Domain.Category
+  alias Example.Domain.Document
+  alias Example.Domain.Marking
+  alias Example.Domain.Office
+  alias Example.Domain.OfficeRole
+  alias Example.Domain.Portion
+  alias Example.Domain.Program
+  alias Example.Domain.Proposal
+  alias Example.Domain.User
 
   @app_role "turnstile_app"
   @owner_role "turnstile_owner"

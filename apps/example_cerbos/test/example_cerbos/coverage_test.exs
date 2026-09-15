@@ -17,13 +17,13 @@ defmodule ExampleCerbos.CoverageTest do
 
   import Ecto.Query, only: [from: 2]
 
-  alias Example.Assignment
-  alias Example.Category
-  alias Example.Document
+  alias Example.Domain.Assignment
+  alias Example.Domain.Category
+  alias Example.Domain.Document
+  alias Example.Domain.Marking
+  alias Example.Domain.OfficeRole
+  alias Example.Domain.Portion
   alias Example.Fixture
-  alias Example.Marking
-  alias Example.OfficeRole
-  alias Example.Portion
   alias ExampleCerbos.Attributes
   alias Turnstile.Cerbos.Coverage
   alias Turnstile.Dev.Sandbox
@@ -72,7 +72,7 @@ defmodule ExampleCerbos.CoverageTest do
     query = from(d in Document, where: d.title == "document")
 
     assert Coverage.check(Attributes, query) == {:error, [{Document, :title}]}
-    assert_raise ArgumentError, ~r/title of Example.Document/, fn -> Coverage.check!(Attributes, query) end
+    assert_raise ArgumentError, ~r/title of Example.Domain.Document/, fn -> Coverage.check!(Attributes, query) end
   end
 
   defp fresh, do: [env: %{reauthenticated_at: DateTime.utc_now()}]

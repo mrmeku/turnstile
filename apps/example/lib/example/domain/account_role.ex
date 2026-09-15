@@ -1,4 +1,4 @@
-defmodule Example.AccountRole do
+defmodule Example.Domain.AccountRole do
   @moduledoc """
   A role an account holds outside any program or office: `override` is the
   permission the audited override needs, held by a privileged account and

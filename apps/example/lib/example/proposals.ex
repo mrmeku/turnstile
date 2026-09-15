@@ -7,9 +7,9 @@ defmodule Example.Proposals do
   A proposal without approval changes nothing.
   """
 
-  alias Example.Document
   alias Example.Documents
-  alias Example.Proposal
+  alias Example.Domain.Document
+  alias Example.Domain.Proposal
   alias Example.Repo
 
   @doc "Propose a marking for a document; needs `propose_marking` on the document (C7)."

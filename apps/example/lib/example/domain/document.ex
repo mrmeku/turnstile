@@ -1,4 +1,4 @@
-defmodule Example.Document do
+defmodule Example.Domain.Document do
   @moduledoc """
   A document of a program, designated by an office, marked with a banner
   and decontrolled on a date or never. It carries its program, its
@@ -13,11 +13,11 @@ defmodule Example.Document do
   use Ecto.Schema
   use Turnstile.Schema
 
-  alias Example.Marking
-  alias Example.Office
-  alias Example.Portion
-  alias Example.Program
-  alias Example.Proposal
+  alias Example.Domain.Marking
+  alias Example.Domain.Office
+  alias Example.Domain.Portion
+  alias Example.Domain.Program
+  alias Example.Domain.Proposal
 
   @type t :: %__MODULE__{}
 
@@ -39,7 +39,7 @@ defmodule Example.Document do
   fact(:designating_office_id, kind: :object_attribute, object: :id)
 end
 
-defmodule Example.Marking do
+defmodule Example.Domain.Marking do
   @moduledoc """
   A document's banner: categories, controls, the countries REL TO releases
   to, and the DL ONLY list of accounts. Each set emits one fact event per
@@ -49,8 +49,8 @@ defmodule Example.Marking do
   use Ecto.Schema
   use Turnstile.Schema
 
-  alias Example.Controls
-  alias Example.Document
+  alias Example.Domain.Controls
+  alias Example.Domain.Document
 
   @type t :: %__MODULE__{}
 
@@ -78,7 +78,7 @@ defmodule Example.Marking do
   fact(:list, kind: :relationship, object: :document_id, element: :user)
 end
 
-defmodule Example.Portion do
+defmodule Example.Domain.Portion do
   @moduledoc """
   A portion of a document with a marking of its own; the document's banner
   combines them and admits no subject any of them denies. It carries its
@@ -88,8 +88,8 @@ defmodule Example.Portion do
   use Ecto.Schema
   use Turnstile.Schema
 
-  alias Example.Controls
-  alias Example.Document
+  alias Example.Domain.Controls
+  alias Example.Domain.Document
 
   @type t :: %__MODULE__{}
 
@@ -116,7 +116,7 @@ defmodule Example.Portion do
   fact(:releasable_to, kind: :object_attribute, object: :id, element: :country)
 end
 
-defmodule Example.Proposal do
+defmodule Example.Domain.Proposal do
   @moduledoc """
   A marking change proposed by one designator and approved by a different
   approver. The proposal carries its document, so the approval decision
@@ -126,8 +126,8 @@ defmodule Example.Proposal do
   use Ecto.Schema
   use Turnstile.Schema
 
-  alias Example.Controls
-  alias Example.Document
+  alias Example.Domain.Controls
+  alias Example.Domain.Document
 
   @type t :: %__MODULE__{}
 

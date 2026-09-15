@@ -1,10 +1,10 @@
-defmodule Example.Assignment do
+defmodule Example.Domain.Assignment do
   @moduledoc "Lawful purpose: an account holds a role, lead or member, on a program."
 
   use Ecto.Schema
   use Turnstile.Schema
 
-  alias Example.Program
+  alias Example.Domain.Program
 
   @type t :: %__MODULE__{}
 

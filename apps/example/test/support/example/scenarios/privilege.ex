@@ -9,8 +9,9 @@ defmodule Example.Scenarios.Privilege do
   import ExUnit.Assertions
 
   alias Example.Accounts
-  alias Example.Document
   alias Example.Documents
+  alias Example.Domain.Document
+  alias Example.Domain.Proposal
   alias Example.Fixture
   alias Example.Proposals
 
@@ -48,7 +49,7 @@ defmodule Example.Scenarios.Privilege do
 
     settle()
 
-    assert {:ok, %Example.Marking{controls: [:no_foreign]}} =
+    assert {:ok, %Example.Domain.Marking{controls: [:no_foreign]}} =
              Documents.change_marking(subject("dana"), document.id, @noforn, fresh())
 
     settle()
@@ -84,7 +85,7 @@ defmodule Example.Scenarios.Privilege do
       assert_refused(Documents.change_portion_marking(subject(id), portion.id, tightened, fresh()), :change_marking)
     end
 
-    assert {:ok, %Example.Portion{controls: [:no_foreign]}} =
+    assert {:ok, %Example.Domain.Portion{controls: [:no_foreign]}} =
              Documents.change_portion_marking(subject("dana"), portion.id, tightened, fresh())
 
     settle()
@@ -150,7 +151,7 @@ defmodule Example.Scenarios.Privilege do
 
     settle()
 
-    assert {:ok, %Example.Proposal{status: :approved, approver_id: "eve"}} =
+    assert {:ok, %Proposal{status: :approved, approver_id: "eve"}} =
              Proposals.approve(subject("eve"), proposal.id, fresh())
 
     settle()
@@ -174,7 +175,7 @@ defmodule Example.Scenarios.Privilege do
     document = Fixture.document!(world)
 
     settle()
-    assert {:ok, %Example.Proposal{status: :pending}} = Proposals.propose(subject("dana"), document.id, @noforn, fresh())
+    assert {:ok, %Proposal{status: :pending}} = Proposals.propose(subject("dana"), document.id, @noforn, fresh())
 
     settle()
     assert {:ok, %Document{marking: %{controls: []}}} = Documents.read(subject("dana"), document.id)
@@ -202,7 +203,7 @@ defmodule Example.Scenarios.Privilege do
 
     settle()
 
-    assert {:ok, %Example.Proposal{status: :approved, approver_id: "dana"}} =
+    assert {:ok, %Proposal{status: :approved, approver_id: "dana"}} =
              Proposals.approve(subject("dana"), other.id, fresh())
   end
 end

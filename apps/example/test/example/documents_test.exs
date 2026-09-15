@@ -1,11 +1,11 @@
 defmodule Example.DocumentsTest do
   use Example.FakeCase, async: true
 
-  alias Example.Document
   alias Example.Documents
+  alias Example.Domain.Document
+  alias Example.Domain.Marking
+  alias Example.Domain.Portion
   alias Example.Fixture
-  alias Example.Marking
-  alias Example.Portion
   alias Turnstile.Error
 
   @ann {:user, "ann"}

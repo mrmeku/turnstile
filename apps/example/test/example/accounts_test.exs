@@ -2,9 +2,9 @@ defmodule Example.AccountsTest do
   use Example.FakeCase, async: true
 
   alias Example.Accounts
-  alias Example.Assignment
-  alias Example.OfficeRole
-  alias Example.User
+  alias Example.Domain.Assignment
+  alias Example.Domain.OfficeRole
+  alias Example.Domain.User
 
   test "assignments and office roles are granted and revoked as rows", %{world: world} do
     assert %Assignment{role: :lead} = Accounts.assign("frank", world.program.id, :lead)

@@ -15,8 +15,8 @@ defmodule Example.Scenarios.Enforcement do
   import Example.Scenarios.Support
   import ExUnit.Assertions
 
-  alias Example.Document
   alias Example.Documents
+  alias Example.Domain.Document
   alias Example.Fixture
   alias Turnstile.Test.Clock
 
@@ -154,7 +154,7 @@ defmodule Example.Scenarios.Enforcement do
     assert {:ok, %Document{marking: %{controls: [:no_foreign]}}} = Documents.read(subject("dana"), document.id)
     wider = %{controls: [:no_foreign, :federal_only]}
 
-    assert {:ok, %Example.Marking{controls: controls}} =
+    assert {:ok, %Example.Domain.Marking{controls: controls}} =
              Documents.change_marking(subject("dana"), document.id, wider, fresh())
 
     assert Enum.sort(controls) == [:federal_only, :no_foreign]

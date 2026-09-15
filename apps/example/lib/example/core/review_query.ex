@@ -10,10 +10,10 @@ defmodule Example.Core.ReviewQuery do
   import Ecto.Query, only: [from: 2]
 
   alias Ecto.Query
-  alias Example.Agency
-  alias Example.Document
-  alias Example.Proposal
-  alias Example.User
+  alias Example.Domain.Agency
+  alias Example.Domain.Document
+  alias Example.Domain.Proposal
+  alias Example.Domain.User
 
   @doc "Every agency, in id order."
   @spec agencies() :: Query.t()

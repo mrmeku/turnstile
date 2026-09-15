@@ -1,4 +1,4 @@
-defmodule Example.Agency do
+defmodule Example.Domain.Agency do
   @moduledoc "The tenant. Its nationality is what NOFORN compares a subject's nationality with."
 
   use Ecto.Schema

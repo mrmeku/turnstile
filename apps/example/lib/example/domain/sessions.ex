@@ -1,4 +1,4 @@
-defmodule Example.Sessions do
+defmodule Example.Domain.Sessions do
   @moduledoc """
   Re-authentication (C8). The window is the organization's parameter for
   IA-11; a session is fresh when the caller's `reauthenticated_at` fact is

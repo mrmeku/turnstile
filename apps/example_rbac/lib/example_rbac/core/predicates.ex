@@ -14,15 +14,15 @@ defmodule ExampleRbac.Core.Predicates do
 
   import Ecto.Query, only: [dynamic: 1, dynamic: 2, from: 2]
 
-  alias Example.Agency
-  alias Example.Category
-  alias Example.Controls
-  alias Example.Document
-  alias Example.Marking
-  alias Example.Office
-  alias Example.Portion
-  alias Example.Sessions
-  alias Example.User
+  alias Example.Domain.Agency
+  alias Example.Domain.Category
+  alias Example.Domain.Controls
+  alias Example.Domain.Document
+  alias Example.Domain.Marking
+  alias Example.Domain.Office
+  alias Example.Domain.Portion
+  alias Example.Domain.Sessions
+  alias Example.Domain.User
 
   @doc "A program that has not closed: the hop filter of every assignment grant (C1, C11)."
   @spec open() :: Ecto.Query.dynamic_expr()

@@ -12,10 +12,10 @@ defmodule Example.Fixture.Rows do
   import Ecto.Query, only: [from: 2]
 
   alias Ecto.Changeset
-  alias Example.Document
+  alias Example.Domain.Document
+  alias Example.Domain.Office
+  alias Example.Domain.Program
   alias Example.Fixture
-  alias Example.Office
-  alias Example.Program
   alias Example.Repo
   alias Turnstile.Conformance.RepoCase.Rows
   alias Turnstile.Dev.Sandbox

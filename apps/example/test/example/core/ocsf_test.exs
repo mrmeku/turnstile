@@ -16,7 +16,7 @@ defmodule Example.Core.OcsfTest do
     actor_kind: :privileged,
     time: @now,
     operation_id: "op-1",
-    schema: Example.Assignment
+    schema: Example.Domain.Assignment
   }
 
   @decision %{
@@ -36,7 +36,7 @@ defmodule Example.Core.OcsfTest do
 
   @access %{
     object_type: :document,
-    schema: Example.Document,
+    schema: Example.Domain.Document,
     repo: Example.Repo,
     call: {:get, 3},
     activity: :read,
@@ -67,7 +67,7 @@ defmodule Example.Core.OcsfTest do
            }
 
     assert record.unmapped.changes == %{role: %{before: :member, after: :designator}}
-    assert record.unmapped.schema == "Example.Assignment"
+    assert record.unmapped.schema == "Example.Domain.Assignment"
   end
 
   test "each kind has its class and each operation its activity" do

@@ -28,15 +28,16 @@ defmodule Example.Fixture do
   import Ecto.Query, only: [from: 2]
 
   alias Example.Accounts
-  alias Example.Agency
-  alias Example.Category
-  alias Example.Document
-  alias Example.Marking
-  alias Example.Office
-  alias Example.Portion
-  alias Example.Program
+  alias Example.Domain.Agency
+  alias Example.Domain.Banner
+  alias Example.Domain.Category
+  alias Example.Domain.Document
+  alias Example.Domain.Marking
+  alias Example.Domain.Office
+  alias Example.Domain.Portion
+  alias Example.Domain.Program
+  alias Example.Domain.User
   alias Example.Repo
-  alias Example.User
 
   @exempt {:exempt, "fixture: the world a scenario starts from"}
 
@@ -217,7 +218,7 @@ defmodule Example.Fixture do
   end
 
   defp marking!(%Document{id: id}, opts, portions) do
-    banner = Example.Banner.of([Map.new(opts) | portions])
+    banner = Banner.of([Map.new(opts) | portions])
 
     Repo.insert!(
       %Marking{

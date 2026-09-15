@@ -1,7 +1,7 @@
-defmodule Example.SessionsTest do
+defmodule Example.Domain.SessionsTest do
   use ExUnit.Case, async: true
 
-  alias Example.Sessions
+  alias Example.Domain.Sessions
 
   @now ~U[2026-09-08 12:00:00Z]
 

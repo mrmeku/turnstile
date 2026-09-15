@@ -1,10 +1,10 @@
-defmodule Example.Category do
+defmodule Example.Domain.Category do
   @moduledoc "A Registry category. A specified category implies controls, read at every check and never copied."
 
   use Ecto.Schema
   use Turnstile.Schema
 
-  alias Example.Controls
+  alias Example.Domain.Controls
 
   @primary_key {:name, :string, autogenerate: false}
 

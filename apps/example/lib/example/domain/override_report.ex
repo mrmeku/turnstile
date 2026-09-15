@@ -1,10 +1,10 @@
-defmodule Example.OverrideReport do
+defmodule Example.Domain.OverrideReport do
   @moduledoc "One audited override, reported to the document's designating office. No rule reads it."
 
   use Ecto.Schema
 
-  alias Example.Document
-  alias Example.Office
+  alias Example.Domain.Document
+  alias Example.Domain.Office
 
   @type t :: %__MODULE__{}
 

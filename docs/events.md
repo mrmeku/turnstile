@@ -52,7 +52,7 @@ Published inside the write transaction, where the change is computed, for every 
 **Audited schemas.** A schema declares what kind of thing its rows are with `audited/1`, and what its columns mean with `fact/2` and `relationship/1`. Only a change to a declared column is a change worth an event.
 
 ```elixir
-defmodule Example.Assignment do
+defmodule Example.Domain.Assignment do
   use Ecto.Schema
   use Turnstile.Schema
 
@@ -63,7 +63,7 @@ defmodule Example.Assignment do
   relationship(subject: :user_id, object: :program_id, attributes: [:role])
 end
 
-defmodule Example.Marking do
+defmodule Example.Domain.Marking do
   use Ecto.Schema
   use Turnstile.Schema
 
@@ -74,7 +74,7 @@ defmodule Example.Marking do
   fact(:list, kind: :relationship, object: :document_id, element: :user)
 end
 
-defmodule Example.User do
+defmodule Example.Domain.User do
   use Ecto.Schema
   use Turnstile.Schema
 
@@ -84,7 +84,7 @@ defmodule Example.User do
 end
 ```
 
-`__turnstile__(:kind)` answers what `audited/1` declared or `nil`, `__turnstile__(:facts)` the `Turnstile.Schema.Fact` records in declaration order, and `__turnstile__(:relationship)` the `Turnstile.Schema.Relationship` or `nil`. A fact kind is `:subject_attribute`, `:object_attribute`, or `:relationship`; a set-valued column names the type of its elements with `element:`, so a reader of the event knows what each member of the set refers to. An audited schema need not be protected: `Example.User` declares facts and no object type, so its writes are recorded and pass the seam without a decision.
+`__turnstile__(:kind)` answers what `audited/1` declared or `nil`, `__turnstile__(:facts)` the `Turnstile.Schema.Fact` records in declaration order, and `__turnstile__(:relationship)` the `Turnstile.Schema.Relationship` or `nil`. A fact kind is `:subject_attribute`, `:object_attribute`, or `:relationship`; a set-valued column names the type of its elements with `element:`, so a reader of the event knows what each member of the set refers to. An audited schema need not be protected: `Example.Domain.User` declares facts and no object type, so its writes are recorded and pass the seam without a decision.
 
 **What one write produces.** One change event, carrying the fact fields that changed and their old and new values. The old value is the row the caller loaded, so a change a second writer made between the load and the write is not visible in the event, and the library says so rather than taking a lock to make it true.
 

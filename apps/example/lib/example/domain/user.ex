@@ -1,4 +1,4 @@
-defmodule Example.User do
+defmodule Example.Domain.User do
   @moduledoc """
   An account. A person may hold two: an ordinary one and a privileged one,
   joined by `person_id` and never by permission. Employment and nationality

@@ -9,10 +9,10 @@ defmodule Example.Scenarios.Revocation do
   import ExUnit.Assertions
 
   alias Example.Accounts
-  alias Example.Assignment
-  alias Example.Document
+  alias Example.Domain.Assignment
+  alias Example.Domain.Document
+  alias Example.Domain.Program
   alias Example.Fixture
-  alias Example.Program
   alias Example.Repo
 
   @spec rev_01() :: term()

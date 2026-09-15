@@ -10,9 +10,9 @@ defmodule Example.Core.DocumentQuery do
   import Ecto.Query, only: [from: 2, where: 2]
 
   alias Ecto.Query
-  alias Example.Document
-  alias Example.OverrideReport
-  alias Example.Portion
+  alias Example.Domain.Document
+  alias Example.Domain.OverrideReport
+  alias Example.Domain.Portion
 
   @doc "The documents a rule admits, in id order, each with its banner."
   @spec listed(Query.dynamic_expr()) :: Query.t()

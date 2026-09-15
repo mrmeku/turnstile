@@ -6,8 +6,9 @@ defmodule Example.Scenarios.Support do
   import ExUnit.Assertions
 
   alias Example.Documents
+  alias Example.Domain.Document
+  alias Example.Domain.Sessions
   alias Example.Fixture
-  alias Example.Sessions
   alias Turnstile.Error
 
   @doc "The world and the subject of an account."
@@ -15,22 +16,21 @@ defmodule Example.Scenarios.Support do
   defdelegate subject(id), to: Fixture
 
   @doc "Whether the port allows `read` on the document."
-  @spec reads?(Turnstile.subject(), Example.Document.t()) :: boolean()
-  def reads?({_kind, _account} = subject, %Example.Document{id: id}),
-    do: Turnstile.check(subject, :read, Documents.object(id))
+  @spec reads?(Turnstile.subject(), Document.t()) :: boolean()
+  def reads?({_kind, _account} = subject, %Document{id: id}), do: Turnstile.check(subject, :read, Documents.object(id))
 
   @doc "Assert the context read the document."
-  @spec assert_read(Turnstile.subject(), Example.Document.t(), keyword()) :: Example.Document.t()
-  def assert_read({_kind, _account} = subject, %Example.Document{id: id}, opts \\ []) do
-    assert {:ok, %Example.Document{id: ^id} = read} = Documents.read(subject, id, opts)
+  @spec assert_read(Turnstile.subject(), Document.t(), keyword()) :: Document.t()
+  def assert_read({_kind, _account} = subject, %Document{id: id}, opts \\ []) do
+    assert {:ok, %Document{id: ^id} = read} = Documents.read(subject, id, opts)
     read
   end
 
   @doc "Assert the context refused the read with the port's error."
-  @spec assert_denied(Turnstile.subject(), Example.Document.t(), keyword()) :: Error.t()
-  def assert_denied({_kind, _account} = subject, %Example.Document{id: id}, opts \\ []) do
+  @spec assert_denied(Turnstile.subject(), Document.t(), keyword()) :: Error.t()
+  def assert_denied({_kind, _account} = subject, %Document{id: id}, opts \\ []) do
     error = assert_refused(Documents.read(subject, id, opts), :read)
-    refute reads?(subject, %Example.Document{id: id})
+    refute reads?(subject, %Document{id: id})
     error
   end
 

@@ -1,10 +1,10 @@
-defmodule Example.Program do
+defmodule Example.Domain.Program do
   @moduledoc "A program of an office. Assignment to it is lawful purpose; closing it ends every assignment's purpose."
 
   use Ecto.Schema
   use Turnstile.Schema
 
-  alias Example.Office
+  alias Example.Domain.Office
 
   @type t :: %__MODULE__{}
 

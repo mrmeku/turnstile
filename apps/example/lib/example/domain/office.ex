@@ -1,10 +1,10 @@
-defmodule Example.Office do
+defmodule Example.Domain.Office do
   @moduledoc "An office of an agency; a document's designating office is where designators and approvers hold roles."
 
   use Ecto.Schema
   use Turnstile.Schema
 
-  alias Example.Agency
+  alias Example.Domain.Agency
 
   @type t :: %__MODULE__{}
 

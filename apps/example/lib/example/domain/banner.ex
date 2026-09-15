@@ -1,13 +1,21 @@
-defmodule Example.Core.Markings do
-  @moduledoc false
-  # Hidden, because a control and a marking are the domain's words and
-  # `Example.Controls` is where they are named. What is here is rule C4 as
-  # arithmetic: the marking a row carries, the banner a set of markings
-  # has, and whether one marking admits every subject another admits. It
-  # holds nothing and reads nothing, so a property can generate the
-  # markings nobody thought of.
+defmodule Example.Domain.Banner do
+  @moduledoc """
+  Rule C4 at the domain's face: a row's marking, the banner over a set of
+  rows, and whether a banner covers a marking.
 
-  alias Example.Controls
+  A document's banner is the marking that admits no subject a portion of it
+  denies. Categories and controls are the union of the portions'; the REL TO
+  country list is the intersection of the lists of the portions that carry
+  that control, so a country one portion withholds is released by no banner.
+  `Example.Documents` keeps the banner at write time and refuses a marking
+  change that would drop a portion's control.
+
+  The arithmetic reads markings as values and holds nothing, so a property
+  covers these laws rather than examples. `Example.Domain.Controls` names
+  the vocabulary it is written in.
+  """
+
+  alias Example.Domain.Controls
 
   @fields [:categories, :controls, :releasable_to]
 
@@ -18,8 +26,9 @@ defmodule Example.Core.Markings do
   end
 
   @doc """
-  The banner over a set of markings: the marking that admits no subject any
-  of them denies, and admits every subject all of them admit.
+  The banner over a set of rows, each read as the marking it carries: the
+  marking that admits no subject any of them denies, and admits every
+  subject all of them admit.
 
   Categories and controls restrict by carrying a value, so the banner
   carries every one any marking carries. REL TO admits by listing, so the
@@ -29,8 +38,10 @@ defmodule Example.Core.Markings do
   absent with it, which releases the banner to everyone rather than to
   no one.
   """
-  @spec banner([Controls.marking()]) :: Controls.marking()
-  def banner(markings) when is_list(markings) do
+  @spec of([map()]) :: Controls.marking()
+  def of(rows) when is_list(rows) do
+    markings = Enum.map(rows, &marking/1)
+
     %{
       categories: union(markings, :categories),
       controls: union(markings, :controls),
@@ -46,8 +57,11 @@ defmodule Example.Core.Markings do
   where the marking carries `releasable_to`, releases to no country outside
   the marking's list.
   """
-  @spec covers?(Controls.marking(), Controls.marking()) :: boolean()
+  @spec covers?(map(), map()) :: boolean()
   def covers?(banner, marking) when is_map(banner) and is_map(marking) do
+    banner = marking(banner)
+    marking = marking(marking)
+
     Enum.all?([:categories, :controls], fn field -> marking[field] -- banner[field] == [] end) and
       releases_within?(banner, marking)
   end

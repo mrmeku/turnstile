@@ -11,12 +11,12 @@ defmodule ExampleRbac.Policy do
 
   use Turnstile.Rbac.Policy, version: "2026.09.1", author: "example_rbac", approval: "docs/example.md §3"
 
-  alias Example.Assignment
-  alias Example.Document
-  alias Example.OfficeRole
-  alias Example.Portion
-  alias Example.Program
-  alias Example.Proposal
+  alias Example.Domain.Assignment
+  alias Example.Domain.Document
+  alias Example.Domain.OfficeRole
+  alias Example.Domain.Portion
+  alias Example.Domain.Program
+  alias Example.Domain.Proposal
   alias ExampleRbac.Core.Predicates
 
   role :member, [:read, :read_redacted]
