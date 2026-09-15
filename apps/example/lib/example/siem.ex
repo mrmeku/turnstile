@@ -1,8 +1,8 @@
 defmodule Example.Siem do
   @moduledoc """
-  The example's consumer of the library's two events: a process that maps
-  every change event and every decision event to an OCSF record and holds
-  the result in memory.
+  The example's consumer of the library's three events: a process that
+  maps every decision event, every change event, and every access event to
+  an OCSF record and holds the result in memory.
 
   A deployment sends those records to its security log. Holding them in a
   list keeps the mapping under test without putting a schema version in a
@@ -17,12 +17,13 @@ defmodule Example.Siem do
   use GenServer
 
   alias Example.Core.Ocsf
+  alias Turnstile.Access
   alias Turnstile.Change
   alias Turnstile.Port
 
   @schema NimbleOptions.new!(
             name: [type: :any, doc: "A registered name, or none."],
-            attach: [type: :boolean, default: false, doc: "Attach to the library's two events."]
+            attach: [type: :boolean, default: false, doc: "Attach to the library's three events."]
           )
 
   @doc "Start the consumer. Options: #{NimbleOptions.docs(@schema)}"
@@ -58,6 +59,10 @@ defmodule Example.Siem do
     record(siem, Ocsf.change(payload))
   end
 
+  def handle_event([:turnstile, :access], _measurements, payload, siem) do
+    record(siem, Ocsf.access(payload))
+  end
+
   def handle_event([:turnstile, :decision], _measurements, %{verdict: nil}, _siem), do: :ok
 
   def handle_event([:turnstile, :decision], %{duration: duration}, metadata, siem) do
@@ -84,8 +89,8 @@ defmodule Example.Siem do
   def terminate(_reason, %{attached: true}), do: :telemetry.detach(handler_id())
   def terminate(_reason, _state), do: :ok
 
-  # The change event and the decision event.
-  defp events, do: [Change.event(), Port.event()]
+  # The decision event, the change event, and the access event.
+  defp events, do: [Port.event(), Change.event(), Access.event()]
 
   # Hold one record: what the handler does with what it mapped.
   defp record(siem, record) when is_map(record), do: GenServer.cast(siem, {:record, record})

@@ -34,6 +34,22 @@ defmodule Example.Core.OcsfTest do
     operation_id: "op-1"
   }
 
+  @access %{
+    object_type: :document,
+    schema: Example.Document,
+    repo: Example.Repo,
+    call: {:get, 3},
+    activity: :read,
+    ids: [4],
+    count: 1,
+    shape: :rows,
+    subject: {:user, "ann"},
+    subject_kind: :user,
+    decision_id: "dec-1",
+    time: @now,
+    operation_id: "op-1"
+  }
+
   test "a change event maps to the OCSF class of its kind and the activity of its operation" do
     record = Ocsf.change(@change)
 
@@ -94,6 +110,25 @@ defmodule Example.Core.OcsfTest do
     raised = Ocsf.decision(%{@decision | verdict: :deny, reason: nil, exception: %RuntimeError{}}, 1)
     assert raised.unmapped.exception == "RuntimeError"
     assert raised.api.response.message == nil
+  end
+
+  test "an access event maps to a datastore activity of the table its object type names, read or query" do
+    record = Ocsf.access(@access)
+
+    assert {record.category_uid, record.class_uid, record.class_name} == {6, 6005, "Datastore Activity"}
+    assert {record.activity_id, record.activity_name} == {1, "Read"}
+    assert record.type_uid == 600_501
+    assert {record.status_id, record.status, record.severity_id} == {1, "Success", 1}
+    assert record.time == @now
+    assert record.actor == %{user: %{uid: "ann", type_id: 1, type: "User"}}
+    assert record.database == %{name: "Example.Repo"}
+    assert record.table == %{name: "document"}
+    assert record.metadata.correlation_uid == "op-1"
+    assert record.unmapped == %{ids: ["4"], count: 1, decision_id: "dec-1"}
+
+    queried = Ocsf.access(%{@access | activity: :query, ids: [], count: 0, shape: :value})
+    assert {queried.activity_id, queried.activity_name, queried.type_uid} == {4, "Query", 600_504}
+    assert queried.unmapped.ids == []
   end
 
   test "an object asked about by its type alone carries no id" do

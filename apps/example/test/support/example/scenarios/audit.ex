@@ -266,11 +266,28 @@ defmodule Example.Scenarios.Audit do
     assert {:ok, _marking} = Documents.change_marking(subject("dana"), document.id, marking, options)
   end
 
-  defp assert_mapped([decision | changes]) do
+  # One operation is records of three classes: the decision, the read of
+  # the document under it, and the changes it made.
+  defp assert_mapped([decision | records] = mapped) do
     assert {decision.class_uid, decision.status} == {6003, "Success"}
     assert decision.api.operation == "change_marking"
-    assert Enum.any?(changes, &(&1.entity.type == "marking" and &1.activity_name == "Update"))
-    for record <- [decision | changes], do: assert_ocsf_fields(record)
+    assert Enum.any?(records, &read_of_document?/1)
+    assert Enum.any?(records, &update_of_marking?/1)
+    assert classes(mapped) == [3004, 6003, 6005]
+    Enum.each(mapped, &assert_ocsf_fields/1)
+  end
+
+  defp classes(records) do
+    records
+    |> Enum.map(& &1.class_uid)
+    |> Enum.uniq()
+    |> Enum.sort()
+  end
+
+  defp read_of_document?(record), do: record.class_uid == 6005 and record.table.name == "document"
+
+  defp update_of_marking?(record) do
+    record.class_uid == 3004 and record.entity.type == "marking" and record.activity_name == "Update"
   end
 
   # Every record names the schema version it was mapped against, and its

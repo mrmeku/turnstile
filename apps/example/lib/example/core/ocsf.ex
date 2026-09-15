@@ -2,7 +2,7 @@ defmodule Example.Core.Ocsf do
   @moduledoc false
   # Hidden, because the format a security log takes is the consumer's and
   # not this package's surface. What is here is the mapping from the
-  # library's two events to OCSF records, against schema version 1.3.0.
+  # library's three events to OCSF records, against schema version 1.3.0.
   #
   # The library carries the meaning and this module carries the format. The
   # class, category, severity, and type identifiers, the product metadata,
@@ -12,8 +12,9 @@ defmodule Example.Core.Ocsf do
   # operation the activity, numbered as Entity Management numbers create,
   # update, and delete. A decision is an API activity whose verdict is the
   # status and whose operation is the one asked about, or `Other` where
-  # OCSF numbers none. What OCSF does not name travels under `unmapped`,
-  # which is where OCSF says to put it.
+  # OCSF numbers none. An access is a datastore activity, a read or a query
+  # of the table the object type names. What OCSF does not name travels
+  # under `unmapped`, which is where OCSF says to put it.
 
   @version "1.3.0"
   @product %{name: "Example", vendor_name: "Turnstile"}
@@ -29,6 +30,8 @@ defmodule Example.Core.Ocsf do
   @asked %{create: {1, "Create"}, read: {2, "Read"}, update: {3, "Update"}, delete: {4, "Delete"}}
   @other {99, "Other"}
   @api {6, 6003, "API Activity"}
+  @datastore {6, 6005, "Datastore Activity"}
+  @activities %{read: {1, "Read"}, query: {4, "Query"}}
 
   @users %{user: {1, "User"}, privileged: {2, "Admin"}, non_person_entity: {3, "System"}}
   @unknown_user {0, "Unknown"}
@@ -82,6 +85,31 @@ defmodule Example.Core.Ocsf do
     }
 
     Map.merge(record, outcome(said.verdict))
+  end
+
+  @doc "An access event as the record of a datastore activity: a read or a query of the object type's table."
+  @spec access(map()) :: map()
+  def access(payload) when is_map(payload) do
+    {category, class, name} = @datastore
+    {activity, activity_name} = Map.fetch!(@activities, payload.activity)
+
+    %{
+      category_uid: category,
+      class_uid: class,
+      class_name: name,
+      activity_id: activity,
+      activity_name: activity_name,
+      type_uid: class * 100 + activity,
+      status_id: 1,
+      status: "Success",
+      severity_id: 1,
+      time: payload.time,
+      actor: actor(payload.subject, payload.subject_kind),
+      database: %{name: inspect(payload.repo)},
+      table: %{name: text(payload.object_type)},
+      metadata: metadata(payload.operation_id),
+      unmapped: %{ids: Enum.map(payload.ids, &identifier/1), count: payload.count, decision_id: payload.decision_id}
+    }
   end
 
   # A verdict is a status and a severity, which is what a security log
