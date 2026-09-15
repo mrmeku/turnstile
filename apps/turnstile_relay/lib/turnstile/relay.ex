@@ -40,7 +40,7 @@ defmodule Turnstile.Relay do
   use Boundary,
     deps: [Ecto, NimbleOptions],
     check: [apps: [:ecto_sql, :postgrex]],
-    exports: [Cursor, Entry, Job, JobCase, JobCase.Rows, Options, Pass]
+    exports: [Cursor, Entry, Job, Options, Pass]
 
   use Supervisor
 

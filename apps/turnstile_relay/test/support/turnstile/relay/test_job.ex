@@ -1,8 +1,8 @@
 defmodule Turnstile.Relay.TestJob do
   @moduledoc """
   The job this package proves itself over: rows in one table, delivery into
-  another. It writes its own population as well, so
-  `Turnstile.Relay.JobCase` runs against it with no fixture beside it.
+  another. It writes its own population as well, so the tests run against
+  it with no fixture beside it.
 
   A delivery lands one row per entry, keyed by the runner and the position,
   and a repeat lands nothing, which is what a job written for at-least-once
@@ -12,7 +12,6 @@ defmodule Turnstile.Relay.TestJob do
   """
 
   @behaviour Turnstile.Relay.Job
-  @behaviour Turnstile.Relay.JobCase.Rows
 
   use Boundary, top_level?: true, deps: [Ecto, NimbleOptions, Turnstile.Relay], exports: [Row, Sent]
 
@@ -67,7 +66,7 @@ defmodule Turnstile.Relay.TestJob do
     :ok
   end
 
-  @impl Turnstile.Relay.JobCase.Rows
+  @doc "Write `count` rows into the default population, above every position already there."
   @spec write(module(), pos_integer()) :: :ok
   def write(repo, count), do: write(repo, @default, count)
 
