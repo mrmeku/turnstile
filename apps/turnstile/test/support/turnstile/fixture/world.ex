@@ -111,7 +111,7 @@ defmodule Turnstile.Fixture.World do
   @spec scoped() :: t()
   def scoped, do: %{granted() | folders: [1, 2, 3]}
 
-  @doc "The account the fixed worlds grant to, and the folder they grant it on."
+  @doc "The account the fixed worlds grant to, as a user, and the folder they grant it on."
   @impl World
   @spec focus(t()) :: {Turnstile.subject(), pos_integer()}
   def focus(%__MODULE__{}), do: {@focus, 1}
@@ -137,6 +137,17 @@ defmodule Turnstile.Fixture.World do
     Enum.map(folders, &{:folder, &1}) ++ Enum.map(item_ids, &{:item, &1})
   end
 
+  @doc "The clearances, the roles, and the expiries the population holds: every value its rule reads."
+  @impl World
+  @spec facts(t()) :: [term()]
+  def facts(%__MODULE__{accounts: accounts, memberships: memberships}) do
+    clearances = for {_id, clearance} <- accounts, is_binary(clearance), do: clearance
+    roles = for {_key, %{role: role}} <- memberships, do: role
+    expiries = for {_key, %{expires_at: %DateTime{} = at}} <- memberships, do: at
+
+    Enum.uniq(Enum.concat([clearances, roles, expiries]))
+  end
+
   @doc "The rule: what the world says about one subject, operation, and object, at the configured clock's moment."
   @impl World
   @spec allowed?(t(), Turnstile.subject(), atom(), Turnstile.object()) :: boolean()
@@ -154,10 +165,16 @@ defmodule Turnstile.Fixture.World do
 
   def allowed?(%__MODULE__{}, {_kind, _account}, _operation, {_type, _id}), do: false
 
-  @doc "The subject, operation, object triples the rule allows."
+  @doc """
+  The subject, operation, object triples the rule allows, for every account
+  under every kind the port knows, since a membership names the kind that
+  holds it and the generators ask under any kind.
+  """
   @spec grants(t()) :: [{Turnstile.subject(), atom(), Turnstile.object()}]
-  def grants(%__MODULE__{} = world) do
-    for subject <- subjects(world),
+  def grants(%__MODULE__{accounts: accounts} = world) do
+    for account <- Enum.sort(Map.keys(accounts)),
+        kind <- @kinds,
+        subject = {kind, account},
         operation <- @operations,
         object <- objects(world),
         allowed?(world, subject, operation, object),

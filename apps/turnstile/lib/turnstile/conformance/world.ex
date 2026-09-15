@@ -18,8 +18,9 @@ defmodule Turnstile.Conformance.World do
   generator, for the properties, and three fixed worlds the shape,
   fail-closed, and latency cases are written over, with `focus/1` naming
   the subject and the grant those three are built around. Reading a
-  population answers what it holds and what its rule says, where `subjects/1`
-  includes one of kind `:privileged` so a law can ask about that kind.
+  population answers what it holds, what its rule says, and which values
+  its rule reads, where `subjects/1` includes one of kind `:privileged` so a
+  law can ask about that kind.
   Writing one puts it in the tables, adds a grant with attributes such as
   its expiry, takes a grant out, and changes the account fact the rule
   reads; each answers the population it leaves.
@@ -58,7 +59,7 @@ defmodule Turnstile.Conformance.World do
   @doc "`granted/0` with more objects in the scope schema than the grant covers, for the shape cases."
   @callback scoped() :: t()
 
-  @doc "The subject the fixed worlds grant to, and what they grant it on."
+  @doc "The subject the fixed worlds grant to, which is a user, and what they grant it on."
   @callback focus(t()) :: {Turnstile.subject(), grantable()}
 
   @doc "Every subject the population knows, including one of kind `:privileged`."
@@ -66,6 +67,16 @@ defmodule Turnstile.Conformance.World do
 
   @doc "Every object the population holds."
   @callback objects(t()) :: [Turnstile.object()]
+
+  @doc """
+  Every attribute value the population holds that a rule reads: the
+  clearances, the roles, the expiries, and whatever else a fact column
+  carries, with nothing in the list that a decision event would carry of
+  its own, such as a subject kind. A law refutes each of these in the
+  decision events, so a value here that is also a subject id, an object id,
+  or a verdict would fail that law for the wrong reason.
+  """
+  @callback facts(t()) :: [term()]
 
   @doc "The rule: what the population says about one subject, operation, and object."
   @callback allowed?(t(), Turnstile.subject(), atom(), Turnstile.object()) :: boolean()
