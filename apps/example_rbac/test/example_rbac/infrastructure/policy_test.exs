@@ -1,7 +1,7 @@
-defmodule ExampleRbac.PolicyTest do
+defmodule ExampleRbac.Infrastructure.PolicyTest do
   use ExUnit.Case, async: true
 
-  alias ExampleRbac.Policy
+  alias ExampleRbac.Infrastructure.Policy
   alias Turnstile.Config
   alias Turnstile.Rbac.Binding
   alias Turnstile.Rbac.Coverage

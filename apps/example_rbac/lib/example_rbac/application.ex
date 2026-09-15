@@ -16,7 +16,7 @@ defmodule ExampleRbac.Application do
   @impl Application
   def start(_type, _args) do
     _config = Turnstile.Config.boot!(adapter: Turnstile.Rbac)
-    _binding = Binding.bind!(policy: ExampleRbac.Policy, repo: Repo)
+    _binding = Binding.bind!(policy: ExampleRbac.Infrastructure.Policy, repo: Repo)
     repos = repos()
     children = [{Siem, name: Siem, attach: true} | repos]
 

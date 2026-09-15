@@ -2,7 +2,7 @@ defmodule ExampleRbac.Repo.Migrations.Rules do
   @moduledoc false
   use Ecto.Migration
 
-  # The rules of this binding are `ExampleRbac.Policy`, a module the adapter
+  # The rules of this binding are `ExampleRbac.Infrastructure.Policy`, a module the adapter
   # evaluates in the application, so there is nothing about them for the
   # database to hold: no policy, no role beyond the two the domain migration
   # makes, no column. The migration is here so that the set of migrations

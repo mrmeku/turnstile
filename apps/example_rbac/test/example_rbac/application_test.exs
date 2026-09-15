@@ -5,7 +5,7 @@ defmodule ExampleRbac.ApplicationTest do
   import ExUnit.CaptureLog
 
   alias Example.Infrastructure.Siem
-  alias ExampleRbac.Policy
+  alias ExampleRbac.Infrastructure.Policy
   alias Turnstile.Config
   alias Turnstile.Rbac.Binding
 

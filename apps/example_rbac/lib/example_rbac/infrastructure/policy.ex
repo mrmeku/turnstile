@@ -1,4 +1,4 @@
-defmodule ExampleRbac.Policy do
+defmodule ExampleRbac.Infrastructure.Policy do
   @moduledoc """
   The example's rules as a role table and, per protected schema, the
   grants and predicates of `docs/example.md` §3. A program role reaches
@@ -17,7 +17,7 @@ defmodule ExampleRbac.Policy do
   alias Example.Domain.Portion
   alias Example.Domain.Program
   alias Example.Domain.Proposal
-  alias ExampleRbac.Core.Predicates
+  alias ExampleRbac.Infrastructure.Predicates
 
   role :member, [:read, :read_redacted]
   role :lead, [:read, :read_redacted]

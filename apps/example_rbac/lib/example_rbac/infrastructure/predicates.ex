@@ -1,4 +1,4 @@
-defmodule ExampleRbac.Core.Predicates do
+defmodule ExampleRbac.Infrastructure.Predicates do
   @moduledoc false
   # Hidden, because what the policy names is the policy's own surface, not
   # this one. What is here is the predicates and the hop filter the policy
