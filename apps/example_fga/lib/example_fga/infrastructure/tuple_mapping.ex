@@ -1,11 +1,11 @@
-defmodule ExampleFga.TupleMapping do
+defmodule ExampleFga.Infrastructure.TupleMapping do
   @moduledoc """
   The example's tables as tuples of the model in `priv/fga/model.fga`.
 
   What is here is the half that reads rows: which object types this
   application writes, which objects of a type its tables hold, which objects
   one change can have affected, and which rows an object's tuples are read
-  from. What a row then states is `lib/example_fga/core/tuples.ex`, which
+  from. What a row then states is `lib/example_fga/infrastructure/tuples.ex`, which
   reads nothing.
 
   Three shapes carry the whole translation. A role a row holds is a relation
@@ -56,7 +56,7 @@ defmodule ExampleFga.TupleMapping do
   alias Example.Domain.Program
   alias Example.Domain.Proposal
   alias Example.Domain.User
-  alias ExampleFga.Core.Tuples
+  alias ExampleFga.Infrastructure.Tuples
   alias Turnstile.Fga.TupleMapping
 
   # The types tuples are written on. An account is `user`, which the model

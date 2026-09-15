@@ -41,8 +41,8 @@ _binding =
   Turnstile.Fga.Binding.bind!(
     repo: Repo,
     model: ExampleFga.model(),
-    mapping: ExampleFga.TupleMapping,
-    guard: ExampleFga.Guard,
+    mapping: ExampleFga.Infrastructure.TupleMapping,
+    guard: ExampleFga.Infrastructure.Guard,
     author: ExampleFga.author(),
     approval: ExampleFga.approval()
   )

@@ -1,4 +1,4 @@
-defmodule ExampleFga.Guard do
+defmodule ExampleFga.Infrastructure.Guard do
   @moduledoc """
   The precondition the model does not carry: the marking operations require a
   session that re-authenticated inside the window, and a session is a fact

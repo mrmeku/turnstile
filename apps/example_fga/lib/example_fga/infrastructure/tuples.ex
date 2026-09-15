@@ -1,4 +1,4 @@
-defmodule ExampleFga.Core.Tuples do
+defmodule ExampleFga.Infrastructure.Tuples do
   @moduledoc false
   # Hidden, because what the drain names is the mapping, not this. What is
   # here is the half of the mapping that reads no row: given a row the

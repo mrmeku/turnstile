@@ -1,7 +1,7 @@
-defmodule ExampleFga.TupleMappingTest do
+defmodule ExampleFga.Infrastructure.TupleMappingTest do
   use Turnstile.Fga.TupleMappingCase,
     async: true,
-    mapping: ExampleFga.TupleMapping,
+    mapping: ExampleFga.Infrastructure.TupleMapping,
     repo: Example.Infrastructure.Repo,
     population: ExampleFga.Population,
     sandbox: Turnstile.Dev.Sandbox
@@ -11,7 +11,7 @@ defmodule ExampleFga.TupleMappingTest do
   alias Example.Domain.Document
   alias Example.Domain.Program
   alias Example.Infrastructure.Repo
-  alias ExampleFga.TupleMapping
+  alias ExampleFga.Infrastructure.TupleMapping
   alias Turnstile.Fga.TupleKey
 
   @exemption {:exempt, "tuple mapping test: the rows a tuple is read from"}

@@ -19,7 +19,7 @@ defmodule ExampleFga do
 
   use Boundary,
     deps: [Example, Turnstile, Turnstile.Fga, Turnstile.Fga.Relay, Ecto],
-    exports: [Application, Guard, TupleMapping]
+    exports: [Application, Infrastructure.Guard, Infrastructure.TupleMapping]
 
   @author "example_fga"
   @approval "the example_fga README, as the model under review"

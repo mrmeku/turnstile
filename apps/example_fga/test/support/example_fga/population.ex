@@ -1,6 +1,6 @@
 defmodule ExampleFga.Population do
   @moduledoc """
-  The world `ExampleFga.TupleMapping` is held to: the fixture's two tenants
+  The world `ExampleFga.Infrastructure.TupleMapping` is held to: the fixture's two tenants
   and ten accounts, a document carrying a decontrol date, a banner, and a
   list of accounts, with two portions of its own, a second document carrying
   none of those, and a marking proposal on the first. The foreign program is
