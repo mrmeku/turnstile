@@ -1,4 +1,4 @@
-defmodule Turnstile.Rbac.Adapter.Version do
+defmodule Turnstile.Rbac.Infrastructure.Version do
   # Publishing the policy version: resolve the binding and the
   # configuration, build the version from the bound policy and the
   # configured clock, and emit it as telemetry. Nothing is stored, so the

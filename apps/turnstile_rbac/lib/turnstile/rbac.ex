@@ -25,8 +25,8 @@ defmodule Turnstile.Rbac do
     check: [apps: [:ecto_sql, :postgrex]],
     exports: [
       Binding,
-      Core.Clauses,
       Coverage,
+      Domain.Clauses,
       Policy,
       Policy.Clause,
       Policy.Object,
@@ -39,10 +39,10 @@ defmodule Turnstile.Rbac do
   alias Turnstile.Answer
   alias Turnstile.Error
   alias Turnstile.PolicyVersion
-  alias Turnstile.Rbac.Adapter.Decide
-  alias Turnstile.Rbac.Adapter.Version
   alias Turnstile.Rbac.Binding
-  alias Turnstile.Rbac.Core.Rule
+  alias Turnstile.Rbac.Infrastructure.Decide
+  alias Turnstile.Rbac.Infrastructure.Rule
+  alias Turnstile.Rbac.Infrastructure.Version
 
   @doc "Emit the bound policy's version as telemetry; the version is `Turnstile.Rbac.Version`."
   @spec publish() :: {:ok, PolicyVersion.t()} | {:error, Error.t()}

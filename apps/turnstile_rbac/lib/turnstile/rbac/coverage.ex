@@ -15,7 +15,7 @@ defmodule Turnstile.Rbac.Coverage do
 
   import Ecto.Query, only: [where: 2]
 
-  alias Turnstile.Rbac.Core.Rule
+  alias Turnstile.Rbac.Infrastructure.Rule
   alias Turnstile.Rbac.Policy
   alias Turnstile.Rbac.Policy.Object
   alias Turnstile.Schema

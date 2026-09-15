@@ -11,7 +11,7 @@ defmodule Turnstile.Rbac.RuleTest do
   alias Turnstile.Fixture.World
   alias Turnstile.Rbac.Binding
   alias Turnstile.Rbac.Conformance.Seat
-  alias Turnstile.Rbac.Core.Rule
+  alias Turnstile.Rbac.Infrastructure.Rule
   alias Turnstile.Rbac.Policy
   alias Turnstile.TestRepos.Sandboxed
 

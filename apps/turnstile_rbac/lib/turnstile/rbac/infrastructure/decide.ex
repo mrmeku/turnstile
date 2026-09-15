@@ -1,4 +1,4 @@
-defmodule Turnstile.Rbac.Adapter.Decide do
+defmodule Turnstile.Rbac.Infrastructure.Decide do
   @moduledoc false
   # The answer `decide` gives: one query that selects every clause of the
   # rule for the row asked about, through the bound repo as a library
@@ -18,7 +18,7 @@ defmodule Turnstile.Rbac.Adapter.Decide do
 
   alias Turnstile.Answer
   alias Turnstile.Rbac.Binding
-  alias Turnstile.Rbac.Core.Rule
+  alias Turnstile.Rbac.Infrastructure.Rule
 
   @doc "The answer for one object, with the clauses that held under `meta[:matched]`."
   @spec one(Binding.t(), Turnstile.subject(), atom(), Turnstile.object(), Turnstile.environment()) ::

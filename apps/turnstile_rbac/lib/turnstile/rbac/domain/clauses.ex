@@ -1,4 +1,4 @@
-defmodule Turnstile.Rbac.Core.Clauses do
+defmodule Turnstile.Rbac.Domain.Clauses do
   @moduledoc false
   # The clauses of a policy, built and checked against the schemas they name
   # when the policy is read. `Turnstile.Rbac.Policy` generates a call of

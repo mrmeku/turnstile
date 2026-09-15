@@ -101,7 +101,7 @@ defmodule Turnstile.Rbac.Policy do
   names: a change to any of them recompiles nothing but itself.
   """
 
-  alias Turnstile.Rbac.Core.Clauses
+  alias Turnstile.Rbac.Domain.Clauses
   alias Turnstile.Rbac.Policy.Object
   alias Turnstile.Rbac.Policy.Role
 

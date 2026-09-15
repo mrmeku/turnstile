@@ -8,7 +8,7 @@ defmodule Turnstile.Rbac.PolicyTest do
   alias Turnstile.Rbac.Conformance.Predicates
   alias Turnstile.Rbac.Conformance.Roles
   alias Turnstile.Rbac.Conformance.Seat
-  alias Turnstile.Rbac.Core.Clauses
+  alias Turnstile.Rbac.Domain.Clauses
   alias Turnstile.Rbac.Policy
   alias Turnstile.Rbac.Policy.Clause
   alias Turnstile.Rbac.Policy.Object
