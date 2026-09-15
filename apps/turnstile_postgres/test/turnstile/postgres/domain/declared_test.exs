@@ -1,11 +1,11 @@
-defmodule Turnstile.Postgres.Core.DeclaredTest do
+defmodule Turnstile.Postgres.Domain.DeclaredTest do
   use ExUnit.Case, async: true
 
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Carried.Folder
   alias Turnstile.Postgres.Carried.Item
   alias Turnstile.Postgres.Carried.Shelf
-  alias Turnstile.Postgres.Core.Declared
+  alias Turnstile.Postgres.Domain.Declared
   alias Turnstile.TestRepos.Sandboxed
 
   test "a carried relation declares the key of the schema that holds it, and one carried through another declares none" do

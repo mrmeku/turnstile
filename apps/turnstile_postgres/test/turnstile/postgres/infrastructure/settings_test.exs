@@ -1,7 +1,7 @@
 defmodule Turnstile.Postgres.SettingsTest do
   use ExUnit.Case, async: true
 
-  alias Turnstile.Postgres.Core.Settings
+  alias Turnstile.Postgres.Infrastructure.Settings
 
   @at ~U[2026-09-08 12:00:00Z]
 

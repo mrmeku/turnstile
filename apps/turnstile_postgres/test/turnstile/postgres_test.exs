@@ -11,11 +11,11 @@ defmodule Turnstile.PostgresTest do
   alias Turnstile.Fixture.Membership
   alias Turnstile.Id
   alias Turnstile.Postgres
-  alias Turnstile.Postgres.Adapter.Session
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
   alias Turnstile.Postgres.Conformance.Rules
-  alias Turnstile.Postgres.Core.Settings
+  alias Turnstile.Postgres.Infrastructure.Session
+  alias Turnstile.Postgres.Infrastructure.Settings
   alias Turnstile.TestRepos.Sandboxed
 
   @schemas [Account, Folder, Item, Membership]

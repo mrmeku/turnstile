@@ -1,4 +1,4 @@
-defmodule Turnstile.Postgres.Core.Name do
+defmodule Turnstile.Postgres.Infrastructure.Name do
   @moduledoc false
   # A table, column, or policy name on its way into a statement. Names cannot
   # be parameters, so every one this package interpolates passes `check!/2`

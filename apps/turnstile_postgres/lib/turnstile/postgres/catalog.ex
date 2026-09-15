@@ -20,7 +20,7 @@ defmodule Turnstile.Postgres.Catalog do
 
   alias Turnstile.Error
   alias Turnstile.Postgres.Binding
-  alias Turnstile.Postgres.Core.Name
+  alias Turnstile.Postgres.Infrastructure.Name
   alias Turnstile.Postgres.Policy
 
   @exemption {:exempt, :library}

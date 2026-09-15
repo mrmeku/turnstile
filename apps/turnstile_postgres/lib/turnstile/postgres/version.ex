@@ -12,13 +12,13 @@ defmodule Turnstile.Postgres.Version do
   """
 
   alias Turnstile.PolicyVersion
-  alias Turnstile.Postgres.Adapter
   alias Turnstile.Postgres.Catalog
+  alias Turnstile.Postgres.Infrastructure
   alias Turnstile.Postgres.Policy
 
   @doc "The telemetry event `publish/1` emits, once per call."
   @spec telemetry_event() :: [atom()]
-  def telemetry_event, do: Adapter.Version.telemetry_event()
+  def telemetry_event, do: Infrastructure.Version.telemetry_event()
 
   @doc """
   The version a migration publishes, from the policies it read back.
@@ -43,7 +43,7 @@ defmodule Turnstile.Postgres.Version do
 
   @doc "Emit the version, once per call, answering the version emitted."
   @spec publish(PolicyVersion.t()) :: {:ok, PolicyVersion.t()}
-  def publish(%PolicyVersion{} = version), do: Adapter.Version.publish(version)
+  def publish(%PolicyVersion{} = version), do: Infrastructure.Version.publish(version)
 
   defp pointer(policies) do
     tables =

@@ -1,4 +1,4 @@
-defmodule Turnstile.Postgres.Adapter.Version do
+defmodule Turnstile.Postgres.Infrastructure.Version do
   @moduledoc false
   # Publishing the policy version: one telemetry event per call, carrying
   # the version. Nothing is stored, so the event is the whole of what a

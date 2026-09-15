@@ -49,11 +49,11 @@ defmodule Turnstile.Postgres do
   alias Turnstile.Answer
   alias Turnstile.Decision
   alias Turnstile.Error
-  alias Turnstile.Postgres.Adapter.Decide
-  alias Turnstile.Postgres.Adapter.Session
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
-  alias Turnstile.Postgres.Core.Settings
+  alias Turnstile.Postgres.Infrastructure.Decide
+  alias Turnstile.Postgres.Infrastructure.Session
+  alias Turnstile.Postgres.Infrastructure.Settings
 
   @doc """
   Read the policies and the version once, so no call on the request path

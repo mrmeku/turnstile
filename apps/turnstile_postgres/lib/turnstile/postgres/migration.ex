@@ -40,7 +40,7 @@ defmodule Turnstile.Postgres.Migration do
 
   alias Turnstile.PolicyVersion
   alias Turnstile.Postgres.Catalog
-  alias Turnstile.Postgres.Core.Name
+  alias Turnstile.Postgres.Infrastructure.Name
   alias Turnstile.Postgres.Policy
   alias Turnstile.Postgres.Version
 

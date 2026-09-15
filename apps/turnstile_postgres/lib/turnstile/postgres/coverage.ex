@@ -21,7 +21,7 @@ defmodule Turnstile.Postgres.Coverage do
 
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
-  alias Turnstile.Postgres.Core.Declared
+  alias Turnstile.Postgres.Domain.Declared
 
   @typedoc "An undeclared read: the schema and the column, or a table no bound schema names."
   @type finding :: {module(), String.t()} | {:table, String.t()}

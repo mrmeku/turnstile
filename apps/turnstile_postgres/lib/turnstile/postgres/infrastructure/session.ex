@@ -1,4 +1,4 @@
-defmodule Turnstile.Postgres.Adapter.Session do
+defmodule Turnstile.Postgres.Infrastructure.Session do
   @moduledoc false
   # Where the settings meet the connection. `set_config(name, value, true)`
   # is local to a transaction, so a call that is not already inside one opens
@@ -26,7 +26,7 @@ defmodule Turnstile.Postgres.Adapter.Session do
   # Each statement runs through the bound repo's raw channel under the
   # library exemption, and each is one query in the shape counts.
 
-  alias Turnstile.Postgres.Core.Settings
+  alias Turnstile.Postgres.Infrastructure.Settings
 
   @exemption {:exempt, :library}
   @stash {__MODULE__, :settings}

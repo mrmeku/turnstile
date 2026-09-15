@@ -1,4 +1,4 @@
-defmodule Turnstile.Postgres.Core.Settings do
+defmodule Turnstile.Postgres.Infrastructure.Settings do
   @moduledoc false
   # The session settings a call runs under. Four are always set:
   # `turnstile.subject_id`, `turnstile.subject_kind`, `turnstile.operation`,

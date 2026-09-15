@@ -1,4 +1,4 @@
-defmodule Turnstile.Postgres.Core.Declared do
+defmodule Turnstile.Postgres.Domain.Declared do
   @moduledoc false
   # Which reads a declaration covers. The columns the policies name come
   # from the catalog; what counts as declared is decided here, against the

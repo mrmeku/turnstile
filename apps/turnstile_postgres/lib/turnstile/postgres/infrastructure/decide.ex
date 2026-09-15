@@ -1,5 +1,4 @@
-defmodule Turnstile.Postgres.Adapter.Decide do
-  @moduledoc false
+defmodule Turnstile.Postgres.Infrastructure.Decide do
   # What the adapter asks the database. One statement per decision, run
   # under the session settings, selecting the update gate's `USING`
   # expression for the row asked about where the operation has a gate:
@@ -24,13 +23,14 @@ defmodule Turnstile.Postgres.Adapter.Decide do
   # decider raises into the engine error that denies, so this package names
   # no driver's error, and a driver it does not carry needs no clause of its
   # own.
+  @moduledoc false
 
   alias Turnstile.Answer
-  alias Turnstile.Postgres.Adapter.Session
   alias Turnstile.Postgres.Binding
   alias Turnstile.Postgres.Catalog
-  alias Turnstile.Postgres.Core.Name
-  alias Turnstile.Postgres.Core.Settings
+  alias Turnstile.Postgres.Infrastructure.Name
+  alias Turnstile.Postgres.Infrastructure.Session
+  alias Turnstile.Postgres.Infrastructure.Settings
   alias Turnstile.Postgres.Policy
 
   @exemption {:exempt, :library}
