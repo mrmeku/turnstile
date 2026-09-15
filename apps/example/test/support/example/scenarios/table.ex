@@ -1,15 +1,15 @@
-defmodule Turnstile.Conformance.Scenarios do
+defmodule Example.Scenarios.Table do
   @moduledoc """
-  The scenario table of the reference's §3a as the committed list. The
+  The scenario table of `docs/example.md` §4 as the committed list. The
   freeze test holds it to the document; the `scenario` macro validates every
   declaration against it; the count test reads its size. Changing a row
-  means changing the reference first, in its own commit, then this list.
+  means changing the document first, in its own commit, then this list.
 
-  `tests` names the rules, `:c1` to `:c13`, or the guarantee a scenario
-  tests in the domain's words.
+  `tests` names the rules, `:c1` to `:c13`, or `:review` for the scenario
+  that shows the port's review verb.
   """
 
-  alias Turnstile.Conformance.Scenario
+  alias Example.Scenarios.Row
 
   @rows [
     {"enf-01", "A User with an Assignment to a Document's Program reads it", :enforcement, ~w[AC-3], [:c1]},
@@ -41,12 +41,9 @@ defmodule Turnstile.Conformance.Scenarios do
     {"enf-15", "A decontrolled Document is still denied to a User with no lawful purpose", :enforcement, ~w[AC-3],
      [:c5, :c1]},
     {"enf-16", "DL ONLY membership without an Assignment does not grant the read", :enforcement, ~w[AC-3], [:c6]},
-    {"enf-17", "The Documents `scope` returns are exactly the Documents `check` allows, over random subjects",
-     :enforcement, ~w[AC-3 AC-25*], [:c13]},
-    {"enf-18", "The Portions `scope` returns are exactly the Portions `check` allows", :enforcement, ~w[AC-3], [:c13]},
-    {"enf-19", "A Document of another Agency is neither returned by `scope` nor readable by `check`", :enforcement,
+    {"enf-17", "A Document of another Agency is neither returned by `scope` nor readable by `check`", :enforcement,
      ~w[AC-3], [:c1, :c13]},
-    {"enf-20", "A User one Portion releases to and another does not is denied the whole Document", :enforcement,
+    {"enf-18", "A User one Portion releases to and another does not is denied the whole Document", :enforcement,
      ~w[AC-3 AC-16*], [:c4, :c2]},
     {"lp-01", "A Program member without an OfficeRole cannot change a Document's marking", :least_privilege,
      ~w[AC-6 AC-6(1)], [:c7]},
@@ -75,32 +72,10 @@ defmodule Turnstile.Conformance.Scenarios do
     {"rev-05", "A closed Program revokes every Assignment's lawful purpose at the next check", :revocation_and_expiry,
      ~w[AC-2 AC-2(3)], [:c11]},
     {"rev-06",
-     "A tightened rule, published as a policy version, is enforced within the measured propagation, which is recorded",
-     :revocation_and_expiry, ~w[AC-2 CM-3], [:c12]},
-    {"rev-07",
      "A revocation deletes nothing but the fact: the Document and the Program remain, and the grant and the revoke are both evented",
      :revocation_and_expiry, ~w[AC-2(4)], [:c11]},
-    {"aud-01",
-     "Every Document read emits one decision event carrying subject, object, operation, verdict, reason, and policy version",
-     :decision_audit, ~w[AU-2 AU-3 AU-12], [:every_call_is_evented]},
-    {"aud-02", "A denied read emits its event with the reason", :decision_audit, ~w[AU-2 AU-3], [:every_call_is_evented]},
-    {"aud-03", "A decision record carries no attribute value", :decision_audit, ~w[AU-3], [:record_shape]},
-    {"aud-04",
-     "A marking change emits one decision event and, in the same transaction, a change event per row it wrote, the banner's carrying every changed fact field",
-     :decision_audit, ~w[AU-12 AC-2(4)], [:no_change_without_an_event]},
-    {"aud-05", "A bulk re-marking of Documents is refused and no Document changes", :decision_audit, ~w[AU-12 AC-2(4)],
-     [:a_bulk_write_to_an_audited_schema_raises]},
-    {"aud-06", "An Assignment grant and its revoke each produce a change event carrying old and new", :decision_audit,
-     ~w[AC-2(4)], [:the_change_mapping]},
-    {"aud-07", "A marking change reaches the consumer as one OCSF record per event, all under one correlation id",
-     :decision_audit, ~w[AU-2 AU-3 AU-12], [:every_event_is_mapped]},
-    {"aud-08", "A write the database refuses leaves no row and emits no change event", :decision_audit, ~w[AU-2 AU-12],
-     [:atomicity]},
     {"rvw-01", "The access review lists who can read what today, per Agency", :access_review, ~w[AC-2 AC-6(7)],
      [:review]},
-    {"rvw-04",
-     "An Assignment inserted outside the seam emits no change event, so the review reads it from the tables and no record names it",
-     :access_review, ~w[AC-2 AC-2(4)], [:drift]},
     {"ia-01", "A designator whose session re-authenticated within the window changes a marking", :re_authentication,
      ~w[IA-11], [:c8]},
     {"ia-02", "A designator whose session is older than the window is refused until re-authentication",
@@ -111,21 +86,15 @@ defmodule Turnstile.Conformance.Scenarios do
      :emergency_override, ~w[AC-6(9) AU-6], [:c10]},
     {"ovr-02", "Without a justification the override is denied", :emergency_override, ~w[AC-6(9)], [:c10]},
     {"ovr-03", "The override never reaches C7: a privileged user cannot change a marking through it", :emergency_override,
-     ~w[AC-6(9) AC-6(1)], [:c10, :c7]},
-    {"cm-01", "Every policy-version event names its author and its approval", :change_control_on_policy, ~w[CM-3 CM-5],
-     [:policy_versions]},
-    {"cm-02", "A decision made under version N carries N after version N+1 is published", :change_control_on_policy,
-     ~w[CM-3], [:policy_versions]},
-    {"cm-03", "A rule change is a policy version whose event names the artifact it is on this adapter",
-     :change_control_on_policy, ~w[CM-3], [:policy_versions]}
+     ~w[AC-6(9) AC-6(1)], [:c10, :c7]}
   ]
 
   @scenarios Enum.map(@rows, fn {id, sentence, group, controls, tests} ->
-               %Scenario{id: id, sentence: sentence, group: group, controls: controls, tests: tests}
+               %Row{id: id, sentence: sentence, group: group, controls: controls, tests: tests}
              end)
 
   @doc "Every scenario, in the table's order."
-  @spec all() :: [Scenario.t()]
+  @spec all() :: [Row.t()]
   def all, do: @scenarios
 
   @doc "The ids, in the table's order."
@@ -133,11 +102,11 @@ defmodule Turnstile.Conformance.Scenarios do
   def ids, do: Enum.map(@scenarios, & &1.id)
 
   @doc "The scenario with an id."
-  @spec fetch(String.t()) :: {:ok, Scenario.t()} | :error
+  @spec fetch(String.t()) :: {:ok, Row.t()} | :error
   def fetch(id) when is_binary(id) do
     case Enum.find(@scenarios, &(&1.id == id)) do
       nil -> :error
-      %Scenario{} = scenario -> {:ok, scenario}
+      %Row{} = scenario -> {:ok, scenario}
     end
   end
 

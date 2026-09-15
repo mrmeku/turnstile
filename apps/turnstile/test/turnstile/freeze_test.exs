@@ -1,18 +1,15 @@
 defmodule Turnstile.FreezeTest do
   @moduledoc """
-  The frozen lists. A change here follows a change to `docs/design.md`,
-  `docs/conformance.md`, or `docs/example.md` in its own commit.
+  The frozen lists. A change here follows a change to `docs/design.md` or
+  `docs/conformance.md` in its own commit.
   """
 
   use ExUnit.Case, async: true
 
   alias Turnstile.Conformance.Law
-  alias Turnstile.Conformance.Scenario
-  alias Turnstile.Conformance.Scenarios
 
   @moduletag :freeze
 
-  @reference Path.expand("../../../../docs/example.md", __DIR__)
   @conformance Path.expand("../../../../docs/conformance.md", __DIR__)
 
   test "Turnstile.Adapter has the frozen callbacks" do
@@ -52,23 +49,6 @@ defmodule Turnstile.FreezeTest do
                 unsupported invalid unmediated)a
   end
 
-  test "the scenario ids are the frozen list" do
-    assert Scenarios.ids() ==
-             Enum.map(1..20, &"enf-#{pad(&1)}") ++
-               Enum.map(1..8, &"lp-#{pad(&1)}") ++
-               Enum.map(1..3, &"sod-#{pad(&1)}") ++
-               Enum.map(1..7, &"rev-#{pad(&1)}") ++
-               Enum.map(1..8, &"aud-#{pad(&1)}") ++
-               ["rvw-01", "rvw-04"] ++
-               Enum.map(1..3, &"ia-#{pad(&1)}") ++
-               Enum.map(1..3, &"ovr-#{pad(&1)}") ++
-               Enum.map(1..3, &"cm-#{pad(&1)}")
-  end
-
-  test "the scenario table equals docs/example.md §4" do
-    assert Scenarios.all() == reference_rows()
-  end
-
   test "the law table equals docs/conformance.md §2" do
     assert Law.all() == law_rows()
   end
@@ -78,20 +58,6 @@ defmodule Turnstile.FreezeTest do
     |> Map.keys()
     |> List.delete(:__struct__)
     |> Enum.sort()
-  end
-
-  defp pad(n), do: String.pad_leading(Integer.to_string(n), 2, "0")
-
-  defp reference_rows do
-    @reference
-    |> File.read!()
-    |> String.split("\n## 4. The scenarios")
-    |> Enum.at(1)
-    |> String.split("\n## ")
-    |> hd()
-    |> String.split("\n")
-    |> Enum.filter(&String.starts_with?(&1, "| `"))
-    |> Enum.map(&row/1)
   end
 
   defp law_rows do
@@ -117,34 +83,5 @@ defmodule Turnstile.FreezeTest do
     |> Enum.drop(1)
     |> Enum.drop(-1)
     |> Enum.map(&String.trim/1)
-  end
-
-  defp row(line) do
-    [id, sentence, group, controls, tests] = cells(line)
-
-    %Scenario{
-      id: String.trim(id, "`"),
-      sentence: sentence,
-      group: atomize(group),
-      controls: String.split(controls, ", "),
-      tests: tests(tests)
-    }
-  end
-
-  # Rules are listed "C1, C6"; a guarantee is one phrase and may carry a comma.
-  defp tests("C" <> _rest = rules) do
-    rules
-    |> String.split(", ")
-    |> Enum.map(&atomize/1)
-  end
-
-  defp tests(guarantee), do: [atomize(guarantee)]
-
-  defp atomize(text) do
-    text
-    |> String.replace(["`", ","], "")
-    |> String.replace(["-", " "], "_")
-    |> String.downcase()
-    |> String.to_existing_atom()
   end
 end

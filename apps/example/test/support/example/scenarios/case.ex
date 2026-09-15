@@ -1,27 +1,26 @@
-defmodule Turnstile.Conformance.Case do
+defmodule Example.Scenarios.Case do
   @moduledoc """
   The `scenario` macro: a `test` named by the scenario's id and sentence,
   and tagged with them. The tags are the id, the rule the declaration says
-  it tests, and the controls the reference cites for it, which the table
+  it tests, and the controls the document cites for it, which the table
   carries rather than the declaration, so a control id is written in one
-  place. Every declaration is checked against
-  `Turnstile.Conformance.Scenarios` when the module compiles, so a scenario
-  cannot drift from the table.
+  place. Every declaration is checked against `Example.Scenarios.Table`
+  when the module compiles, so a scenario cannot drift from the table.
 
   What a binding enforces each rule with is prose in that binding's README,
   a table a person writes and keeps. Nothing here reads it, and a scenario
   runs under every binding.
 
-      use Turnstile.Conformance.Case
+      use Example.Scenarios.Case
 
       scenario "enf-01", "A User with an Assignment to a Document's Program reads it", rule: :c1 do
         ...
       end
   """
 
-  alias Turnstile.Conformance.Case
-  alias Turnstile.Conformance.Scenario
-  alias Turnstile.Conformance.Scenarios
+  alias Example.Scenarios.Case
+  alias Example.Scenarios.Row
+  alias Example.Scenarios.Table
 
   @doc false
   defmacro __using__(opts) do
@@ -62,21 +61,21 @@ defmodule Turnstile.Conformance.Case do
   end
 
   defp fetch!(id) do
-    case Scenarios.fetch(id) do
-      {:ok, %Scenario{} = scenario} -> scenario
-      :error -> raise ArgumentError, "no scenario #{inspect(id)} in the reference's table"
+    case Table.fetch(id) do
+      {:ok, %Row{} = scenario} -> scenario
+      :error -> raise ArgumentError, "no scenario #{inspect(id)} in the table"
     end
   end
 
-  defp check_sentence!(%Scenario{id: id, sentence: expected}, sentence) do
+  defp check_sentence!(%Row{id: id, sentence: expected}, sentence) do
     if sentence == expected do
       :ok
     else
-      raise ArgumentError, "scenario #{id} reads #{inspect(expected)} in the reference, got: #{inspect(sentence)}"
+      raise ArgumentError, "scenario #{id} reads #{inspect(expected)} in the table, got: #{inspect(sentence)}"
     end
   end
 
-  defp check_rule!(%Scenario{id: id, tests: tests}, rule) do
+  defp check_rule!(%Row{id: id, tests: tests}, rule) do
     if rule in tests do
       rule
     else

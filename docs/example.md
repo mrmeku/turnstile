@@ -81,7 +81,7 @@ The thirteen rules of the example's domain, as a person wrote them. §1 defines 
 
 ## 4. The scenarios
 
-Frozen: the freeze test in `turnstile` reads this table and holds `Turnstile.Conformance.Scenarios` to it row for row. Every row is a test in `Example.Scenarios` whose name is the sentence, written with the `scenario` macro (`scenario "enf-01", "<sentence>", rule: :c1 do ... end`), and run by each of the four thin applications. "Tests" names the C-rule, or the guarantee where the scenario tests the port or the seam in the domain's words. Beyond-baseline citations are marked with an asterisk.
+Frozen: the freeze test in `example` reads this table and holds `Example.Scenarios.Table` to it row for row. Every row is a test in `Example.Scenarios` whose name is the sentence, written with the `scenario` macro (`scenario "enf-01", "<sentence>", rule: :c1 do ... end`), and run by each of the four thin applications. "Tests" names the C-rule, or `review` for the scenario that shows the port's review verb. Beyond-baseline citations are marked with an asterisk. What the laws of `docs/conformance.md` assert for every adapter is not repeated here: no scenario tests the events, the seam, or a policy version.
 
 | Id | Sentence | Group | Controls cited | Tests |
 |---|---|---|---|---|
@@ -101,10 +101,8 @@ Frozen: the freeze test in `turnstile` reads this table and holds `Turnstile.Con
 | `enf-14` | Before the decontrol date, by the port's clock, the same Document is denied | enforcement | AC-3 | C5 |
 | `enf-15` | A decontrolled Document is still denied to a User with no lawful purpose | enforcement | AC-3 | C5, C1 |
 | `enf-16` | DL ONLY membership without an Assignment does not grant the read | enforcement | AC-3 | C6 |
-| `enf-17` | The Documents `scope` returns are exactly the Documents `check` allows, over random subjects | enforcement | AC-3, AC-25* | C13 |
-| `enf-18` | The Portions `scope` returns are exactly the Portions `check` allows | enforcement | AC-3 | C13 |
-| `enf-19` | A Document of another Agency is neither returned by `scope` nor readable by `check` | enforcement | AC-3 | C1, C13 |
-| `enf-20` | A User one Portion releases to and another does not is denied the whole Document | enforcement | AC-3, AC-16* | C4, C2 |
+| `enf-17` | A Document of another Agency is neither returned by `scope` nor readable by `check` | enforcement | AC-3 | C1, C13 |
+| `enf-18` | A User one Portion releases to and another does not is denied the whole Document | enforcement | AC-3, AC-16* | C4, C2 |
 | `lp-01` | A Program member without an OfficeRole cannot change a Document's marking | least privilege | AC-6, AC-6(1) | C7 |
 | `lp-02` | A designator of another Office cannot change the marking | least privilege | AC-6(1) | C7 |
 | `lp-03` | A designator of the designating Office changes the marking | least privilege | AC-6(1) | C7 |
@@ -121,29 +119,14 @@ Frozen: the freeze test in `turnstile` reads this table and holds `Turnstile.Con
 | `rev-03` | A change of employment from federal to contractor denies a FED ONLY read at the next check | revocation and expiry | AC-2, PS-5 | C11 |
 | `rev-04` | A corrected nationality applies at the next check | revocation and expiry | AC-2, AC-16* | C11 |
 | `rev-05` | A closed Program revokes every Assignment's lawful purpose at the next check | revocation and expiry | AC-2, AC-2(3) | C11 |
-| `rev-06` | A tightened rule, published as a policy version, is enforced within the measured propagation, which is recorded | revocation and expiry | AC-2, CM-3 | C12 |
-| `rev-07` | A revocation deletes nothing but the fact: the Document and the Program remain, and the grant and the revoke are both evented | revocation and expiry | AC-2(4) | C11 |
-| `aud-01` | Every Document read emits one decision event carrying subject, object, operation, verdict, reason, and policy version | decision audit | AU-2, AU-3, AU-12 | every call is evented |
-| `aud-02` | A denied read emits its event with the reason | decision audit | AU-2, AU-3 | every call is evented |
-| `aud-03` | A decision record carries no attribute value | decision audit | AU-3 | record shape |
-| `aud-04` | A marking change emits one decision event and, in the same transaction, a change event per row it wrote, the banner's carrying every changed fact field | decision audit | AU-12, AC-2(4) | no change without an event |
-| `aud-05` | A bulk re-marking of Documents is refused and no Document changes | decision audit | AU-12, AC-2(4) | a bulk write to an audited schema raises |
-| `aud-06` | An Assignment grant and its revoke each produce a change event carrying old and new | decision audit | AC-2(4) | the change mapping |
-| `aud-07` | A marking change reaches the consumer as one OCSF record per event, all under one correlation id | decision audit | AU-2, AU-3, AU-12 | every event is mapped |
-| `aud-08` | A write the database refuses leaves no row and emits no change event | decision audit | AU-2, AU-12 | atomicity |
+| `rev-06` | A revocation deletes nothing but the fact: the Document and the Program remain, and the grant and the revoke are both evented | revocation and expiry | AC-2(4) | C11 |
 | `rvw-01` | The access review lists who can read what today, per Agency | access review | AC-2, AC-6(7) | `review` |
-| `rvw-04` | An Assignment inserted outside the seam emits no change event, so the review reads it from the tables and no record names it | access review | AC-2, AC-2(4) | drift |
 | `ia-01` | A designator whose session re-authenticated within the window changes a marking | re-authentication | IA-11 | C8 |
 | `ia-02` | A designator whose session is older than the window is refused until re-authentication | re-authentication | IA-11 | C8 |
 | `ia-03` | A marking change with no re-authentication fact supplied is denied | re-authentication | IA-11 | C8 |
 | `ovr-01` | A privileged user with the override permission reads outside C1 with a justification, and the read emits its own event and is reported to the designating Office | emergency override | AC-6(9), AU-6 | C10 |
 | `ovr-02` | Without a justification the override is denied | emergency override | AC-6(9) | C10 |
 | `ovr-03` | The override never reaches C7: a privileged user cannot change a marking through it | emergency override | AC-6(9), AC-6(1) | C10, C7 |
-| `cm-01` | Every policy-version event names its author and its approval | change control on policy | CM-3, CM-5 | policy versions |
-| `cm-02` | A decision made under version N carries N after version N+1 is published | change control on policy | CM-3 | policy versions |
-| `cm-03` | A rule change is a policy version whose event names the artifact it is on this adapter | change control on policy | CM-3 | policy versions |
-
-No scenario tests "write gates without application code"; it is not a rule.
 
 No scenario tests "write gates without application code"; it is not a rule.
 

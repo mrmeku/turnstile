@@ -1,25 +1,20 @@
 defmodule Example.Scenarios do
   @moduledoc """
-  Tier 2: every scenario of the reference's table, declared once here and
-  defined in a thin application's test module by `use Example.Scenarios,
-  rules: ThinApp.Rules`. The adapter comes from the thin application's boot
-  configuration, not from the test.
+  Every scenario of the table in `docs/example.md` §4, declared once here
+  and defined in a thin application's test module by `use Example.Scenarios`.
+  The adapter comes from the thin application's boot configuration, not from
+  the test.
 
   Each scenario's body is a function in a module under this one, named by
-  the scenario's id. Scenarios that measure latency, `rev-01` and `rev-06`,
-  the drift scenario `rvw-04`, which writes through the owner-role repo, and
-  the change-management scenarios `cm-01`, `cm-02` and `cm-03` run on the
-  committed database in a nested module that is not async; every other
-  scenario runs in a sandbox transaction. The change-management three
-  publish a rule change, which for an adapter whose rules are the database's
-  own is a schema change, and a schema change waits for every other
-  connection reading the tables it changes; the committed tier runs after the
-  async ones, so it holds the only connection there is. The last test
-  counts: the scenarios defined are the table's rows, every one of them.
+  the scenario's id. The scenario that measures latency, `rev-01`, runs on
+  the committed database in a nested module that is not async; every other
+  scenario runs in a sandbox transaction. The last test counts: the
+  scenarios defined are the table's rows, every one of them.
 
-  A thin application supplies through `Example.Scenarios.Rules` the policy
-  operations a test cannot write without naming the adapter, and, where its
-  engine keeps state of its own, what each test needs in place before it runs.
+  A thin application whose engine keeps state of its own passes `setup:`, a
+  module whose `setup/1` puts in place what each test needs before it runs,
+  called with the test's tags after the connection is there and the tables
+  are empty.
   """
 
   use Boundary,
@@ -27,59 +22,55 @@ defmodule Example.Scenarios do
     deps: [
       Example,
       Example.Fixture,
-      Example.Scenarios.Audit,
       Example.Scenarios.Enforcement,
       Example.Scenarios.Identity,
       Example.Scenarios.Privilege,
+      Example.Scenarios.Review,
       Example.Scenarios.Revocation,
       Ecto.Adapters.SQL,
       ExUnit,
-      Turnstile,
-      Turnstile.Conformance,
-      Turnstile.Test,
       Turnstile.Dev.Sandbox
-    ],
-    exports: [Rules]
+    ]
 
   import ExUnit.Assertions
 
   alias Ecto.Adapters.SQL.Sandbox
-  alias Turnstile.Conformance.Scenario
-  alias Turnstile.Conformance.Scenarios
+  alias Example.Scenarios.Row
+  alias Example.Scenarios.Table
 
   @bodies [
     Example.Scenarios.Enforcement,
     Example.Scenarios.Privilege,
     Example.Scenarios.Revocation,
-    Example.Scenarios.Audit,
+    Example.Scenarios.Review,
     Example.Scenarios.Identity
   ]
 
-  @committed ~w[cm-01 cm-02 cm-03 rev-01 rev-06 rvw-04]
+  @committed ~w[rev-01]
 
   @doc false
   defmacro __using__(opts) do
-    rules = Keyword.fetch!(opts, :rules)
-    {committed, sandboxed} = Enum.split_with(Scenarios.all(), &(&1.id in @committed))
+    setup = Keyword.get(opts, :setup)
+    {committed, sandboxed} = Enum.split_with(Table.all(), &(&1.id in @committed))
 
     quote do
-      use Turnstile.Conformance.Case, async: true
+      use Example.Scenarios.Case, async: true
 
       setup tags do
-        Example.Scenarios.setup(tags, unquote(rules))
+        Example.Scenarios.setup(tags, unquote(setup))
       end
 
-      unquote_splicing(Enum.map(sandboxed, &declare(&1, rules)))
+      unquote_splicing(Enum.map(sandboxed, &declare/1))
 
       defmodule Committed do
         @moduledoc false
-        use Turnstile.Conformance.Case, async: false
+        use Example.Scenarios.Case, async: false
 
         setup tags do
-          Example.Scenarios.setup(tags, unquote(rules))
+          Example.Scenarios.setup(tags, unquote(setup))
         end
 
-        unquote_splicing(Enum.map(committed, &declare(&1, rules, [:committed])))
+        unquote_splicing(Enum.map(committed, &declare(&1, [:committed])))
       end
 
       test "the scenarios defined are the table's rows, every one of them" do
@@ -91,23 +82,20 @@ defmodule Example.Scenarios do
   @doc """
   The per-test setup: a sandbox connection for an async scenario; for a
   committed one, a real connection to the same repo and a truncation through
-  the owner repo before the test and another when it ends.
-
-  A thin application whose `Example.Scenarios.Rules` defines `setup/1` has it
-  called after the connection is there and the tables are empty, since what
-  it prepares is where a publish goes.
+  the owner repo before the test and another when it ends. The `setup:`
+  module, where the thin application passed one, is called last.
   """
-  @spec setup(map(), module()) :: :ok
-  def setup(tags, rules) when is_map(tags) and is_atom(rules) do
+  @spec setup(map(), module() | nil) :: :ok
+  def setup(tags, prepare) when is_map(tags) and is_atom(prepare) do
     if tags[:committed] do
       :ok = Sandbox.checkout(Example.Repo, sandbox: false)
       :ok = Example.Fixture.truncate!(Example.OwnerRepo)
-      :ok = prepared(rules, tags)
+      :ok = prepared(prepare, tags)
       ExUnit.Callbacks.on_exit(fn -> Example.Fixture.truncate!(Example.OwnerRepo) end)
       :ok
     else
       :ok = Turnstile.Dev.Sandbox.setup(Example.Repo, tags)
-      prepared(rules, tags)
+      prepared(prepare, tags)
     end
   end
 
@@ -115,26 +103,22 @@ defmodule Example.Scenarios do
   @spec count!([module()]) :: :ok
   def count!(modules) when is_list(modules) do
     declared = declared(modules)
-    assert Enum.sort(declared) == Enum.sort(Scenarios.ids())
-    assert length(declared) == Scenarios.count()
+    assert Enum.sort(declared) == Enum.sort(Table.ids())
+    assert length(declared) == Table.count()
     :ok
   end
 
-  # An application whose adapter needs nothing per test defines no `setup/1`,
-  # so the callback is optional and this is where its absence is answered.
-  defp prepared(rules, tags) do
-    if Code.ensure_loaded?(rules) and function_exported?(rules, :setup, 1), do: rules.setup(tags), else: :ok
-  end
+  defp prepared(nil, _tags), do: :ok
+  defp prepared(prepare, tags), do: prepare.setup(tags)
 
-  defp declare(%Scenario{id: id, sentence: sentence, tests: [rule | _rest]}, rules, tags \\ []) do
-    {module, function, arity} = body(id)
-    arguments = if arity == 1, do: [rules], else: []
+  defp declare(%Row{id: id, sentence: sentence, tests: [rule | _rest]}, tags \\ []) do
+    {module, function} = body(id)
 
     quote do
       unquote_splicing(Enum.map(tags, &quote(do: @tag(unquote(&1)))))
 
       scenario unquote(id), unquote(sentence), rule: unquote(rule) do
-        unquote(module).unquote(function)(unquote_splicing(arguments))
+        unquote(module).unquote(function)()
       end
     end
   end
@@ -150,38 +134,7 @@ defmodule Example.Scenarios do
 
   defp defined_in(module, function) do
     Enum.find_value(module.__info__(:functions), fn {name, arity} ->
-      if Atom.to_string(name) == function, do: {module, name, arity}
+      if arity == 0 and Atom.to_string(name) == function, do: {module, name}
     end)
   end
-end
-
-defmodule Example.Scenarios.Rules do
-  @moduledoc """
-  What a thin application supplies for the scenarios that name the rules
-  themselves: the telemetry event its adapter publishes a policy version on,
-  a tightened policy under which a program member no longer reads, published
-  as a policy version for the calling process, and its restoration. Where the
-  engine keeps state of its own, the per-test setup as well.
-  """
-
-  @doc """
-  Anything this application's own tier needs per test, before a version is
-  published or a fact is written: for an engine that keeps a store of its
-  own, the store, the model in it, and the binding and the configuration that
-  name them for the calling process. The tags are the test's, so a case on
-  the committed database is told from one in a sandbox. Optional: an
-  application whose adapter needs nothing per test defines it not at all.
-  """
-  @callback setup(tags :: map()) :: :ok
-
-  @doc "The telemetry event this application's adapter emits a policy version on."
-  @callback version_event() :: [atom()]
-
-  @doc "Publish a policy under which `member` no longer holds `read`, returning the version."
-  @callback publish_tightened() :: {:ok, Turnstile.PolicyVersion.t()}
-
-  @doc "Restore the boot policy for the calling process."
-  @callback restore() :: :ok
-
-  @optional_callbacks setup: 1
 end

@@ -27,17 +27,6 @@ defmodule Example.Accounts do
   end
 
   @doc """
-  Assign many accounts to a program with one role: one transaction, one row
-  at a time, so each grant is a change of its own. A row the database
-  refuses rolls the whole grant back.
-  """
-  @spec assign_all([String.t()], integer(), :lead | :member) :: [Assignment.t()]
-  def assign_all(user_ids, program_id, role) when is_list(user_ids) and role in [:lead, :member] do
-    {:ok, assignments} = Repo.transaction(fn -> Enum.map(user_ids, &assign(&1, program_id, role)) end)
-    assignments
-  end
-
-  @doc """
   Revoke an account's assignment to a program, one row at a time so each
   revocation is a change event of its own. Returns the number of rows
   removed.

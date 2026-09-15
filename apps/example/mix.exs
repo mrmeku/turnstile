@@ -49,9 +49,9 @@ defmodule Example.MixProject do
   defp elixirc_paths(_env), do: ["lib"]
 
   # Example.Scenarios and the scenario bodies are test support that runs in
-  # the thin applications' suites, under a real adapter, and never in this
-  # application's own run; the example's own tests cover the contexts
-  # against the fake adapter.
+  # the thin applications' suites, under a real adapter; this application's
+  # own run holds the table to the document and covers the contexts against
+  # the fake adapter.
   defp ignore_modules do
     [~r/^Example\.Scenarios/, ~r/^Example\.Fixture/, ~r/^Example\.Cluster/]
   end

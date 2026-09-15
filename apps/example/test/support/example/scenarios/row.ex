@@ -1,5 +1,5 @@
-defmodule Turnstile.Conformance.Scenario do
-  @moduledoc "One row of the Tier 2 scenario table: the id, the sentence, the group, the controls cited, and what it tests."
+defmodule Example.Scenarios.Row do
+  @moduledoc "One row of the scenario table in `docs/example.md` §4: the id, the sentence, the group, the controls cited, and what it tests."
 
   @enforce_keys [:id, :sentence, :group, :controls, :tests]
   defstruct @enforce_keys

@@ -1,10 +1,10 @@
 defmodule Turnstile.Conformance do
   @moduledoc """
-  The conformance mechanisms: the scenario table of the reference's §3a, the
-  `scenario` macro and the count that Tier 2 rests on, and the adapter case
-  template that Tier 1 is. Shipped in core so every adapter, in this
+  The conformance mechanisms: the law table of `docs/conformance.md` §2, the
+  adapter case that runs it, and the repo case that holds a mediated repo to
+  the seam's guarantees. Shipped in the package so every adapter, in this
   repository or outside it, proves itself against the same contract. The
-  population a Tier 1 run is written over comes from the caller, as a
+  population a run is written over comes from the caller, as a
   `Turnstile.Conformance.World`, so nothing here names a schema or a rule.
   """
 
@@ -14,13 +14,10 @@ defmodule Turnstile.Conformance do
     exports: [
       AdapterCase,
       AdapterCase.Laws,
-      Case,
       Gen,
       Law,
       RepoCase,
       RepoCase.Rows,
-      Scenario,
-      Scenarios,
       Seed,
       Versions,
       World

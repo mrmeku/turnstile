@@ -1,5 +1,5 @@
 defmodule Example.Scenarios.Enforcement do
-  @moduledoc "The enforcement scenarios, enf-01 to enf-20."
+  @moduledoc "The enforcement scenarios, enf-01 to enf-18."
 
   use Boundary,
     top_level?: true,
@@ -9,19 +9,15 @@ defmodule Example.Scenarios.Enforcement do
       Example.Scenarios.Support,
       Turnstile,
       Turnstile.Test,
-      Ecto,
       ExUnit
     ]
 
-  import Ecto.Query, only: [from: 2]
   import Example.Scenarios.Support
   import ExUnit.Assertions
 
   alias Example.Document
   alias Example.Documents
   alias Example.Fixture
-  alias Example.Portion
-  alias Example.Repo
   alias Turnstile.Test.Clock
 
   @spec enf_01() :: term()
@@ -209,47 +205,6 @@ defmodule Example.Scenarios.Enforcement do
   @spec enf_17() :: term()
   def enf_17 do
     world = Fixture.world!()
-    documents = varied_documents(world)
-
-    settle()
-
-    for subject <- Enum.shuffle(Fixture.subjects()) do
-      scoped = listed(subject)
-      checked = for document <- documents, reads?(subject, document), do: document.id
-      assert scoped == checked, "subject #{elem(subject, 1)}: scope #{inspect(scoped)}, check #{inspect(checked)}"
-    end
-  end
-
-  @spec enf_18() :: term()
-  def enf_18 do
-    world = Fixture.world!()
-
-    document =
-      Fixture.document!(world,
-        portions: [
-          %{body: "open"},
-          %{body: "domestic", controls: [:no_foreign]},
-          %{body: "federal", controls: [:federal_only]},
-          %{body: "listed", controls: [:named_list]}
-        ]
-      )
-
-    _marking = Fixture.set_list!(document, ["carl"])
-
-    settle()
-
-    for subject <- Enum.shuffle(Fixture.subjects()) do
-      {rule, decision} = Turnstile.scope(subject, :read, :portion)
-      query = from(p in Portion, where: ^rule, order_by: p.id, select: p.id)
-      scoped = Repo.all(query, turnstile: decision)
-      checked = for portion <- document.portions, Turnstile.check(subject, :read, portion(portion)), do: portion.id
-      assert scoped == checked, "subject #{elem(subject, 1)}: scope #{inspect(scoped)}, check #{inspect(checked)}"
-    end
-  end
-
-  @spec enf_19() :: term()
-  def enf_19 do
-    world = Fixture.world!()
     domestic = Fixture.document!(world)
     foreign = Fixture.document!(world, program: world.foreign_program, office: world.foreign_office)
 
@@ -260,8 +215,8 @@ defmodule Example.Scenarios.Enforcement do
     assert_read(subject("ivan"), foreign)
   end
 
-  @spec enf_20() :: term()
-  def enf_20 do
+  @spec enf_18() :: term()
+  def enf_18 do
     world = Fixture.world!()
 
     document =
@@ -281,21 +236,6 @@ defmodule Example.Scenarios.Enforcement do
     assert_read(subject("ann"), document)
     assert {:ok, %Document{portions: portions}} = Documents.read_redacted(subject("ann"), document.id)
     assert Enum.map(portions, & &1.id) == [allied.id, domestic.id]
-  end
-
-  defp varied_documents(world) do
-    past = DateTime.shift(DateTime.utc_now(), hour: -1)
-
-    [
-      Fixture.document!(world, title: "open"),
-      Fixture.document!(world, title: "federal", controls: [:federal_only]),
-      Fixture.document!(world, title: "domestic", controls: [:no_foreign]),
-      Fixture.document!(world, title: "released", controls: [:releasable_to], releasable_to: ["FR"]),
-      Fixture.document!(world, title: "listed", controls: [:named_list], list: ["bob", "frank"]),
-      Fixture.document!(world, title: "implied", categories: ["PRVCY"]),
-      Fixture.document!(world, title: "decontrolled", controls: [:no_foreign], decontrol: past),
-      Fixture.document!(world, title: "foreign", program: world.foreign_program, office: world.foreign_office)
-    ]
   end
 
   defp listed(subject) do

@@ -1,5 +1,5 @@
 defmodule Example.Scenarios.Revocation do
-  @moduledoc "The revocation scenarios, rev-01 to rev-07."
+  @moduledoc "The revocation scenarios, rev-01 to rev-06."
 
   use Boundary,
     top_level?: true,
@@ -14,7 +14,6 @@ defmodule Example.Scenarios.Revocation do
   alias Example.Fixture
   alias Example.Program
   alias Example.Repo
-  alias Turnstile.PolicyVersion
 
   @spec rev_01() :: term()
   def rev_01 do
@@ -99,33 +98,8 @@ defmodule Example.Scenarios.Revocation do
     assert_read(subject("dana"), document)
   end
 
-  @spec rev_06(module()) :: term()
-  def rev_06(rules) do
-    world = Fixture.world!()
-    document = Fixture.document!(world)
-
-    settle()
-    assert_read(subject("ann"), document)
-    started = System.monotonic_time(:millisecond)
-    assert {:ok, %PolicyVersion{version: version}} = rules.publish_tightened()
-    published = System.monotonic_time(:millisecond)
-
-    try do
-      polled = System.monotonic_time(:millisecond)
-      assert Turnstile.Test.poll(fn -> not reads?(subject("ann"), document) end, propagation_deadline())
-      finished = System.monotonic_time(:millisecond)
-      propagation_report(version, total: finished - started, publish: published - started, poll: finished - polled)
-      assert_denied(subject("ann"), document)
-      assert_read(subject("dana"), document)
-    after
-      :ok = rules.restore()
-    end
-
-    assert_read(subject("ann"), document)
-  end
-
-  @spec rev_07() :: term()
-  def rev_07 do
+  @spec rev_06() :: term()
+  def rev_06 do
     {world, written} = Turnstile.Test.changes(&Fixture.world!/0)
     document = Fixture.document!(world)
 
