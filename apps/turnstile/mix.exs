@@ -44,7 +44,7 @@ defmodule Turnstile.MixProject do
     end
   end
 
-  defp ignore_modules, do: [~r/\.Generated\./, ~r/TestRepos\./]
+  defp ignore_modules, do: [~r/TestRepos\./]
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]

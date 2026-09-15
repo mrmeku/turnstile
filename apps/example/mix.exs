@@ -53,7 +53,7 @@ defmodule Example.MixProject do
   # application's own run; the example's own tests cover the contexts
   # against the fake adapter.
   defp ignore_modules do
-    [~r/\.Generated\./, ~r/^Example\.Scenarios/, ~r/^Example\.Fixture/, ~r/^Example\.Cluster/]
+    [~r/^Example\.Scenarios/, ~r/^Example\.Fixture/, ~r/^Example\.Cluster/]
   end
 
   # lib depends on core, on ecto and ecto_sql (the migration helper and

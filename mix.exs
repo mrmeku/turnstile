@@ -9,7 +9,7 @@ defmodule Turnstile.Umbrella.MixProject do
       elixir: "~> 1.20.4",
       start_permanent: Mix.env() == :prod,
       elixirc_options: [warnings_as_errors: true, infer_signatures: true, no_warn_undefined: []],
-      test_coverage: [summary: [threshold: 90], ignore_modules: [~r/\.Generated\./, ~r/TestRepos\./]],
+      test_coverage: [summary: [threshold: 90], ignore_modules: [~r/TestRepos\./]],
       aliases: aliases(),
       hex: hex(),
       deps: deps(),

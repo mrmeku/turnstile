@@ -14,7 +14,7 @@ defmodule ExamplePostgres.MixProject do
       elixirc_options: [warnings_as_errors: true, infer_signatures: true, no_warn_undefined: []],
       compilers: [:boundary] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
-      test_coverage: [summary: [threshold: 90], ignore_modules: [~r/\.Generated\./]],
+      test_coverage: [summary: [threshold: 90]],
       aliases: aliases(),
       hex: hex(),
       deps: deps(),

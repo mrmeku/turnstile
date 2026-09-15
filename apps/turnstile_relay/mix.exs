@@ -41,11 +41,9 @@ defmodule Turnstile.Relay.MixProject do
     if System.get_env("TURNSTILE_CORE_COVERAGE") do
       [summary: [threshold: 100], ignore_modules: [~r/^(?!.*\.Core\.)/]]
     else
-      [summary: [threshold: 90], ignore_modules: ignore_modules()]
+      [summary: [threshold: 90]]
     end
   end
-
-  defp ignore_modules, do: [~r/\.Generated\./]
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_env), do: ["lib"]
