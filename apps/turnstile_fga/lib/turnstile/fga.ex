@@ -21,7 +21,7 @@ defmodule Turnstile.Fga do
     what lets a drain write differences.
   - `Turnstile.Fga.Outbox`, the markers a drain works from. A handler on the
     change event writes one marker per affected object in the transaction
-    that changed the rows, and a `Turnstile.Relay` runner delivers them: per
+    that changed the rows, and a `Turnstile.Fga.Relay` runner delivers them: per
     object, the difference between what the rows require and what the store
     holds.
   - `Turnstile.Fga.Binding`, what the configuration entry does not carry:
@@ -46,7 +46,7 @@ defmodule Turnstile.Fga do
   @behaviour Turnstile.Adapter
 
   use Boundary,
-    deps: [Turnstile, Turnstile.Relay, Ecto, NimbleOptions],
+    deps: [Turnstile, Turnstile.Fga.Relay, Ecto, NimbleOptions],
     exports: [
       Binding,
       Client,
@@ -78,8 +78,8 @@ defmodule Turnstile.Fga do
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Drift
   alias Turnstile.Fga.Outbox
+  alias Turnstile.Fga.Relay.Cursor
   alias Turnstile.PolicyVersion
-  alias Turnstile.Relay.Cursor
 
   @schema NimbleOptions.new!(
             endpoint: [

@@ -18,8 +18,8 @@ defmodule Turnstile.Fga.Adapter.Settle do
   alias Turnstile.Fga.Binding
   alias Turnstile.Fga.Client
   alias Turnstile.Fga.Outbox
-  alias Turnstile.Relay
-  alias Turnstile.Relay.Pass
+  alias Turnstile.Fga.Relay
+  alias Turnstile.Fga.Relay.Pass
 
   @passes 1_000
 

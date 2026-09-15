@@ -30,7 +30,7 @@ A Zanzibar-style system stores tuples, `(user, relation, object)` such as `user:
 - `Turnstile.Fga.Migration`: the helpers a thin application's migration calls to create the outbox table and the cursor table, both in the application's own database, because a marker is written in the transaction that changed the rows and a pass advances the cursor in the transaction that delivered them.
 - Test support, compiled and never published: the tuple mapping for the neutral fixture beside `priv/conformance/model.fga`, the versions module that publishes a tightened model, and the two templates an application's binding is held to: `Turnstile.Fga.TupleMappingCase` for the mapping it declares and `Turnstile.Fga.OutboxCase` for the drain it runs.
 
-The package's `lib` depends on `turnstile`, `ecto`, `ecto_sql`, `nimble_options`, and `telemetry`; `postgrex` serves its own tests only, and Boundary checks that no call from `lib` reaches it.
+The package's `lib` depends on `turnstile`, `ecto`, `ecto_sql`, `nimble_options`, `postgrex`, and `telemetry`. The relay's cursor and its advisory lock are Postgres, which is why the driver is a dependency of `lib`; Boundary checks that no call from `lib` reaches `postgrex` or `ecto_sql` outside the migration helpers.
 
 ## Mechanism per rule shape
 

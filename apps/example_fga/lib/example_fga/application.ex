@@ -78,6 +78,6 @@ defmodule ExampleFga.Application do
   end
 
   defp drain do
-    {Turnstile.Relay, runners: [[name: Outbox.runner(), repo: Example.Repo, job: Outbox]]}
+    {Turnstile.Fga.Relay, runners: [[name: Outbox.runner(), repo: Example.Repo, job: Outbox]]}
   end
 end

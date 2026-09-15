@@ -11,14 +11,14 @@ defmodule Turnstile.Fga.Outbox do
   more: what that object requires is read from the tables when the marker is
   delivered, so a marker delivered twice costs a read and no write.
 
-  Delivery is a `Turnstile.Relay.Job`. One pass reads a batch of markers
+  Delivery is a `Turnstile.Fga.Relay.Job`. One pass reads a batch of markers
   above the cursor, takes the distinct objects in it, brings the store to
   what the tables require for each, and deletes the markers it delivered,
   all in the pass's transaction. A pass that does not commit leaves the
   markers and the cursor where they were. A thin application puts the runner
   in its tree and gives the job no options of its own:
 
-      {Turnstile.Relay,
+      {Turnstile.Fga.Relay,
        runners: [
          [name: Turnstile.Fga.Outbox.runner(), repo: MyApp.Repo, job: Turnstile.Fga.Outbox]
        ]}
@@ -40,7 +40,7 @@ defmodule Turnstile.Fga.Outbox do
   reports.
   """
 
-  @behaviour Turnstile.Relay.Job
+  @behaviour Turnstile.Fga.Relay.Job
 
   use Ecto.Schema
 
@@ -50,8 +50,8 @@ defmodule Turnstile.Fga.Outbox do
   alias Turnstile.Error
   alias Turnstile.Fga.Adapter.Store
   alias Turnstile.Fga.Binding
-  alias Turnstile.Relay.Entry
-  alias Turnstile.Relay.Job
+  alias Turnstile.Fga.Relay.Entry
+  alias Turnstile.Fga.Relay.Job
 
   @exemption {:exempt, :library}
   @handler {__MODULE__, :change}

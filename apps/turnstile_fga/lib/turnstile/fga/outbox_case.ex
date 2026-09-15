@@ -38,8 +38,8 @@ defmodule Turnstile.Fga.OutboxCase do
   alias Turnstile.Fga.Client.Write
   alias Turnstile.Fga.Drift
   alias Turnstile.Fga.Outbox
+  alias Turnstile.Fga.Relay.Cursor
   alias Turnstile.Fga.TupleKey
-  alias Turnstile.Relay.Cursor
 
   @limit 1_000
 

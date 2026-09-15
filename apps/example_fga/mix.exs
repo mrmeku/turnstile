@@ -58,8 +58,8 @@ defmodule ExampleFga.MixProject do
     ]
   end
 
-  # The example, the adapter, the relay the drain is a runner of, and the
-  # connection library the cluster the dump task raises rests on. `muontrap`
+  # The example, the adapter, and the connection library the cluster the
+  # dump task raises rests on. `muontrap`
   # starts the server the suite asks, through the test support of the
   # adapter. Every pin is exact. Versions verified against
   # https://hex.pm/api/packages/<name> on 2026-09-09.
@@ -69,7 +69,6 @@ defmodule ExampleFga.MixProject do
       {:turnstile_dev, in_umbrella: true, only: :test},
       {:example, in_umbrella: true},
       {:turnstile_fga, in_umbrella: true},
-      {:turnstile_relay, in_umbrella: true},
       {:ecto, "3.14.2"},
       {:ecto_sql, "3.14.0"},
       {:postgrex, "0.22.4"},

@@ -20,7 +20,7 @@ defmodule Turnstile.Fga.Migration do
   read as it was written.
 
   A thin application creates the cursor table beside this one, with
-  `Turnstile.Relay.Migration.cursor_up/1`, since the drain is a relay
+  `Turnstile.Fga.Relay.Migration.cursor_up/1`, since the drain is a relay
   runner and the cursor is where it keeps its place.
   """
 

@@ -3,7 +3,7 @@ defmodule ExampleFga.Repo.Migrations.Rules do
   use Ecto.Migration
 
   alias Turnstile.Fga.Migration
-  alias Turnstile.Relay
+  alias Turnstile.Fga.Relay
 
   # The rules of this binding are the model under `priv/fga`, which the server
   # holds and names by id, so the database holds no policy of its own. What it

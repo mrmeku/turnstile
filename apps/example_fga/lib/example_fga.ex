@@ -18,7 +18,7 @@ defmodule ExampleFga do
   """
 
   use Boundary,
-    deps: [Example, Turnstile, Turnstile.Fga, Turnstile.Relay, Ecto],
+    deps: [Example, Turnstile, Turnstile.Fga, Turnstile.Fga.Relay, Ecto],
     exports: [Application, Guard, TupleMapping]
 
   @author "example_fga"
